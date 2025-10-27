@@ -12,10 +12,8 @@ export default async function Page({ params }) {
   const { id } = await params;
 
   // ✅ Fetch from real API instead of mock data
-  // ✅ Fetch from real API instead of mock data
   const data = await fetchInvoice(id);
 
-  // ✅ Fetch all customers to get full details
   const allCustomers = await getCustomers(); // Already returns the array directly
 
   // Find the customer for this invoice
