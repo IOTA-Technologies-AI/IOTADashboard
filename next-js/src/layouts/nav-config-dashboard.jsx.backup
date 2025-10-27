@@ -108,7 +108,63 @@ export const navData = [
             path: paths.dashboard.hr.employee.root,
             children: [
               { title: 'All Employees', path: paths.dashboard.hr.employee.root },
-              { title: 'Payroll', path: paths.dashboard.hr.employee.finance.payroll.root },
+              {
+                title: 'Finance',
+                children: [
+                  { title: 'Payroll', path: paths.dashboard.hr.employee.finance.payroll.root },
+                  { title: 'Loan Request', path: paths.dashboard.hr.employee.finance.loanRequest },
+                  {
+                    title: 'Expense Claim',
+                    path: paths.dashboard.hr.employee.finance.expenseClaim,
+                  },
+                  {
+                    title: 'Payslip Request',
+                    path: paths.dashboard.hr.employee.finance.payslipRequest,
+                  },
+                ],
+              },
+              {
+                title: 'HR Services',
+                children: [
+                  {
+                    title: 'Flight Ticket',
+                    path: paths.dashboard.hr.employee.hrServices.flightTicket,
+                  },
+                  {
+                    title: 'Asset Request',
+                    path: paths.dashboard.hr.employee.hrServices.assetRequest,
+                  },
+                  {
+                    title: 'Asset Clearance',
+                    path: paths.dashboard.hr.employee.hrServices.assetClearance,
+                  },
+                  {
+                    title: 'Exit/Re-Entry Visa',
+                    path: paths.dashboard.hr.employee.hrServices.exitReentryVisa,
+                  },
+                  {
+                    title: 'Resignation',
+                    path: paths.dashboard.hr.employee.hrServices.resignation,
+                  },
+                  {
+                    title: 'Chamber Letter',
+                    path: paths.dashboard.hr.employee.hrServices.chamberLetter,
+                  },
+                ],
+              },
+              {
+                title: 'Government & Others',
+                children: [
+                  {
+                    title: 'Insurance Request',
+                    path: paths.dashboard.hr.employee.government.insuranceRequest,
+                  },
+                  {
+                    title: 'Iqama Renewal',
+                    path: paths.dashboard.hr.employee.government.iqamaRenewal,
+                  },
+                ],
+              },
             ],
           },
           { title: 'Employee Offer Management', path: paths.dashboard.hr.offerManagement.root },

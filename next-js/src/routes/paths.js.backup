@@ -115,12 +115,6 @@ export const paths = {
         new: path(ROOTS.DASHBOARD, '/hr/employee/new'),
         edit: (id) => path(ROOTS.DASHBOARD, `/hr/employee/${id}/edit`),
         details: (id) => path(ROOTS.DASHBOARD, `/hr/employee/${id}`),
-        finance: {
-          payroll: {
-            root: path(ROOTS.DASHBOARD, '/hr/employee/finance/payroll'),
-            generate: path(ROOTS.DASHBOARD, '/hr/employee/finance/payroll/generate'),
-          },
-        },
       },
 
       offerManagement: {

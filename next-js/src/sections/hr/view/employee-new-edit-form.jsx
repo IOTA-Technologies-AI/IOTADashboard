@@ -67,13 +67,13 @@ export function EmployeeNewEditForm({ currentEmployee }) {
       lastName: currentEmployee?.lastName || '',
       currencyCode: currentEmployee?.currencyCode || 'SAR',
       nameArabic: currentEmployee?.nameArabic || '',
-      employeeType: currentEmployee?.employeeType || 'permanent',
+      employeeType: currentEmployee?.employeeType || 'Permanent',
       passportNumber: currentEmployee?.passportNumber || '',
       iqamaNumber: currentEmployee?.iqamaNumber || '',
       nationality: currentEmployee?.nationality || '',
       dateOfBirth: currentEmployee?.dateOfBirth || '',
-      gender: currentEmployee?.gender || 'male',
-      maritalStatus: currentEmployee?.maritalStatus || 'single',
+      gender: currentEmployee?.gender || 'Male',
+      maritalStatus: currentEmployee?.maritalStatus || 'Single',
       phone: currentEmployee?.phone || '',
       email: currentEmployee?.email || '',
       designation: currentEmployee?.designation || '',
@@ -85,7 +85,7 @@ export function EmployeeNewEditForm({ currentEmployee }) {
       housingAllowance: currentEmployee?.housingAllowance || 0,
       transportationAllowance: currentEmployee?.transportationAllowance || 0,
       otherAllowances: currentEmployee?.otherAllowances || 0,
-      employmentStatus: currentEmployee?.employmentStatus || 'active',
+      employmentStatus: currentEmployee?.employmentStatus || 'Active',
       bankName: currentEmployee?.bankName || '',
       bankAccountNumber: currentEmployee?.bankAccountNumber || '',
       iban: currentEmployee?.iban || '',
@@ -228,10 +228,10 @@ export function EmployeeNewEditForm({ currentEmployee }) {
                 <Field.DatePicker name="employmentStartDate" label="Employment Start Date" />
                 <Field.DatePicker name="employmentEndDate" label="Employment End Date" />
                 <Field.Select name="employmentStatus" label="Status">
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                  <MenuItem value="on-leave">On Leave</MenuItem>
-                  <MenuItem value="terminated">Terminated</MenuItem>
+                  <MenuItem value="Active">Active</MenuItem>
+                  <MenuItem value="Inactive">Inactive</MenuItem>
+                  <MenuItem value="On Leave">On Leave</MenuItem>
+                  <MenuItem value="Terminated">Terminated</MenuItem>
                 </Field.Select>
               </Box>
             </Card>

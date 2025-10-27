@@ -34,7 +34,7 @@ export default function OfferManagementPage() {
     },
     [router]
   );
-  const [htmlPreviewOpen, setHtmlPreviewOpen] = useState(false);
+
   const columns = [
     {
       field: 'candidateName',
