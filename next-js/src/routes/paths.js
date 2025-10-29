@@ -108,6 +108,25 @@ export const paths = {
       file: `${ROOTS.DASHBOARD}/file`,
       course: `${ROOTS.DASHBOARD}/course`,
     },
+    finance: {
+      root: `${ROOTS.DASHBOARD}/finance`,
+      dashboard: `${ROOTS.DASHBOARD}/finance/dashboard`,
+      payments: {
+        root: `${ROOTS.DASHBOARD}/finance/payments`,
+        new: `${ROOTS.DASHBOARD}/finance/payments/new`,
+        details: (id) => `${ROOTS.DASHBOARD}/finance/payments/${id}`,
+        edit: (id) => `${ROOTS.DASHBOARD}/finance/payments/${id}/edit`,
+      },
+      reports: {
+        arAging: `${ROOTS.DASHBOARD}/finance/reports/ar-aging`,
+        apAging: `${ROOTS.DASHBOARD}/finance/reports/ap-aging`,
+        paymentHistory: `${ROOTS.DASHBOARD}/finance/reports/payment-history`,
+        expenseByCategory: `${ROOTS.DASHBOARD}/finance/reports/expense-by-category`,
+      },
+      chartOfAccounts: `${ROOTS.DASHBOARD}/finance/chart-of-accounts`,
+      generalLedger: `${ROOTS.DASHBOARD}/finance/general-ledger`,
+      journalEntries: `${ROOTS.DASHBOARD}/finance/journal-entries`,
+    },
     hr: {
       root: path(ROOTS.DASHBOARD, '/hr'),
       employee: {

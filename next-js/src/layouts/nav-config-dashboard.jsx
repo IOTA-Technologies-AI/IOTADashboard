@@ -1,5 +1,6 @@
 import MoneyOffIcon from '@mui/icons-material/MoneyOff';
 import HandshakeIcon from '@mui/icons-material/Handshake';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 
 import { paths } from 'src/routes/paths';
 
@@ -43,6 +44,7 @@ const ICONS = {
   dashboard: icon('ic-dashboard'),
   vendor: <HandshakeIcon style={{ width: 24, height: 24 }} />,
   expense: <MoneyOffIcon style={{ width: 24, height: 24 }} />,
+  finance: <AttachMoneyIcon style={{ width: 24, height: 24 }} />,
 };
 
 // ----------------------------------------------------------------------
@@ -77,6 +79,7 @@ export const navData = [
       { title: 'Accounts', path: paths.dashboard.general.account, icon: ICONS.dashboard },
       { title: 'File', path: paths.dashboard.general.file, icon: ICONS.file },
       { title: 'Course', path: paths.dashboard.general.course, icon: ICONS.course },
+      { title: 'Finance', path: paths.dashboard.finance.root, icon: ICONS.finance },
     ],
   },
   /**
