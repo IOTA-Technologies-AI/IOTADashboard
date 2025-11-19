@@ -19,13 +19,16 @@ const nextConfig = {
   env: {
     BUILD_STATIC_EXPORT: JSON.stringify(isStaticExport),
   },
+  transpilePackages: ['framer-motion', 'motion-dom', 'motion-utils'],
   // Without --turbopack (next dev)
-  webpack(config) {
+  webpack(config, { isServer }) {
     config.module.rules.push({
       test: /\.svg$/,
       use: ['@svgr/webpack'],
     });
-
+    if (isServer) {
+      config.externals = [...(config.externals || []), 'motion-dom', 'motion-utils'];
+    }
     return config;
   },
   // With --turbopack (next dev --turbopack)
