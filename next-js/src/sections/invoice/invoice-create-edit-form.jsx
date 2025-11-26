@@ -71,7 +71,7 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
   const canEdit = !isPaid;
 
   const defaultValues = {
-    invoiceNumber: 'INV-1990',
+    invoiceNumber: `INV-${Date.now()}`,
     createDate: today(),
     dueDate: null,
     taxes: 0,

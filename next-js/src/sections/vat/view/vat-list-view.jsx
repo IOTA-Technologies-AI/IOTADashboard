@@ -19,7 +19,7 @@ import { paths } from 'src/routes/paths';
 
 import { getQuarterlyVATData } from 'src/utils/vat-api-helper';
 import {
-  getLastQuarter,
+  getCurrentQuarter,
   aggregateVATTotals,
   calculateZATCAPayable,
 } from 'src/utils/vat-calculator';
@@ -61,12 +61,12 @@ const TABLE_HEAD = [
 export function VATListView() {
   const table = useTable({ defaultRowsPerPage: 25 });
   const theme = useTheme();
-  // Get last quarter by default
-  const lastQuarter = getLastQuarter();
+  // Get current quarter by default
+  const currentQuarter = getCurrentQuarter();
 
   const [filters, setFilters] = useState({
-    year: lastQuarter.year,
-    quarter: lastQuarter.quarter,
+    year: currentQuarter.year,
+    quarter: currentQuarter.quarter,
     type: 'all',
     currency: 'All',
     searchQuery: '',
@@ -162,9 +162,9 @@ export function VATListView() {
         if (format === 'pdf-en' || format === 'pdf-ar') {
           const pdfLocale = format === 'pdf-ar' ? 'ar' : 'en';
         } else if (format === 'excel') {
-          exportVATToExcel(vatData, lastQuarter);
+          exportVATToExcel(vatData, currentQuarter);
         } else if (format === 'json') {
-          exportVATToJSON(vatData, lastQuarter);
+          exportVATToJSON(vatData, currentQuarter);
         }
       } catch (error) {
         console.error('Export failed:', error);
@@ -172,7 +172,7 @@ export function VATListView() {
         setPopover({ open: false, anchorEl: null });
       }
     },
-    [vatData, lastQuarter]
+    [vatData, currentQuarter]
   );
 
   return (
@@ -200,7 +200,7 @@ export function VATListView() {
       {/* ZATCA Summary Card */}
       <Box sx={{ mb: { xs: 3, md: 5 } }}>
         <VATSummaryCard
-          quarterInfo={lastQuarter}
+          quarterInfo={currentQuarter}
           arVAT={arTotals.totalVAT}
           apVAT={apTotals.totalVAT}
           zatcaPayable={zatcaPayable}

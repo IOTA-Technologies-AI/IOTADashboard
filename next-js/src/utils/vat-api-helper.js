@@ -63,7 +63,8 @@ export async function getQuarterlyVATData(year, quarter) {
       apPayments,
       quarter: quarterInfo,
     } = await fetchQuarterlyInvoices(year, quarter);
-
+    console.log('📋 AR Invoices raw:', arInvoices);
+    console.log('📋 AP Payments raw:', apPayments);
     console.log('📊 Raw data fetched:', {
       arInvoicesCount: arInvoices?.length || 0,
       apPaymentsCount: apPayments?.length || 0,
