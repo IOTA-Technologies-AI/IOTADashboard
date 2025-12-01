@@ -2,7 +2,7 @@
 
 import { z as zod } from 'zod';
 import { useForm } from 'react-hook-form';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useEffect, useState } from 'react'; // ✅ Added useState
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import Box from '@mui/material/Box';
@@ -12,11 +12,13 @@ import Stack from '@mui/material/Stack';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
+import CircularProgress from '@mui/material/CircularProgress'; // ✅ Added for loading state
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
 import { apiHelper } from 'src/utils/apiHelper';
+import { fCurrency } from 'src/utils/format-number'; // ✅ Added for formatting
 import {
   EXPENSE_TYPES,
   EXPENSE_CURRENCIES,
@@ -27,6 +29,7 @@ import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
 
 // ----------------------------------------------------------------------
+const INVOICE_AGAINST_INVOICE_TYPE = 18;
 
 const ExpenseSchema = zod.object({
   expenseType: zod.coerce.number().min(1, { message: 'Expense type is required!' }),
@@ -42,12 +45,20 @@ const ExpenseSchema = zod.object({
   expenseApprovedAmount: zod.number().optional(),
   originalTransactionDate: zod.string().optional(),
   fileLocation: zod.string().optional(),
+  // ✅ Added linked invoice fields
+  linkedInvoiceNumber: zod.string().optional(),
+  linkedInvoiceId: zod.string().optional(),
+  linkedInvoiceAmount: zod.number().optional(),
 });
 
 // ----------------------------------------------------------------------
 
 export function ExpenseNewEditForm({ currentExpense }) {
   const router = useRouter();
+
+  // ✅ Added state for AR invoices
+  const [arInvoices, setArInvoices] = useState([]);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
 
   console.log('🔍 ExpenseNewEditForm - currentExpense:', currentExpense);
   console.log('🔍 originalExpenseAmount:', currentExpense?.originalExpenseAmount);
@@ -87,6 +98,11 @@ export function ExpenseNewEditForm({ currentExpense }) {
         currentExpense?.originalExpenseCurrency && currentExpense.originalExpenseCurrency !== 'SAR'
           ? currentExpense.originalExpenseCurrency
           : currentExpense?.expenseCurrency || 'SAR',
+
+      // ✅ Added linked invoice defaults
+      linkedInvoiceNumber: currentExpense?.linkedInvoiceNumber || '',
+      linkedInvoiceId: currentExpense?.linkedInvoiceId || '',
+      linkedInvoiceAmount: currentExpense?.linkedInvoiceAmount || 0,
     }),
     [currentExpense]
   );
@@ -99,9 +115,41 @@ export function ExpenseNewEditForm({ currentExpense }) {
 
   const {
     reset,
+    watch,
+    setValue,
     handleSubmit,
     formState: { isSubmitting },
   } = methods;
+
+  // ✅ Watch expense type to show/hide invoice dropdown
+  const watchedExpenseType = watch('expenseType');
+  const showInvoiceDropdown = Number(watchedExpenseType) === INVOICE_AGAINST_INVOICE_TYPE;
+
+  // ✅ Fetch AR invoices on mount
+  useEffect(() => {
+    const fetchARInvoices = async () => {
+      setLoadingInvoices(true);
+      try {
+        const response = await apiHelper.getAccountsReceivable();
+        setArInvoices(response.invoices || []);
+      } catch (error) {
+        console.error('Failed to fetch AR invoices:', error);
+        setArInvoices([]);
+      } finally {
+        setLoadingInvoices(false);
+      }
+    };
+    fetchARInvoices();
+  }, []);
+
+  // ✅ Clear linked invoice fields when expense type changes away from "Invoice Against Invoice"
+  useEffect(() => {
+    if (Number(watchedExpenseType) !== INVOICE_AGAINST_INVOICE_TYPE) {
+      setValue('linkedInvoiceNumber', '');
+      setValue('linkedInvoiceId', '');
+      setValue('linkedInvoiceAmount', 0);
+    }
+  }, [watchedExpenseType, setValue]);
 
   useEffect(() => {
     if (currentExpense) {
@@ -115,11 +163,11 @@ export function ExpenseNewEditForm({ currentExpense }) {
         expenseType: data.expenseType,
         expenseDate: data.expenseDate,
         expenseBy: data.expenseBy,
-        expenseSettlementNotes: data.expenseSettlementNotes || null, // RENAMED
+        expenseSettlementNotes: data.expenseSettlementNotes || null,
 
         // Send original amount and currency
-        originalExpenseAmount: Number(data.originalExpenseAmount), // RENAMED
-        originalExpenseCurrency: data.originalExpenseCurrency, // RENAMED
+        originalExpenseAmount: Number(data.originalExpenseAmount),
+        originalExpenseCurrency: data.originalExpenseCurrency,
         expenseAmount: 0, // Backend will calculate this
 
         externalTransactionId: data.externalTransactionId || null,
@@ -136,6 +184,11 @@ export function ExpenseNewEditForm({ currentExpense }) {
           : null,
         originalTransactionDate: data.originalTransactionDate || null,
         fileLocation: data.fileLocation || null,
+
+        // ✅ Added linked invoice fields
+        linkedInvoiceNumber: data.linkedInvoiceNumber || null,
+        linkedInvoiceId: data.linkedInvoiceId || null,
+        linkedInvoiceAmount: data.linkedInvoiceAmount ? Number(data.linkedInvoiceAmount) : null,
       };
 
       if (currentExpense) {
@@ -174,6 +227,37 @@ export function ExpenseNewEditForm({ currentExpense }) {
             </MenuItem>
           ))}
         </Field.Select>
+
+        {/* ✅ Invoice dropdown - only shown when "Invoice Against Invoice" is selected */}
+        {showInvoiceDropdown && (
+          <Field.Select
+            name="linkedInvoiceNumber"
+            label="Select Invoice"
+            InputLabelProps={{ shrink: true }}
+            helperText="Select the AR invoice this expense is linked to"
+          >
+            {loadingInvoices ? (
+              <MenuItem disabled>
+                <CircularProgress size={20} sx={{ mr: 1 }} /> Loading invoices...
+              </MenuItem>
+            ) : arInvoices.length === 0 ? (
+              <MenuItem disabled>No invoices found</MenuItem>
+            ) : (
+              arInvoices.map((invoice) => (
+                <MenuItem
+                  key={invoice.invoiceNumber}
+                  value={invoice.invoiceNumber}
+                  onClick={() => {
+                    setValue('linkedInvoiceId', invoice.id?.toString() || '');
+                    setValue('linkedInvoiceAmount', invoice.totalAmount || 0);
+                  }}
+                >
+                  {invoice.invoiceNumber} - {invoice.customerName} - {fCurrency(invoice.totalAmount)} {invoice.currencyCode || 'SAR'}
+                </MenuItem>
+              ))
+            )}
+          </Field.Select>
+        )}
 
         <Field.DatePicker name="expenseDate" label="Expense Date" />
 

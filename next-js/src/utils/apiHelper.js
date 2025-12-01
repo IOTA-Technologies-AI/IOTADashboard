@@ -733,4 +733,5 @@ export const apiHelper = {
   createLeaveRequest,
   updateLeaveRequest,
   deleteLeaveRequest,
+  getAccountsReceivable: fetchAccountsReceivable,
 };

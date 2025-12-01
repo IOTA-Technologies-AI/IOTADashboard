@@ -71,6 +71,7 @@ export const EXPENSE_TYPES = [
   { id: 15, label: 'Office Cleaning Equipments', isEmployeeRelated: false },
   { id: 16, label: 'Office Furniture', isEmployeeRelated: false },
   { id: 17, label: 'Bank Charges', isEmployeeRelated: false },
+  { id: 18, label: 'Invoice Against Invoice', isEmployeeRelated: false },
 ];
 
 // Expense Approval Status
