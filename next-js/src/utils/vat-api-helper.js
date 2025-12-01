@@ -25,7 +25,15 @@ dayjs.extend(isBetween);
 export async function fetchQuarterlyInvoices(year, quarter) {
   try {
     const { startDate, endDate } = getQuarterDates(year, quarter);
-
+    // DEBUG: Log the quarter dates
+    console.log('🗓️ Quarter date range:', {
+      year,
+      quarter,
+      startDate,
+      endDate,
+      startDateFormatted: dayjs(startDate).format('YYYY-MM-DD'),
+      endDateFormatted: dayjs(endDate).format('YYYY-MM-DD'),
+    });
     // Format dates for API (YYYY-MM-DD)
     const startDateStr = dayjs(startDate).format('YYYY-MM-DD');
     const endDateStr = dayjs(endDate).format('YYYY-MM-DD');
@@ -72,8 +80,21 @@ export async function getQuarterlyVATData(year, quarter) {
     });
 
     // In getQuarterlyVATData function, update the processing:
+    // Filter to only include PAID invoices for VAT calculation
+    const paidARInvoices = arInvoices.filter(
+      (invoice) => invoice.status?.toLowerCase() === 'paid'
+    );
+    const paidAPPayments = apPayments.filter(
+      (payment) => payment.status?.toLowerCase() === 'paid'
+    );
 
-    const arRecords = arInvoices.map((invoice) =>
+    console.log('📋 Filtered PAID invoices:', {
+      totalAR: arInvoices.length,
+      paidAR: paidARInvoices.length,
+      totalAP: apPayments.length,
+      paidAP: paidAPPayments.length,
+    });
+    const arRecords = paidARInvoices.map((invoice) =>
       processInvoiceVAT(
         {
           invoice_id: invoice.id,
@@ -88,7 +109,7 @@ export async function getQuarterlyVATData(year, quarter) {
       )
     );
 
-    const apRecords = apPayments.map((payment) =>
+    const apRecords = paidAPPayments.map((payment) =>
       processInvoiceVAT(
         {
           payment_id: payment.id,

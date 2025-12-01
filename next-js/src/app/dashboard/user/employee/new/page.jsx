@@ -6,7 +6,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
-import { EmployeeNewEditForm } from 'src/sections/hr/employee-new-edit-form';
+import { EmployeeNewEditForm } from 'src/sections/hr/view/employee-new-edit-form'
 
 export default function EmployeeCreatePage() {
   return (
