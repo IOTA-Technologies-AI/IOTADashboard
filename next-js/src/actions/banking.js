@@ -1,6 +1,6 @@
 'use server';
 
-import { supabase } from 'src/lib/supabase';
+const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
 
 // ----------------------------------------------------------------------
 // BANK ACCOUNTS
@@ -8,24 +8,33 @@ import { supabase } from 'src/lib/supabase';
 
 export async function fetchBankAccounts(filters = {}) {
   try {
-    let query = supabase
-      .from('bankAccounts')
-      .select('*')
-      .order('createdAt', { ascending: false });
+    let url = `${API_BASE_URL}/bankAccounts`;
 
+    // Use region-specific endpoint if filter is provided
     if (filters.region) {
-      query = query.eq('region', filters.region);
+      url = `${API_BASE_URL}/bankAccounts/region/${filters.region}`;
     }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    let data = result.data || [];
+
+    // Apply status filter client-side if needed
     if (filters.status) {
-      query = query.eq('status', filters.status);
+      data = data.filter(account => account.status === filters.status);
     }
 
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error fetching bank accounts:', error);
-      return { success: false, error: error.message };
-    }
     return { success: true, data };
   } catch (error) {
     console.error('Error fetching bank accounts:', error);
@@ -35,52 +44,91 @@ export async function fetchBankAccounts(filters = {}) {
 
 export async function fetchBankAccountById(accountId) {
   try {
-    const { data, error } = await supabase
-      .from('bankAccounts')
-      .select('*')
-      .eq('id', accountId)
-      .single();
+    const response = await fetch(`${API_BASE_URL}/bankAccounts/${accountId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-    return { success: true, data };
+
+    const result = await response.json();
+    return { success: true, data: result.data };
   } catch (error) {
+    console.error('Error fetching bank account:', error);
     return { success: false, error: error.message };
   }
 }
 
 export async function createBankAccount(accountData) {
   try {
-    const { data, error } = await supabase
-      .from('bankAccounts')
-      .insert([accountData])
-      .select()
-      .single();
+    const response = await fetch(`${API_BASE_URL}/bankAccounts`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(accountData),
+    });
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-    return { success: true, data };
+
+    const result = await response.json();
+    return { success: true, data: result.data };
   } catch (error) {
+    console.error('Error creating bank account:', error);
     return { success: false, error: error.message };
   }
 }
 
 export async function updateBankAccount(accountId, updates) {
   try {
-    const { data, error } = await supabase
-      .from('bankAccounts')
-      .update(updates)
-      .eq('id', accountId)
-      .select()
-      .single();
+    const response = await fetch(`${API_BASE_URL}/bankAccounts/${accountId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id: accountId, ...updates }),
+    });
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-    return { success: true, data };
+
+    const result = await response.json();
+    return { success: true, data: result.data };
   } catch (error) {
+    console.error('Error updating bank account:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateBankAccountBalance(accountId, newBalance) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/bankAccounts/${accountId}/balance`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id: accountId, newBalance }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return { success: true, data: result.data };
+  } catch (error) {
+    console.error('Error updating bank account balance:', error);
     return { success: false, error: error.message };
   }
 }
@@ -91,109 +139,141 @@ export async function updateBankAccount(accountId, updates) {
 
 export async function fetchBankTransactions(filters = {}) {
   try {
-    let query = supabase
-      .from('bankTransactions')
-      .select(`
-        *,
-        bankAccounts:bankAccountId (
-          id, accountName, accountNumber, bankName, currency, region
-        )
-      `)
-      .order('transactionDate', { ascending: false });
+    let url = `${API_BASE_URL}/bankTransactions`;
 
+    // Use account-specific endpoint if filter is provided
     if (filters.accountId) {
-      query = query.eq('bankAccountId', filters.accountId);
+      url = `${API_BASE_URL}/bankTransactions/account/${filters.accountId}`;
+    } else if (filters.statementId) {
+      url = `${API_BASE_URL}/bankTransactions/statement/${filters.statementId}`;
     }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    let data = result.data || [];
+
+    // Apply additional filters client-side
     if (filters.transactionType) {
-      query = query.eq('transactionType', filters.transactionType);
+      data = data.filter(txn => txn.transactionType === filters.transactionType);
     }
     if (filters.category) {
-      query = query.eq('category', filters.category);
+      data = data.filter(txn => txn.category === filters.category);
     }
     if (filters.startDate) {
-      query = query.gte('transactionDate', filters.startDate);
+      data = data.filter(txn => txn.transactionDate >= filters.startDate);
     }
     if (filters.endDate) {
-      query = query.lte('transactionDate', filters.endDate);
+      data = data.filter(txn => txn.transactionDate <= filters.endDate);
     }
     if (filters.limit) {
-      query = query.limit(filters.limit);
+      data = data.slice(0, filters.limit);
     }
 
-    const { data, error } = await query;
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
     return { success: true, data };
   } catch (error) {
+    console.error('Error fetching bank transactions:', error);
     return { success: false, error: error.message };
   }
 }
 
 export async function createBankTransaction(transactionData) {
   try {
-    const { data, error } = await supabase
-      .from('bankTransactions')
-      .insert([transactionData])
-      .select()
-      .single();
+    const response = await fetch(`${API_BASE_URL}/bankTransactions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(transactionData),
+    });
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-    return { success: true, data };
+
+    const result = await response.json();
+    return { success: true, data: result.data };
   } catch (error) {
+    console.error('Error creating bank transaction:', error);
     return { success: false, error: error.message };
   }
 }
 
 export async function createBulkTransactions(transactions) {
   try {
-    const { data, error } = await supabase
-      .from('bankTransactions')
-      .insert(transactions)
-      .select();
+    const response = await fetch(`${API_BASE_URL}/bankTransactions/bulk`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ transactions }),
+    });
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
+
+    const result = await response.json();
+    const data = result.data || [];
     return { success: true, data, count: data.length };
   } catch (error) {
+    console.error('Error creating bulk transactions:', error);
     return { success: false, error: error.message };
   }
 }
 
 export async function updateBankTransaction(transactionId, updates) {
   try {
-    const { data, error } = await supabase
-      .from('bankTransactions')
-      .update(updates)
-      .eq('id', transactionId)
-      .select()
-      .single();
+    const response = await fetch(`${API_BASE_URL}/bankTransactions/${transactionId}`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id: transactionId, ...updates }),
+    });
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-    return { success: true, data };
+
+    const result = await response.json();
+    return { success: true, data: result.data };
   } catch (error) {
+    console.error('Error updating bank transaction:', error);
     return { success: false, error: error.message };
   }
 }
 
 export async function deleteBankTransaction(transactionId) {
   try {
-    const { error } = await supabase
-      .from('bankTransactions')
-      .delete()
-      .eq('id', transactionId);
+    const response = await fetch(`${API_BASE_URL}/bankTransactions/${transactionId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
+
     return { success: true };
   } catch (error) {
+    console.error('Error deleting bank transaction:', error);
     return { success: false, error: error.message };
   }
 }
@@ -204,45 +284,81 @@ export async function deleteBankTransaction(transactionId) {
 
 export async function createBankStatement(statementData) {
   try {
-    const { data, error } = await supabase
-      .from('bankStatements')
-      .insert([statementData])
-      .select()
-      .single();
+    const response = await fetch(`${API_BASE_URL}/bankStatements`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(statementData),
+    });
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-    return { success: true, data };
+
+    const result = await response.json();
+    return { success: true, data: result.data };
   } catch (error) {
+    console.error('Error creating bank statement:', error);
     return { success: false, error: error.message };
   }
 }
 
 export async function fetchBankStatements(accountId = null) {
   try {
-    let query = supabase
-      .from('bankStatements')
-      .select(`
-        *,
-        bankAccounts:accountId (id, accountName, accountNumber, bankName)
-      `)
-      .order('uploadedAt', { ascending: false });
+    let url = `${API_BASE_URL}/bankStatements`;
 
     if (accountId) {
-      query = query.eq('accountId', accountId);
+      url = `${API_BASE_URL}/bankStatements/account/${accountId}`;
     }
 
-    const { data, error } = await query;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
-    if (error) {
-      return { success: false, error: error.message };
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
     }
-    return { success: true, data };
+
+    const result = await response.json();
+    return { success: true, data: result.data || [] };
   } catch (error) {
+    console.error('Error fetching bank statements:', error);
     return { success: false, error: error.message };
   }
 }
+
+export async function updateBankStatementStatus(statementId, status, errorMessage = null) {
+  try {
+    const response = await fetch(`${API_BASE_URL}/bankStatements/${statementId}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id: statementId, status, errorMessage }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+    }
+
+    const result = await response.json();
+    return { success: true, data: result.data };
+  } catch (error) {
+    console.error('Error updating bank statement status:', error);
+    return { success: false, error: error.message };
+  }
+}
+
+// ----------------------------------------------------------------------
+// UTILITY FUNCTIONS
+// ----------------------------------------------------------------------
 
 export async function generateTransactionNumber() {
   const timestamp = Date.now().toString(36).toUpperCase();

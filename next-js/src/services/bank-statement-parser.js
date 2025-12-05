@@ -40,16 +40,26 @@ class EmiratesNBDParser {
       branchName: '',
     };
 
-    const accountMatch = text.match(/Account No\.\s*(\d+)/i);
+    // Account number appears BEFORE "Account No." on its own line
+    const accountMatch = text.match(/(\d{10,16})\s*Account No\./i);
     if (accountMatch) accountInfo.accountNumber = accountMatch[1];
 
-    const ibanMatch = text.match(/IBAN\s*(AE[\d\s]+)/i);
+    // Also try: number right after "Account No."
+    if (!accountInfo.accountNumber) {
+      const altAccountMatch = text.match(/Account No\.\s*(\d+)/i);
+      if (altAccountMatch) accountInfo.accountNumber = altAccountMatch[1];
+    }
+
+    // IBAN with masked characters (XXXX pattern)
+    const ibanMatch = text.match(/IBAN\s*(AE[\dX\s]+)/i);
     if (ibanMatch) accountInfo.iban = ibanMatch[1].replace(/\s/g, '');
 
-    const nameMatch = text.match(/M\/S\.\s*([^\n]+)/i);
+    // Company name after M/S.
+    const nameMatch = text.match(/M\/S\.\s*([A-Z][A-Z\s]+)/i);
     if (nameMatch) accountInfo.accountName = nameMatch[1].trim();
 
-    const branchMatch = text.match(/Branch\s*([^\n]+)/i);
+    // Branch name - appears AFTER "Branch" keyword
+    const branchMatch = text.match(/Branch\s+([A-Z][A-Z\s,]+?)(?:\n|TRN|Date)/i);
     if (branchMatch) accountInfo.branchName = branchMatch[1].trim();
 
     return accountInfo;
@@ -64,16 +74,18 @@ class EmiratesNBDParser {
       closingBalance: 0,
     };
 
-    const periodMatch = text.match(/From\s*(\d{1,2}\/\d{1,2}\/\s*\d{4})\s*to\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
+    const periodMatch = text.match(
+      /From\s*(\d{1,2}\/\d{1,2}\/\d{4})\s*to\s*(\d{1,2}\/\d{1,2}\/\d{4})/i
+    );
     if (periodMatch) {
       statementInfo.periodStart = this.parseDateDDMMYYYY(periodMatch[1]);
       statementInfo.periodEnd = this.parseDateDDMMYYYY(periodMatch[2]);
     }
 
-    const openingMatch = text.match(/BROUGHT FORWARD\s*([\d,]+\.\d{2})(?:Cr|Dr)?/i);
+    const openingMatch = text.match(/BROUGHT FORWARD\s*([\d,]+\.\d{2})/i);
     if (openingMatch) statementInfo.openingBalance = this.parseAmount(openingMatch[1]);
 
-    const closingMatch = text.match(/CARRIED FORWARD\s*([\d,]+\.\d{2})(?:Cr|Dr)?/i);
+    const closingMatch = text.match(/CARRIED FORWARD\s*([\d,]+\.\d{2})/i);
     if (closingMatch) statementInfo.closingBalance = this.parseAmount(closingMatch[1]);
 
     return statementInfo;
@@ -89,9 +101,11 @@ class EmiratesNBDParser {
     for (const line of lines) {
       const trimmedLine = line.trim();
 
-      if (trimmedLine.includes('BROUGHT FORWARD') ||
-          trimmedLine.includes('CARRIED FORWARD') ||
-          !trimmedLine) {
+      if (
+        trimmedLine.includes('BROUGHT FORWARD') ||
+        trimmedLine.includes('CARRIED FORWARD') ||
+        !trimmedLine
+      ) {
         continue;
       }
 
@@ -178,8 +192,18 @@ class EmiratesNBDParser {
 
   parseDateDDMMMYY(dateStr) {
     const months = {
-      JAN: '01', FEB: '02', MAR: '03', APR: '04', MAY: '05', JUN: '06',
-      JUL: '07', AUG: '08', SEP: '09', OCT: '10', NOV: '11', DEC: '12',
+      JAN: '01',
+      FEB: '02',
+      MAR: '03',
+      APR: '04',
+      MAY: '05',
+      JUN: '06',
+      JUL: '07',
+      AUG: '08',
+      SEP: '09',
+      OCT: '10',
+      NOV: '11',
+      DEC: '12',
     };
     const match = dateStr.match(/(\d{2})([A-Z]{3})(\d{2})/i);
     if (match) {

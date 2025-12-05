@@ -1,9 +1,11 @@
+import { PdfReader } from 'pdfreader';
 import { NextResponse } from 'next/server';
 
 import { SUPPORTED_BANKS, getCurrencyByRegion } from 'src/utils/constants/banking';
 
-import { supabase } from 'src/lib/supabase';
 import { parseStatement, detectBank } from 'src/services/bank-statement-parser';
+
+const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
 
 export async function POST(request) {
   try {
@@ -24,20 +26,75 @@ export async function POST(request) {
 
     let pdfText = '';
     try {
-      const pdfParse = (await import('pdf-parse')).default;
-      const options = password ? { password } : {};
-      const pdfData = await pdfParse(buffer, options);
-      pdfText = pdfData.text;
+      const rows = {};
+      await new Promise((resolve, reject) => {
+        // eslint-disable-next-line consistent-return
+        new PdfReader({ password: password || undefined }).parseBuffer(buffer, (err, item) => {
+          if (err) {
+            return reject(err);
+          }
+          if (!item) {
+            resolve();
+          } else if (item.text) {
+            // Group text by Y position (row) to preserve line structure
+            const y = Math.round(item.y * 10);
+            if (!rows[y]) rows[y] = [];
+            rows[y].push({ x: item.x, text: item.text });
+          }
+        });
+      });
+
+      // Sort rows by Y position and items within each row by X position
+      const sortedYs = Object.keys(rows)
+        .map(Number)
+        .sort((a, b) => a - b);
+      const lines = sortedYs.map((y) =>
+        rows[y]
+          .sort((a, b) => a.x - b.x)
+          .map((item) => item.text)
+          .join(' ')
+      );
+      console.log('=== FIRST 50 LINES OF PDF ===');
+      pdfText.split('\n').slice(0, 50).forEach((line, i) => console.log(`${i}: ${line}`));
+      console.log('=== END ===');
+      pdfText = lines.join('\n');
+      console.log('PDF parsed successfully, text length:', pdfText.length);
+      console.log('FULL PDF:', pdfText);
+      console.log('First 1000 chars:', pdfText.substring(0, 1000));
     } catch (pdfError) {
-      if (pdfError.message?.includes('password')) {
-        return NextResponse.json({ error: 'Invalid password for encrypted PDF' }, { status: 400 });
+      console.error('PDF Parse Error:', pdfError);
+      if (
+        pdfError.message?.includes('password') ||
+        pdfError.message?.includes('encrypted') ||
+        pdfError.name === 'PasswordException'
+      ) {
+        return NextResponse.json(
+          { error: 'Invalid password for encrypted PDF. Please provide the correct password.' },
+          { status: 400 }
+        );
       }
-      return NextResponse.json({ error: 'Failed to parse PDF' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Failed to parse PDF: ' + (pdfError.message || 'Unknown error') },
+        { status: 400 }
+      );
+    }
+
+    if (!pdfText || pdfText.trim().length === 0) {
+      return NextResponse.json(
+        {
+          error:
+            'PDF appears to be empty or contains only images. Please upload a text-based PDF statement.',
+        },
+        { status: 400 }
+      );
     }
 
     const detectedBankId = bankId || detectBank(pdfText);
     if (!detectedBankId) {
-      return NextResponse.json({ error: 'Unable to detect bank. Please select manually.' }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Unable to detect bank. Please select manually.' },
+        { status: 400 }
+      );
     }
 
     let parsedStatement;
@@ -54,81 +111,129 @@ export async function POST(request) {
       const currency = getCurrencyByRegion(region);
 
       const newAccountData = {
-        accountNumber: parsedStatement.accountInfo.accountNumber,
-        accountName: parsedStatement.accountInfo.accountName || `${bankInfo?.name || 'Bank'} Account`,
-        bankName: bankInfo?.name || parsedStatement.bankName,
-        bankId: detectedBankId,
-        iban: parsedStatement.accountInfo.iban || '',
+        accountNumber: (parsedStatement.accountInfo.accountNumber || '').substring(0, 100),
+        accountName: (
+          parsedStatement.accountInfo.accountName || `${bankInfo?.name || 'Bank'} Account`
+        ).substring(0, 200),
+        bankName: (bankInfo?.name || parsedStatement.bankName || '').substring(0, 100),
         accountType: 'current',
-        branchName: parsedStatement.accountInfo.branchName || '',
+        branchName: (parsedStatement.accountInfo.branchName || '').substring(0, 200),
+        iban: (parsedStatement.accountInfo.iban || '').substring(0, 50),
         region,
         currency: currency.code,
-        currentBalance: parsedStatement.statementInfo.closingBalance || 0,
+        openingBalance: parsedStatement.statementInfo.openingBalance || 0,
+        openingDate:
+          parsedStatement.statementInfo.periodStart || new Date().toISOString().split('T')[0],
         status: 'active',
       };
 
-      const { data: existingAccount } = await supabase
-        .from('bankAccounts')
-        .select('id')
-        .eq('accountNumber', newAccountData.accountNumber)
-        .single();
+      // Check if account already exists
+      const existingResponse = await fetch(`${API_BASE_URL}/bankAccounts`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      const existingResult = await existingResponse.json();
+      const existingAccount = (existingResult.data || []).find(
+        (acc) => acc.accountNumber === newAccountData.accountNumber
+      );
 
       if (existingAccount) {
         finalAccountId = existingAccount.id;
-        await supabase.from('bankAccounts').update({ currentBalance: newAccountData.currentBalance }).eq('id', finalAccountId);
+        // Update balance
+        await fetch(`${API_BASE_URL}/bankAccounts/${finalAccountId}/balance`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: finalAccountId,
+            newBalance: parsedStatement.statementInfo.closingBalance || 0,
+          }),
+        });
       } else {
-        const { data: createdAccount, error: createError } = await supabase
-          .from('bankAccounts')
-          .insert([newAccountData])
-          .select()
-          .single();
+        // Create new account
+        const createResponse = await fetch(`${API_BASE_URL}/bankAccounts`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(newAccountData),
+        });
 
-        if (createError) {
-          return NextResponse.json({ error: 'Failed to create account: ' + createError.message }, { status: 500 });
+        if (!createResponse.ok) {
+          const errorData = await createResponse.json().catch(() => ({}));
+          return NextResponse.json(
+            { error: 'Failed to create account: ' + (errorData.message || 'Unknown error') },
+            { status: 500 }
+          );
         }
-        finalAccountId = createdAccount.id;
+
+        const createdResult = await createResponse.json();
+        finalAccountId = createdResult.data?.id;
       }
     }
 
     // Create statement record
     const statementData = {
-      accountId: finalAccountId,
+      bankAccountId: finalAccountId,
       fileName: file.name,
-      periodStart: parsedStatement.statementInfo.periodStart,
-      periodEnd: parsedStatement.statementInfo.periodEnd,
-      openingBalance: parsedStatement.statementInfo.openingBalance,
-      closingBalance: parsedStatement.statementInfo.closingBalance,
+      statementDate:
+        parsedStatement.statementInfo.periodEnd || new Date().toISOString().split('T')[0],
+      periodStart:
+        parsedStatement.statementInfo.periodStart || new Date().toISOString().split('T')[0],
+      periodEnd: parsedStatement.statementInfo.periodEnd || new Date().toISOString().split('T')[0],
+      openingBalance: parsedStatement.statementInfo.openingBalance || 0,
+      closingBalance: parsedStatement.statementInfo.closingBalance || 0,
+      totalCredits: parsedStatement.transactions
+        .filter((t) => t.transactionType === 'credit')
+        .reduce((sum, t) => sum + (t.credit || t.amount || 0), 0),
+      totalDebits: parsedStatement.transactions
+        .filter((t) => t.transactionType === 'debit')
+        .reduce((sum, t) => sum + Math.abs(t.debit || t.amount || 0), 0),
       transactionCount: parsedStatement.transactions.length,
-      parserUsed: detectedBankId,
     };
 
-    const { data: statement } = await supabase.from('bankStatements').insert([statementData]).select().single();
+    const statementResponse = await fetch(`${API_BASE_URL}/bankStatements`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(statementData),
+    });
+
+    let statementId = null;
+    if (statementResponse.ok) {
+      const statementResult = await statementResponse.json();
+      statementId = statementResult.data?.id;
+    }
 
     // Prepare transactions
     const transactionsToInsert = parsedStatement.transactions.map((txn, index) => ({
-      transactionNumber: `TXN-${Date.now()}-${index}`,
       bankAccountId: finalAccountId,
+      statementId,
       transactionDate: txn.transactionDate,
+      valueDate: txn.valueDate || txn.transactionDate,
       transactionType: txn.transactionType,
       category: txn.category,
-      amount: txn.amount || txn.credit || txn.debit,
-      credit: txn.credit || 0,
-      debit: txn.debit || 0,
+      amount:
+        txn.transactionType === 'credit'
+          ? txn.credit || txn.amount || 0
+          : -(txn.debit || Math.abs(txn.amount) || 0),
       balanceAfter: txn.balance,
       description: txn.description,
-      counterparty: txn.counterparty || '',
-      statementId: statement?.id,
-      reconciled: false,
+      rawDescription: txn.rawDescription || txn.description,
+      counterpartyName: txn.counterparty || '',
+      referenceNumber: txn.referenceNumber || '',
+      chequeNumber: txn.chequeNumber || '',
     }));
 
-    // Check duplicates
-    const { data: existingTxns } = await supabase
-      .from('bankTransactions')
-      .select('transactionDate, amount, description')
-      .eq('bankAccountId', finalAccountId);
+    // Check for duplicates by fetching existing transactions
+    const existingTxnsResponse = await fetch(
+      `${API_BASE_URL}/bankTransactions/account/${finalAccountId}`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+    const existingTxnsResult = await existingTxnsResponse.json();
+    const existingTxns = existingTxnsResult.data || [];
 
     const existingSet = new Set(
-      (existingTxns || []).map((t) => `${t.transactionDate}-${t.amount}-${t.description?.substring(0, 50)}`)
+      existingTxns.map((t) => `${t.transactionDate}-${t.amount}-${t.description?.substring(0, 50)}`)
     );
 
     const newTransactions = transactionsToInsert.filter(
@@ -137,15 +242,55 @@ export async function POST(request) {
 
     let insertedCount = 0;
     if (newTransactions.length > 0) {
-      const { data: insertedTxns, error: insertError } = await supabase
-        .from('bankTransactions')
-        .insert(newTransactions)
-        .select();
+      const bulkResponse = await fetch(`${API_BASE_URL}/bankTransactions/bulk`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactions: newTransactions }),
+      });
 
-      if (insertError) {
-        return NextResponse.json({ error: 'Failed to save transactions: ' + insertError.message }, { status: 500 });
+      if (!bulkResponse.ok) {
+        const errorData = await bulkResponse.json().catch(() => ({}));
+        // Update statement status to failed
+        if (statementId) {
+          await fetch(`${API_BASE_URL}/bankStatements/${statementId}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: statementId,
+              status: 'failed',
+              errorMessage: errorData.message || 'Failed to save transactions',
+            }),
+          });
+        }
+        return NextResponse.json(
+          { error: 'Failed to save transactions: ' + (errorData.message || 'Unknown error') },
+          { status: 500 }
+        );
       }
-      insertedCount = insertedTxns?.length || 0;
+
+      const bulkResult = await bulkResponse.json();
+      insertedCount = bulkResult.data?.length || 0;
+    }
+
+    // Update statement status to completed
+    if (statementId) {
+      await fetch(`${API_BASE_URL}/bankStatements/${statementId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: statementId, status: 'completed' }),
+      });
+    }
+
+    // Update account balance to closing balance
+    if (finalAccountId) {
+      await fetch(`${API_BASE_URL}/bankAccounts/${finalAccountId}/balance`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: finalAccountId,
+          newBalance: parsedStatement.statementInfo.closingBalance || 0,
+        }),
+      });
     }
 
     return NextResponse.json({
@@ -153,6 +298,7 @@ export async function POST(request) {
       bankId: detectedBankId,
       bankName: parsedStatement.bankName,
       accountId: finalAccountId,
+      statementId,
       accountInfo: parsedStatement.accountInfo,
       statementInfo: parsedStatement.statementInfo,
       transactions: parsedStatement.transactions,
