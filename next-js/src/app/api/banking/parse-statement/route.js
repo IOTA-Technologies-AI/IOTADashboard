@@ -55,12 +55,13 @@ export async function POST(request) {
           .join(' ')
       );
       console.log('=== FIRST 50 LINES OF PDF ===');
-      pdfText.split('\n').slice(0, 50).forEach((line, i) => console.log(`${i}: ${line}`));
+      pdfText
+        .split('\n')
+        .slice(0, 50)
+        .forEach((line, i) => console.log(`${i}: ${line}`));
       console.log('=== END ===');
       pdfText = lines.join('\n');
       console.log('PDF parsed successfully, text length:', pdfText.length);
-      console.log('FULL PDF:', pdfText);
-      console.log('First 1000 chars:', pdfText.substring(0, 1000));
     } catch (pdfError) {
       console.error('PDF Parse Error:', pdfError);
       if (
@@ -170,14 +171,14 @@ export async function POST(request) {
     }
 
     // Create statement record
-    const statementData = {
+        const statementData = {
       bankAccountId: finalAccountId,
       fileName: file.name,
       statementDate:
         parsedStatement.statementInfo.periodEnd || new Date().toISOString().split('T')[0],
-      periodStart:
+      startDate:
         parsedStatement.statementInfo.periodStart || new Date().toISOString().split('T')[0],
-      periodEnd: parsedStatement.statementInfo.periodEnd || new Date().toISOString().split('T')[0],
+      endDate: parsedStatement.statementInfo.periodEnd || new Date().toISOString().split('T')[0],
       openingBalance: parsedStatement.statementInfo.openingBalance || 0,
       closingBalance: parsedStatement.statementInfo.closingBalance || 0,
       totalCredits: parsedStatement.transactions
@@ -189,6 +190,8 @@ export async function POST(request) {
       transactionCount: parsedStatement.transactions.length,
     };
 
+    console.log('Creating statement with data:', JSON.stringify(statementData, null, 2));
+
     const statementResponse = await fetch(`${API_BASE_URL}/bankStatements`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -199,8 +202,38 @@ export async function POST(request) {
     if (statementResponse.ok) {
       const statementResult = await statementResponse.json();
       statementId = statementResult.data?.id;
+      console.log('Statement created with ID:', statementId);
+    } else {
+      const errorText = await statementResponse.text();
+      console.error('Statement creation failed:', statementResponse.status, errorText);
     }
+    // Upload file to OneDrive
+    let fileUrl = null;
+    try {
+      const base64Content = buffer.toString('base64');
+      const uploadPath = `Banking/Statements/${region}`;
+      const uploadResponse = await fetch(`${API_BASE_URL}/onedrive/upload`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          folderPath: uploadPath,
+          fileName: file.name,
+          fileContent: base64Content,
+          userId: 'jaffar@aborouman.com', // Your Microsoft 365 email
+        }),
+      });
 
+      if (uploadResponse.ok) {
+        const uploadResult = await uploadResponse.json();
+        fileUrl = uploadResult.webUrl;
+        console.log('File uploaded to OneDrive:', fileUrl);
+      } else {
+        console.error('OneDrive upload failed:', await uploadResponse.text());
+      }
+    } catch (uploadError) {
+      console.error('OneDrive upload error:', uploadError);
+      // Don't fail the whole request if OneDrive upload fails
+    }
     // Prepare transactions
     const transactionsToInsert = parsedStatement.transactions.map((txn, index) => ({
       bankAccountId: finalAccountId,
