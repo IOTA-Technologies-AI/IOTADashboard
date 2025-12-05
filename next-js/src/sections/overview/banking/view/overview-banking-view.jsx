@@ -1,11 +1,19 @@
 'use client';
 
+import { useState, useEffect, useCallback } from 'react';
+
 import Box from '@mui/material/Box';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import Grid from '@mui/material/Grid';
+import Alert from '@mui/material/Alert';
+import Snackbar from '@mui/material/Snackbar';
 
 import { CONFIG } from 'src/global-config';
+// Mock data for components that still need it
+import { _bankingContacts } from 'src/_mock';
 import { DashboardContent } from 'src/layouts/dashboard';
-import { _bankingContacts, _bankingCreditCard, _bankingRecentTransitions } from 'src/_mock';
+import { fetchBankAccounts, fetchBankTransactions } from 'src/actions/banking';
 
 import { Iconify } from 'src/components/iconify/iconify';
 
@@ -14,6 +22,7 @@ import { BankingOverview } from '../banking-overview';
 import { BankingQuickTransfer } from '../banking-quick-transfer';
 import { BankingInviteFriends } from '../banking-invite-friends';
 import { BankingCurrentBalance } from '../banking-current-balance';
+import { BankingStatementUpload } from '../banking-statement-upload';
 import { BankingBalanceStatistics } from '../banking-balance-statistics';
 import { BankingRecentTransitions } from '../banking-recent-transitions';
 import { BankingExpensesCategories } from '../banking-expenses-categories';
@@ -21,11 +30,141 @@ import { BankingExpensesCategories } from '../banking-expenses-categories';
 // ----------------------------------------------------------------------
 
 export function OverviewBankingView() {
+  const [currentTab, setCurrentTab] = useState('all');
+  const [accounts, setAccounts] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+
+  // Fetch bank accounts
+  const loadAccounts = useCallback(async () => {
+    const result = await fetchBankAccounts({ status: 'active' });
+    if (result.success) {
+      setAccounts(result.data || []);
+    }
+  }, []);
+
+  // Fetch transactions
+  const loadTransactions = useCallback(async (filters = {}) => {
+    const result = await fetchBankTransactions({
+      ...filters,
+      limit: 20,
+    });
+    if (result.success) {
+      setTransactions(result.data || []);
+    }
+  }, []);
+
+  // Initial load
+  useEffect(() => {
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([loadAccounts(), loadTransactions()]);
+      setLoading(false);
+    };
+    loadData();
+  }, [loadAccounts, loadTransactions]);
+
+  // Filter transactions by region
+  useEffect(() => {
+    if (currentTab === 'all') {
+      loadTransactions();
+    } else {
+      const regionAccounts = accounts.filter((acc) => acc.region === currentTab);
+      if (regionAccounts.length > 0) {
+        const accountIds = regionAccounts.map((a) => a.id);
+        // For now, just reload all - you can enhance this later
+        loadTransactions();
+      }
+    }
+  }, [currentTab, accounts, loadTransactions]);
+
+  // Handle statement upload completion
+  const handleUploadComplete = useCallback(
+    (result) => {
+      setSnackbar({
+        open: true,
+        message: `Successfully imported ${result.summary?.newTransactions || 0} transactions`,
+        severity: 'success',
+      });
+      // Refresh data
+      loadAccounts();
+      loadTransactions();
+    },
+    [loadAccounts, loadTransactions]
+  );
+
+  // Transform accounts to card format for BankingCurrentBalance
+  const accountCards = accounts.map((account) => ({
+    id: account.id,
+    balance: account.currentBalance || 0,
+    cardType: account.region === 'KSA' ? 'mastercard' : 'visa',
+    cardHolder: account.accountName,
+    cardNumber: `**** **** **** ${account.accountNumber?.slice(-4) || '0000'}`,
+    cardValid: account.region || 'UAE',
+    bankName: account.bankName,
+    currency: account.currency,
+    region: account.region,
+  }));
+
+  // Transform transactions for recent transitions component
+  const recentTransactions = transactions.map((txn) => ({
+    id: txn.id,
+    name: txn.counterparty || txn.description?.substring(0, 20),
+    avatarUrl: null,
+    type: txn.transactionType === 'credit' || txn.credit > 0 ? 'Income' : 'Expenses',
+    message: txn.transactionType === 'credit' ? 'Received from' : 'Payment for',
+    category: txn.category || txn.counterparty || 'Transaction',
+    date: txn.transactionDate,
+    status: txn.reconciled ? 'completed' : 'progress',
+    amount: txn.credit > 0 ? txn.credit : txn.debit || txn.amount,
+  }));
+
+  // Calculate expense categories from transactions
+  const expenseCategories = calculateExpenseCategories(transactions);
+
+  // Handle tab change
+  const handleTabChange = (event, newValue) => {
+    setCurrentTab(newValue);
+  };
+
+  // Close snackbar
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
   return (
     <DashboardContent maxWidth="xl">
+      {/* Region Tabs */}
+      <Box sx={{ mb: 3 }}>
+        <Tabs value={currentTab} onChange={handleTabChange}>
+          <Tab
+            value="all"
+            label="All Accounts"
+            icon={<Iconify icon="solar:wallet-bold" width={20} />}
+            iconPosition="start"
+          />
+          <Tab
+            value="UAE"
+            label="UAE"
+            icon={<Iconify icon="flagpack:ae" width={20} />}
+            iconPosition="start"
+          />
+          <Tab
+            value="KSA"
+            label="KSA"
+            icon={<Iconify icon="flagpack:sa" width={20} />}
+            iconPosition="start"
+          />
+        </Tabs>
+      </Box>
+
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 7, lg: 8 }}>
           <Box sx={{ gap: 3, display: 'flex', flexDirection: 'column' }}>
+            {/* Statement Upload Card */}
+            <BankingStatementUpload accounts={accounts} onUploadComplete={handleUploadComplete} />
+
             <BankingOverview />
 
             <BankingBalanceStatistics
@@ -38,8 +177,7 @@ export function OverviewBankingView() {
                     categories: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
                     data: [
                       { name: 'Income', data: [24, 41, 35, 151, 49] },
-                      { name: 'Savings', data: [24, 56, 77, 88, 99] },
-                      { name: 'Investment', data: [40, 34, 77, 88, 99] },
+                      { name: 'Expenses', data: [24, 56, 77, 88, 99] },
                     ],
                   },
                   {
@@ -47,17 +185,15 @@ export function OverviewBankingView() {
                     categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
                     data: [
                       { name: 'Income', data: [83, 112, 119, 88, 103, 112, 114, 108, 93] },
-                      { name: 'Savings', data: [46, 46, 43, 58, 40, 59, 54, 42, 51] },
-                      { name: 'Investment', data: [25, 40, 38, 35, 20, 32, 27, 40, 21] },
+                      { name: 'Expenses', data: [46, 46, 43, 58, 40, 59, 54, 42, 51] },
                     ],
                   },
                   {
                     name: 'Yearly',
-                    categories: ['2018', '2019', '2020', '2021', '2022', '2023'],
+                    categories: ['2020', '2021', '2022', '2023', '2024', '2025'],
                     data: [
                       { name: 'Income', data: [76, 42, 29, 41, 27, 96] },
-                      { name: 'Savings', data: [46, 44, 24, 43, 44, 43] },
-                      { name: 'Investment', data: [23, 22, 37, 38, 32, 25] },
+                      { name: 'Expenses', data: [46, 44, 24, 43, 44, 43] },
                     ],
                   },
                 ],
@@ -65,34 +201,16 @@ export function OverviewBankingView() {
             />
 
             <BankingExpensesCategories
-              title="Expenses categories"
+              title="Expenses by category"
               chart={{
-                series: [
-                  { label: 'Entertainment', value: 22 },
-                  { label: 'Fuel', value: 18 },
-                  { label: 'Fast food', value: 16 },
-                  { label: 'Cafe', value: 17 },
-                  { label: 'Сonnection', value: 14 },
-                  { label: 'Healthcare', value: 22 },
-                  { label: 'Fitness', value: 10 },
-                  { label: 'Supermarket', value: 21 },
-                ],
-                icons: [
-                  <Iconify icon="solar:gamepad-bold" />,
-                  <Iconify icon="solar:electric-refueling-bold" />,
-                  <Iconify icon="custom:fast-food-fill" />,
-                  <Iconify icon="solar:tea-cup-bold" />,
-                  <Iconify icon="solar:smartphone-2-bold" />,
-                  <Iconify icon="solar:medical-kit-bold" />,
-                  <Iconify icon="solar:dumbbell-large-minimalistic-bold" />,
-                  <Iconify icon="solar:cart-3-bold" />,
-                ],
+                series: expenseCategories.series,
+                icons: expenseCategories.icons,
               }}
             />
 
             <BankingRecentTransitions
-              title="Recent transitions"
-              tableData={_bankingRecentTransitions}
+              title="Recent transactions"
+              tableData={recentTransactions.length > 0 ? recentTransactions : []}
               headCells={[
                 { id: 'description', label: 'Description' },
                 { id: 'date', label: 'Date' },
@@ -106,7 +224,22 @@ export function OverviewBankingView() {
 
         <Grid size={{ xs: 12, md: 5, lg: 4 }}>
           <Box sx={{ gap: 3, display: 'flex', flexDirection: 'column' }}>
-            <BankingCurrentBalance list={_bankingCreditCard} />
+            <BankingCurrentBalance
+              list={
+                accountCards.length > 0
+                  ? accountCards
+                  : [
+                      {
+                        id: 'placeholder',
+                        balance: 0,
+                        cardType: 'visa',
+                        cardHolder: 'No accounts',
+                        cardNumber: '**** **** **** ****',
+                        cardValid: 'N/A',
+                      },
+                    ]
+              }
+            />
 
             <BankingQuickTransfer title="Quick transfer" list={_bankingContacts} />
 
@@ -125,6 +258,75 @@ export function OverviewBankingView() {
           </Box>
         </Grid>
       </Grid>
+
+      {/* Success/Error Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} variant="filled">
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </DashboardContent>
   );
+}
+
+// ----------------------------------------------------------------------
+
+/**
+ * Calculate expense categories from transactions
+ */
+function calculateExpenseCategories(transactions) {
+  const categoryMap = {
+    bank_fees: { label: 'Bank Fees', icon: <Iconify icon="solar:card-recive-bold" /> },
+    vat: { label: 'VAT', icon: <Iconify icon="solar:document-bold" /> },
+    salary: { label: 'Salary', icon: <Iconify icon="solar:user-bold" /> },
+    rent: { label: 'Rent', icon: <Iconify icon="solar:home-bold" /> },
+    utilities: { label: 'Utilities', icon: <Iconify icon="solar:bolt-bold" /> },
+    vendor_payment: { label: 'Vendor Payments', icon: <Iconify icon="solar:cart-3-bold" /> },
+    transfer_out: { label: 'Transfers', icon: <Iconify icon="solar:transfer-horizontal-bold" /> },
+    maintenance_fee: { label: 'Maintenance', icon: <Iconify icon="solar:settings-bold" /> },
+    other: { label: 'Other', icon: <Iconify icon="solar:widget-bold" /> },
+  };
+
+  const expenses = transactions.filter(
+    (t) => t.transactionType === 'debit' || t.debit > 0 || t.transactionType === 'withdrawal'
+  );
+
+  const categoryTotals = {};
+  expenses.forEach((txn) => {
+    const category = txn.category || 'other';
+    const amount = txn.debit || txn.amount || 0;
+    categoryTotals[category] = (categoryTotals[category] || 0) + parseFloat(amount);
+  });
+
+  const series = [];
+  const icons = [];
+
+  Object.entries(categoryTotals).forEach(([category, value]) => {
+    const categoryInfo = categoryMap[category] || categoryMap.other;
+    series.push({ label: categoryInfo.label, value: Math.round(value) });
+    icons.push(categoryInfo.icon);
+  });
+
+  // If no data, return defaults
+  if (series.length === 0) {
+    return {
+      series: [
+        { label: 'Bank Fees', value: 0 },
+        { label: 'VAT', value: 0 },
+        { label: 'Other', value: 0 },
+      ],
+      icons: [
+        <Iconify icon="solar:card-recive-bold" />,
+        <Iconify icon="solar:document-bold" />,
+        <Iconify icon="solar:widget-bold" />,
+      ],
+    };
+  }
+
+  return { series, icons };
 }
