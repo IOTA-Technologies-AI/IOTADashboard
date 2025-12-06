@@ -50,6 +50,18 @@ function convertCurrency(amount, fromCurrency, toCurrency = 'SAR') {
   return amount;
 }
 
+// Helper function to mask account number
+const maskAccountNumber = (accountNumber) => {
+  if (!accountNumber) return '**** **** **** ****';
+  const cleaned = accountNumber.replace(/[\s-]/g, '');
+  if (cleaned.length <= 4) return `**** **** **** ${cleaned}`;
+  const masked = cleaned.slice(0, -4).replace(/\d/g, '*');
+  const last4 = cleaned.slice(-4);
+  // Format with spaces every 4 characters
+  const formatted = (masked + last4).match(/.{1,4}/g)?.join(' ') || accountNumber;
+  return formatted;
+};
+
 /**
  * Calculate total balance across all accounts converted to SAR
  */
@@ -160,10 +172,10 @@ export function OverviewBankingView() {
   const accountCards = accounts.map((account) => ({
     id: account.id,
     balance: account.currentBalance || 0,
-    cardType: account.region === 'KSA' ? 'mastercard' : 'visa',
+    cardType: null,
     cardHolder: account.accountName,
-    cardNumber: `**** **** **** ${account.accountNumber?.slice(-4) || '0000'}`,
-    cardValid: account.region || 'UAE',
+    cardNumber: maskAccountNumber(account.accountNumber),
+    cardValid: account.region === 'KSA' ? 'Saudi Arabia' : 'United Arab Emirates',
     bankName: account.bankName,
     currency: account.currency,
     region: account.region,
@@ -296,7 +308,7 @@ export function OverviewBankingView() {
                       {
                         id: 'placeholder',
                         balance: 0,
-                        cardType: 'visa',
+                        cardType: null,
                         cardHolder: 'No accounts',
                         cardNumber: '**** **** **** ****',
                         cardValid: 'N/A',

@@ -146,38 +146,20 @@ function CarouselItem({ item, showCurrency, onToggleCurrency }) {
         <Box
           sx={{
             my: 3,
-            gap: 1,
-            display: 'flex',
-            alignItems: 'center',
-            typography: 'subtitle1',
-            justifyContent: 'flex-end',
+            typography: 'h6',
+            textAlign: 'right',
           }}
         >
-          <Box
-            sx={{
-              py: 0.15,
-              px: 0.25,
-              borderRadius: 0.5,
-              display: 'inline-flex',
-              bgcolor: 'common.white',
-            }}
-          >
-            {item.cardType === 'visa' && <Iconify width={32} height="auto" icon="payments:visa" />}
-            {item.cardType === 'mastercard' && (
-              <Iconify width={32} height="auto" icon="payments:mastercard" />
-            )}
-          </Box>
-
           {item.cardNumber}
         </Box>
 
         <Box sx={{ gap: 5, display: 'flex', typography: 'subtitle1' }}>
           <div>
-            <Box sx={{ mb: 1, opacity: 0.48, typography: 'caption' }}>Card holder</Box>
+            <Box sx={{ mb: 1, opacity: 0.48, typography: 'caption' }}>Account Name</Box>
             <Box component="span">{item.cardHolder}</Box>
           </div>
           <div>
-            <Box sx={{ mb: 1, opacity: 0.48, typography: 'caption' }}>Expiration date</Box>
+            <Box sx={{ mb: 1, opacity: 0.48, typography: 'caption' }}>Country</Box>
             <Box component="span">{item.cardValid}</Box>
           </div>
         </Box>
