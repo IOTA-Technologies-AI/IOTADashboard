@@ -1,11 +1,9 @@
-import { PdfReader } from 'pdfreader';
 import { NextResponse } from 'next/server';
 
 import { SUPPORTED_BANKS, getCurrencyByRegion } from 'src/utils/constants/banking';
 
-import { parseStatement, detectBank } from 'src/services/bank-statement-parser';
-
 const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
+const PDF_PARSER_URL = process.env.PDF_PARSER_URL || 'https://iota-pdf-parser.onrender.com';
 
 export async function POST(request) {
   try {
@@ -21,89 +19,51 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    const bytes = await file.arrayBuffer();
+        const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    let pdfText = '';
-    try {
-      const rows = {};
-      await new Promise((resolve, reject) => {
-        // eslint-disable-next-line consistent-return
-        new PdfReader({ password: password || undefined }).parseBuffer(buffer, (err, item) => {
-          if (err) {
-            return reject(err);
-          }
-          if (!item) {
-            resolve();
-          } else if (item.text) {
-            // Group text by Y position (row) to preserve line structure
-            const y = Math.round(item.y * 10);
-            if (!rows[y]) rows[y] = [];
-            rows[y].push({ x: item.x, text: item.text });
-          }
-        });
-      });
-
-      // Sort rows by Y position and items within each row by X position
-      const sortedYs = Object.keys(rows)
-        .map(Number)
-        .sort((a, b) => a - b);
-      const lines = sortedYs.map((y) =>
-        rows[y]
-          .sort((a, b) => a.x - b.x)
-          .map((item) => item.text)
-          .join(' ')
-      );
-      console.log('=== FIRST 50 LINES OF PDF ===');
-      pdfText
-        .split('\n')
-        .slice(0, 50)
-        .forEach((line, i) => console.log(`${i}: ${line}`));
-      console.log('=== END ===');
-      pdfText = lines.join('\n');
-      console.log('PDF parsed successfully, text length:', pdfText.length);
-    } catch (pdfError) {
-      console.error('PDF Parse Error:', pdfError);
-      if (
-        pdfError.message?.includes('password') ||
-        pdfError.message?.includes('encrypted') ||
-        pdfError.name === 'PasswordException'
-      ) {
-        return NextResponse.json(
-          { error: 'Invalid password for encrypted PDF. Please provide the correct password.' },
-          { status: 400 }
-        );
-      }
-      return NextResponse.json(
-        { error: 'Failed to parse PDF: ' + (pdfError.message || 'Unknown error') },
-        { status: 400 }
-      );
-    }
-
-    if (!pdfText || pdfText.trim().length === 0) {
-      return NextResponse.json(
-        {
-          error:
-            'PDF appears to be empty or contains only images. Please upload a text-based PDF statement.',
-        },
-        { status: 400 }
-      );
-    }
-
-    const detectedBankId = bankId || detectBank(pdfText);
-    if (!detectedBankId) {
-      return NextResponse.json(
-        { error: 'Unable to detect bank. Please select manually.' },
-        { status: 400 }
-      );
+    // Call Python PDF parser service
+    console.log('Calling Python PDF parser service...');
+    const pythonFormData = new FormData();
+    pythonFormData.append('file', new Blob([buffer], { type: 'application/pdf' }), file.name);
+    pythonFormData.append('bank', bankId || 'emirates_nbd');
+    if (password) {
+      pythonFormData.append('password', password);
     }
 
     let parsedStatement;
     try {
-      parsedStatement = parseStatement(pdfText, detectedBankId);
+      const pythonResponse = await fetch(`${PDF_PARSER_URL}/parse`, {
+        method: 'POST',
+        body: pythonFormData,
+      });
+
+      if (!pythonResponse.ok) {
+        const errorData = await pythonResponse.json().catch(() => ({}));
+        return NextResponse.json(
+          { error: 'PDF parsing failed: ' + (errorData.error || 'Unknown error') },
+          { status: 400 }
+        );
+      }
+
+      parsedStatement = await pythonResponse.json();
+      console.log('Python parser result:', JSON.stringify(parsedStatement, null, 2));
+
+      if (!parsedStatement.accountInfo || !parsedStatement.statementInfo) {
+        return NextResponse.json(
+          { error: 'Invalid parser response: missing required data' },
+          { status: 400 }
+        );
+      }
     } catch (parseError) {
-      return NextResponse.json({ error: parseError.message }, { status: 400 });
+      console.error('Python PDF Parser Error:', parseError);
+      return NextResponse.json(
+        { error: 'Failed to parse PDF: ' + (parseError.message || 'Parser service unavailable') },
+        { status: 500 }
+      );
     }
+
+    const detectedBankId = bankId || parsedStatement.bankId || 'emirates_nbd';
 
     let finalAccountId = accountId;
 
