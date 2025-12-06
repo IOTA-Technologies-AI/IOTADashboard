@@ -127,6 +127,13 @@ export const paths = {
       generalLedger: `${ROOTS.DASHBOARD}/finance/general-ledger`,
       journalEntries: `${ROOTS.DASHBOARD}/finance/journal-entries`,
     },
+    deals: {
+      root: `${ROOTS.DASHBOARD}/deals`,
+      new: `${ROOTS.DASHBOARD}/deals/new`,
+      details: (id) => `${ROOTS.DASHBOARD}/deals/${id}`,
+      edit: (id) => `${ROOTS.DASHBOARD}/deals/${id}/edit`,
+      bdm: `${ROOTS.DASHBOARD}/deals/bdm-management`,
+    },
     hr: {
       root: path(ROOTS.DASHBOARD, '/hr'),
       employee: {

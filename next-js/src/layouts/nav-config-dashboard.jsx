@@ -13,6 +13,7 @@ import { SvgColor } from 'src/components/svg-color';
 // ----------------------------------------------------------------------
 
 const icon = (name) => <SvgColor src={`${CONFIG.assetsDir}/assets/icons/navbar/${name}.svg`} />;
+import SupervisorAccountIcon from '@mui/icons-material/SupervisorAccount';
 
 const ICONS = {
   job: icon('ic-job'),
@@ -45,6 +46,8 @@ const ICONS = {
   vendor: <HandshakeIcon style={{ width: 24, height: 24 }} />,
   expense: <MoneyOffIcon style={{ width: 24, height: 24 }} />,
   finance: <AttachMoneyIcon style={{ width: 24, height: 24 }} />,
+  deals: <Iconify icon="solar:hand-money-bold-duotone" width={24} />,
+  bdm: <SupervisorAccountIcon style={{ width: 24, height: 24 }} />,
 };
 
 // ----------------------------------------------------------------------
@@ -76,7 +79,6 @@ export const navData = [
       { title: 'Analytics', path: paths.dashboard.general.analytics, icon: ICONS.analytics },
       { title: 'Banking', path: paths.dashboard.general.banking, icon: ICONS.banking },
       { title: 'Booking', path: paths.dashboard.general.booking, icon: ICONS.booking },
-      { title: 'Accounts', path: paths.dashboard.general.account, icon: ICONS.dashboard },
       { title: 'File', path: paths.dashboard.general.file, icon: ICONS.file },
       { title: 'Course', path: paths.dashboard.general.course, icon: ICONS.course },
       { title: 'Finance', path: paths.dashboard.finance.root, icon: ICONS.finance },
@@ -179,6 +181,16 @@ export const navData = [
           { title: 'Details', path: paths.dashboard.expense.demo.details },
           { title: 'Create', path: paths.dashboard.expense.new },
           { title: 'Edit', path: paths.dashboard.expense.demo.edit },
+        ],
+      },
+      {
+        title: 'Deals',
+        path: paths.dashboard.deals.root,
+        icon: ICONS.deals,
+        children: [
+          { title: 'All Deals', path: paths.dashboard.deals.root },
+          { title: 'Create Deal', path: paths.dashboard.deals.new },
+          { title: 'BDM Management', path: paths.dashboard.deals.bdm },
         ],
       },
       {
