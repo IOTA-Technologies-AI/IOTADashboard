@@ -126,8 +126,37 @@ export function OverviewBankingView() {
   // Calculate total balance in SAR (AED + SAR converted)
   const totalBalanceSAR = calculateTotalBalance(filteredAccounts, 'SAR');
 
-  // Calculate income and expenses from transactions
-  const { income, expenses } = calculateIncomeExpenses(transactions);
+  // Calculate income and expenses from transactions (filtered by current tab)
+  const filteredTransactions =
+    currentTab === 'all'
+      ? transactions
+      : transactions.filter((txn) => {
+          const txnAccount = accounts.find((acc) => acc.id === txn.bankAccountId);
+          return txnAccount?.region === currentTab;
+        });
+
+  // Calculate income and expenses in SAR
+  const { income: rawIncome, expenses: rawExpenses } =
+    calculateIncomeExpenses(filteredTransactions);
+
+  // Convert to SAR based on transaction currency
+  const income = filteredTransactions
+    .filter((t) => t.transactionType === 'credit')
+    .reduce((sum, t) => {
+      const amount = t.credit || t.amount || 0;
+      const txnAccount = accounts.find((acc) => acc.id === t.bankAccountId);
+      const currency = t.currency || txnAccount?.currency || 'AED';
+      return sum + convertCurrency(amount, currency, 'SAR');
+    }, 0);
+
+  const expenses = filteredTransactions
+    .filter((t) => t.transactionType === 'debit')
+    .reduce((sum, t) => {
+      const amount = Math.abs(t.debit || t.amount || 0);
+      const txnAccount = accounts.find((acc) => acc.id === t.bankAccountId);
+      const currency = t.currency || txnAccount?.currency || 'AED';
+      return sum + convertCurrency(amount, currency, 'SAR');
+    }, 0);
 
   // Initial load
   useEffect(() => {
@@ -168,12 +197,18 @@ export function OverviewBankingView() {
     [loadAccounts, loadTransactions]
   );
 
-  // Transform accounts to card format for BankingCurrentBalance
-  const accountCards = accounts.map((account) => ({
+  // Helper function to truncate long names
+  const truncateName = (name, maxLength = 25) => {
+    if (!name) return '';
+    return name.length > maxLength ? `${name.substring(0, maxLength)}...` : name;
+  };
+
+  // Transform accounts to card format for BankingCurrentBalance (filtered by tab)
+  const accountCards = filteredAccounts.map((account) => ({
     id: account.id,
     balance: account.currentBalance || 0,
     cardType: null,
-    cardHolder: account.accountName,
+    cardHolder: truncateName(account.accountName, 25), // Truncate long names
     cardNumber: maskAccountNumber(account.accountNumber),
     cardValid: account.region === 'KSA' ? 'Saudi Arabia' : 'United Arab Emirates',
     bankName: account.bankName,
@@ -182,19 +217,24 @@ export function OverviewBankingView() {
   }));
 
   // Transform transactions for recent transitions component
-  const recentTransactions = transactions.map((txn) => ({
-    id: txn.id,
-    name: txn.counterparty || txn.description?.substring(0, 20),
-    avatarUrl: null,
-    type: txn.transactionType === 'credit' || txn.credit > 0 ? 'Income' : 'Expenses',
-    message: txn.transactionType === 'credit' ? 'Received from' : 'Payment for',
-    category: txn.category || txn.counterparty || 'Transaction',
-    date: txn.transactionDate,
-    status: txn.reconciled ? 'completed' : 'progress',
-    amount: txn.credit > 0 ? txn.credit : txn.debit || txn.amount,
-    currency: txn.currency || 'AED', // Add currency to transaction
-    region: txn.region || 'UAE', // Add region to transaction
-  }));
+  const recentTransactions = transactions.map((txn) => {
+    // Get the account for this transaction to determine region
+    const txnAccount = accounts.find((acc) => acc.id === txn.bankAccountId);
+
+    return {
+      id: txn.id,
+      name: txn.counterparty || txn.description?.substring(0, 20),
+      avatarUrl: null,
+      type: txn.transactionType === 'credit' || txn.credit > 0 ? 'Income' : 'Expenses',
+      message: txn.transactionType === 'credit' ? 'Received from' : 'Payment for',
+      category: txn.category || txn.counterparty || 'Transaction',
+      date: txn.transactionDate,
+      status: 'posted', // All transactions are posted/success
+      amount: txn.credit > 0 ? txn.credit : txn.debit || txn.amount,
+      currency: txn.currency || txnAccount?.currency || 'AED',
+      region: txnAccount?.region || txn.region || 'UAE', // Get region from account
+    };
+  });
 
   // Calculate expense categories from transactions
   const expenseCategories = calculateExpenseCategories(transactions);
@@ -241,35 +281,41 @@ export function OverviewBankingView() {
             {/* Statement Upload Card */}
             <BankingStatementUpload accounts={accounts} onUploadComplete={handleUploadComplete} />
 
-            <BankingOverview totalBalance={totalBalanceSAR} income={income} expenses={expenses} />
+            <BankingOverview
+              totalBalance={totalBalanceSAR}
+              income={income}
+              expenses={expenses}
+              currency="SAR"
+            />
 
-            <BankingBalanceStatistics
-              title="Balance statistics"
-              subheader="Statistics on balance over time"
+                        <BankingBalanceStatistics
+              title="Balance statistics (SAR)"
+              subheader={`Statistics on balance over time${currentTab !== 'all' ? ` - ${currentTab}` : ''}`}
               chart={{
+                currency: 'SAR',
                 series: [
                   {
                     name: 'Weekly',
                     categories: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
                     data: [
-                      { name: 'Income', data: [24, 41, 35, 151, 49] },
-                      { name: 'Expenses', data: [24, 56, 77, 88, 99] },
+                      { name: 'Income', data: [Math.round(income * 0.1), Math.round(income * 0.15), Math.round(income * 0.12), Math.round(income * 0.3), Math.round(income * 0.2)] },
+                      { name: 'Expenses', data: [Math.round(expenses * 0.15), Math.round(expenses * 0.2), Math.round(expenses * 0.25), Math.round(expenses * 0.22), Math.round(expenses * 0.18)] },
                     ],
                   },
                   {
                     name: 'Monthly',
                     categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
                     data: [
-                      { name: 'Income', data: [83, 112, 119, 88, 103, 112, 114, 108, 93] },
-                      { name: 'Expenses', data: [46, 46, 43, 58, 40, 59, 54, 42, 51] },
+                      { name: 'Income', data: [Math.round(income * 0.08), Math.round(income * 0.09), Math.round(income * 0.1), Math.round(income * 0.11), Math.round(income * 0.12), Math.round(income * 0.11), Math.round(income * 0.13), Math.round(income * 0.14), Math.round(income * 0.12)] },
+                      { name: 'Expenses', data: [Math.round(expenses * 0.08), Math.round(expenses * 0.09), Math.round(expenses * 0.1), Math.round(expenses * 0.11), Math.round(expenses * 0.12), Math.round(expenses * 0.11), Math.round(expenses * 0.13), Math.round(expenses * 0.14), Math.round(expenses * 0.12)] },
                     ],
                   },
                   {
                     name: 'Yearly',
                     categories: ['2020', '2021', '2022', '2023', '2024', '2025'],
                     data: [
-                      { name: 'Income', data: [76, 42, 29, 41, 27, 96] },
-                      { name: 'Expenses', data: [46, 44, 24, 43, 44, 43] },
+                      { name: 'Income', data: [Math.round(income * 0.5), Math.round(income * 0.6), Math.round(income * 0.7), Math.round(income * 0.8), Math.round(income * 0.9), Math.round(income)] },
+                      { name: 'Expenses', data: [Math.round(expenses * 0.5), Math.round(expenses * 0.6), Math.round(expenses * 0.7), Math.round(expenses * 0.8), Math.round(expenses * 0.9), Math.round(expenses)] },
                     ],
                   },
                 ],

@@ -23,10 +23,23 @@ export function BankingBalanceStatistics({ title, subheader, chart, sx, ...other
     theme.palette.info.main,
   ];
 
-  const chartOptions = useChart({
+    const chartOptions = useChart({
     stroke: { width: 2, colors: ['transparent'] },
     colors: chartColors,
     xaxis: { categories: currentSeries?.categories },
+    yaxis: {
+      labels: {
+        formatter: (value) => {
+          if (value >= 1000000) {
+            return `${(value / 1000000).toFixed(1)}M`;
+          }
+          if (value >= 1000) {
+            return `${Math.round(value / 1000)}k`;
+          }
+          return Math.round(value).toString();
+        },
+      },
+    },
     tooltip: {
       y: {
         formatter: (value) => fCurrency(value, { currencyCode: 'SAR' }),

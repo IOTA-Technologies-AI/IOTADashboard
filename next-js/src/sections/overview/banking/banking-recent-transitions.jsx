@@ -1,6 +1,9 @@
+import { useState } from 'react';
 import { usePopover } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import Card from '@mui/material/Card';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
@@ -28,18 +31,46 @@ import { CustomPopover } from 'src/components/custom-popover';
 // ----------------------------------------------------------------------
 
 export function BankingRecentTransitions({ sx, title, subheader, tableData, headCells, ...other }) {
+  const [currentTab, setCurrentTab] = useState('UAE');
+
+  // Filter transactions by region
+  const filteredData = tableData.filter((txn) => txn.region === currentTab);
+
+  // Limit to 10 most recent transactions
+  const displayData = filteredData.slice(0, 10);
+
+  const handleTabChange = (event, newValue) => {
+    setCurrentTab(newValue);
+  };
+
   return (
     <Card sx={sx} {...other}>
-      <CardHeader title={title} subheader={subheader} sx={{ mb: 3 }} />
+      <CardHeader title={title} subheader={subheader} sx={{ mb: 2 }} />
+
+      {/* Region Tabs */}
+      <Box sx={{ px: 3, pb: 2 }}>
+        <Tabs value={currentTab} onChange={handleTabChange} variant="fullWidth">
+          <Tab value="UAE" label="UAE" />
+          <Tab value="KSA" label="KSA" />
+        </Tabs>
+      </Box>
 
       <Scrollbar sx={{ minHeight: 462 }}>
         <Table sx={{ minWidth: 720 }}>
           <TableHeadCustom headCells={headCells} />
 
           <TableBody>
-            {tableData.map((row) => (
-              <RowItem key={row.id} row={row} />
-            ))}
+            {displayData.length > 0 ? (
+              displayData.map((row) => <RowItem key={row.id} row={row} />)
+            ) : (
+              <TableRow>
+                <TableCell colSpan={headCells.length} align="center" sx={{ py: 5 }}>
+                  <Box sx={{ color: 'text.secondary' }}>
+                    No transactions found for {currentTab}
+                  </Box>
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </Scrollbar>
@@ -183,16 +214,8 @@ function RowItem({ row }) {
         </TableCell>
 
         <TableCell>
-          <Label
-            variant="soft"
-            color={
-              (row.status === 'completed' && 'success') ||
-              (row.status === 'progress' && 'warning') ||
-              'error'
-            }
-            sx={{ textTransform: 'capitalize' }}
-          >
-            {row.status}
+          <Label variant="soft" color="success" sx={{ textTransform: 'capitalize' }}>
+            Posted
           </Label>
         </TableCell>
 

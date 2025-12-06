@@ -119,10 +119,20 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
 
   return (
     <>
-      <Card sx={sx} {...other}>
+            <Card sx={sx} {...other}>
         <CardHeader
           title="Upload Statement"
           subheader="Import transactions from bank statements"
+          slotProps={{
+            subheader: {
+              sx: {
+                fontSize: '0.6875rem', // Reduced by ~5px (from default 0.875rem)
+                fontStyle: 'regular',
+                opacity: 0.8,
+                pb: 2,
+              },
+            },
+          }}
           action={
             <Button variant="contained" startIcon={<Iconify icon="eva:cloud-upload-fill" />} onClick={handleOpen}>
               Upload
