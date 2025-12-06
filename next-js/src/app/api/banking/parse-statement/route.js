@@ -130,6 +130,45 @@ export async function POST(request) {
       }
     }
 
+    // Check for duplicate statement (same period for same account)
+    const existingStatementsResponse = await fetch(
+      `${API_BASE_URL}/bankStatements/account/${finalAccountId}`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+
+    if (existingStatementsResponse.ok) {
+      const existingStatementsResult = await existingStatementsResponse.json();
+      const existingStatements = existingStatementsResult.data || [];
+
+      const startDate = parsedStatement.statementInfo.periodStart || new Date().toISOString().split('T')[0];
+      const endDate = parsedStatement.statementInfo.periodEnd || new Date().toISOString().split('T')[0];
+
+      const duplicateStatement = existingStatements.find(
+        (stmt) => stmt.startDate === startDate && stmt.endDate === endDate
+      );
+
+      if (duplicateStatement) {
+        return NextResponse.json(
+          {
+            error: 'Duplicate statement',
+            message: `A statement for the period ${startDate} to ${endDate} has already been uploaded`,
+            isDuplicate: true,
+            existingStatementId: duplicateStatement.id,
+            existingStatement: {
+              id: duplicateStatement.id,
+              fileName: duplicateStatement.fileName,
+              uploadedAt: duplicateStatement.createdAt,
+              transactionCount: duplicateStatement.transactionCount,
+            },
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     // Create statement record
         const statementData = {
       bankAccountId: finalAccountId,
