@@ -274,6 +274,35 @@ export async function getExpense(referenceId) {
   }
 }
 
+// Get expenses with linked invoices (expenseType 18) - for deals
+export async function getExpensesWithLinkedInvoices() {
+  try {
+    let config = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: 'https://staging-iotaapiserver-s572.encr.app/expenses',
+      headers: {},
+    };
+
+    return axios
+      .request(config)
+      .then((response) => {
+        const expenses = response.data.expenses || [];
+        // Filter for expenseType 18 (Invoice Against Invoice)
+        const linkedExpenses = expenses.filter((exp) => exp.expenseType === 18);
+        console.log(`✅ Fetched ${linkedExpenses.length} expenses with linked invoices`);
+        return linkedExpenses;
+      })
+      .catch((error) => {
+        console.error('❌ Linked Expenses API error:', error.response?.data || error.message);
+        return [];
+      });
+  } catch (error) {
+    console.error('❌ Failed to fetch linked expenses:', error);
+    return [];
+  }
+}
+
 export async function createExpense(expenseData) {
   try {
     console.log('📤 Creating expense:', expenseData);
@@ -710,6 +739,7 @@ export const apiHelper = {
   createVendor,
   getCustomers,
   getExpenses,
+  getExpensesWithLinkedInvoices,
   getExpense,
   createExpense,
   updateExpense,

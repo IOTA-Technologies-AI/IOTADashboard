@@ -4,8 +4,8 @@ const API_URL = 'https://staging-iotaapiserver-s572.encr.app';
 
 export async function getBDMs() {
   try {
-    const response = await fetch(`${API_URL}/bdm.getBDMs`, {
-      method: 'POST',
+    const response = await fetch(`${API_URL}/bdms`, {
+      method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
     });
