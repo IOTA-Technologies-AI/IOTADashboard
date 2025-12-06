@@ -32,7 +32,7 @@ export function BankingExpensesCategories({ title, subheader, chart, sx, ...othe
     labels: chart.series.map((item) => item.label),
     stroke: { width: 1, colors: [theme.palette.background.paper] },
     fill: { opacity: 0.88 },
-    tooltip: { y: { formatter: (value) => fCurrency(value) } },
+    tooltip: { y: { formatter: (value) => fCurrency(value, { currencyCode: 'SAR' }) } },
     plotOptions: { pie: { donut: { labels: { show: false } } } },
     ...chart.options,
   });
@@ -65,7 +65,7 @@ export function BankingExpensesCategories({ title, subheader, chart, sx, ...othe
           colors={chartOptions?.colors}
           labels={chartOptions?.labels}
           icons={chart.icons}
-          sublabels={chart.series.map((item) => fCurrency(item.value))}
+          sublabels={chart.series.map((item) => fCurrency(item.value, { currencyCode: 'SAR' }))}
           sx={{ gap: 2.5, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)' }}
         />
       </Box>

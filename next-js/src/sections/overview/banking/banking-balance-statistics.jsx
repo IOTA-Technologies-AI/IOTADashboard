@@ -27,7 +27,12 @@ export function BankingBalanceStatistics({ title, subheader, chart, sx, ...other
     stroke: { width: 2, colors: ['transparent'] },
     colors: chartColors,
     xaxis: { categories: currentSeries?.categories },
-    tooltip: { y: { formatter: (value) => fCurrency(value) } },
+    tooltip: {
+      y: {
+        formatter: (value) => fCurrency(value, { currencyCode: 'SAR' }),
+        title: { formatter: () => '' },
+      },
+    },
     ...chart.options,
   });
 

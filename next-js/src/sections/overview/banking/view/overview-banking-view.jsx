@@ -28,6 +28,58 @@ import { BankingRecentTransitions } from '../banking-recent-transitions';
 import { BankingExpensesCategories } from '../banking-expenses-categories';
 
 // ----------------------------------------------------------------------
+// Helper Functions
+// ----------------------------------------------------------------------
+
+/**
+ * Convert amount from one currency to another using fixed exchange rate
+ */
+function convertCurrency(amount, fromCurrency, toCurrency = 'SAR') {
+  if (fromCurrency === toCurrency) return amount;
+
+  // Fixed exchange rate: 1 AED = 1.02 SAR (approximate)
+  const AED_TO_SAR = 1.02;
+
+  if (fromCurrency === 'AED' && toCurrency === 'SAR') {
+    return amount * AED_TO_SAR;
+  }
+  if (fromCurrency === 'SAR' && toCurrency === 'AED') {
+    return amount / AED_TO_SAR;
+  }
+
+  return amount;
+}
+
+/**
+ * Calculate total balance across all accounts converted to SAR
+ */
+function calculateTotalBalance(accounts, targetCurrency = 'SAR') {
+  return accounts.reduce((total, account) => {
+    const convertedBalance = convertCurrency(
+      account.currentBalance || 0,
+      account.currency,
+      targetCurrency
+    );
+    return total + convertedBalance;
+  }, 0);
+}
+
+/**
+ * Calculate income and expenses from transactions
+ */
+function calculateIncomeExpenses(transactions) {
+  const income = transactions
+    .filter(t => t.transactionType === 'credit')
+    .reduce((sum, t) => sum + (t.credit || t.amount || 0), 0);
+
+  const expenses = transactions
+    .filter(t => t.transactionType === 'debit')
+    .reduce((sum, t) => sum + Math.abs(t.debit || t.amount || 0), 0);
+
+  return { income, expenses };
+}
+
+// ----------------------------------------------------------------------
 
 export function OverviewBankingView() {
   const [currentTab, setCurrentTab] = useState('all');
@@ -54,6 +106,17 @@ export function OverviewBankingView() {
       setTransactions(result.data || []);
     }
   }, []);
+
+  // Filter accounts by current tab
+  const filteredAccounts = currentTab === 'all'
+    ? accounts
+    : accounts.filter((acc) => acc.region === currentTab);
+
+  // Calculate total balance in SAR (AED + SAR converted)
+  const totalBalanceSAR = calculateTotalBalance(filteredAccounts, 'SAR');
+
+  // Calculate income and expenses from transactions
+  const { income, expenses } = calculateIncomeExpenses(transactions);
 
   // Initial load
   useEffect(() => {
@@ -118,6 +181,8 @@ export function OverviewBankingView() {
     date: txn.transactionDate,
     status: txn.reconciled ? 'completed' : 'progress',
     amount: txn.credit > 0 ? txn.credit : txn.debit || txn.amount,
+    currency: txn.currency || 'AED', // Add currency to transaction
+    region: txn.region || 'UAE', // Add region to transaction
   }));
 
   // Calculate expense categories from transactions
@@ -165,7 +230,11 @@ export function OverviewBankingView() {
             {/* Statement Upload Card */}
             <BankingStatementUpload accounts={accounts} onUploadComplete={handleUploadComplete} />
 
-            <BankingOverview />
+            <BankingOverview
+              totalBalance={totalBalanceSAR}
+              income={income}
+              expenses={expenses}
+            />
 
             <BankingBalanceStatistics
               title="Balance statistics"

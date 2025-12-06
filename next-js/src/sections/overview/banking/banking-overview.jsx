@@ -16,27 +16,27 @@ import { Chart, useChart } from 'src/components/chart';
 
 // ----------------------------------------------------------------------
 
-const TABS = [
-  {
-    value: 'income',
-    label: 'Income',
-    percent: 8.2,
-    total: 9990,
-    chart: { series: [{ data: [5, 31, 33, 50, 99, 76, 72, 76, 89] }] },
-  },
-  {
-    value: 'expenses',
-    label: 'Expenses',
-    percent: -6.6,
-    total: 1989,
-    chart: { series: [{ data: [10, 41, 35, 51, 49, 62, 69, 91, 148] }] },
-  },
-];
-
-export function BankingOverview({ sx, ...other }) {
+export function BankingOverview({ sx, totalBalance, income, expenses, ...other }) {
   const theme = useTheme();
-
   const tabs = useTabs('income');
+
+  // Dynamic tabs based on real data
+  const TABS = [
+    {
+      value: 'income',
+      label: 'Income',
+      percent: expenses > 0 ? ((income - expenses) / expenses) * 100 : 0,
+      total: income || 0,
+      chart: { series: [{ data: [5, 31, 33, 50, 99, 76, 72, 76, 89] }] }, // Will be replaced with real data
+    },
+    {
+      value: 'expenses',
+      label: 'Expenses',
+      percent: income > 0 ? -((expenses / income) * 100) : 0,
+      total: expenses || 0,
+      chart: { series: [{ data: [22, 33, 21, 76, 54, 43, 45, 43, 32] }] }, // Will be replaced with real data
+    },
+  ];
 
   const chartColors =
     tabs.value === 'income' ? [theme.palette.primary.dark] : [theme.palette.warning.dark];
@@ -46,7 +46,10 @@ export function BankingOverview({ sx, ...other }) {
     xaxis: { categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'] },
     stroke: { width: 3 },
     tooltip: {
-      y: { formatter: (value) => fCurrency(value), title: { formatter: () => '' } },
+      y: {
+        formatter: (value) => fCurrency(value, { currencyCode: 'SAR' }),
+        title: { formatter: () => '' },
+      },
     },
   });
 
@@ -68,7 +71,7 @@ export function BankingOverview({ sx, ...other }) {
         </Tooltip>
       </Box>
 
-      <Box sx={{ typography: 'h3' }}>{fCurrency(49990)}</Box>
+      <Box sx={{ typography: 'h3' }}>{fCurrency(totalBalance || 0, { currencyCode: 'SAR' })}</Box>
     </Box>
   );
 
@@ -171,8 +174,7 @@ export function BankingOverview({ sx, ...other }) {
                     <Iconify width={16} icon="eva:info-outline" sx={{ color: 'text.disabled' }} />
                   </Tooltip>
                 </Box>
-
-                <Box sx={{ typography: 'h4' }}>{fCurrency(tab.total)}</Box>
+                <Box sx={{ typography: 'h4' }}>{fCurrency(tab.total, { currencyCode: 'SAR' })}</Box>
               </div>
 
               <Label

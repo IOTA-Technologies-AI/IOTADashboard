@@ -134,7 +134,7 @@ function CarouselItem({ item, showCurrency, onToggleCurrency }) {
 
           <Box sx={{ gap: 1, display: 'flex', alignItems: 'center' }}>
             <Box component="span" sx={{ typography: 'h4' }}>
-              {showCurrency ? '********' : fCurrency(item.balance)}
+              {showCurrency ? '********' : fCurrency(item.balance, { currencyCode: item.currency })}
             </Box>
 
             <IconButton color="inherit" onClick={onToggleCurrency} sx={{ opacity: 0.48 }}>

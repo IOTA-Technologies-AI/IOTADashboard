@@ -33,18 +33,45 @@ export function fNumber(inputValue, options) {
 
 // ----------------------------------------------------------------------
 
-export function fCurrency(inputValue, options) {
-  const locale = formatNumberLocale() || DEFAULT_LOCALE;
-
+/**
+ * Format currency with support for multiple currencies (AED, SAR, USD, etc.)
+ * @param {number} inputValue - Amount to format
+ * @param {object} options - Options including currencyCode
+ * @param {string} options.currencyCode - Currency code (AED, SAR, USD, etc.)
+ * @returns {string} Formatted currency string
+ * @example
+ * fCurrency(1000) // $1,000 (default)
+ * fCurrency(1000, { currencyCode: 'AED' }) // AED 1,000
+ * fCurrency(1000, { currencyCode: 'SAR' }) // ﷼ 1,000
+ */
+export function fCurrency(inputValue, options = {}) {
   const number = processInput(inputValue);
   if (number === null) return '';
+
+  const { currencyCode, ...intlOptions } = options;
+
+  // If currency code is provided, format with custom symbol
+  if (currencyCode) {
+    const formatted = new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+      ...intlOptions,
+    }).format(number);
+
+    // Use ﷼ (U+FDFC) for SAR, otherwise use currency code as prefix
+    const symbol = currencyCode === 'SAR' ? '\uFDFC' : currencyCode;
+    return `${symbol} ${formatted}`;
+  }
+
+  // Default behavior - use locale settings
+  const locale = formatNumberLocale() || DEFAULT_LOCALE;
 
   const fm = new Intl.NumberFormat(locale.code, {
     style: 'currency',
     currency: locale.currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-    ...options,
+    ...intlOptions,
   }).format(number);
 
   return fm;

@@ -176,7 +176,11 @@ function RowItem({ row }) {
           />
         </TableCell>
 
-        <TableCell>{fCurrency(row.amount)}</TableCell>
+        <TableCell>
+          {fCurrency(Math.abs(row.amount), {
+            currencyCode: row.currency || (row.region === 'KSA' ? 'SAR' : 'AED'),
+          })}
+        </TableCell>
 
         <TableCell>
           <Label
