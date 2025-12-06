@@ -34,7 +34,7 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
   const [file, setFile] = useState(null);
   const [password, setPassword] = useState('');
   const [selectedAccount, setSelectedAccount] = useState('');
-  const [selectedBank, setSelectedBank] = useState('');
+  const [selectedBank, setSelectedBank] = useState(SUPPORTED_BANKS.UAE[0]?.id || 'emirates_nbd'); // Default to first bank
   const [selectedRegion, setSelectedRegion] = useState('UAE');
   const [isNewAccount, setIsNewAccount] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -150,7 +150,12 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
                 label="Region"
                 onChange={(e) => {
                   setSelectedRegion(e.target.value);
-                  setSelectedBank('');
+                  setSelectedBank(''); // Reset bank when region changes
+                  // Auto-select first bank in new region
+                  const newRegionBanks = SUPPORTED_BANKS[e.target.value] || [];
+                  if (newRegionBanks.length > 0) {
+                    setSelectedBank(newRegionBanks[0].id);
+                  }
                 }}
               >
                 {Object.keys(BANK_REGIONS).map((region) => (
