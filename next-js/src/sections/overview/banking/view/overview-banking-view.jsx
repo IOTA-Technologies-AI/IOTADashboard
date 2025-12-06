@@ -69,11 +69,11 @@ function calculateTotalBalance(accounts, targetCurrency = 'SAR') {
  */
 function calculateIncomeExpenses(transactions) {
   const income = transactions
-    .filter(t => t.transactionType === 'credit')
+    .filter((t) => t.transactionType === 'credit')
     .reduce((sum, t) => sum + (t.credit || t.amount || 0), 0);
 
   const expenses = transactions
-    .filter(t => t.transactionType === 'debit')
+    .filter((t) => t.transactionType === 'debit')
     .reduce((sum, t) => sum + Math.abs(t.debit || t.amount || 0), 0);
 
   return { income, expenses };
@@ -108,9 +108,8 @@ export function OverviewBankingView() {
   }, []);
 
   // Filter accounts by current tab
-  const filteredAccounts = currentTab === 'all'
-    ? accounts
-    : accounts.filter((acc) => acc.region === currentTab);
+  const filteredAccounts =
+    currentTab === 'all' ? accounts : accounts.filter((acc) => acc.region === currentTab);
 
   // Calculate total balance in SAR (AED + SAR converted)
   const totalBalanceSAR = calculateTotalBalance(filteredAccounts, 'SAR');
@@ -230,11 +229,7 @@ export function OverviewBankingView() {
             {/* Statement Upload Card */}
             <BankingStatementUpload accounts={accounts} onUploadComplete={handleUploadComplete} />
 
-            <BankingOverview
-              totalBalance={totalBalanceSAR}
-              income={income}
-              expenses={expenses}
-            />
+            <BankingOverview totalBalance={totalBalanceSAR} income={income} expenses={expenses} />
 
             <BankingBalanceStatistics
               title="Balance statistics"
@@ -377,8 +372,17 @@ function calculateExpenseCategories(transactions) {
 
   Object.entries(categoryTotals).forEach(([category, value]) => {
     const categoryInfo = categoryMap[category] || categoryMap.other;
-    series.push({ label: categoryInfo.label, value: Math.round(value) });
-    icons.push(categoryInfo.icon);
+
+    // Check if we already have this label to avoid duplicates
+    const existingIndex = series.findIndex((item) => item.label === categoryInfo.label);
+    if (existingIndex >= 0) {
+      // Add to existing category
+      series[existingIndex].value += Math.round(value);
+    } else {
+      // Add new category
+      series.push({ label: categoryInfo.label, value: Math.round(value) });
+      icons.push(categoryInfo.icon);
+    }
   });
 
   // If no data, return defaults

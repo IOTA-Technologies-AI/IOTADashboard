@@ -18,6 +18,7 @@ export const SUPPORTED_BANKS = {
     { id: 'cbd', name: 'Commercial Bank of Dubai', code: 'CBDUAEAD' },
   ],
   KSA: [
+    { id: 'saib', name: 'Saudi Investment Bank', code: 'SIBCSARI' },
     { id: 'al_rajhi', name: 'Al Rajhi Bank', code: 'RJHISARI' },
     { id: 'snb', name: 'Saudi National Bank', code: 'NCBKSAJE' },
     { id: 'sab', name: 'Saudi Awwal Bank', code: 'SABBSARI' },
