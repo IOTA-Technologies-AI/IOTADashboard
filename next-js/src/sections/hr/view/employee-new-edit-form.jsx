@@ -118,6 +118,11 @@ export function EmployeeNewEditForm({ currentEmployee }) {
         lastName: data.lastName,
         currencyCode: data.currencyCode,
         employeeType: data.employeeType,
+        basicSalary: Number(data.basicSalary ?? 0),
+        housingAllowance: Number(data.housingAllowance ?? 0),
+        transportAllowance: Number(data.transportationAllowance ?? 0),
+        otherAllowances: Number(data.otherAllowances ?? 0),
+        employmentStatus: data.employmentStatus,
       };
 
       // Only add optional fields if they have values
@@ -137,12 +142,8 @@ export function EmployeeNewEditForm({ currentEmployee }) {
         employeeData.employmentStartDate = data.employmentStartDate.trim();
       if (data.employmentEndDate?.trim())
         employeeData.employmentEndDate = data.employmentEndDate.trim();
-      if (data.basicSalary) employeeData.basicSalary = Number(data.basicSalary);
-      if (data.housingAllowance) employeeData.housingAllowance = Number(data.housingAllowance);
-      if (data.transportationAllowance)
-        employeeData.transportationAllowance = Number(data.transportationAllowance);
-      if (data.otherAllowances) employeeData.otherAllowances = Number(data.otherAllowances);
-      if (data.employmentStatus) employeeData.employmentStatus = data.employmentStatus;
+      // Salaries & allowances already set above (ensure zeroes persist)
+
       if (data.bankName?.trim()) employeeData.bankName = data.bankName.trim();
       if (data.bankAccountNumber?.trim())
         employeeData.bankAccountNumber = data.bankAccountNumber.trim();

@@ -1,15 +1,20 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useEffect, useCallback } from 'react';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Stack from '@mui/material/Stack';
+import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import { DataGrid } from '@mui/x-data-grid';
+import Checkbox from '@mui/material/Checkbox';
 import MenuItem from '@mui/material/MenuItem';
+import TableRow from '@mui/material/TableRow';
 import TextField from '@mui/material/TextField';
+import TableBody from '@mui/material/TableBody';
+import TableCell from '@mui/material/TableCell';
 import Typography from '@mui/material/Typography';
 import CardHeader from '@mui/material/CardHeader';
 import CardContent from '@mui/material/CardContent';
@@ -22,10 +27,18 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { toast } from 'src/components/snackbar';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import {
+  TableEmptyRows,
+  TableHeadCustom,
+  TablePaginationCustom,
+  TableSelectedAction,
+  emptyRows,
+  rowInPage,
+  useTable,
+} from 'src/components/table';
 
 // Calculate actual working days for employee based on joining date
 const getEmployeeWorkingDays = (year, month, joiningDate) => {
-  const monthStart = new Date(year, month - 1, 1);
   const monthEnd = new Date(year, month, 0).getDate();
 
   const joinDate = new Date(joiningDate);
@@ -207,6 +220,26 @@ export default function GeneratePayrollPage() {
   const [calculating, setCalculating] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [runMeta, setRunMeta] = useState(null);
+  const selectionInitialized = useRef(false);
+  const table = useTable({ defaultOrderBy: 'fullName', defaultRowsPerPage: 10 });
+
+  const selectedIdsArray = useMemo(
+    () => table.selected.map(String).filter(Boolean),
+    [table.selected]
+  );
+
+  useEffect(() => {}, [selectedIdsArray]);
+
+  const getRowId = useCallback((item) => {
+    if (!item) return '';
+    const raw =
+      item.__rowId ??
+      item.id ??
+      item.employeeId ??
+      item.employeeID ??
+      item.payrollLineItemId;
+    return raw != null ? String(raw) : '';
+  }, []);
 
   const workingDays = getWorkingDays(year, month);
 
@@ -215,15 +248,30 @@ export default function GeneratePayrollPage() {
       setLoading(true);
       const data = await getEmployees();
       const employeeList = Array.isArray(data) ? data : [];
-      setEmployees(employeeList.filter((emp) => emp.employmentStatus === 'Active'));
+      const activeEmployees = employeeList.filter((emp) => emp.employmentStatus === 'Active');
+
+      const normalizedEmployees = activeEmployees.map((emp, idx) => {
+        const baseId = getRowId(emp);
+        const fallbackId = `emp-${idx}-${emp.employeeId || emp.email || emp.firstName || 'noid'}`;
+        const __rowId = baseId && baseId.trim() ? baseId : fallbackId;
+        return { ...emp, __rowId };
+      });
+
+      setEmployees(normalizedEmployees);
+      if (!selectionInitialized.current) {
+        const initialSelection = normalizedEmployees.map((emp) => getRowId(emp)).filter(Boolean);
+        table.setSelected(initialSelection);
+        selectionInitialized.current = true;
+      }
     } catch (error) {
       console.error('Error fetching employees:', error);
       toast.error('Failed to load employees');
       setEmployees([]);
+      table.setSelected([]);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getRowId, table]);
 
   useEffect(() => {
     fetchEmployees();
@@ -236,6 +284,7 @@ export default function GeneratePayrollPage() {
       const leaveList = Array.isArray(leaveRequests) ? leaveRequests : [];
 
       const calculated = employees
+        .filter((emp) => selectedIdsArray.includes(getRowId(emp)))
         .map((employee) => {
           const employeeWorkingDays = getEmployeeWorkingDays(year, month, employee.joiningDate);
           if (employeeWorkingDays <= 0) {
@@ -259,8 +308,10 @@ export default function GeneratePayrollPage() {
             employeeWorkingDays
           );
 
+          const rowId = getRowId(employee);
+
           return {
-            id: employee.id,
+            id: rowId,
             employeeId: employee.employeeId,
             fullName: `${employee.firstName} ${employee.lastName}`,
             department: employee.department,
@@ -301,15 +352,22 @@ export default function GeneratePayrollPage() {
   const handleGeneratePayroll = async () => {
     try {
       setGenerating(true);
+      const selectedEmployees = employees.filter((emp) => selectedIdsArray.includes(getRowId(emp)));
       const response = await createPayrollRun({
         periodMonth: month,
         periodYear: year,
         generatedBy: 'system',
         notes: undefined,
+        employeeIds: selectedEmployees.map((e) => e.id),
       });
 
       if (response?.lineItems) {
-        setPayrollData(response.lineItems);
+        setPayrollData(
+          response.lineItems.map((li) => {
+            const normalizedId = getRowId(li) || `${li.employeeName || 'emp'}-${li.employeeId || ''}`;
+            return { ...li, id: normalizedId };
+          })
+        );
       }
       if (response?.payrollRun) {
         setRunMeta(response.payrollRun);
@@ -344,7 +402,12 @@ export default function GeneratePayrollPage() {
       headerName: 'Eligible Days',
       flex: 0.8,
       minWidth: 100,
-      renderCell: (params) => `${params.value}/${params.row.totalWorkingDays}`,
+      renderCell: (params) => {
+        const row = params?.row || {};
+        const val = params?.value ?? 0;
+        const total = row.totalWorkingDays ?? 0;
+        return `${val}/${total}`;
+      },
     },
     {
       field: 'leavesTaken',
@@ -363,7 +426,12 @@ export default function GeneratePayrollPage() {
       headerName: 'Working Days',
       flex: 0.8,
       minWidth: 100,
-      renderCell: (params) => `${params.value}/${params.row.totalWorkingDays}`,
+      renderCell: (params) => {
+        const row = params?.row || {};
+        const val = params?.value ?? 0;
+        const total = row.totalWorkingDays ?? 0;
+        return `${val}/${total}`;
+      },
     },
     {
       field: 'basicSalary',
@@ -429,7 +497,7 @@ export default function GeneratePayrollPage() {
       valueFormatter: (value) => `SAR ${value?.toFixed(2) || 0}`,
       renderCell: (params) => (
         <Typography variant="subtitle2" sx={{ color: 'success.main' }}>
-          SAR {params.value?.toFixed(2) || 0}
+          SAR {params?.value?.toFixed(2) || 0}
         </Typography>
       ),
     },
@@ -437,6 +505,14 @@ export default function GeneratePayrollPage() {
 
   const totalGross = runMeta?.totalGross ?? payrollData.reduce((sum, row) => sum + (row.grossSalary || 0), 0);
   const totalNet = runMeta?.totalNet ?? payrollData.reduce((sum, row) => sum + (row.netSalary || 0), 0);
+
+  const employeeTableHead = [
+    { id: 'employeeId', label: 'Employee ID', width: 140 },
+    { id: 'fullName', label: 'Name', width: 200 },
+    { id: 'department', label: 'Department', width: 160 },
+    { id: 'designation', label: 'Designation', width: 160 },
+    { id: 'joiningDate', label: 'Joining Date', width: 160 },
+  ];
 
   return (
     <DashboardContent>
@@ -504,15 +580,127 @@ export default function GeneratePayrollPage() {
               <Button
                 variant="contained"
                 onClick={handleCalculatePayroll}
-                disabled={employees.length === 0 || calculating}
+                disabled={employees.length === 0 || calculating || selectedIdsArray.length === 0}
               >
                 Calculate Payroll
               </Button>
               <Typography variant="body2" sx={{ alignSelf: 'center', color: 'text.secondary' }}>
-                {employees.length} active employees found
+                {selectedIdsArray.length} of {employees.length} active employees selected
               </Typography>
             </Box>
           </CardContent>
+        </Card>
+
+        {/* Employee Selection */}
+        <Card>
+          <CardHeader
+            title="Select Employees"
+            subheader={`${selectedIdsArray.length} of ${employees.length} active employees selected`}
+            action={
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+                <Button
+                  variant="outlined"
+                  onClick={() => table.onSelectAllRows(true, employees.map((e) => getRowId(e)).filter(Boolean))}
+                  disabled={employees.length === 0}
+                >
+                  Select All
+                </Button>
+                <Button
+                  variant="outlined"
+                        onClick={() => {
+                          selectionInitialized.current = true; // prevent re-init on clear
+                          table.onSelectAllRows(false, []);
+                        }}
+                  disabled={selectedIdsArray.length === 0}
+                >
+                  Clear Selection
+                </Button>
+              </Stack>
+            }
+          />
+
+          <Box sx={{ position: 'relative' }}>
+            <TableSelectedAction
+              dense={table.dense}
+              numSelected={selectedIdsArray.length}
+              rowCount={employees.length}
+              onSelectAllRows={(checked) =>
+                table.onSelectAllRows(checked, employees.map((row) => getRowId(row)).filter(Boolean))
+              }
+              action={
+                <Button size="small" color="error" onClick={() => table.setSelected([])}>
+                  Clear
+                </Button>
+              }
+            />
+
+            <Box sx={{ overflow: 'auto' }}>
+              <Table size={table.dense ? 'small' : 'medium'} sx={{ minWidth: 960 }}>
+                <TableHeadCustom
+                  order={table.order}
+                  orderBy={table.orderBy}
+                  headCells={employeeTableHead}
+                  rowCount={employees.length}
+                  numSelected={selectedIdsArray.length}
+                  onSort={table.onSort}
+                  onSelectAllRows={(checked) =>
+                    table.onSelectAllRows(checked, employees.map((row) => getRowId(row)).filter(Boolean))
+                  }
+                />
+
+                <TableBody>
+                  {rowInPage(employees, table.page, table.rowsPerPage).map((row) => {
+                    const id = getRowId(row);
+                    const selected = table.selected.includes(id);
+                    return (
+                      <TableRow key={id} hover selected={selected}>
+                        <TableCell padding="checkbox">
+                          <Checkbox
+                            checked={selected}
+                            onChange={() => {
+                              selectionInitialized.current = true; // user interacted
+                              table.onSelectRow(id);
+                            }}
+                          />
+                        </TableCell>
+                        <TableCell>{row.employeeId || '-'}</TableCell>
+                        <TableCell>{`${row.firstName || ''} ${row.lastName || ''}`.trim() || '-'}</TableCell>
+                        <TableCell>{row.department || '-'}</TableCell>
+                        <TableCell>{row.designation || '-'}</TableCell>
+                        <TableCell>
+                          {row.joiningDate ? new Date(row.joiningDate).toLocaleDateString() : '-'}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+
+                  <TableEmptyRows
+                    height={table.dense ? 52 : 72}
+                    emptyRows={emptyRows(table.page, table.rowsPerPage, employees.length)}
+                  />
+
+                  {!employees.length && (
+                    <TableRow>
+                      <TableCell align="center" colSpan={employeeTableHead.length + 1}>
+                        No active employees found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Box>
+          </Box>
+
+          <TablePaginationCustom
+            dense={table.dense}
+            page={table.page}
+            component="div"
+            count={employees.length}
+            rowsPerPage={table.rowsPerPage}
+            onPageChange={table.onChangePage}
+            onRowsPerPageChange={table.onChangeRowsPerPage}
+            onChangeDense={table.onChangeDense}
+          />
         </Card>
 
         {/* Payroll Summary */}
@@ -558,7 +746,7 @@ export default function GeneratePayrollPage() {
                     variant="contained"
                     color="primary"
                     onClick={handleGeneratePayroll}
-                    disabled={generating || payrollData.length === 0}
+                    disabled={generating || payrollData.length === 0 || selectedIdsArray.length === 0}
                   >
                     {generating ? 'Generating…' : 'Generate & Send for Approval'}
                   </Button>
@@ -568,7 +756,7 @@ export default function GeneratePayrollPage() {
                 <DataGrid
                   rows={payrollData}
                   columns={columns}
-                  disableRowSelectionOnClick
+                  getRowId={getRowId}
                   pageSizeOptions={[10, 25, 50]}
                   initialState={{
                     pagination: {
