@@ -2,8 +2,8 @@
 
 import { z as zod } from 'zod';
 import { useForm } from 'react-hook-form';
-import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useRef, useMemo, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -68,6 +68,10 @@ export function DealNewEditForm({ currentDeal }) {
     netProfitAfterBDM: 0,
   });
 
+  // Track initial AR/AP selections so we don't recompute totals on edit until user changes them
+  const initialArIdsRef = useRef([]);
+  const initialExpenseIdsRef = useRef([]);
+
   const formatExpenseLabel = (expense) => {
     if (!expense) return '';
     const baseLabel = `${expense.linkedInvoiceNumber || 'N/A'} - ${expense.expenseSettlementNotes || 'No description'} - ${fCurrency(expense.expenseAmount || 0, { currency: 'SAR' })}`;
@@ -99,6 +103,13 @@ export function DealNewEditForm({ currentDeal }) {
     [currentDeal]
   );
 
+  const arraysEqual = (a = [], b = []) => {
+    if (a.length !== b.length) return false;
+    const as = [...a].sort();
+    const bs = [...b].sort();
+    return as.every((val, idx) => val === bs[idx]);
+  };
+
   const methods = useForm({
     resolver: zodResolver(DealSchema),
     defaultValues,
@@ -112,6 +123,7 @@ export function DealNewEditForm({ currentDeal }) {
   } = methods;
 
   const values = watch();
+  const currentDealId = currentDeal?.id ?? null;
 
   // Ensure form is hydrated when editing after async currentDeal load
   useEffect(() => {
@@ -141,6 +153,14 @@ export function DealNewEditForm({ currentDeal }) {
         expenseIds: parsedExpenseIds.map((id) => String(id)),
         bdmId: currentDeal.bdmId ? String(currentDeal.bdmId) : '',
       });
+
+      initialArIdsRef.current = (currentDeal.arInvoiceIds || currentDeal.arInvoiceId || [])
+        .toString()
+        .split(',')
+        .filter(Boolean)
+        .map((id) => String(id));
+
+      initialExpenseIdsRef.current = parsedExpenseIds.map((id) => String(id));
     }
   }, [currentDeal, defaultValues, reset]);
 
@@ -224,18 +244,32 @@ export function DealNewEditForm({ currentDeal }) {
       return;
     }
 
-    const arAmountWithVAT = arInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
-    const vatPercentage = values.region === 'KSA' ? 15 : 5;
-    const vatMultiplier = 1 + vatPercentage / 100;
-    const arAmount = arAmountWithVAT / vatMultiplier;
-    const vatAmount = arAmountWithVAT - arAmount;
+    // On edit, if selections match initial, don't recalc (prevents VAT changes)
+    if (
+      currentDeal &&
+      arraysEqual(
+        arInvoices.map((inv) => String(inv.id)),
+        initialArIdsRef.current.map((id) => String(id))
+      ) &&
+      arraysEqual(
+        selectedExpenses.map((exp) => String(exp.id)),
+        initialExpenseIdsRef.current.map((id) => String(id))
+      )
+    ) {
+      return;
+    }
 
+    const arAmountWithVAT = arInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
     const expenseAmountWithVAT = selectedExpenses.reduce(
       (sum, exp) => sum + (exp.expenseAmount || exp.amount || exp.total || 0),
       0
     );
-    const expenseAmount = expenseAmountWithVAT / vatMultiplier;
-    const expenseVAT = expenseAmountWithVAT - expenseAmount;
+
+    // Use gross (with VAT) values directly; VAT already handled at creation
+    const arAmount = arAmountWithVAT;
+    const expenseAmount = expenseAmountWithVAT;
+    const vatAmount = 0;
+    const expenseVAT = 0;
 
     const grossProfit = arAmount - expenseAmount;
 
@@ -270,6 +304,8 @@ export function DealNewEditForm({ currentDeal }) {
     values.bdmId,
     values.bdmCommissionType,
     values.bdmCommissionValue,
+    currentDeal,
+    currentDealId,
   ]);
 
   const onSubmit = handleSubmit(async (data) => {
@@ -645,7 +681,7 @@ export function DealNewEditForm({ currentDeal }) {
         <Stack spacing={1.5}>
           <Stack direction="row" justifyContent="space-between">
             <Typography variant="body2" color="text.secondary">
-              Revenue (AR Invoices - excl. VAT):
+              Revenue (AR Invoices):
             </Typography>
             <Typography variant="subtitle2" color="info.main">
               {fCurrency(calculations.arAmount, { currency: arInvoices[0]?.currencyCode || 'SAR' })}
@@ -654,34 +690,10 @@ export function DealNewEditForm({ currentDeal }) {
 
           <Stack direction="row" justifyContent="space-between">
             <Typography variant="body2" color="text.secondary">
-              VAT Amount ({values.region === 'KSA' ? '15%' : '5%'}):
-            </Typography>
-            <Typography variant="subtitle2" color="warning.main">
-              {fCurrency(calculations.vatAmount, {
-                currency: arInvoices[0]?.currencyCode || 'SAR',
-              })}
-            </Typography>
-          </Stack>
-
-          <Stack direction="row" justifyContent="space-between">
-            <Typography variant="body2" color="text.secondary">
-              Cost (Expenses - excl. VAT):
+              Cost (Expenses):
             </Typography>
             <Typography variant="subtitle2" color="error.main">
               {fCurrency(calculations.expenseAmount, {
-                currency: 'SAR',
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </Typography>
-          </Stack>
-
-          <Stack direction="row" justifyContent="space-between">
-            <Typography variant="body2" color="text.secondary">
-              Expense VAT (15%):
-            </Typography>
-            <Typography variant="subtitle2" color="warning.main">
-              {fCurrency(calculations.expenseVAT, {
                 currency: 'SAR',
                 minimumFractionDigits: 2,
                 maximumFractionDigits: 2,
