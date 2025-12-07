@@ -1,5 +1,7 @@
 'use client';
 
+import { use } from 'react';
+
 import { paths } from 'src/routes/paths';
 
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -9,7 +11,7 @@ import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 // ----------------------------------------------------------------------
 
 export default function OfferManagementDetailsPage({ params }) {
-  const { id } = params;
+  const { id } = use(params);
 
   return (
     <DashboardContent>

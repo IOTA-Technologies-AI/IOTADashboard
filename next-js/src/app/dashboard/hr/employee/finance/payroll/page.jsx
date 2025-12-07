@@ -16,6 +16,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { fetchPayrollRuns } from 'src/utils/apiHelper';
 
 export default function PayrollListPage() {
   const router = useRouter();
@@ -25,32 +26,19 @@ export default function PayrollListPage() {
   const fetchPayrolls = useCallback(async () => {
     try {
       setLoading(true);
-      // TODO: Replace with actual API call
-      const mockData = [
-        {
-          id: 1,
-          period: 'October 2025',
-          month: 10,
-          year: 2025,
-          totalEmployees: 15,
-          totalAmount: 75000,
-          status: 'Pending Approval',
-          generatedBy: 'Admin',
-          generatedAt: '2025-10-25T10:30:00',
-        },
-        {
-          id: 2,
-          period: 'September 2025',
-          month: 9,
-          year: 2025,
-          totalEmployees: 15,
-          totalAmount: 78000,
-          status: 'Approved',
-          generatedBy: 'Admin',
-          generatedAt: '2025-09-25T10:30:00',
-        },
-      ];
-      setPayrolls(mockData);
+      const data = await fetchPayrollRuns();
+      const mapped = data.map((run) => ({
+        id: run.id,
+        period: `${new Date(run.periodYear, run.periodMonth - 1).toLocaleString('default', { month: 'long' })} ${run.periodYear}`,
+        month: run.periodMonth,
+        year: run.periodYear,
+        totalEmployees: run.totalEmployees,
+        totalAmount: run.totalNet ?? run.totalGross ?? 0,
+        status: run.status,
+        generatedBy: run.generatedBy,
+        generatedAt: run.createdAt || run.approvedAt || '',
+      }));
+      setPayrolls(mapped);
     } catch (error) {
       console.error('Error fetching payrolls:', error);
       toast.error('Failed to load payrolls');

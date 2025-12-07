@@ -140,6 +140,25 @@ export async function getVendors() {
   }
 }
 
+// Payroll APIs
+export async function fetchPayrollRuns() {
+  const url = `${API_BASE_URL}/payroll/runs`;
+  const response = await axios.get(url);
+  return response.data?.payrollRuns || [];
+}
+
+export async function fetchPayrollRun(id) {
+  const url = `${API_BASE_URL}/payroll/runs/${id}`;
+  const response = await axios.get(url);
+  return response.data;
+}
+
+export async function createPayrollRun(body) {
+  const url = `${API_BASE_URL}/payroll/runs`;
+  const response = await axios.post(url, body);
+  return response.data;
+}
+
 export async function updateVendor(id, vendorData) {
   try {
     // Encore expects id and body fields in one object

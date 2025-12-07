@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo } from 'react';
+import { use, useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useRouter } from 'next/navigation';
 
@@ -10,46 +10,44 @@ import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
+import Table from '@mui/material/Table';
+import TableHead from '@mui/material/TableHead';
+import TableBody from '@mui/material/TableBody';
+import TableRow from '@mui/material/TableRow';
+import TableCell from '@mui/material/TableCell';
+import TableContainer from '@mui/material/TableContainer';
+import Paper from '@mui/material/Paper';
 
 import { paths } from 'src/routes/paths';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
-
-const mockPayrolls = [
-  {
-    id: 1,
-    period: 'October 2025',
-    month: 10,
-    year: 2025,
-    totalEmployees: 15,
-    totalAmount: 75000,
-    status: 'Pending Approval',
-    generatedBy: 'Admin',
-    generatedAt: '2025-10-25T10:30:00',
-  },
-  {
-    id: 2,
-    period: 'September 2025',
-    month: 9,
-    year: 2025,
-    totalEmployees: 15,
-    totalAmount: 78000,
-    status: 'Approved',
-    generatedBy: 'Admin',
-    generatedAt: '2025-09-25T10:30:00',
-  },
-];
+import { fetchPayrollRun } from 'src/utils/apiHelper';
+import { fCurrency } from 'src/utils/format-number';
 
 export default function PayrollDetailPage({ params }) {
   const router = useRouter();
-  const payrollId = Number(params?.id);
+  const { id } = use(params);
+  const payrollId = Number(id);
+  const [payroll, setPayroll] = useState(null);
+  const [lineItems, setLineItems] = useState([]);
 
-  const payroll = useMemo(
-    () => mockPayrolls.find((item) => item.id === payrollId),
-    [payrollId]
-  );
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const data = await fetchPayrollRun(payrollId);
+        setPayroll(data.payrollRun);
+        setLineItems(data.lineItems || []);
+      } catch (error) {
+        console.error('Failed to load payroll', error);
+        setPayroll(null);
+      }
+    };
+    if (Number.isFinite(payrollId)) {
+      load();
+    }
+  }, [payrollId]);
 
   return (
     <DashboardContent>
@@ -61,7 +59,7 @@ export default function PayrollDetailPage({ params }) {
           { name: 'Employee', href: paths.dashboard.hr.employee.root },
           { name: 'Finance' },
           { name: 'Payroll', href: paths.dashboard.hr.employee.finance.payroll.root },
-          { name: payroll ? payroll.period : 'Not found' },
+              { name: payroll ? `${payroll.periodMonth}/${payroll.periodYear}` : 'Not found' },
         ]}
         action={
           <Button variant="contained" onClick={() => router.push(paths.dashboard.hr.employee.finance.payroll.root)}>
@@ -85,29 +83,134 @@ export default function PayrollDetailPage({ params }) {
         </Card>
       ) : (
         <Card sx={{ p: 3 }}>
-          <Stack spacing={2}>
-            <Typography variant="h5">{payroll.period}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              Generated on {new Date(payroll.generatedAt).toLocaleString()} by {payroll.generatedBy}
-            </Typography>
+          <Stack spacing={3}>
+            <Box>
+              <Typography variant="h4" sx={{ mb: 0.5 }}>
+                {new Date(payroll.periodYear, payroll.periodMonth - 1).toLocaleString('default', {
+                  month: 'long',
+                })}{' '}
+                {payroll.periodYear}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Generated on {new Date(payroll.createdAt || payroll.approvedAt || payroll.generatedAt || Date.now()).toLocaleString()} by {payroll.generatedBy}
+              </Typography>
+            </Box>
 
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={4}>
-                <InfoItem label="Status" value={payroll.status} />
+            <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 2 }}>
+              <Grid container spacing={2}>
+                {[
+                  { label: 'Status', value: payroll.status },
+                  { label: 'Total Employees', value: payroll.totalEmployees },
+                  {
+                    label: 'Total Net',
+                    value: fCurrency(payroll.totalNet ?? 0, {
+                      currency: 'SAR',
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }),
+                  },
+                  { label: 'Total Gross', value: fCurrency(payroll.totalGross ?? 0, { currency: 'SAR' }) },
+                  { label: 'Month', value: payroll.periodMonth },
+                  { label: 'Year', value: payroll.periodYear },
+                ].map((item) => (
+                  <Grid key={item.label} item xs={12} sm={6} md={4}>
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                      <Typography variant="body2" color="text.secondary" sx={{ minWidth: 120 }}>
+                        {item.label}
+                      </Typography>
+                      <Typography variant="subtitle1">{item.value}</Typography>
+                    </Stack>
+                  </Grid>
+                ))}
               </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <InfoItem label="Total Employees" value={payroll.totalEmployees} />
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <InfoItem label="Total Amount" value={`SAR ${payroll.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} />
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <InfoItem label="Month" value={payroll.month} />
-              </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <InfoItem label="Year" value={payroll.year} />
-              </Grid>
-            </Grid>
+            </Box>
+
+            {lineItems.length > 0 && (
+              <Box>
+                <Stack spacing={1} sx={{ mb: 1 }}>
+                  <Typography variant="h6">Payroll Breakdown</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Summary and per-employee amounts for this run.
+                  </Typography>
+                </Stack>
+
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                  {[
+                    {
+                      label: 'Total Gross',
+                      value: fCurrency(
+                        lineItems.reduce((sum, li) => sum + (li.grossSalary || 0), 0),
+                        { currency: 'SAR', minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                      ),
+                    },
+                    {
+                      label: 'Total Deductions',
+                      value: fCurrency(
+                        lineItems.reduce((sum, li) => sum + (li.deductions || 0), 0),
+                        { currency: 'SAR', minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                      ),
+                    },
+                    {
+                      label: 'Total Net',
+                      value: fCurrency(
+                        lineItems.reduce((sum, li) => sum + (li.netSalary || 0), 0),
+                        { currency: 'SAR', minimumFractionDigits: 2, maximumFractionDigits: 2 }
+                      ),
+                    },
+                  ].map((item) => (
+                    <Grid key={item.label} item xs={12} sm={6} md={4}>
+                      <Stack spacing={0.25}>
+                        <Typography variant="body2" color="text.secondary">
+                          {item.label}
+                        </Typography>
+                        <Typography variant="subtitle1">{item.value}</Typography>
+                      </Stack>
+                    </Grid>
+                  ))}
+                </Grid>
+
+                <TableContainer component={Paper} variant="outlined">
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Employee</TableCell>
+                        <TableCell align="right">Gross</TableCell>
+                        <TableCell align="right">Deductions</TableCell>
+                        <TableCell align="right">Net</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {lineItems.map((item) => (
+                        <TableRow key={item.id} hover>
+                          <TableCell>{item.employeeName}</TableCell>
+                          <TableCell align="right">
+                            {fCurrency(item.grossSalary || 0, {
+                              currency: 'SAR',
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </TableCell>
+                          <TableCell align="right">
+                            {fCurrency(item.deductions || 0, {
+                              currency: 'SAR',
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </TableCell>
+                          <TableCell align="right">
+                            {fCurrency(item.netSalary || 0, {
+                              currency: 'SAR',
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Box>
+            )}
           </Stack>
         </Card>
       )}
@@ -117,22 +220,4 @@ export default function PayrollDetailPage({ params }) {
 
 PayrollDetailPage.propTypes = {
   params: PropTypes.shape({ id: PropTypes.string }),
-};
-
-function InfoItem({ label, value }) {
-  return (
-    <Box sx={{ p: 2, borderRadius: 1, bgcolor: 'background.neutral' }}>
-      <Typography variant="caption" color="text.secondary" sx={{ textTransform: 'uppercase' }}>
-        {label}
-      </Typography>
-      <Typography variant="subtitle1" sx={{ mt: 0.5 }}>
-        {value}
-      </Typography>
-    </Box>
-  );
-}
-
-InfoItem.propTypes = {
-  label: PropTypes.string,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
 };

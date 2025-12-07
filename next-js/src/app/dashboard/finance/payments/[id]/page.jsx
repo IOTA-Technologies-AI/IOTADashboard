@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 
 import {
@@ -28,7 +28,7 @@ import { Iconify } from 'src/components/iconify';
 
 export default function PaymentDetailPage() {
   const router = useRouter();
-  const params = useParams();
+  const params = use(useParams());
   const [payment, setPayment] = useState(null);
   const [allocations, setAllocations] = useState([]);
   const [loading, setLoading] = useState(true);

@@ -16,7 +16,7 @@ import CardContent from '@mui/material/CardContent';
 
 import { paths } from 'src/routes/paths';
 
-import { getEmployees, getLeaveRequests } from 'src/utils/apiHelper';
+import { getEmployees, getLeaveRequests, createPayrollRun } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -203,8 +203,10 @@ export default function GeneratePayrollPage() {
   const [year, setYear] = useState(new Date().getFullYear());
   const [employees, setEmployees] = useState([]);
   const [payrollData, setPayrollData] = useState([]);
-  const [setLoading] = useState(false);
+  const [, setLoading] = useState(false);
   const [calculating, setCalculating] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [runMeta, setRunMeta] = useState(null);
 
   const workingDays = getWorkingDays(year, month);
 
@@ -230,29 +232,20 @@ export default function GeneratePayrollPage() {
   const handleCalculatePayroll = async () => {
     setCalculating(true);
     try {
-      // Fetch leave requests
       const leaveRequests = await getLeaveRequests();
+      const leaveList = Array.isArray(leaveRequests) ? leaveRequests : [];
 
       const calculated = employees
         .map((employee) => {
-          // Calculate employee's actual working days based on joining date
           const employeeWorkingDays = getEmployeeWorkingDays(year, month, employee.joiningDate);
-
-          // If employee hasn't joined yet or left, skip
-          if (employeeWorkingDays === 0) {
+          if (employeeWorkingDays <= 0) {
             return null;
           }
 
-          // Calculate leave data for the selected month
-          const leaveData = calculateLeaveDataForMonth(employee.id, year, month, leaveRequests);
-
-          // Annual leave entitlement (default 30 days/year for Saudi)
+          const leaveData = calculateLeaveDataForMonth(employee.id, year, month, leaveList);
           const annualLeaveEntitlement = employee.annualLeave || 30;
-
-          // Leave balance = Total granted - Taken YTD
           const leaveBalance = annualLeaveEntitlement - leaveData.totalLeavesTakenYTD;
 
-          // Add leave data to employee object
           const employeeWithLeaves = {
             ...employee,
             totalLeaveDaysInMonth: leaveData.totalLeaveDaysInMonth,
@@ -260,7 +253,6 @@ export default function GeneratePayrollPage() {
             unpaidLeaveDaysInMonth: leaveData.unpaidLeaveDaysInMonth,
           };
 
-          // Calculate pro-rata salary (passing both total month working days and employee's eligible days)
           const proRata = calculateProRataSalary(
             employeeWithLeaves,
             workingDays,
@@ -274,16 +266,16 @@ export default function GeneratePayrollPage() {
             department: employee.department,
             designation: employee.designation,
             joiningDate: employee.joiningDate,
-            leaveBalance, // Remaining leaves for the year
-            leavesTaken: leaveData.totalLeaveDaysInMonth, // Leaves in THIS month
+            leaveBalance,
+            leavesTaken: leaveData.totalLeaveDaysInMonth,
             paidLeaves: leaveData.paidLeaveDaysInMonth,
             unpaidLeaves: leaveData.unpaidLeaveDaysInMonth,
             actualDaysWorked: proRata.actualDaysWorked,
             eligibleWorkingDays: proRata.eligibleWorkingDays,
             lop: proRata.lop,
             lopAmount: proRata.lopAmount,
-            workingDays: employeeWorkingDays, // Employee's eligible days
-            totalWorkingDays: workingDays, // Total working days in month
+            workingDays: employeeWorkingDays,
+            totalWorkingDays: workingDays,
             basicSalary: proRata.basicSalary,
             housingAllowance: proRata.housingAllowance,
             transportAllowance: proRata.transportAllowance,
@@ -293,8 +285,9 @@ export default function GeneratePayrollPage() {
             netSalary: proRata.netSalary,
           };
         })
-        .filter(Boolean); // Remove null entries (employees not yet joined)
+        .filter(Boolean);
 
+      setRunMeta(null);
       setPayrollData(calculated);
       toast.success(`Payroll calculated for ${calculated.length} employees`);
     } catch (error) {
@@ -307,12 +300,31 @@ export default function GeneratePayrollPage() {
 
   const handleGeneratePayroll = async () => {
     try {
-      console.log('Generating payroll:', { month, year, payrollData });
+      setGenerating(true);
+      const response = await createPayrollRun({
+        periodMonth: month,
+        periodYear: year,
+        generatedBy: 'system',
+        notes: undefined,
+      });
+
+      if (response?.lineItems) {
+        setPayrollData(response.lineItems);
+      }
+      if (response?.payrollRun) {
+        setRunMeta(response.payrollRun);
+      }
+
       toast.success('Payroll generated successfully');
-      router.push(paths.dashboard.hr.employee.finance.payroll.root);
+
+      if (response?.payrollRun?.id) {
+        router.push(`${paths.dashboard.hr.employee.root}/finance/payroll/${response.payrollRun.id}`);
+      }
     } catch (error) {
       console.error('Error generating payroll:', error);
       toast.error('Failed to generate payroll');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -392,18 +404,6 @@ export default function GeneratePayrollPage() {
       type: 'number',
     },
     {
-      field: 'leavesTaken',
-      headerName: 'Leaves Taken',
-      width: 120,
-      editable: true,
-      type: 'number',
-    },
-    {
-      field: 'actualDaysWorked',
-      headerName: 'Days Worked',
-      width: 120,
-    },
-    {
       field: 'lop',
       headerName: 'LOP Days',
       width: 100,
@@ -435,8 +435,8 @@ export default function GeneratePayrollPage() {
     },
   ];
 
-  const totalGross = payrollData.reduce((sum, row) => sum + (row.grossSalary || 0), 0);
-  const totalNet = payrollData.reduce((sum, row) => sum + (row.netSalary || 0), 0);
+  const totalGross = runMeta?.totalGross ?? payrollData.reduce((sum, row) => sum + (row.grossSalary || 0), 0);
+  const totalNet = runMeta?.totalNet ?? payrollData.reduce((sum, row) => sum + (row.netSalary || 0), 0);
 
   return (
     <DashboardContent>
@@ -521,7 +521,7 @@ export default function GeneratePayrollPage() {
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
               <Card sx={{ flex: 1 }}>
                 <CardContent>
-                  <Typography variant="h4">{payrollData.length}</Typography>
+                  <Typography variant="h4">{runMeta?.totalEmployees ?? payrollData.length}</Typography>
                   <Typography variant="body2" color="text.secondary">
                     Total Employees
                   </Typography>
@@ -554,8 +554,13 @@ export default function GeneratePayrollPage() {
               <CardHeader
                 title="Payroll Details"
                 action={
-                  <Button variant="contained" color="primary" onClick={handleGeneratePayroll}>
-                    Generate & Send for Approval
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleGeneratePayroll}
+                    disabled={generating || payrollData.length === 0}
+                  >
+                    {generating ? 'Generating…' : 'Generate & Send for Approval'}
                   </Button>
                 }
               />
@@ -572,7 +577,11 @@ export default function GeneratePayrollPage() {
                   }}
                   processRowUpdate={(newRow) => {
                     // Recalculate when leaves are edited
-                    const updated = calculateProRataSalary(newRow, workingDays);
+                    const updated = calculateProRataSalary(
+                      newRow,
+                      newRow.totalWorkingDays || workingDays,
+                      newRow.eligibleWorkingDays || newRow.workingDays || workingDays
+                    );
                     const recalculated = {
                       ...newRow,
                       actualDaysWorked: updated.actualDaysWorked,
