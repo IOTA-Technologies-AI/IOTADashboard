@@ -21,7 +21,7 @@ import CardContent from '@mui/material/CardContent';
 
 import { paths } from 'src/routes/paths';
 
-import { getEmployees, getLeaveRequests, createPayrollRun } from 'src/utils/apiHelper';
+import { getEmployees, getLeaveRequests, createPayrollRun, fetchPayrollRuns } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -358,6 +358,15 @@ export default function GeneratePayrollPage() {
   const handleGeneratePayroll = async () => {
   try {
     setGenerating(true);
+    // Prevent duplicate payroll runs for the same month/year
+    const existing = await fetchPayrollRuns();
+    const alreadyExists = Array.isArray(existing)
+      ? existing.some((run) => run.periodMonth === month && run.periodYear === year)
+      : false;
+    if (alreadyExists) {
+      toast.error('A payroll run already exists for this period. Please edit the existing run.');
+      return;
+    }
     // Filter to only selected employees from the calculated payroll data
     const selectedPayrollData = payrollData.filter((row) => selectedIdsArray.includes(row.id));
     const selectedEmployeeDbIds = selectedPayrollData.map((row) => {

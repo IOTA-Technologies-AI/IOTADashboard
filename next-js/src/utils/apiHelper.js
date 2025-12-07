@@ -159,6 +159,12 @@ export async function createPayrollRun(body) {
   return response.data;
 }
 
+export async function postPayrollToBank(id) {
+  const url = `${API_BASE_URL}/payroll/runs/${id}/process`;
+  const response = await axios.post(url);
+  return response.data;
+}
+
 // Approve or reject a payroll run
 export async function approvePayrollRun({ id, approvedBy, status, notes }) {
   const url = `${API_BASE_URL}/payroll/runs/${id}/approve`;

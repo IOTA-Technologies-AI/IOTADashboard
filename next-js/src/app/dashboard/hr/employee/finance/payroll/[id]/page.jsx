@@ -24,7 +24,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { toast } from 'src/components/snackbar';
-import { fetchPayrollRun, approvePayrollRun, getEmployees } from 'src/utils/apiHelper';
+import { fetchPayrollRun, approvePayrollRun, getEmployees, postPayrollToBank } from 'src/utils/apiHelper';
 import { fCurrency } from 'src/utils/format-number';
 
 export default function PayrollDetailPage({ params }) {
@@ -36,6 +36,7 @@ export default function PayrollDetailPage({ params }) {
   const [employees, setEmployees] = useState([]);
   const [approving, setApproving] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -95,6 +96,21 @@ export default function PayrollDetailPage({ params }) {
     try {
       const XLSX = await import('xlsx');
 
+      const bankNameToBic = (name = '') => {
+        const n = name.toLowerCase();
+        if (n.includes('rajhi')) return 'RJHISARI';
+        if (n.includes('sabb')) return 'SABBSARI';
+        if (n.includes('snb') || n.includes('national commercial') || n.includes('national bank')) return 'NCBKSAJE';
+        if (n.includes('riyad')) return 'RIBLSARI';
+        if (n.includes('fransi') || n.includes('bsf')) return 'BSFRSARI';
+        if (n.includes('investment') || n.includes('saib')) return 'SIBCSARI';
+        if (n.includes('alinma')) return 'INMASARI';
+        if (n.includes('bilad')) return 'ALBISARI';
+        if (n.includes('jazira')) return 'BJAZSAJE';
+        if (n.includes('gulf') || n.includes('gib')) return 'GULFSARI';
+        return '';
+      };
+
       // SAIB format: exact columns and data only
       const header = [
         'Net Salary',
@@ -114,16 +130,19 @@ export default function PayrollDetailPage({ params }) {
 
       const rows = lineItems.map((item) => {
         const emp = employees.find((e) => e.id === item.employeeDbId);
-        const beneficiaryId = emp?.nationalId || item.nationalId || '';
+        const beneficiaryId =
+          emp?.iqamaNumber || emp?.nationalId || item.iqamaNumber || item.nationalId || '';
+        const beneficiaryAddress = emp?.currentAddress || '';
+        const beneficiaryBank = bankNameToBic(emp?.bankName || item.bankName || '');
         const otherEarnings = (item.transportAllowance || 0) + (item.otherAllowances || 0);
         return [
           Number(item.netSalary || 0).toFixed(2),
           item.iban || item.bankAccountNumber || '',
           item.employeeName || '',
-          item.department || '',
-          item.designation || '',
-          '', // Address 3 not provided; leave blank
-          item.bankName || '',
+          beneficiaryAddress,
+          beneficiaryAddress,
+          beneficiaryAddress,
+          beneficiaryBank,
           '', // Payment description optional
           Number(item.basicSalary || 0).toFixed(2),
           Number(item.housingAllowance || 0).toFixed(2),
@@ -148,7 +167,22 @@ export default function PayrollDetailPage({ params }) {
     } finally {
       setExporting(false);
     }
-  }, [lineItems, payroll]);
+  }, [employees, lineItems, payroll]);
+
+  const handlePostToBank = useCallback(async () => {
+    if (!payroll) return;
+    setProcessing(true);
+    try {
+      const response = await postPayrollToBank(payrollId);
+      setPayroll(response.payrollRun);
+      toast.success('Payroll marked as processed (posted to bank)');
+    } catch (error) {
+      console.error('Failed to post payroll to bank', error);
+      toast.error('Failed to post payroll to bank');
+    } finally {
+      setProcessing(false);
+    }
+  }, [payroll, payrollId]);
 
   return (
     <DashboardContent>
@@ -190,6 +224,16 @@ export default function PayrollDetailPage({ params }) {
                   {approving ? 'Updating…' : 'Reject'}
                 </Button>
               </>
+            )}
+            {payroll?.status === 'approved' && (
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handlePostToBank}
+                disabled={processing}
+              >
+                {processing ? 'Posting…' : 'Post to Bank'}
+              </Button>
             )}
             <Button variant="contained" onClick={() => router.push(paths.dashboard.hr.employee.finance.payroll.root)}>
               Back to List
