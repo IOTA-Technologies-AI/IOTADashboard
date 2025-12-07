@@ -43,12 +43,12 @@ import { DealTableFiltersResult } from '../deal-table-filters-result';
 const TABLE_HEAD = [
   { id: 'dealNumber', label: 'Deal #' },
   { id: 'dealName', label: 'Deal Name', width: 200 },
-  { id: 'dealDate', label: 'Date', width: 120 },
-  { id: 'arInvoiceAmount', label: 'Revenue (AR)', width: 140 },
-  { id: 'apInvoiceAmount', label: 'Cost (AP)', width: 140 },
-  { id: 'grossProfit', label: 'Gross Profit', width: 140 },
-  { id: 'bdmCommissionAmount', label: 'BDM Commission', width: 140 },
-  { id: 'netProfitAfterBDM', label: 'Net Profit', width: 140 },
+  { id: 'dealDate', label: 'Date', width: 160 },
+  { id: 'arInvoiceAmount', label: 'Revenue (AR)', width: 180 },
+  { id: 'apInvoiceAmount', label: 'Cost (AP)', width: 180 },
+  { id: 'grossProfit', label: 'Gross Profit', width: 180 },
+  { id: 'bdmCommissionAmount', label: 'BDM Commission', width: 180 },
+  { id: 'netProfitAfterBDM', label: 'Net Profit', width: 180 },
   { id: 'status', label: 'Status', width: 110 },
   { id: '', width: 88 },
 ];
@@ -123,7 +123,7 @@ export function DealListView({ deals: initialDeals = [] }) {
 
   const formatSar = (value) => {
     const formatted = fNumber(value || 0, {
-      minimumFractionDigits: 0,
+      minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
     return formatted ? `${formatted} SAR` : '';

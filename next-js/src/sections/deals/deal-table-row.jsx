@@ -37,7 +37,7 @@ export function DealTableRow({ row, selected, onSelectRow, onViewRow, onEditRow,
 
   const formatSar = (value) => {
     const formatted = fNumber(value || 0, {
-      minimumFractionDigits: 0,
+      minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     });
     return formatted ? `${formatted} SAR` : '';
@@ -66,25 +66,25 @@ export function DealTableRow({ row, selected, onSelectRow, onViewRow, onEditRow,
 
         <TableCell>{row.dealName}</TableCell>
 
-        <TableCell>{fDate(row.dealDate)}</TableCell>
+        <TableCell sx={{ whiteSpace: 'nowrap' }}>{fDate(row.dealDate)}</TableCell>
 
-        <TableCell sx={{ color: 'info.main', fontWeight: 'fontWeightMedium' }}>
+        <TableCell sx={{ color: 'info.main', fontWeight: 'fontWeightMedium', whiteSpace: 'nowrap' }}>
           {formatSar(row.arInvoiceAmount)}
         </TableCell>
 
-        <TableCell sx={{ color: 'error.main', fontWeight: 'fontWeightMedium' }}>
+        <TableCell sx={{ color: 'error.main', fontWeight: 'fontWeightMedium', whiteSpace: 'nowrap' }}>
           {formatSar(row.apInvoiceAmount)}
         </TableCell>
 
-        <TableCell sx={{ color: 'success.main', fontWeight: 'fontWeightBold' }}>
+        <TableCell sx={{ color: 'success.main', fontWeight: 'fontWeightBold', whiteSpace: 'nowrap' }}>
           {formatSar(row.grossProfit)}
         </TableCell>
 
-        <TableCell sx={{ color: 'warning.main' }}>
+        <TableCell sx={{ color: 'warning.main', whiteSpace: 'nowrap' }}>
           {formatSar(row.bdmCommissionAmount)}
         </TableCell>
 
-        <TableCell sx={{ color: 'primary.main', fontWeight: 'fontWeightBold' }}>
+        <TableCell sx={{ color: 'primary.main', fontWeight: 'fontWeightBold', whiteSpace: 'nowrap' }}>
           {formatSar(row.netProfitAfterBDM)}
         </TableCell>
 
