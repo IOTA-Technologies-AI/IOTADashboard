@@ -83,7 +83,8 @@ export function EmployeeNewEditForm({ currentEmployee }) {
       employmentEndDate: currentEmployee?.employmentEndDate || '',
       basicSalary: currentEmployee?.basicSalary || 0,
       housingAllowance: currentEmployee?.housingAllowance || 0,
-      transportationAllowance: currentEmployee?.transportationAllowance || 0,
+      transportationAllowance:
+        currentEmployee?.transportAllowance ?? currentEmployee?.transportationAllowance ?? 0,
       otherAllowances: currentEmployee?.otherAllowances || 0,
       employmentStatus: currentEmployee?.employmentStatus || 'Active',
       bankName: currentEmployee?.bankName || '',
@@ -121,6 +122,7 @@ export function EmployeeNewEditForm({ currentEmployee }) {
         basicSalary: Number(data.basicSalary ?? 0),
         housingAllowance: Number(data.housingAllowance ?? 0),
         transportAllowance: Number(data.transportationAllowance ?? 0),
+        transportationAllowance: Number(data.transportationAllowance ?? 0),
         otherAllowances: Number(data.otherAllowances ?? 0),
         employmentStatus: data.employmentStatus,
       };

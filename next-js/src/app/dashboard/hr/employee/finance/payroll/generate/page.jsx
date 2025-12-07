@@ -258,9 +258,10 @@ export default function GeneratePayrollPage() {
       });
 
       setEmployees(normalizedEmployees);
+
+      // Start with no selection; users choose who to include
       if (!selectionInitialized.current) {
-        const initialSelection = normalizedEmployees.map((emp) => getRowId(emp)).filter(Boolean);
-        table.setSelected(initialSelection);
+        table.setSelected([]);
         selectionInitialized.current = true;
       }
     } catch (error) {
@@ -350,16 +351,22 @@ export default function GeneratePayrollPage() {
   };
 
   const handleGeneratePayroll = async () => {
-    try {
-      setGenerating(true);
-      const selectedEmployees = employees.filter((emp) => selectedIdsArray.includes(getRowId(emp)));
-      const response = await createPayrollRun({
-        periodMonth: month,
-        periodYear: year,
-        generatedBy: 'system',
-        notes: undefined,
-        employeeIds: selectedEmployees.map((e) => e.id),
-      });
+  try {
+    setGenerating(true);
+    // Filter to only selected employees from the calculated payroll data
+    const selectedPayrollData = payrollData.filter((row) => selectedIdsArray.includes(row.id));
+    const selectedEmployeeDbIds = selectedPayrollData.map((row) => {
+      const emp = employees.find((e) => getRowId(e) === row.id);
+      return emp?.id;
+    }).filter(Boolean);
+
+    const response = await createPayrollRun({
+      periodMonth: month,
+      periodYear: year,
+      generatedBy: 'system',
+      notes: undefined,
+      employeeIds: selectedEmployeeDbIds,
+    });
 
       if (response?.lineItems) {
         setPayrollData(
@@ -575,19 +582,6 @@ export default function GeneratePayrollPage() {
                 sx={{ minWidth: 200 }}
               />
             </Stack>
-
-            <Box sx={{ mt: 3, display: 'flex', gap: 2 }}>
-              <Button
-                variant="contained"
-                onClick={handleCalculatePayroll}
-                disabled={employees.length === 0 || calculating || selectedIdsArray.length === 0}
-              >
-                Calculate Payroll
-              </Button>
-              <Typography variant="body2" sx={{ alignSelf: 'center', color: 'text.secondary' }}>
-                {selectedIdsArray.length} of {employees.length} active employees selected
-              </Typography>
-            </Box>
           </CardContent>
         </Card>
 
@@ -614,6 +608,13 @@ export default function GeneratePayrollPage() {
                   disabled={selectedIdsArray.length === 0}
                 >
                   Clear Selection
+                </Button>
+                <Button
+                  variant="contained"
+                  onClick={handleCalculatePayroll}
+                  disabled={employees.length === 0 || calculating || selectedIdsArray.length === 0}
+                >
+                  {calculating ? 'Calculating...' : 'Calculate Payroll'}
                 </Button>
               </Stack>
             }
