@@ -1,11 +1,19 @@
+import { notFound } from 'next/navigation';
+
 import { CONFIG } from 'src/global-config';
 import { getDeal } from 'src/actions/deals';
 
-import { DealNewEditForm } from 'src/sections/deals/deal-new-edit-form';
+import { DealEditView } from 'src/sections/deals/view/deal-edit-view';
+
+export const metadata = { title: `Edit deal | Dashboard - ${CONFIG.appName}` };
 
 export default async function Page({ params }) {
   const { id } = params;
   const deal = await getDeal(id);
 
-  return <DealNewEditForm currentDeal={deal} />;
+  if (!deal) {
+    notFound();
+  }
+
+  return <DealEditView currentDeal={deal} />;
 }

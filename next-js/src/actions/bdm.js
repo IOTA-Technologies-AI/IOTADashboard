@@ -20,18 +20,32 @@ export async function getBDMs() {
 
 export async function getBDM(id) {
   try {
-    const response = await fetch(`${API_URL}/bdm.getBDM`, {
-      method: 'POST',
+    const response = await fetch(`${API_URL}/bdms/${id}`, {
+      method: 'GET',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id }),
       cache: 'no-store',
     });
-    if (!response.ok) throw new Error('Failed to fetch BDM');
-    const data = await response.json();
-    return data.bdm;
+    if (!response.ok) {
+      console.error('Error response fetching BDM:', response.status, response.statusText);
+      return null;
+    }
+
+    const text = await response.text();
+    if (!text) {
+      console.error('Empty BDM response body');
+      return null;
+    }
+
+    try {
+      const data = JSON.parse(text);
+      return data?.bdm || null;
+    } catch (parseError) {
+      console.error('Error parsing BDM response:', parseError, text.slice(0, 200));
+      return null;
+    }
   } catch (error) {
     console.error('Error fetching BDM:', error);
-    throw error;
+    return null;
   }
 }
 

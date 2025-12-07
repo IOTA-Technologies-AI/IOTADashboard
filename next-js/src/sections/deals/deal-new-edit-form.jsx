@@ -68,6 +68,18 @@ export function DealNewEditForm({ currentDeal }) {
     netProfitAfterBDM: 0,
   });
 
+  const formatExpenseLabel = (expense) => {
+    if (!expense) return '';
+    const baseLabel = `${expense.linkedInvoiceNumber || 'N/A'} - ${expense.expenseSettlementNotes || 'No description'} - ${fCurrency(expense.expenseAmount || 0, { currency: 'SAR' })}`;
+    return baseLabel.length > 70 ? `${baseLabel.slice(0, 67)}...` : baseLabel;
+  };
+
+  const formatInvoiceLabel = (invoice) => {
+    if (!invoice) return '';
+    const baseLabel = `${invoice.invoiceNumber || invoice.invoiceId || 'Invoice'} - ${fCurrency(invoice.total || 0, { currency: invoice.currencyCode || 'SAR' })}`;
+    return baseLabel.length > 70 ? `${baseLabel.slice(0, 67)}...` : baseLabel;
+  };
+
   const defaultValues = useMemo(
     () => ({
       // Auto-generate deal number using timestamp when creating a new deal
@@ -207,6 +219,11 @@ export function DealNewEditForm({ currentDeal }) {
 
   // Calculate profit metrics
   useEffect(() => {
+    // If no new selections, retain existing calculations to avoid zeroing out on status-only updates
+    if (arInvoices.length === 0 && selectedExpenses.length === 0) {
+      return;
+    }
+
     const arAmountWithVAT = arInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
     const vatPercentage = values.region === 'KSA' ? 15 : 5;
     const vatMultiplier = 1 + vatPercentage / 100;
@@ -260,6 +277,14 @@ export function DealNewEditForm({ currentDeal }) {
       const hasArSelections = arInvoices.length > 0;
       const hasExpenseSelections = selectedExpenses.length > 0;
 
+      const primaryArInvoice = hasArSelections ? arInvoices[0] : null;
+      const primaryExpense = hasExpenseSelections ? selectedExpenses[0] : null;
+
+      const arInvoiceId = primaryArInvoice?.id || currentDeal?.arInvoiceId || null;
+      const arInvoiceNumber = primaryArInvoice?.invoiceNumber || currentDeal?.arInvoiceNumber || '';
+      const arInvoiceIds = hasArSelections
+        ? arInvoices.map((inv) => String(inv.id))
+        : currentDeal?.arInvoiceIds || (currentDeal?.arInvoiceId ? [String(currentDeal.arInvoiceId)] : []);
       const arInvoiceNumbers = hasArSelections
         ? arInvoices.map((inv) => inv.invoiceNumber).join(', ')
         : currentDeal?.arInvoiceNumbers || currentDeal?.arInvoiceNumber || '';
@@ -268,13 +293,20 @@ export function DealNewEditForm({ currentDeal }) {
         ? calculations.arAmount
         : currentDeal?.arInvoiceAmount || calculations.arAmount || 0;
 
+      const expenseIdsArray = data.expenseIds || [];
+      const apInvoiceId = expenseIdsArray.length ? JSON.stringify(expenseIdsArray) : currentDeal?.apInvoiceId || null;
+      const apInvoiceNumber = primaryExpense?.linkedInvoiceNumber || currentDeal?.apInvoiceNumber || '';
+      const expenseIds = hasExpenseSelections
+        ? expenseIdsArray
+        : currentDeal?.expenseIds ||
+          (currentDeal?.apInvoiceId
+            ? Array.isArray(currentDeal.apInvoiceId)
+              ? currentDeal.apInvoiceId
+              : [String(currentDeal.apInvoiceId)]
+            : []);
       const expenseDescriptions = hasExpenseSelections
-        ? selectedExpenses.map((exp) => exp.expenseTypeDesc).join(', ')
+        ? selectedExpenses.map((exp) => exp.expenseSettlementNotes || exp.expenseTypeDesc || '').join(', ')
         : currentDeal?.expenseDescriptions || '';
-
-      const expenseAmount = hasExpenseSelections
-        ? calculations.expenseAmount
-        : currentDeal?.expenseAmount || currentDeal?.apInvoiceAmount || calculations.expenseAmount || 0;
 
       const expenseAmountWithVAT = hasExpenseSelections
         ? calculations.expenseAmountWithVAT
@@ -283,8 +315,10 @@ export function DealNewEditForm({ currentDeal }) {
           calculations.expenseAmountWithVAT ||
           0;
 
+      const apInvoiceAmount = expenseAmountWithVAT;
+
       const grossProfit =
-        calculations.grossProfit || currentDeal?.grossProfit || arInvoiceAmount - expenseAmount;
+        calculations.grossProfit || currentDeal?.grossProfit || arInvoiceAmount - apInvoiceAmount;
 
       const netProfitBeforeBDM =
         calculations.netProfitBeforeBDM || currentDeal?.netProfitBeforeBDM || grossProfit;
@@ -292,27 +326,61 @@ export function DealNewEditForm({ currentDeal }) {
       const netProfitAfterBDM =
         calculations.netProfitAfterBDM || currentDeal?.netProfitAfterBDM || netProfitBeforeBDM;
 
-      const payload = {
-        ...data,
+      const basePayload = {
+        dealNumber: data.dealNumber,
+        dealName: data.dealName,
         dealDate: data.dealDate.toISOString().split('T')[0],
-        arInvoiceIds: data.arInvoiceIds || [], // Keep the array of IDs
-        arInvoiceNumbers,
+        status: data.status,
+        region: data.region,
+        notes: data.notes,
+        bdmId: data.bdmId,
+        bdmName: bdms.find((b) => b.id === data.bdmId)?.name || '',
+        bdmCommissionType: data.bdmCommissionType,
+        bdmCommissionValue: data.bdmCommissionValue,
+        bdmCommissionAmount:
+          calculations.bdmCommissionAmount || currentDeal?.bdmCommissionAmount || 0,
+        bdmCommissionPaid: data.bdmCommissionPaid ?? currentDeal?.bdmCommissionPaid ?? false,
+        updatedAt: new Date().toISOString(),
+      };
+
+      const financialPayload = {
+        arInvoiceId,
+        arInvoiceNumber,
         arInvoiceAmount,
-        expenseIds: data.expenseIds || [], // Include expense IDs array
-        expenseDescriptions,
-        expenseAmount,
-        expenseAmountWithVAT,
+        apInvoiceId,
+        apInvoiceNumber,
+        apInvoiceAmount,
         grossProfit,
         netProfitBeforeBDM,
         netProfitAfterBDM,
-        bdmName: bdms.find((b) => b.id === data.bdmId)?.name || '',
       };
+
+      const payload =
+        hasArSelections || hasExpenseSelections
+          ? { ...basePayload, ...financialPayload }
+          : basePayload;
+
       console.log('Payload being sent:', payload);
       if (currentDeal) {
         await updateDeal(currentDeal.id, payload);
         toast.success('Deal updated successfully');
       } else {
-        await createDeal(payload);
+        const createPayload = {
+          dealNumber: data.dealNumber,
+          dealName: data.dealName,
+          dealDate: data.dealDate.toISOString().split('T')[0],
+          status: data.status,
+          region: data.region,
+          notes: data.notes,
+          arInvoiceIds,
+          arInvoiceNumbers,
+          expenseIds,
+          expenseDescriptions,
+          bdmId: data.bdmId,
+          bdmCommissionType: data.bdmCommissionType,
+          bdmCommissionValue: data.bdmCommissionValue,
+        };
+        await createDeal(createPayload);
         toast.success('Deal created successfully');
       }
 
@@ -380,28 +448,23 @@ export function DealNewEditForm({ currentDeal }) {
         <Typography variant="h6">Invoices</Typography>
 
         <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={6} sx={{ minWidth: 0 }}>
             <RHFAutocomplete
               name="arInvoiceIds"
               label="AR Invoices (Selling)"
               multiple
-              sx={{ minWidth: 500 }}
+              sx={{ minWidth: 320 }}
               options={invoices.map((inv) => String(inv.id))}
               getOptionLabel={(option) => {
                 const invoice = invoices.find((inv) => String(inv.id) === option);
-                if (invoice) {
-                  return `${invoice.invoiceNumber || invoice.invoiceId} - ${fCurrency(invoice.total || 0, { currency: invoice.currencyCode || 'SAR' })}`;
-                }
-                return option;
+                return invoice ? formatInvoiceLabel(invoice) : option;
               }}
               isOptionEqualToValue={(option, value) => option === value}
               renderOption={(props, option) => {
                 const invoice = invoices.find((inv) => String(inv.id) === option);
                 return (
                   <li {...props} key={option}>
-                    {invoice
-                      ? `${invoice.invoiceNumber || invoice.invoiceId} - ${fCurrency(invoice.total || 0, { currency: invoice.currencyCode || 'SAR' })}`
-                      : option}
+                    {invoice ? formatInvoiceLabel(invoice) : option}
                   </li>
                 );
               }}
@@ -455,28 +518,23 @@ export function DealNewEditForm({ currentDeal }) {
             )}
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={6} sx={{ minWidth: 0 }}>
             <RHFAutocomplete
               name="expenseIds"
               label="Expenses (Buying Costs)"
               multiple
-              sx={{ minWidth: 500 }}
+              sx={{ minWidth: 320 }}
               options={expenses.map((exp) => String(exp.id))}
               getOptionLabel={(option) => {
                 const expense = expenses.find((exp) => String(exp.id) === option);
-                if (expense) {
-                  return `${expense.linkedInvoiceNumber || 'N/A'} - ${expense.expenseSettlementNotes || 'No description'} - ${fCurrency(expense.expenseAmount || 0, { currency: 'SAR' })}`;
-                }
-                return option;
+                return expense ? formatExpenseLabel(expense) : option;
               }}
               isOptionEqualToValue={(option, value) => option === value}
               renderOption={(props, option) => {
                 const expense = expenses.find((exp) => String(exp.id) === option);
                 return (
                   <li {...props} key={option}>
-                    {expense
-                      ? `${expense.linkedInvoiceNumber || 'N/A'} - ${expense.expenseSettlementNotes || 'No description'} - ${fCurrency(expense.expenseAmount || 0, { currency: 'SAR' })}`
-                      : option}
+                    {expense ? formatExpenseLabel(expense) : option}
                   </li>
                 );
               }}

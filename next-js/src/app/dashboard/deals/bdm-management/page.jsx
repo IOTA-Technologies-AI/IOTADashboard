@@ -1,15 +1,12 @@
-import { getBDMs } from 'src/actions/bdm';
-import { CONFIG } from 'src/global-config';
-import { getDeals } from 'src/actions/deals';
+import { redirect } from 'next/navigation';
 
-import { BDMManagementView } from 'src/sections/deals/view/bdm-management-view';
+import { CONFIG } from 'src/global-config';
+import { paths } from 'src/routes/paths';
 
 // ----------------------------------------------------------------------
 
 export const metadata = { title: `BDM Management | Dashboard - ${CONFIG.appName}` };
 
 export default async function Page() {
-  const [deals, bdms] = await Promise.all([getDeals(), getBDMs()]);
-
-  return <BDMManagementView deals={deals} bdms={bdms} />;
+  redirect(paths.dashboard.bdm.root);
 }

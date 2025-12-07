@@ -14,7 +14,7 @@ import TableCell from '@mui/material/TableCell';
 import IconButton from '@mui/material/IconButton';
 
 import { fDate } from 'src/utils/format-time';
-import { fCurrency } from 'src/utils/format-number';
+import { fNumber } from 'src/utils/format-number';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -33,6 +33,14 @@ export function DealTableRow({ row, selected, onSelectRow, onViewRow, onEditRow,
       cancelled: 'error',
     };
     return colors[status] || 'default';
+  };
+
+  const formatSar = (value) => {
+    const formatted = fNumber(value || 0, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+    return formatted ? `${formatted} SAR` : '';
   };
 
   return (
@@ -61,23 +69,23 @@ export function DealTableRow({ row, selected, onSelectRow, onViewRow, onEditRow,
         <TableCell>{fDate(row.dealDate)}</TableCell>
 
         <TableCell sx={{ color: 'info.main', fontWeight: 'fontWeightMedium' }}>
-          {fCurrency(row.arInvoiceAmount)} SAR
+          {formatSar(row.arInvoiceAmount)}
         </TableCell>
 
         <TableCell sx={{ color: 'error.main', fontWeight: 'fontWeightMedium' }}>
-          {fCurrency(row.apInvoiceAmount)} SAR
+          {formatSar(row.apInvoiceAmount)}
         </TableCell>
 
         <TableCell sx={{ color: 'success.main', fontWeight: 'fontWeightBold' }}>
-          {fCurrency(row.grossProfit)} SAR
+          {formatSar(row.grossProfit)}
         </TableCell>
 
         <TableCell sx={{ color: 'warning.main' }}>
-          {fCurrency(row.bdmCommissionAmount)} SAR
+          {formatSar(row.bdmCommissionAmount)}
         </TableCell>
 
         <TableCell sx={{ color: 'primary.main', fontWeight: 'fontWeightBold' }}>
-          {fCurrency(row.netProfitAfterBDM)} SAR
+          {formatSar(row.netProfitAfterBDM)}
         </TableCell>
 
         <TableCell>

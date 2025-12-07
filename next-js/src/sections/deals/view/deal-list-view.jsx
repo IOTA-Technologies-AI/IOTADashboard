@@ -16,7 +16,7 @@ import IconButton from '@mui/material/IconButton';
 import { paths } from 'src/routes/paths';
 
 import { fDate } from 'src/utils/format-time';
-import { fCurrency } from 'src/utils/format-number';
+import { fNumber } from 'src/utils/format-number';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -121,6 +121,14 @@ export function DealListView({ deals: initialDeals = [] }) {
     { revenue: 0, cost: 0, grossProfit: 0, bdmCommission: 0, netProfit: 0 }
   );
 
+  const formatSar = (value) => {
+    const formatted = fNumber(value || 0, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+    return formatted ? `${formatted} SAR` : '';
+  };
+
   return (
     <DashboardContent>
       <CustomBreadcrumbs
@@ -153,16 +161,12 @@ export function DealListView({ deals: initialDeals = [] }) {
           <Box sx={{ mb: 1, typography: 'subtitle2', color: 'text.secondary' }}>
             Total Revenue
           </Box>
-          <Box sx={{ typography: 'h4', color: 'info.main' }}>
-            {fCurrency(totals.revenue)} SAR
-          </Box>
+          <Box sx={{ typography: 'h4', color: 'info.main' }}>{formatSar(totals.revenue)}</Box>
         </Card>
 
         <Card sx={{ p: 3 }}>
           <Box sx={{ mb: 1, typography: 'subtitle2', color: 'text.secondary' }}>Total Cost</Box>
-          <Box sx={{ typography: 'h4', color: 'error.main' }}>
-            {fCurrency(totals.cost)} SAR
-          </Box>
+          <Box sx={{ typography: 'h4', color: 'error.main' }}>{formatSar(totals.cost)}</Box>
         </Card>
 
         <Card sx={{ p: 3 }}>
@@ -170,7 +174,7 @@ export function DealListView({ deals: initialDeals = [] }) {
             Gross Profit
           </Box>
           <Box sx={{ typography: 'h4', color: 'success.main' }}>
-            {fCurrency(totals.grossProfit)} SAR
+            {formatSar(totals.grossProfit)}
           </Box>
         </Card>
 
@@ -179,14 +183,14 @@ export function DealListView({ deals: initialDeals = [] }) {
             BDM Commission
           </Box>
           <Box sx={{ typography: 'h4', color: 'warning.main' }}>
-            {fCurrency(totals.bdmCommission)} SAR
+            {formatSar(totals.bdmCommission)}
           </Box>
         </Card>
 
         <Card sx={{ p: 3 }}>
           <Box sx={{ mb: 1, typography: 'subtitle2', color: 'text.secondary' }}>Net Profit</Box>
           <Box sx={{ typography: 'h4', color: 'primary.main' }}>
-            {fCurrency(totals.netProfit)} SAR
+            {formatSar(totals.netProfit)}
           </Box>
         </Card>
       </Box>

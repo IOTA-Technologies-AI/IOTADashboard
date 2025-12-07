@@ -17,8 +17,9 @@ export async function getDeal(id) {
     const response = await axios.get(`${API_BASE_URL}/deals/${id}`);
     return response.data.deal;
   } catch (error) {
-    console.error(`Error fetching deal ${id}:`, error);
-    throw error;
+    const status = error?.response?.status;
+    console.error(`Error fetching deal ${id}:`, status, error?.response?.data || error.message);
+    return null;
   }
 }
 

@@ -19,6 +19,7 @@ import { useRouter } from 'src/routes/hooks';
 import { fDate } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
 
+import { DashboardContent } from 'src/layouts/dashboard';
 import { deleteDeal, payBDMCommission } from 'src/actions/deals';
 
 import { Label } from 'src/components/label';
@@ -257,17 +258,6 @@ export function DealDetailsView({ deal }) {
           </Stack>
 
           <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="body2" color="text.secondary">
-              VAT ({deal.vatPercentage}%):
-            </Typography>
-            <Typography variant="subtitle1" color="error.main">
-              -{fCurrency(deal.vatAmount || 0)}
-            </Typography>
-          </Stack>
-
-          <Divider sx={{ borderStyle: 'dashed' }} />
-
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography variant="subtitle2">Net Profit Before BDM:</Typography>
             <Typography variant="h6" color="success.main">
               {fCurrency(deal.netProfitBeforeBDM || 0)}
@@ -380,7 +370,7 @@ export function DealDetailsView({ deal }) {
   );
 
   return (
-    <>
+    <DashboardContent>
       {renderHeader}
 
       <Grid container spacing={3}>
@@ -410,6 +400,6 @@ export function DealDetailsView({ deal }) {
           </Button>
         }
       />
-    </>
+    </DashboardContent>
   );
 }
