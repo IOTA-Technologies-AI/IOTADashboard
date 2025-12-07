@@ -101,6 +101,58 @@ export function DealNewEditForm({ currentDeal }) {
 
   const values = watch();
 
+  // Ensure form is hydrated when editing after async currentDeal load
+  useEffect(() => {
+    if (currentDeal) {
+      // Supabase stores single AR id in arInvoiceId and expense ids in apInvoiceId (stringified)
+      const parsedExpenseIds = (() => {
+        if (Array.isArray(currentDeal.apInvoiceId)) return currentDeal.apInvoiceId;
+        if (typeof currentDeal.apInvoiceId === 'string') {
+          try {
+            const parsed = JSON.parse(currentDeal.apInvoiceId);
+            return Array.isArray(parsed) ? parsed : [];
+          } catch {
+            return currentDeal.apInvoiceId ? [currentDeal.apInvoiceId] : [];
+          }
+        }
+        return [];
+      })();
+
+      reset({
+        ...defaultValues,
+        dealDate: currentDeal.dealDate ? new Date(currentDeal.dealDate) : new Date(),
+        arInvoiceIds: (currentDeal.arInvoiceIds || currentDeal.arInvoiceId || [])
+          .toString()
+          .split(',')
+          .filter(Boolean)
+          .map((id) => String(id)),
+        expenseIds: parsedExpenseIds.map((id) => String(id)),
+        bdmId: currentDeal.bdmId ? String(currentDeal.bdmId) : '',
+      });
+    }
+  }, [currentDeal, defaultValues, reset]);
+
+  // Seed calculations from existing deal when nothing is selected yet (edit mode)
+  useEffect(() => {
+    if (currentDeal && arInvoices.length === 0 && selectedExpenses.length === 0) {
+      setCalculations((prev) => ({
+        ...prev,
+        arAmount: currentDeal.arInvoiceAmount ?? prev.arAmount,
+        arAmountWithVAT: currentDeal.arInvoiceAmountWithVAT ?? currentDeal.arInvoiceAmount ?? prev.arAmountWithVAT,
+        expenseAmount:
+          currentDeal.expenseAmount ?? currentDeal.apInvoiceAmount ?? prev.expenseAmount,
+        expenseAmountWithVAT:
+          currentDeal.expenseAmountWithVAT ?? currentDeal.apInvoiceAmount ?? prev.expenseAmountWithVAT,
+        expenseVAT: currentDeal.expenseVAT ?? prev.expenseVAT,
+        grossProfit: currentDeal.grossProfit ?? prev.grossProfit,
+        vatAmount: currentDeal.vatAmount ?? prev.vatAmount,
+        netProfitBeforeBDM: currentDeal.netProfitBeforeBDM ?? prev.netProfitBeforeBDM,
+        bdmCommissionAmount: currentDeal.bdmCommissionAmount ?? prev.bdmCommissionAmount,
+        netProfitAfterBDM: currentDeal.netProfitAfterBDM ?? prev.netProfitAfterBDM,
+      }));
+    }
+  }, [currentDeal, arInvoices.length, selectedExpenses.length]);
+
   // Load invoices, expenses and BDMs
   useEffect(() => {
     const loadData = async () => {
@@ -155,41 +207,39 @@ export function DealNewEditForm({ currentDeal }) {
 
   // Calculate profit metrics
   useEffect(() => {
-    // AR invoices include VAT, so we need to remove it first
     const arAmountWithVAT = arInvoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
     const vatPercentage = values.region === 'KSA' ? 15 : 5;
     const vatMultiplier = 1 + vatPercentage / 100;
-    const arAmount = arAmountWithVAT / vatMultiplier; // Remove VAT to get base amount
-    const vatAmount = arAmountWithVAT - arAmount; // Calculate VAT amount
+    const arAmount = arAmountWithVAT / vatMultiplier;
+    const vatAmount = arAmountWithVAT - arAmount;
 
     const expenseAmountWithVAT = selectedExpenses.reduce(
-      (sum, exp) => sum + (exp.expenseAmount || 0),
+      (sum, exp) => sum + (exp.expenseAmount || exp.amount || exp.total || 0),
       0
     );
-    const expenseVATPercentage = 15; // Expenses always have 15% VAT
-    const expenseVATMultiplier = 1 + expenseVATPercentage / 100; // 1.15
-    const expenseAmount = expenseAmountWithVAT / expenseVATMultiplier; // Remove VAT
+    const expenseAmount = expenseAmountWithVAT / vatMultiplier;
     const expenseVAT = expenseAmountWithVAT - expenseAmount;
+
     const grossProfit = arAmount - expenseAmount;
-    const netProfitBeforeBDM = grossProfit;
 
     let bdmCommissionAmount = 0;
     if (values.bdmId && values.bdmCommissionValue) {
       if (values.bdmCommissionType === 'fixed') {
         bdmCommissionAmount = values.bdmCommissionValue;
       } else {
-        bdmCommissionAmount = (netProfitBeforeBDM * values.bdmCommissionValue) / 100;
+        bdmCommissionAmount = (grossProfit * values.bdmCommissionValue) / 100;
       }
     }
 
+    const netProfitBeforeBDM = grossProfit;
     const netProfitAfterBDM = netProfitBeforeBDM - bdmCommissionAmount;
 
     setCalculations({
       arAmount,
       arAmountWithVAT,
-      expenseAmount, // Without VAT
-      expenseAmountWithVAT, // With VAT
-      expenseVAT, // VAT amount for expenses
+      expenseAmount,
+      expenseAmountWithVAT,
+      expenseVAT,
       grossProfit,
       vatAmount,
       netProfitBeforeBDM,
@@ -207,19 +257,54 @@ export function DealNewEditForm({ currentDeal }) {
 
   const onSubmit = handleSubmit(async (data) => {
     try {
+      const hasArSelections = arInvoices.length > 0;
+      const hasExpenseSelections = selectedExpenses.length > 0;
+
+      const arInvoiceNumbers = hasArSelections
+        ? arInvoices.map((inv) => inv.invoiceNumber).join(', ')
+        : currentDeal?.arInvoiceNumbers || currentDeal?.arInvoiceNumber || '';
+
+      const arInvoiceAmount = hasArSelections
+        ? calculations.arAmount
+        : currentDeal?.arInvoiceAmount || calculations.arAmount || 0;
+
+      const expenseDescriptions = hasExpenseSelections
+        ? selectedExpenses.map((exp) => exp.expenseTypeDesc).join(', ')
+        : currentDeal?.expenseDescriptions || '';
+
+      const expenseAmount = hasExpenseSelections
+        ? calculations.expenseAmount
+        : currentDeal?.expenseAmount || currentDeal?.apInvoiceAmount || calculations.expenseAmount || 0;
+
+      const expenseAmountWithVAT = hasExpenseSelections
+        ? calculations.expenseAmountWithVAT
+        : currentDeal?.expenseAmountWithVAT ||
+          currentDeal?.apInvoiceAmount ||
+          calculations.expenseAmountWithVAT ||
+          0;
+
+      const grossProfit =
+        calculations.grossProfit || currentDeal?.grossProfit || arInvoiceAmount - expenseAmount;
+
+      const netProfitBeforeBDM =
+        calculations.netProfitBeforeBDM || currentDeal?.netProfitBeforeBDM || grossProfit;
+
+      const netProfitAfterBDM =
+        calculations.netProfitAfterBDM || currentDeal?.netProfitAfterBDM || netProfitBeforeBDM;
+
       const payload = {
         ...data,
         dealDate: data.dealDate.toISOString().split('T')[0],
         arInvoiceIds: data.arInvoiceIds || [], // Keep the array of IDs
-        arInvoiceNumbers: arInvoices.map((inv) => inv.invoiceNumber).join(', '),
-        arInvoiceAmount: calculations.arAmount,
+        arInvoiceNumbers,
+        arInvoiceAmount,
         expenseIds: data.expenseIds || [], // Include expense IDs array
-        expenseDescriptions: selectedExpenses.map((exp) => exp.expenseTypeDesc).join(', '),
-        expenseAmount: calculations.expenseAmount,
-        expenseAmountWithVAT: calculations.expenseAmountWithVAT,
-        grossProfit: calculations.grossProfit,
-        netProfitBeforeBDM: calculations.netProfitBeforeBDM,
-        netProfitAfterBDM: calculations.netProfitAfterBDM,
+        expenseDescriptions,
+        expenseAmount,
+        expenseAmountWithVAT,
+        grossProfit,
+        netProfitBeforeBDM,
+        netProfitAfterBDM,
         bdmName: bdms.find((b) => b.id === data.bdmId)?.name || '',
       };
       console.log('Payload being sent:', payload);
