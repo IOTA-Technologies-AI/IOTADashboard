@@ -76,7 +76,15 @@ export function BDMProfileView({ bdm, deals }) {
     { label: 'Total Deals', value: stats.totalDeals, color: 'info' },
     { label: 'Active Deals', value: stats.activeDeals, color: 'primary' },
     { label: 'Completed Deals', value: stats.completedDeals, color: 'success' },
-    { label: 'Commission Pending', value: fCurrency(stats.pendingCommission, { currency: 'SAR' }), color: 'warning' },
+    {
+      label: 'Commission Pending',
+      value: fCurrency(stats.pendingCommission, {
+        currency: 'SAR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+      color: 'warning',
+    },
   ];
 
   return (
@@ -143,7 +151,11 @@ export function BDMProfileView({ bdm, deals }) {
                     <TableCell>{deal.dealName}</TableCell>
                     <TableCell>{fDate(deal.dealDate)}</TableCell>
                     <TableCell align="right" style={{ whiteSpace: 'nowrap' }}>
-                      {fCurrency(deal.bdmCommissionAmount || 0, { currency: 'SAR' })}
+                      {fCurrency(deal.bdmCommissionAmount || 0, {
+                        currency: 'SAR',
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
                     </TableCell>
                     <TableCell align="center">
                       <Label color={deal.status === 'completed' ? 'success' : deal.status === 'active' ? 'info' : 'default'}>
