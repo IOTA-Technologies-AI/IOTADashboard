@@ -70,7 +70,8 @@ export function DealNewEditForm({ currentDeal }) {
 
   const defaultValues = useMemo(
     () => ({
-      dealNumber: currentDeal?.dealNumber || '',
+      // Auto-generate deal number using timestamp when creating a new deal
+      dealNumber: currentDeal?.dealNumber || `${Date.now()}`,
       dealName: currentDeal?.dealName || '',
       dealDate: currentDeal?.dealDate ? new Date(currentDeal.dealDate) : new Date(),
       customerId: currentDeal?.customerId || undefined,
@@ -244,7 +245,16 @@ export function DealNewEditForm({ currentDeal }) {
 
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
-            <Field.Text name="dealNumber" label="Deal Number" required />
+            <Field.Text
+              name="dealNumber"
+              label="Deal Number"
+              required
+              InputProps={{
+                readOnly: true,
+                sx: { color: 'text.disabled' },
+              }}
+              helperText="Auto-generated from timestamp"
+            />
           </Grid>
 
           <Grid item xs={12} md={6}>
