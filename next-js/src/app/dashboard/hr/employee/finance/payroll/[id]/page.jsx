@@ -41,6 +41,15 @@ export default function PayrollDetailPage({ params }) {
   const [exporting, setExporting] = useState(false);
   const [processing, setProcessing] = useState(false);
 
+  const formatStatus = (status) => {
+    if (!status) return '-';
+    if (status === 'pending_approval') return 'Pending for Approval';
+    return status
+      .split('_')
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+      .join(' ');
+  };
+
   useEffect(() => {
     const load = async () => {
       try {
@@ -161,7 +170,10 @@ export default function PayrollDetailPage({ params }) {
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Payroll');
 
-      const fileName = `Payroll_SAIB_${payroll.periodYear}-${String(payroll.periodMonth).padStart(2, '0')}.xlsx`;
+      const monthLabel = new Date(payroll.periodYear, payroll.periodMonth - 1).toLocaleString('default', {
+        month: 'short',
+      });
+      const fileName = `WPS ${monthLabel} Batch ${Date.now()}.xlsx`;
       XLSX.writeFile(workbook, fileName);
       toast.success('Excel file generated');
     } catch (error) {
@@ -277,7 +289,7 @@ export default function PayrollDetailPage({ params }) {
                 {payroll.periodYear}
               </Typography>
               <Label color={payroll.status === 'approved' ? 'success' : payroll.status === 'pending_approval' ? 'warning' : payroll.status === 'rejected' ? 'error' : payroll.status === 'processed' ? 'info' : 'default'}>
-                {payroll.status}
+                {formatStatus(payroll.status)}
               </Label>
             </Box>
             <Typography variant="body2" color="text.secondary">

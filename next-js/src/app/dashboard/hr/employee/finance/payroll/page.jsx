@@ -15,6 +15,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { Label } from 'src/components/label';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { fetchPayrollRuns } from 'src/utils/apiHelper';
 
@@ -22,6 +23,15 @@ export default function PayrollListPage() {
   const router = useRouter();
   const [payrolls, setPayrolls] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  const formatStatus = (status) => {
+    if (!status) return '-';
+    if (status === 'pending_approval') return 'Pending for Approval';
+    return status
+      .split('_')
+      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
+      .join(' ');
+  };
 
   const fetchPayrolls = useCallback(async () => {
     try {
@@ -77,27 +87,21 @@ export default function PayrollListPage() {
       flex: 1,
       minWidth: 150,
       renderCell: (params) => (
-        <Box
-          sx={{
-            px: 1.5,
-            py: 0.5,
-            borderRadius: 1,
-            bgcolor:
-              params.value === 'Approved'
-                ? 'success.lighter'
-                : params.value === 'Rejected'
-                  ? 'error.lighter'
-                  : 'warning.lighter',
-            color:
-              params.value === 'Approved'
-                ? 'success.darker'
-                : params.value === 'Rejected'
-                  ? 'error.darker'
-                  : 'warning.darker',
-          }}
+        <Label
+          color={
+            params.row.status === 'approved'
+              ? 'success'
+              : params.row.status === 'rejected'
+                ? 'error'
+                : params.row.status === 'processed' || params.row.status === 'paid'
+                  ? 'info'
+                  : 'warning'
+          }
+          variant="soft"
+          sx={{ textTransform: 'none' }}
         >
-          {params.value}
-        </Box>
+          {formatStatus(params.row.status)}
+        </Label>
       ),
     },
     {
