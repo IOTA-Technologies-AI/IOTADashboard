@@ -44,7 +44,11 @@ export function BDMCard({ bdm }) {
           </Typography>
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography variant="subtitle1" color="warning.main">
-              {fCurrency(bdm.pendingCommission || 0, { currency: 'SAR' })}
+              {fCurrency(bdm.pendingCommission || 0, {
+                currency: 'SAR',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
             </Typography>
             <Label color={bdm.pendingCommission > 0 ? 'warning' : 'success'}>
               {bdm.pendingCommission > 0 ? 'Pending' : 'All Paid'}

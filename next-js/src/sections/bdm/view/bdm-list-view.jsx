@@ -41,13 +41,21 @@ export function BDMListView({ bdms }) {
     },
     {
       title: 'Pending Commission',
-      value: fCurrency(totals.pendingCommission, { currency: 'SAR' }),
+      value: fCurrency(totals.pendingCommission, {
+        currency: 'SAR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
       color: 'warning',
       icon: 'solar:clock-circle-bold-duotone',
     },
     {
       title: 'Paid Commission',
-      value: fCurrency(totals.paidCommission, { currency: 'SAR' }),
+      value: fCurrency(totals.paidCommission, {
+        currency: 'SAR',
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
       color: 'success',
       icon: 'solar:check-circle-bold-duotone',
     },
