@@ -296,22 +296,31 @@ export default function PayrollDetailPage({ params }) {
               Generated on {new Date(payroll.createdAt || payroll.approvedAt || payroll.generatedAt || Date.now()).toLocaleString()} by {payroll.generatedBy}
             </Typography>
 
-            <Grid container spacing={2}>
+            <Box
+              sx={{
+                display: 'grid',
+                gap: 2,
+                gridTemplateColumns: {
+                  xs: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  sm: 'repeat(auto-fit, minmax(200px, 1fr))',
+                },
+              }}
+            >
               {[{ label: 'Total Net', value: fCurrency(payroll.totalNet ?? 0, { currency: 'SAR', minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
                 { label: 'Total Gross', value: fCurrency(payroll.totalGross ?? 0, { currency: 'SAR', minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
                 { label: 'Total Employees', value: payroll.totalEmployees },
                 { label: 'Month', value: payroll.periodMonth },
                 { label: 'Year', value: payroll.periodYear }].map((item) => (
-                  <Grid key={item.label} item xs={12} sm={6} md={4}>
-                    <Stack spacing={0.25}>
+                  <Paper key={item.label} variant="outlined" sx={{ p: 1.75, borderRadius: 2 }}>
+                    <Stack spacing={0.5}>
                       <Typography variant="body2" color="text.secondary">
                         {item.label}
                       </Typography>
                       <Typography variant="subtitle1">{item.value}</Typography>
                     </Stack>
-                  </Grid>
+                  </Paper>
                 ))}
-            </Grid>
+            </Box>
 
             {lineItems.length > 0 && (
               <Card variant="outlined">
