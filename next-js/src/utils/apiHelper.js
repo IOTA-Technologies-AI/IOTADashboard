@@ -159,6 +159,17 @@ export async function createPayrollRun(body) {
   return response.data;
 }
 
+// Approve or reject a payroll run
+export async function approvePayrollRun({ id, approvedBy, status, notes }) {
+  const url = `${API_BASE_URL}/payroll/runs/${id}/approve`;
+  const response = await axios.post(url, {
+    approvedBy,
+    status,
+    notes,
+  });
+  return response.data;
+}
+
 export async function updateVendor(id, vendorData) {
   try {
     // Encore expects id and body fields in one object

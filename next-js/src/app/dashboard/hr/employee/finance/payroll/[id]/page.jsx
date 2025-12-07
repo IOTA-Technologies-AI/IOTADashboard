@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useRouter } from 'next/navigation';
 
@@ -23,7 +23,8 @@ import { paths } from 'src/routes/paths';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
-import { fetchPayrollRun } from 'src/utils/apiHelper';
+import { toast } from 'src/components/snackbar';
+import { fetchPayrollRun, approvePayrollRun, getEmployees } from 'src/utils/apiHelper';
 import { fCurrency } from 'src/utils/format-number';
 
 export default function PayrollDetailPage({ params }) {
@@ -32,6 +33,9 @@ export default function PayrollDetailPage({ params }) {
   const payrollId = Number(id);
   const [payroll, setPayroll] = useState(null);
   const [lineItems, setLineItems] = useState([]);
+  const [employees, setEmployees] = useState([]);
+  const [approving, setApproving] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     const load = async () => {
@@ -49,6 +53,103 @@ export default function PayrollDetailPage({ params }) {
     }
   }, [payrollId]);
 
+  // Fetch employees to obtain national IDs for export mapping
+  useEffect(() => {
+    const loadEmployees = async () => {
+      try {
+        const list = await getEmployees();
+        setEmployees(Array.isArray(list) ? list : []);
+      } catch (error) {
+        console.error('Failed to load employees for export mapping', error);
+      }
+    };
+    loadEmployees();
+  }, []);
+
+  const handleApprove = useCallback(
+    async (status) => {
+      if (!payroll) return;
+      setApproving(true);
+      try {
+        const response = await approvePayrollRun({
+          id: payrollId,
+          approvedBy: 'admin',
+          status,
+          notes: undefined,
+        });
+        setPayroll(response.payrollRun);
+        toast.success(status === 'approved' ? 'Payroll approved' : 'Payroll rejected');
+      } catch (error) {
+        console.error('Failed to update payroll status', error);
+        toast.error('Failed to update payroll status');
+      } finally {
+        setApproving(false);
+      }
+    },
+    [payroll, payrollId]
+  );
+
+  const handleExportExcel = useCallback(async () => {
+    if (!payroll) return;
+    setExporting(true);
+    try {
+      const XLSX = await import('xlsx');
+
+      // SAIB format: exact columns and data only
+      const header = [
+        'Net Salary',
+        'Beneficiary Account',
+        'Beneficiary Name',
+        'Beneficiary Address 1',
+        'Beneficiary Address 2',
+        'Beneficiary Address 3',
+        'Beneficiary Bank',
+        'Payment Description (Optional)',
+        'Basic Salary',
+        'Housing Allowance',
+        'Other Earnings',
+        'Deductions',
+        'Beneficiary ID',
+      ];
+
+      const rows = lineItems.map((item) => {
+        const emp = employees.find((e) => e.id === item.employeeDbId);
+        const beneficiaryId = emp?.nationalId || item.nationalId || '';
+        const otherEarnings = (item.transportAllowance || 0) + (item.otherAllowances || 0);
+        return [
+          Number(item.netSalary || 0).toFixed(2),
+          item.iban || item.bankAccountNumber || '',
+          item.employeeName || '',
+          item.department || '',
+          item.designation || '',
+          '', // Address 3 not provided; leave blank
+          item.bankName || '',
+          '', // Payment description optional
+          Number(item.basicSalary || 0).toFixed(2),
+          Number(item.housingAllowance || 0).toFixed(2),
+          Number(otherEarnings).toFixed(2),
+          Number(item.deductions || 0).toFixed(2),
+          beneficiaryId,
+        ];
+      });
+
+      const sheet = [header, ...rows];
+
+      const worksheet = XLSX.utils.aoa_to_sheet(sheet);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Payroll');
+
+      const fileName = `Payroll_SAIB_${payroll.periodYear}-${String(payroll.periodMonth).padStart(2, '0')}.xlsx`;
+      XLSX.writeFile(workbook, fileName);
+      toast.success('Excel file generated');
+    } catch (error) {
+      console.error('Failed to export payroll', error);
+      toast.error('Failed to generate Excel file');
+    } finally {
+      setExporting(false);
+    }
+  }, [lineItems, payroll]);
+
   return (
     <DashboardContent>
       <CustomBreadcrumbs
@@ -62,9 +163,38 @@ export default function PayrollDetailPage({ params }) {
               { name: payroll ? `${payroll.periodMonth}/${payroll.periodYear}` : 'Not found' },
         ]}
         action={
-          <Button variant="contained" onClick={() => router.push(paths.dashboard.hr.employee.finance.payroll.root)}>
-            Back to List
-          </Button>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+            <Button
+              variant="outlined"
+              onClick={handleExportExcel}
+              disabled={!payroll || lineItems.length === 0 || exporting}
+            >
+              {exporting ? 'Exporting…' : 'Export Excel'}
+            </Button>
+            {payroll?.status === 'pending_approval' && (
+              <>
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={() => handleApprove('approved')}
+                  disabled={approving}
+                >
+                  {approving ? 'Updating…' : 'Approve'}
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={() => handleApprove('rejected')}
+                  disabled={approving}
+                >
+                  {approving ? 'Updating…' : 'Reject'}
+                </Button>
+              </>
+            )}
+            <Button variant="contained" onClick={() => router.push(paths.dashboard.hr.employee.finance.payroll.root)}>
+              Back to List
+            </Button>
+          </Stack>
         }
         sx={{ mb: { xs: 3, md: 5 } }}
       />

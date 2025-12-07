@@ -25,6 +25,7 @@ import { Form, Field } from 'src/components/hook-form';
 
 const EmployeeSchema = z.object({
   employeeId: z.string().min(1, { message: 'Employee ID is required!' }),
+  nationalId: z.string().min(1, { message: 'National ID is required!' }),
   firstName: z.string().min(1, { message: 'First name is required!' }),
   lastName: z.string().min(1, { message: 'Last name is required!' }),
   currencyCode: z.string().min(1, { message: 'Currency is required!' }),
@@ -63,6 +64,7 @@ export function EmployeeNewEditForm({ currentEmployee }) {
   const defaultValues = useMemo(
     () => ({
       employeeId: currentEmployee?.employeeId || '',
+      nationalId: currentEmployee?.nationalId || currentEmployee?.iqamaNumber || '',
       firstName: currentEmployee?.firstName || '',
       lastName: currentEmployee?.lastName || '',
       currencyCode: currentEmployee?.currencyCode || 'SAR',
@@ -115,6 +117,8 @@ export function EmployeeNewEditForm({ currentEmployee }) {
     try {
       const employeeData = {
         employeeId: data.employeeId,
+        nationalId: data.nationalId,
+        iqamaNumber: data.nationalId,
         firstName: data.firstName,
         lastName: data.lastName,
         currencyCode: data.currencyCode,
@@ -185,6 +189,7 @@ export function EmployeeNewEditForm({ currentEmployee }) {
                 }}
               >
                 <Field.Text name="employeeId" label="Employee ID" required />
+                    <Field.Text name="nationalId" label="National ID" required />
                 <Field.Select name="employeeType" label="Employee Type" required>
                   <MenuItem value="Permanent">Permanent</MenuItem>
                   <MenuItem value="Temporary">Temporary</MenuItem>

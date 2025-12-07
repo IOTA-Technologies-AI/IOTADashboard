@@ -250,7 +250,12 @@ export default function GeneratePayrollPage() {
       const employeeList = Array.isArray(data) ? data : [];
       const activeEmployees = employeeList.filter((emp) => emp.employmentStatus === 'Active');
 
-      const normalizedEmployees = activeEmployees.map((emp, idx) => {
+      // Only include employees with a valid bank account (IBAN or bank account number)
+      const bankEligibleEmployees = activeEmployees.filter(
+        (emp) => emp?.iban || emp?.bankAccountNumber
+      );
+
+      const normalizedEmployees = bankEligibleEmployees.map((emp, idx) => {
         const baseId = getRowId(emp);
         const fallbackId = `emp-${idx}-${emp.employeeId || emp.email || emp.firstName || 'noid'}`;
         const __rowId = baseId && baseId.trim() ? baseId : fallbackId;
