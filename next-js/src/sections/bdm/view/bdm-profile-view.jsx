@@ -208,6 +208,23 @@ export function BDMProfileView({ bdm, deals }) {
     [expenseDetails, getPaidAmount, handleFetchExpense, localDeals]
   );
 
+  const handleCloseDialog = () => {
+    const dealId = paymentDialog.dealId;
+    if (dealId) {
+      setPaymentInputs((prev) => ({ ...prev, [dealId]: '' }));
+      setExpenseInputs((prev) => ({ ...prev, [dealId]: '' }));
+      setExpenseDetails((prev) => {
+        const next = { ...prev };
+        const expenseId = expenseInputs[dealId];
+        if (expenseId) {
+          delete next[expenseId];
+        }
+        return next;
+      });
+    }
+    setPaymentDialog({ open: false, dealId: null });
+  };
+
   const stats = useMemo(() => {
     const totalDeals = localDeals.length;
     const activeDeals = localDeals.filter((d) => d.status === 'active').length;
@@ -407,7 +424,7 @@ export function BDMProfileView({ bdm, deals }) {
 
       <Dialog
         open={paymentDialog.open}
-        onClose={() => setPaymentDialog({ open: false, dealId: null })}
+        onClose={handleCloseDialog}
         fullWidth
         maxWidth="xs"
       >
@@ -514,7 +531,7 @@ export function BDMProfileView({ bdm, deals }) {
               </Stack>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>
-              <Button onClick={() => setPaymentDialog({ open: false, dealId: null })}>Cancel</Button>
+              <Button onClick={handleCloseDialog}>Cancel</Button>
               <Button
                 variant="contained"
                 disabled={selectedInvalid}
