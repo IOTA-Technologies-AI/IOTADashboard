@@ -9,6 +9,28 @@ const AUTH_TOKEN =
 const PARTER_API_BASE_URL = 'https://staging-iwtapiserver-6x92.encr.app/getTotalInvoiceAmounts';
 const PARTER_AUTH_TOKEN = 'Bearer dGVzdEB0ZXN0LmNvbTpwYXN29yZDEyMyE=';
 
+export async function getExpenseById(id) {
+  if (!id) return null;
+  try {
+    const response = await axios.get(`${API_BASE_URL}expenses/${id}`);
+    return response.data?.expense || response.data || null;
+  } catch (error) {
+    console.error('Failed to fetch expense', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function getExpenseByExpenseId(id) {
+  if (!id) return null;
+  try {
+    const response = await axios.get(`${API_BASE_URL}getExpenseById/${id}`);
+    return response.data?.expense || response.data || null;
+  } catch (error) {
+    console.error('Failed to fetch expense', error.response?.data || error.message);
+    throw error;
+  }
+}
+
 async function fetchTotalIotaBilling() {
   try {
     const response = await fetch(`${API_BASE_URL}/expenses?select=expenseAmount.sum()`, {

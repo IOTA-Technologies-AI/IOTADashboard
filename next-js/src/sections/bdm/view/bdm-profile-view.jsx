@@ -26,6 +26,7 @@ import {
 
 import { fDate } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
+import { getExpenseByExpenseId } from 'src/utils/apiHelper';
 
 import { updateDeal } from 'src/actions/deals';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -38,6 +39,9 @@ import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 export function BDMProfileView({ bdm, deals }) {
   const [localDeals, setLocalDeals] = useState(deals || []);
   const [paymentInputs, setPaymentInputs] = useState({});
+  const [expenseInputs, setExpenseInputs] = useState({});
+  const [expenseDetails, setExpenseDetails] = useState({});
+  const [expenseLoading, setExpenseLoading] = useState({});
   const [paymentDialog, setPaymentDialog] = useState({ open: false, dealId: null });
 
   const getPaidAmount = useCallback((deal) => {
@@ -51,8 +55,35 @@ export function BDMProfileView({ bdm, deals }) {
     return 0;
   }, []);
 
+  const handleFetchExpense = useCallback(async (expenseId) => {
+    const id = String(expenseId || '').trim();
+    if (!id) {
+      toast.error('Enter an expense ID');
+      return null;
+    }
+    const numericId = Number(id);
+    if (Number.isNaN(numericId) || numericId <= 0) {
+      toast.error('Expense ID must be a positive number');
+      return null;
+    }
+
+    setExpenseLoading((prev) => ({ ...prev, [id]: true }));
+    try {
+      const expense = await getExpenseByExpenseId(id);
+      setExpenseDetails((prev) => ({ ...prev, [id]: expense }));
+      toast.success('Expense loaded');
+      return expense;
+    } catch (error) {
+      console.error('Expense fetch failed', error);
+      toast.error('Expense not found');
+      return null;
+    } finally {
+      setExpenseLoading((prev) => ({ ...prev, [id]: false }));
+    }
+  }, []);
+
   const handleRecordPayment = useCallback(
-    async (dealId, rawAmount) => {
+    async (dealId, rawAmount, expenseId) => {
       const amount = Number(rawAmount);
       if (Number.isNaN(amount) || amount <= 0) {
         toast.error('Enter a positive amount');
@@ -81,11 +112,45 @@ export function BDMProfileView({ bdm, deals }) {
 
       const newPaid = Math.round((currentPaid + amount) * 100) / 100;
 
+      const expenseKey = String(expenseId || '').trim();
+      let expensePayload;
+
+      if (expenseKey) {
+        const numericExpenseId = Number(expenseKey);
+        if (Number.isNaN(numericExpenseId) || numericExpenseId <= 0) {
+          toast.error('Expense ID must be a positive number');
+          return;
+        }
+        const cachedExpense = expenseDetails[expenseKey];
+        const expense = cachedExpense || (await handleFetchExpense(expenseKey));
+        if (!expense) {
+          toast.error('Cannot add payment without a valid expense');
+          return;
+        }
+        const approval = expense.expenseApprovalStatus;
+        const isApproved =
+          approval === true || approval === 'approved' || approval === 'approved_by_admin';
+        if (!isApproved) {
+          toast.error('Expense must be approved before adding to BDM payment');
+          return;
+        }
+        expensePayload = expense;
+      }
+
       try {
-        await updateDeal(dealId, {
+        const payload = {
           bdmCommissionPaidAmount: newPaid,
           bdmCommissionPaid: newPaid >= total,
-        });
+        };
+
+        if (expenseKey) {
+          payload.bdmExpenseId = expenseKey;
+          if (expensePayload) {
+            payload.bdmExpense = expensePayload;
+          }
+        }
+
+        await updateDeal(dealId, payload);
 
         setLocalDeals((prev) =>
           prev.map((d) =>
@@ -94,12 +159,23 @@ export function BDMProfileView({ bdm, deals }) {
                   ...d,
                   bdmCommissionPaidAmount: newPaid,
                   bdmCommissionPaid: newPaid >= total,
+                  ...(expenseKey
+                    ? {
+                        bdmExpenseId: expenseKey,
+                        bdmExpense: expensePayload || d.bdmExpense,
+                      }
+                    : {}),
                 }
               : d
           )
         );
 
         setPaymentInputs((prev) => ({ ...prev, [dealId]: '' }));
+        if (expenseKey) {
+          setExpenseInputs((prev) => ({ ...prev, [dealId]: expenseKey }));
+        } else {
+          setExpenseInputs((prev) => ({ ...prev, [dealId]: '' }));
+        }
         setPaymentDialog({ open: false, dealId: null });
         toast.success('Payment recorded');
       } catch (error) {
@@ -107,7 +183,7 @@ export function BDMProfileView({ bdm, deals }) {
         toast.error('Failed to record payment');
       }
     },
-    [getPaidAmount, localDeals]
+    [expenseDetails, getPaidAmount, handleFetchExpense, localDeals]
   );
 
   const stats = useMemo(() => {
@@ -160,12 +236,30 @@ export function BDMProfileView({ bdm, deals }) {
   const selectedPaid = selectedDeal ? getPaidAmount(selectedDeal) : 0;
   const selectedRemaining = Math.max(selectedTotal - selectedPaid, 0);
   const selectedInput = selectedDeal ? paymentInputs[selectedDeal.id] ?? '' : '';
+  const selectedExpenseInput = selectedDeal ? expenseInputs[selectedDeal.id] ?? '' : '';
+  const selectedExpense = selectedExpenseInput ? expenseDetails[selectedExpenseInput] : null;
   const selectedInvalid =
     !selectedDeal ||
     selectedInput === '' ||
     Number.isNaN(Number(selectedInput)) ||
     Number(selectedInput) <= 0 ||
     Number(selectedInput) > selectedRemaining;
+
+  const selectedExpenseStatus = selectedExpense?.expenseApprovalStatus;
+  const selectedExpenseStatusLabel =
+    selectedExpenseStatus === true
+      ? 'Approved'
+      : selectedExpenseStatus === false
+        ? 'Rejected'
+        : selectedExpenseStatus
+          ? String(selectedExpenseStatus)
+          : 'Pending';
+  const selectedExpenseAmount =
+    selectedExpense?.expenseAmount ??
+    selectedExpense?.expenseApprovedAmount ??
+    selectedExpense?.originalExpenseAmount;
+  const selectedExpenseNotes =
+    selectedExpense?.expenseSettlementNotes || selectedExpense?.description || 'Expense loaded';
 
   return (
     <DashboardContent>
@@ -357,6 +451,44 @@ export function BDMProfileView({ bdm, deals }) {
                   inputProps={{ min: 0, step: '0.01', max: selectedRemaining }}
                   fullWidth
                 />
+
+                <Stack spacing={1}>
+                  <TextField
+                    size="small"
+                    label="Expense ID (optional)"
+                    value={selectedExpenseInput}
+                    onChange={(e) =>
+                      setExpenseInputs((prev) => ({
+                        ...prev,
+                        [selectedDeal.id]: e.target.value,
+                      }))
+                    }
+                    fullWidth
+                  />
+                  <Stack direction="row" spacing={1} alignItems="center">
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={!selectedExpenseInput || expenseLoading[selectedExpenseInput]}
+                      onClick={() => handleFetchExpense(selectedExpenseInput)}
+                    >
+                      {expenseLoading[selectedExpenseInput] ? 'Loading…' : 'Fetch expense'}
+                    </Button>
+                    {selectedExpense ? (
+                      <Typography variant="caption" color="text.secondary">
+                        {selectedExpenseNotes}
+                        {typeof selectedExpenseAmount === 'number'
+                          ? ` · ${fCurrency(selectedExpenseAmount, {
+                              currency: selectedExpense?.expenseCurrency || 'SAR',
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}`
+                          : ''}
+                        {selectedExpenseStatusLabel ? ` · ${selectedExpenseStatusLabel}` : ''}
+                      </Typography>
+                    ) : null}
+                  </Stack>
+                </Stack>
               </Stack>
             </DialogContent>
             <DialogActions sx={{ px: 3, pb: 2 }}>
@@ -364,7 +496,7 @@ export function BDMProfileView({ bdm, deals }) {
               <Button
                 variant="contained"
                 disabled={selectedInvalid}
-                onClick={() => handleRecordPayment(selectedDeal.id, Number(selectedInput))}
+                onClick={() => handleRecordPayment(selectedDeal.id, Number(selectedInput), selectedExpenseInput)}
               >
                 Save Payment
               </Button>
