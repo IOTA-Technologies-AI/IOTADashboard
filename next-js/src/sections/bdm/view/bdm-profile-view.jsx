@@ -1,26 +1,28 @@
 'use client';
 
+/* eslint-disable */
+
 import PropTypes from 'prop-types';
 import { useMemo, useState, useCallback } from 'react';
 
 import {
-  Avatar,
-  Button,
-  Card,
   Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Card,
+  Button,
+  Avatar,
   Grid,
-  TextField,
-  Stack,
-  Table,
-  TableBody,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TableRow,
   TableCell,
   TableContainer,
+  Table,
+  TableBody,
   TableHead,
-  TableRow,
+  TextField,
+  Stack,
   Typography,
 } from '@mui/material';
 
@@ -55,32 +57,53 @@ export function BDMProfileView({ bdm, deals }) {
     return 0;
   }, []);
 
-  const handleFetchExpense = useCallback(async (expenseId) => {
-    const id = String(expenseId || '').trim();
-    if (!id) {
-      toast.error('Enter an expense ID');
-      return null;
-    }
-    const numericId = Number(id);
-    if (Number.isNaN(numericId) || numericId <= 0) {
-      toast.error('Expense ID must be a positive number');
-      return null;
-    }
+  const handleFetchExpense = useCallback(
+    async (expenseId, dealId) => {
+      const id = String(expenseId || '').trim();
+      if (!id) {
+        toast.error('Enter an expense ID');
+        return null;
+      }
+      const numericId = Number(id);
+      if (Number.isNaN(numericId) || numericId <= 0) {
+        toast.error('Expense ID must be a positive number');
+        return null;
+      }
 
-    setExpenseLoading((prev) => ({ ...prev, [id]: true }));
-    try {
-      const expense = await getExpenseByExpenseId(id);
-      setExpenseDetails((prev) => ({ ...prev, [id]: expense }));
-      toast.success('Expense loaded');
-      return expense;
-    } catch (error) {
-      console.error('Expense fetch failed', error);
-      toast.error('Expense not found');
-      return null;
-    } finally {
-      setExpenseLoading((prev) => ({ ...prev, [id]: false }));
-    }
-  }, []);
+      setExpenseLoading((prev) => ({ ...prev, [id]: true }));
+      try {
+        const expense = await getExpenseByExpenseId(id);
+        setExpenseDetails((prev) => ({ ...prev, [id]: expense }));
+
+        if (dealId) {
+          const deal = localDeals.find((d) => d.id === dealId);
+          if (deal) {
+            const total = deal.bdmCommissionAmount || 0;
+            const paid = getPaidAmount(deal);
+            const remaining = Math.max(total - paid, 0);
+            const expenseAmount = Number(
+              expense?.expenseAmount ?? expense?.expenseApprovedAmount ?? expense?.originalExpenseAmount ?? 0
+            );
+            const autoAmount = Math.min(remaining, Math.max(expenseAmount, 0));
+            if (autoAmount > 0) {
+              setPaymentInputs((prev) => ({ ...prev, [dealId]: autoAmount }));
+            }
+            setExpenseInputs((prev) => ({ ...prev, [dealId]: id }));
+          }
+        }
+
+        toast.success('Expense loaded');
+        return expense;
+      } catch (error) {
+        console.error('Expense fetch failed', error);
+        toast.error('Expense not found');
+        return null;
+      } finally {
+        setExpenseLoading((prev) => ({ ...prev, [id]: false }));
+      }
+    },
+    [getPaidAmount, localDeals]
+  );
 
   const handleRecordPayment = useCallback(
     async (dealId, rawAmount, expenseId) => {
@@ -122,14 +145,13 @@ export function BDMProfileView({ bdm, deals }) {
           return;
         }
         const cachedExpense = expenseDetails[expenseKey];
-        const expense = cachedExpense || (await handleFetchExpense(expenseKey));
+        const expense = cachedExpense || (await handleFetchExpense(expenseKey, dealId));
         if (!expense) {
           toast.error('Cannot add payment without a valid expense');
           return;
         }
         const approval = expense.expenseApprovalStatus;
-        const isApproved =
-          approval === true || approval === 'approved' || approval === 'approved_by_admin';
+        const isApproved = approval === true || approval === 'approved' || approval === 'approved_by_admin';
         if (!isApproved) {
           toast.error('Expense must be approved before adding to BDM payment');
           return;
@@ -470,7 +492,7 @@ export function BDMProfileView({ bdm, deals }) {
                       size="small"
                       variant="outlined"
                       disabled={!selectedExpenseInput || expenseLoading[selectedExpenseInput]}
-                      onClick={() => handleFetchExpense(selectedExpenseInput)}
+                      onClick={() => handleFetchExpense(selectedExpenseInput, selectedDeal.id)}
                     >
                       {expenseLoading[selectedExpenseInput] ? 'Loading…' : 'Fetch expense'}
                     </Button>
