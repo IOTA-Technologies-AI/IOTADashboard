@@ -1,5 +1,3 @@
-import { use } from 'react';
-
 import { apiHelper } from 'src/utils/apiHelper';
 
 import { CONFIG } from 'src/global-config';
@@ -11,7 +9,7 @@ import { VendorDetailsView } from 'src/sections/vendor/view';
 export const metadata = { title: `Vendor details | Dashboard - ${CONFIG.appName}` };
 
 export default async function Page({ params }) {
-  const { id } = use(params);
+  const { id } = params;
 
   // Fetch all vendors from API
   const vendors = await apiHelper.getVendors();

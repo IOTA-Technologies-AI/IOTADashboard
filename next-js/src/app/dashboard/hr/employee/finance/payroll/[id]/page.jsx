@@ -1,38 +1,44 @@
 'use client';
 
-import { use, useEffect, useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import CardContent from '@mui/material/CardContent';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
-import Typography from '@mui/material/Typography';
 import Table from '@mui/material/Table';
+import Paper from '@mui/material/Paper';
+import Button from '@mui/material/Button';
+import TableRow from '@mui/material/TableRow';
 import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
-import TableRow from '@mui/material/TableRow';
 import TableCell from '@mui/material/TableCell';
+import Typography from '@mui/material/Typography';
+import CardContent from '@mui/material/CardContent';
 import TableContainer from '@mui/material/TableContainer';
-import Paper from '@mui/material/Paper';
 
 import { paths } from 'src/routes/paths';
 
+import { fCurrency } from 'src/utils/format-number';
+import {
+  getEmployees,
+  fetchPayrollRun,
+  approvePayrollRun,
+  postPayrollToBank,
+} from 'src/utils/apiHelper';
+
 import { DashboardContent } from 'src/layouts/dashboard';
 
-import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
-import { toast } from 'src/components/snackbar';
-import { fetchPayrollRun, approvePayrollRun, getEmployees, postPayrollToBank } from 'src/utils/apiHelper';
-import { fCurrency } from 'src/utils/format-number';
 import { Label } from 'src/components/label';
+import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 export default function PayrollDetailPage({ params }) {
   const router = useRouter();
-  const { id } = use(params);
+  const { id } = params;
   const payrollId = Number(id);
   const [payroll, setPayroll] = useState(null);
   const [lineItems, setLineItems] = useState([]);
@@ -112,7 +118,8 @@ export default function PayrollDetailPage({ params }) {
         const n = name.toLowerCase();
         if (n.includes('rajhi')) return 'RJHISARI';
         if (n.includes('sabb')) return 'SABBSARI';
-        if (n.includes('snb') || n.includes('national commercial') || n.includes('national bank')) return 'NCBKSAJE';
+        if (n.includes('snb') || n.includes('national commercial') || n.includes('national bank'))
+          return 'NCBKSAJE';
         if (n.includes('riyad')) return 'RIBLSARI';
         if (n.includes('fransi') || n.includes('bsf')) return 'BSFRSARI';
         if (n.includes('investment') || n.includes('saib')) return 'SIBCSARI';
@@ -170,9 +177,12 @@ export default function PayrollDetailPage({ params }) {
       const workbook = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(workbook, worksheet, 'Payroll');
 
-      const monthLabel = new Date(payroll.periodYear, payroll.periodMonth - 1).toLocaleString('default', {
-        month: 'short',
-      });
+      const monthLabel = new Date(payroll.periodYear, payroll.periodMonth - 1).toLocaleString(
+        'default',
+        {
+          month: 'short',
+        }
+      );
       const fileName = `WPS ${monthLabel} Batch ${Date.now()}.xlsx`;
       XLSX.writeFile(workbook, fileName);
       toast.success('Excel file generated');
@@ -209,7 +219,7 @@ export default function PayrollDetailPage({ params }) {
           { name: 'Employee', href: paths.dashboard.hr.employee.root },
           { name: 'Finance' },
           { name: 'Payroll', href: paths.dashboard.hr.employee.finance.payroll.root },
-              { name: payroll ? `${payroll.periodMonth}/${payroll.periodYear}` : 'Not found' },
+          { name: payroll ? `${payroll.periodMonth}/${payroll.periodYear}` : 'Not found' },
         ]}
         action={
           <Stack direction="row" spacing={1} flexWrap="wrap">
@@ -274,7 +284,10 @@ export default function PayrollDetailPage({ params }) {
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
             The requested payroll entry does not exist. Please return to the list.
           </Typography>
-          <Button variant="outlined" onClick={() => router.push(paths.dashboard.hr.employee.finance.payroll.root)}>
+          <Button
+            variant="outlined"
+            onClick={() => router.push(paths.dashboard.hr.employee.finance.payroll.root)}
+          >
             Go to Payroll List
           </Button>
         </Card>
@@ -288,12 +301,28 @@ export default function PayrollDetailPage({ params }) {
                 })}{' '}
                 {payroll.periodYear}
               </Typography>
-              <Label color={payroll.status === 'approved' ? 'success' : payroll.status === 'pending_approval' ? 'warning' : payroll.status === 'rejected' ? 'error' : payroll.status === 'processed' ? 'info' : 'default'}>
+              <Label
+                color={
+                  payroll.status === 'approved'
+                    ? 'success'
+                    : payroll.status === 'pending_approval'
+                      ? 'warning'
+                      : payroll.status === 'rejected'
+                        ? 'error'
+                        : payroll.status === 'processed'
+                          ? 'info'
+                          : 'default'
+                }
+              >
                 {formatStatus(payroll.status)}
               </Label>
             </Box>
             <Typography variant="body2" color="text.secondary">
-              Generated on {new Date(payroll.createdAt || payroll.approvedAt || payroll.generatedAt || Date.now()).toLocaleString()} by {payroll.generatedBy}
+              Generated on{' '}
+              {new Date(
+                payroll.createdAt || payroll.approvedAt || payroll.generatedAt || Date.now()
+              ).toLocaleString()}{' '}
+              by {payroll.generatedBy}
             </Typography>
 
             <Box
@@ -306,20 +335,36 @@ export default function PayrollDetailPage({ params }) {
                 },
               }}
             >
-              {[{ label: 'Total Net', value: fCurrency(payroll.totalNet ?? 0, { currency: 'SAR', minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
-                { label: 'Total Gross', value: fCurrency(payroll.totalGross ?? 0, { currency: 'SAR', minimumFractionDigits: 2, maximumFractionDigits: 2 }) },
+              {[
+                {
+                  label: 'Total Net',
+                  value: fCurrency(payroll.totalNet ?? 0, {
+                    currency: 'SAR',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }),
+                },
+                {
+                  label: 'Total Gross',
+                  value: fCurrency(payroll.totalGross ?? 0, {
+                    currency: 'SAR',
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  }),
+                },
                 { label: 'Total Employees', value: payroll.totalEmployees },
                 { label: 'Month', value: payroll.periodMonth },
-                { label: 'Year', value: payroll.periodYear }].map((item) => (
-                  <Paper key={item.label} variant="outlined" sx={{ p: 1.75, borderRadius: 2 }}>
-                    <Stack spacing={0.5}>
-                      <Typography variant="body2" color="text.secondary">
-                        {item.label}
-                      </Typography>
-                      <Typography variant="subtitle1">{item.value}</Typography>
-                    </Stack>
-                  </Paper>
-                ))}
+                { label: 'Year', value: payroll.periodYear },
+              ].map((item) => (
+                <Paper key={item.label} variant="outlined" sx={{ p: 1.75, borderRadius: 2 }}>
+                  <Stack spacing={0.5}>
+                    <Typography variant="body2" color="text.secondary">
+                      {item.label}
+                    </Typography>
+                    <Typography variant="subtitle1">{item.value}</Typography>
+                  </Stack>
+                </Paper>
+              ))}
             </Box>
 
             {lineItems.length > 0 && (

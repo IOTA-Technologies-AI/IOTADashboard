@@ -1,5 +1,3 @@
-import { use } from 'react';
-
 import { _jobs } from 'src/_mock/_job';
 import { CONFIG } from 'src/global-config';
 
@@ -10,7 +8,7 @@ import { JobDetailsView } from 'src/sections/job/view';
 export const metadata = { title: `Job details | Dashboard - ${CONFIG.appName}` };
 
 export default async function Page({ params }) {
-  const { id } = use(params);
+  const { id } = params;
 
   const currentJob = _jobs.find((job) => job.id === id);
 

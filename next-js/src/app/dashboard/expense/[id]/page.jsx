@@ -1,5 +1,3 @@
-import { use } from 'react';
-
 import { apiHelper } from 'src/utils/apiHelper';
 
 import { CONFIG } from 'src/global-config';
@@ -11,7 +9,7 @@ import { ExpenseDetailsView } from 'src/sections/expense/view';
 export const metadata = { title: `Expense details | Dashboard - ${CONFIG.appName}` };
 
 export default async function Page({ params }) {
-  const { id } = use(params);
+  const { id } = params;
 
   // Fetch all expenses from API
   const expenses = await apiHelper.getExpenses();

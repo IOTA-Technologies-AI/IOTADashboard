@@ -1,4 +1,3 @@
-import { use } from 'react';
 import { notFound } from 'next/navigation';
 
 import { CONFIG } from 'src/global-config';
@@ -11,7 +10,7 @@ export const metadata = {
 };
 
 export default async function Page({ params }) {
-  const { id } = use(params);
+  const { id } = params;
 
   try {
     const deal = await getDeal(id);

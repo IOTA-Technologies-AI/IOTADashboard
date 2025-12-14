@@ -1,5 +1,3 @@
-import { use } from 'react';
-
 import { fetchInvoice, getCustomers } from 'src/utils/apiHelper';
 
 import { CONFIG } from 'src/global-config';
@@ -11,7 +9,7 @@ import { InvoiceDetailsView } from 'src/sections/invoice/view';
 export const metadata = { title: `Invoice details | Dashboard - ${CONFIG.appName}` };
 
 export default async function Page({ params }) {
-  const { id } = use(params);
+  const { id } = params;
 
   // ✅ Fetch from real API instead of mock data
   const data = await fetchInvoice(id);

@@ -1,7 +1,19 @@
 'use client';
 
 import React from 'react';
-import { Box, Typography, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, Divider } from '@mui/material';
+
+import {
+  Box,
+  Table,
+  Paper,
+  Divider,
+  TableRow,
+  TableBody,
+  TableCell,
+  TableHead,
+  Typography,
+  TableContainer,
+} from '@mui/material';
 
 const styles = {
   container: {
@@ -129,13 +141,27 @@ export function OfferLetterHTML({ data }) {
           <Typography sx={styles.coverTitle}>EMPLOYMENT CONTRACT</Typography>
 
           <Box sx={styles.infoBox}>
-            <Typography><strong>Contract Number:</strong> {contractNumber}</Typography>
-            <Typography><strong>Issue Date:</strong> {currentDate}</Typography>
-            <Typography><strong>Employee Name:</strong> {employeeName}</Typography>
-            <Typography><strong>Position:</strong> {position}</Typography>
-            <Typography><strong>Department:</strong> {department}</Typography>
-            <Typography><strong>Start Date:</strong> {startDate}</Typography>
-            <Typography><strong>Contract Type:</strong> {contractType}</Typography>
+            <Typography>
+              <strong>Contract Number:</strong> {contractNumber}
+            </Typography>
+            <Typography>
+              <strong>Issue Date:</strong> {currentDate}
+            </Typography>
+            <Typography>
+              <strong>Employee Name:</strong> {employeeName}
+            </Typography>
+            <Typography>
+              <strong>Position:</strong> {position}
+            </Typography>
+            <Typography>
+              <strong>Department:</strong> {department}
+            </Typography>
+            <Typography>
+              <strong>Start Date:</strong> {startDate}
+            </Typography>
+            <Typography>
+              <strong>Contract Type:</strong> {contractType}
+            </Typography>
           </Box>
 
           <Box sx={{ mt: 8, textAlign: 'center' }}>
@@ -151,7 +177,9 @@ export function OfferLetterHTML({ data }) {
         {/* Blue Footer */}
         <Box sx={styles.blueFooter}>
           <Typography variant="body2">IOTA Technologies | P.O. Box 123456, Dubai, UAE</Typography>
-          <Typography variant="body2">Tel: +971 4 XXX XXXX | Email: hr@iota.ae | www.iota.ae</Typography>
+          <Typography variant="body2">
+            Tel: +971 4 XXX XXXX | Email: hr@iota.ae | www.iota.ae
+          </Typography>
         </Box>
       </Box>
 
@@ -182,8 +210,8 @@ export function OfferLetterHTML({ data }) {
 
         <Box sx={{ ...styles.infoBox, mb: 3 }}>
           <Typography paragraph>
-            <strong>EMPLOYER:</strong> IOTA Technologies, a company duly registered under the laws of
-            the United Arab Emirates, with its registered office in Dubai.
+            <strong>EMPLOYER:</strong> IOTA Technologies, a company duly registered under the laws
+            of the United Arab Emirates, with its registered office in Dubai.
           </Typography>
           <Typography paragraph>
             <strong>EMPLOYEE:</strong> {employeeName}, holder of Passport Number {passportNumber},
@@ -206,14 +234,17 @@ export function OfferLetterHTML({ data }) {
         <Typography sx={styles.sectionTitle}>Contract Type and Duration</Typography>
         <Typography paragraph>
           This is a <strong>{contractType}</strong> term contract
-          {contractType === 'Limited' && contractDuration && ` for a duration of ${contractDuration} months`}.
-          The employment shall commence on <strong>{startDate}</strong>.
+          {contractType === 'Limited' &&
+            contractDuration &&
+            ` for a duration of ${contractDuration} months`}
+          . The employment shall commence on <strong>{startDate}</strong>.
         </Typography>
         {probationPeriod && (
           <Typography paragraph>
-            The Employee shall serve a probationary period of <strong>{probationPeriod} months</strong>{' '}
-            from the commencement date. During this period, either party may terminate the employment
-            with notice as per UAE Federal Labor Law.
+            The Employee shall serve a probationary period of{' '}
+            <strong>{probationPeriod} months</strong> from the commencement date. During this
+            period, either party may terminate the employment with notice as per UAE Federal Labor
+            Law.
           </Typography>
         )}
 
@@ -271,7 +302,7 @@ export function OfferLetterHTML({ data }) {
 
         <Typography paragraph>
           Salary shall be paid on or before the last working day of each month via bank transfer to
-          the Employee's designated bank account in UAE Dirhams.
+          the Employee&apos;s designated bank account in UAE Dirhams.
         </Typography>
       </Box>
 
@@ -297,10 +328,10 @@ export function OfferLetterHTML({ data }) {
         <Typography sx={styles.articleTitle}>ARTICLE 4</Typography>
         <Typography sx={styles.sectionTitle}>Working Hours</Typography>
         <Typography paragraph>
-          The normal working hours shall be <strong>{workingHours} hours per day</strong>, totaling 40
-          hours per week, from Monday to Friday. Official UAE public holidays shall be observed as per
-          government regulations. The Employer reserves the right to modify working hours based on
-          operational requirements with reasonable notice.
+          The normal working hours shall be <strong>{workingHours} hours per day</strong>, totaling
+          40 hours per week, from Monday to Friday. Official UAE public holidays shall be observed
+          as per government regulations. The Employer reserves the right to modify working hours
+          based on operational requirements with reasonable notice.
         </Typography>
 
         {/* Article 5 */}
@@ -308,52 +339,54 @@ export function OfferLetterHTML({ data }) {
         <Typography sx={styles.sectionTitle}>Annual Leave</Typography>
         <Typography paragraph>
           The Employee shall be entitled to <strong>{annualLeaveDays} calendar days</strong> of paid
-          annual leave per year after completing one year of service, in accordance with UAE Labor Law.
-          Annual leave shall be scheduled with mutual agreement between the Employee and management,
-          subject to business requirements.
+          annual leave per year after completing one year of service, in accordance with UAE Labor
+          Law. Annual leave shall be scheduled with mutual agreement between the Employee and
+          management, subject to business requirements.
         </Typography>
 
         {/* Article 6 */}
         <Typography sx={styles.articleTitle}>ARTICLE 6</Typography>
         <Typography sx={styles.sectionTitle}>Sick Leave</Typography>
-        <Typography paragraph>The Employee is entitled to sick leave as per UAE Federal Labor Law:</Typography>
+        <Typography paragraph>
+          The Employee is entitled to sick leave as per UAE Federal Labor Law:
+        </Typography>
         <Box component="ul" sx={{ pl: 4 }}>
           <li>First 15 days with full pay</li>
           <li>Next 30 days with half pay</li>
           <li>Next 30 days without pay</li>
         </Box>
         <Typography paragraph>
-          Sick leave must be supported by a valid medical certificate from a licensed medical practitioner
-          approved by the relevant health authorities.
+          Sick leave must be supported by a valid medical certificate from a licensed medical
+          practitioner approved by the relevant health authorities.
         </Typography>
 
         {/* Article 7 */}
         <Typography sx={styles.articleTitle}>ARTICLE 7</Typography>
         <Typography sx={styles.sectionTitle}>End of Service Benefits</Typography>
         <Typography paragraph>
-          Upon completion or termination of employment, the Employee shall be entitled to end of service
-          gratuity calculated in accordance with UAE Federal Labor Law No. 33 of 2021, based on the basic
-          salary and length of continuous service with the Employer.
+          Upon completion or termination of employment, the Employee shall be entitled to end of
+          service gratuity calculated in accordance with UAE Federal Labor Law No. 33 of 2021, based
+          on the basic salary and length of continuous service with the Employer.
         </Typography>
 
         {/* Article 8 */}
         <Typography sx={styles.articleTitle}>ARTICLE 8</Typography>
         <Typography sx={styles.sectionTitle}>Notice Period and Termination</Typography>
         <Typography paragraph>
-          Either party may terminate this contract by providing <strong>{noticePeriod} days</strong> written
-          notice to the other party, or payment in lieu thereof. The Employer reserves the right to terminate
-          employment immediately without notice or compensation in cases of gross misconduct, breach of
-          contract, or violation of company policies.
+          Either party may terminate this contract by providing <strong>{noticePeriod} days</strong>{' '}
+          written notice to the other party, or payment in lieu thereof. The Employer reserves the
+          right to terminate employment immediately without notice or compensation in cases of gross
+          misconduct, breach of contract, or violation of company policies.
         </Typography>
 
         {/* Article 9 */}
         <Typography sx={styles.articleTitle}>ARTICLE 9</Typography>
         <Typography sx={styles.sectionTitle}>Confidentiality and Intellectual Property</Typography>
         <Typography paragraph>
-          The Employee agrees to maintain strict confidentiality regarding all proprietary information, trade
-          secrets, client data, and business operations of the Employer. This obligation shall survive the
-          termination of employment. All intellectual property created during employment shall belong
-          exclusively to the Employer.
+          The Employee agrees to maintain strict confidentiality regarding all proprietary
+          information, trade secrets, client data, and business operations of the Employer. This
+          obligation shall survive the termination of employment. All intellectual property created
+          during employment shall belong exclusively to the Employer.
         </Typography>
       </Box>
 
@@ -379,36 +412,36 @@ export function OfferLetterHTML({ data }) {
         <Typography sx={styles.articleTitle}>ARTICLE 10</Typography>
         <Typography sx={styles.sectionTitle}>Non-Competition Clause</Typography>
         <Typography paragraph>
-          During the term of employment and for a period of 12 months following termination, the Employee
-          agrees not to directly or indirectly engage in any business activities that compete with the
-          Employer's business interests within the United Arab Emirates.
+          During the term of employment and for a period of 12 months following termination, the
+          Employee agrees not to directly or indirectly engage in any business activities that
+          compete with the Employer&apos;s business interests within the United Arab Emirates.
         </Typography>
 
         {/* Article 11 */}
         <Typography sx={styles.articleTitle}>ARTICLE 11</Typography>
         <Typography sx={styles.sectionTitle}>Governing Law and Jurisdiction</Typography>
         <Typography paragraph>
-          This contract shall be governed by and construed in accordance with the laws of the United Arab
-          Emirates, particularly UAE Federal Labor Law No. 33 of 2021 and subsequent amendments. Any
-          disputes arising from this agreement shall fall under the exclusive jurisdiction of the competent
-          courts in Dubai, UAE.
+          This contract shall be governed by and construed in accordance with the laws of the United
+          Arab Emirates, particularly UAE Federal Labor Law No. 33 of 2021 and subsequent
+          amendments. Any disputes arising from this agreement shall fall under the exclusive
+          jurisdiction of the competent courts in Dubai, UAE.
         </Typography>
 
         {/* Article 12 */}
         <Typography sx={styles.articleTitle}>ARTICLE 12</Typography>
         <Typography sx={styles.sectionTitle}>Entire Agreement</Typography>
         <Typography paragraph>
-          This contract constitutes the entire agreement between the parties and supersedes all prior
-          negotiations, representations, or agreements. Any modifications must be made in writing and signed
-          by authorized representatives of both parties.
+          This contract constitutes the entire agreement between the parties and supersedes all
+          prior negotiations, representations, or agreements. Any modifications must be made in
+          writing and signed by authorized representatives of both parties.
         </Typography>
 
         {/* Declaration */}
         <Box sx={{ ...styles.infoBox, textAlign: 'center', mb: 4 }}>
           <Typography>
-            <strong>DECLARATION:</strong> Both parties confirm that they have read, understood, and agree to
-            all terms and conditions stipulated in this Employment Contract. This agreement has been executed
-            in duplicate, with each party retaining one original copy.
+            <strong>DECLARATION:</strong> Both parties confirm that they have read, understood, and
+            agree to all terms and conditions stipulated in this Employment Contract. This agreement
+            has been executed in duplicate, with each party retaining one original copy.
           </Typography>
         </Box>
 
@@ -432,7 +465,11 @@ export function OfferLetterHTML({ data }) {
               </Typography>
               <Typography>_________________________</Typography>
             </Box>
-            <Typography variant="caption" color="text.secondary" sx={{ textAlign: 'center', display: 'block', mt: 1 }}>
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ textAlign: 'center', display: 'block', mt: 1 }}
+            >
               Company Stamp
             </Typography>
           </Box>
