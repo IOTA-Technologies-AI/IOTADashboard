@@ -12,6 +12,7 @@ import Stack from '@mui/material/Stack';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import CardHeader from '@mui/material/CardHeader';
+import { alpha, useTheme } from '@mui/material/styles';
 import BusinessIcon from '@mui/icons-material/Business';
 import LinearProgress from '@mui/material/LinearProgress';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -58,6 +59,18 @@ const getExpenseAmount = (expense) =>
   asNumber(expense?.expenseAmount ?? expense?.originalExpenseAmount ?? expense?.amount);
 
 const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
+
+const sumInDateRange = (items, dateKey, amountGetter, start, end) =>
+  items.reduce((sum, item) => {
+    const raw = item?.[dateKey];
+    if (!raw) return sum;
+    const dt = new Date(raw);
+    if (Number.isNaN(dt.getTime())) return sum;
+    if (dt >= start && dt < end) {
+      return sum + amountGetter(item);
+    }
+    return sum;
+  }, 0);
 
 const buildMonthBuckets = (count = 6) => {
   const now = new Date();
@@ -136,6 +149,8 @@ const balanceForBill = (bill) => {
 };
 
 export function CompanyPerformanceView() {
+  const theme = useTheme();
+
   const [invoices, setInvoices] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [ar, setAr] = useState([]);
@@ -223,6 +238,58 @@ export function CompanyPerformanceView() {
     () => expenses.reduce((sum, exp) => sum + getExpenseAmount(exp), 0),
     [expenses]
   );
+
+  const { revenueYoYPercent, expenseYoYPercent, netYoYPercent } = useMemo(() => {
+    const now = new Date();
+    const startCurrentYear = new Date(now.getFullYear(), 0, 1);
+    const startPrevYear = new Date(now.getFullYear() - 1, 0, 1);
+    const endPrevYear = startCurrentYear;
+
+    const revenueCurrent = sumInDateRange(
+      invoices,
+      'invoiceDate',
+      getInvoiceAmount,
+      startCurrentYear,
+      now
+    );
+    const revenuePrev = sumInDateRange(
+      invoices,
+      'invoiceDate',
+      getInvoiceAmount,
+      startPrevYear,
+      endPrevYear
+    );
+
+    const expenseCurrent = sumInDateRange(
+      expenses,
+      'expenseDate',
+      getExpenseAmount,
+      startCurrentYear,
+      now
+    );
+    const expensePrev = sumInDateRange(
+      expenses,
+      'expenseDate',
+      getExpenseAmount,
+      startPrevYear,
+      endPrevYear
+    );
+
+    const netCurrent = revenueCurrent - expenseCurrent;
+    const netPrev = revenuePrev - expensePrev;
+
+    const yoy = (curr, prev) => {
+      if (!prev) return 0;
+      const delta = ((curr - prev) / Math.abs(prev)) * 100;
+      return Number.isFinite(delta) ? delta : 0;
+    };
+
+    return {
+      revenueYoYPercent: yoy(revenueCurrent, revenuePrev),
+      expenseYoYPercent: yoy(expenseCurrent, expensePrev),
+      netYoYPercent: yoy(netCurrent, netPrev),
+    };
+  }, [expenses, invoices]);
   const arOutstanding = useMemo(
     () => ar.reduce((sum, inv) => sum + balanceForInvoice(inv), 0),
     [ar]
@@ -363,22 +430,28 @@ export function CompanyPerformanceView() {
       key: 'revenue',
       title: 'Revenue',
       total: kpiValues.revenue,
-      percent: percentDelta(revenueSeries),
+      percent: revenueYoYPercent,
       icon: <BusinessIcon color="primary" sx={{ width: 64, height: 64 }} />,
+      fg: theme.palette.primary.darker,
+      bg: `linear-gradient(135deg, ${alpha(theme.palette.primary.light, 0.28)}, ${alpha(theme.palette.primary.main, 0.18)})`,
     },
     {
       key: 'expense',
       title: 'Expenses',
       total: kpiValues.expense,
-      percent: percentDelta(expenseSeries),
+      percent: expenseYoYPercent,
       icon: <Iconify icon="solar:wallet-money-bold" width={64} height={64} color="#FF6B6B" />,
+      fg: theme.palette.error.darker,
+      bg: `linear-gradient(135deg, ${alpha(theme.palette.error.light, 0.26)}, ${alpha(theme.palette.error.main, 0.16)})`,
     },
     {
       key: 'net',
       title: 'Net',
       total: kpiValues.net,
-      percent: kpiValues.revenue ? (kpiValues.net / kpiValues.revenue) * 100 : 0,
+      percent: netYoYPercent,
       icon: <Iconify icon="solar:chart-bold" width={64} height={64} color="#2E8BFD" />,
+      fg: theme.palette.success.darker,
+      bg: `linear-gradient(135deg, ${alpha(theme.palette.success.light, 0.24)}, ${alpha(theme.palette.success.main, 0.16)})`,
     },
     {
       key: 'ar',
@@ -386,6 +459,8 @@ export function CompanyPerformanceView() {
       total: kpiValues.ar,
       percent: 0,
       icon: <Iconify icon="solar:bill-list-bold" width={64} height={64} color="#6C5CE7" />,
+      fg: theme.palette.info.darker,
+      bg: `linear-gradient(135deg, ${alpha(theme.palette.info.light, 0.26)}, ${alpha(theme.palette.info.main, 0.16)})`,
     },
     {
       key: 'ap',
@@ -393,6 +468,8 @@ export function CompanyPerformanceView() {
       total: kpiValues.ap,
       percent: 0,
       icon: <Iconify icon="solar:wallet-2-bold" width={64} height={64} color="#F3A952" />,
+      fg: theme.palette.warning.darker,
+      bg: `linear-gradient(135deg, ${alpha(theme.palette.warning.light, 0.28)}, ${alpha(theme.palette.warning.main, 0.18)})`,
     },
   ];
 
@@ -464,7 +541,25 @@ export function CompanyPerformanceView() {
                 total={item.total}
                 percent={item.percent}
                 icon={item.icon}
-                sx={{ height: '100%' }}
+                sx={{
+                  height: '100%',
+                  color: item.fg,
+                  backgroundImage: item.bg,
+                  backgroundColor: 'transparent',
+                  boxShadow: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  '& > :last-of-type': {
+                    bgcolor: 'transparent',
+                    width: 80,
+                    height: 80,
+                    borderRadius: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    ml: 2,
+                  },
+                }}
               />
             ))}
           </Box>
