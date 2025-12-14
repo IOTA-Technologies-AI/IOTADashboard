@@ -2,6 +2,8 @@
 
 import { useMemo, useState, useEffect } from 'react';
 
+import dynamic from 'next/dynamic';
+
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
@@ -10,7 +12,6 @@ import Stack from '@mui/material/Stack';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import CardHeader from '@mui/material/CardHeader';
-import { LineChart } from '@mui/x-charts/LineChart';
 import BusinessIcon from '@mui/icons-material/Business';
 import LinearProgress from '@mui/material/LinearProgress';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -55,6 +56,8 @@ const getInvoiceAmount = (invoice) =>
 
 const getExpenseAmount = (expense) =>
   asNumber(expense?.expenseAmount ?? expense?.originalExpenseAmount ?? expense?.amount);
+
+const ReactApexChart = dynamic(() => import('react-apexcharts'), { ssr: false });
 
 const buildMonthBuckets = (count = 6) => {
   const now = new Date();
@@ -275,24 +278,76 @@ export function CompanyPerformanceView() {
 
   const chartSeries = useMemo(
     () => [
-      {
-        id: 'revenue',
-        label: 'Revenue',
-        color: '#2E8BFD',
-        data: revenueSeries,
-        area: true,
-        valueFormatter: (val) => fCurrency(val, { currencyCode: 'SAR' }),
-      },
-      {
-        id: 'expenses',
-        label: 'Expenses',
-        color: '#FF6B6B',
-        data: expenseSeries,
-        area: true,
-        valueFormatter: (val) => fCurrency(val, { currencyCode: 'SAR' }),
-      },
+      { name: 'Revenue', data: revenueSeries },
+      { name: 'Expenses', data: expenseSeries },
     ],
     [expenseSeries, revenueSeries]
+  );
+
+  const chartOptions = useMemo(
+    () => ({
+      chart: {
+        id: 'revenue-expenses',
+        toolbar: {
+          show: true,
+          tools: {
+            download: false,
+            selection: true,
+            zoom: true,
+            zoomin: true,
+            zoomout: true,
+            pan: true,
+            reset: true,
+          },
+          autoSelected: 'zoom',
+        },
+        zoom: {
+          enabled: true,
+          type: 'x',
+          autoScaleYaxis: true,
+        },
+      },
+      colors: ['#2E8BFD', '#FF6B6B'],
+      dataLabels: { enabled: false },
+      stroke: { curve: 'smooth', width: 3 },
+      fill: {
+        type: 'gradient',
+        gradient: {
+          shadeIntensity: 0.4,
+          opacityFrom: 0.35,
+          opacityTo: 0.05,
+        },
+      },
+      markers: {
+        size: 3,
+        strokeWidth: 2,
+        strokeColors: '#fff',
+      },
+      xaxis: {
+        categories: chartCategories,
+        axisBorder: { show: false },
+        labels: { rotate: -45 },
+      },
+      yaxis: {
+        labels: {
+          formatter: (val) => fCurrency(val, { currencyCode: 'SAR' }),
+        },
+      },
+      tooltip: {
+        shared: true,
+        y: {
+          formatter: (val) => fCurrency(val, { currencyCode: 'SAR' }),
+        },
+      },
+      legend: {
+        position: 'top',
+        horizontalAlign: 'left',
+      },
+      grid: {
+        strokeDashArray: 4,
+      },
+    }),
+    [chartCategories]
   );
 
   const kpiValues = {
@@ -430,16 +485,11 @@ export function CompanyPerformanceView() {
                 <Card sx={{ boxShadow: { md: 'none' } }}>
                   <CardHeader title="Revenue vs Expenses" subheader="Last 6 months" />
                   <Box sx={{ px: 1.5, pb: 2 }}>
-                    <LineChart
+                    <ReactApexChart
+                      type="area"
                       height={364}
                       series={chartSeries}
-                      xAxis={[{ scaleType: 'band', data: chartCategories }]}
-                      slotProps={{
-                        legend: {
-                          direction: 'row',
-                          position: { vertical: 'top', horizontal: 'left' },
-                        },
-                      }}
+                      options={chartOptions}
                     />
                   </Box>
                 </Card>
