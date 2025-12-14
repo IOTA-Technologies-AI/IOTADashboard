@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import { useForm } from 'react-hook-form';
+import { useState, useEffect } from 'react';
 import { useBoolean } from 'minimal-shared/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -7,15 +8,16 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
 import { today, fIsAfter } from 'src/utils/format-time';
-import { createInvoice, updateInvoice } from 'src/utils/apiHelper';
+import { createInvoice, updateInvoice, getCostCenters } from 'src/utils/apiHelper';
 
 import { toast } from 'src/components/snackbar';
-import { Form, schemaUtils } from 'src/components/hook-form';
+import { Field, Form, schemaUtils } from 'src/components/hook-form';
 
 import { InvoiceCreateEditStatusDate } from './invoice-create-edit-status-date';
 import { defaultItem, InvoiceCreateEditDetails } from './invoice-create-edit-details';
@@ -50,6 +52,7 @@ export const InvoiceCreateSchema = z
     vatRate: z.number(),
     invoiceNumber: z.string(),
     invoiceFrom: z.custom().nullable(),
+    costcenterId: z.union([z.string(), z.number()]).optional().nullable(),
   })
   .refine((val) => !fIsAfter(val.createDate, val.dueDate), {
     error: 'Due date cannot be earlier than create date!',
@@ -63,6 +66,7 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
 
   const loadingSave = useBoolean();
   const loadingSend = useBoolean();
+  const [costCenters, setCostCenters] = useState([]);
 
   const isEdit = !!currentInvoice?.id;
 
@@ -80,6 +84,7 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
     discount: 0,
     invoiceFrom: IOTA_OFFICES[0],
     invoiceTo: null,
+    costcenterId: '',
     subtotal: 0,
     total: 0,
     items: [defaultItem],
@@ -101,6 +106,19 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
   } = methods;
 
   // ✅ Save as Draft - Only for draft/pending invoices
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const list = await getCostCenters();
+      if (active) {
+        setCostCenters(list || []);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const handleSaveAsDraft = handleSubmit(async (data) => {
     if (!canEdit) {
       toast.error('Cannot edit paid or approved invoices');
@@ -124,6 +142,7 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         currencyCode: data.invoiceTo?.currency || 'SAR',
         currencySymbol: data.invoiceTo?.currency === 'SAR' ? 'ر.س' : '$',
         exchangeRate: 1,
+        costcenterId: data.costcenterId ? Number(data.costcenterId) : null,
         baseAmount: parseFloat((data.subtotal || 0).toFixed(2)),
         vatAmount: parseFloat((data.vatAmount || 0).toFixed(2)),
         vatRate: parseFloat((data.vatRate || 0).toFixed(2)),
@@ -184,6 +203,7 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         currencyCode: data.invoiceTo?.currency || 'SAR',
         currencySymbol: data.invoiceTo?.currency === 'SAR' ? 'ر.س' : '$',
         exchangeRate: 1,
+        costcenterId: data.costcenterId ? Number(data.costcenterId) : null,
         ...(!isEdit && {
           createdAt: new Date().toISOString(),
         }),
@@ -232,6 +252,24 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
 
       <Card>
         <InvoiceCreateEditAddress />
+        <Box sx={{ p: 3, pt: 0 }}>
+          <Field.Select
+            name="costcenterId"
+            label="Cost center"
+            fullWidth
+            displayEmpty
+            InputLabelProps={{ shrink: true }}
+          >
+            <MenuItem value="">
+              <em>Select cost center</em>
+            </MenuItem>
+            {costCenters.map((cc) => (
+              <MenuItem key={cc.id} value={cc.id}>
+                {cc.name || `Cost Center ${cc.id}`}
+              </MenuItem>
+            ))}
+          </Field.Select>
+        </Box>
         <InvoiceCreateEditStatusDate />
         <InvoiceCreateEditDetails />
       </Card>

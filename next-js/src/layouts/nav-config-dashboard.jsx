@@ -1,3 +1,4 @@
+import BusinessIcon from '@mui/icons-material/Business';
 import MoneyOffIcon from '@mui/icons-material/MoneyOff';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
@@ -33,6 +34,7 @@ const ICONS = {
   params: icon('ic-params'),
   banking: icon('ic-banking'),
   booking: icon('ic-booking'),
+  company: <BusinessIcon style={{ width: 24, height: 24 }} />,
   invoice: icon('ic-invoice'),
   product: icon('ic-product'),
   calendar: icon('ic-calendar'),
@@ -79,6 +81,7 @@ export const navData = [
       { title: 'Analytics', path: paths.dashboard.general.analytics, icon: ICONS.analytics },
       { title: 'Banking', path: paths.dashboard.general.banking, icon: ICONS.banking },
       { title: 'Booking', path: paths.dashboard.general.booking, icon: ICONS.booking },
+      { title: 'Company', path: paths.dashboard.general.company, icon: ICONS.company },
       { title: 'File', path: paths.dashboard.general.file, icon: ICONS.file },
       { title: 'Course', path: paths.dashboard.general.course, icon: ICONS.course },
       { title: 'Finance', path: paths.dashboard.finance.root, icon: ICONS.finance },

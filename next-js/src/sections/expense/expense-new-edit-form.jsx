@@ -2,7 +2,7 @@
 
 import { z as zod } from 'zod';
 import { useForm } from 'react-hook-form';
-import { useMemo, useEffect, useState } from 'react'; // ✅ Added useState
+import { useMemo, useState, useEffect } from 'react'; // ✅ Added useState
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import Box from '@mui/material/Box';
@@ -17,8 +17,8 @@ import CircularProgress from '@mui/material/CircularProgress'; // ✅ Added for 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
-import { apiHelper } from 'src/utils/apiHelper';
 import { fCurrency } from 'src/utils/format-number'; // ✅ Added for formatting
+import { apiHelper, getCostCenters } from 'src/utils/apiHelper';
 import {
   EXPENSE_TYPES,
   EXPENSE_CURRENCIES,
@@ -36,6 +36,7 @@ const ExpenseSchema = zod.object({
   expenseDate: zod.string().min(1, { message: 'Expense date is required!' }),
   originalExpenseAmount: zod.number().min(0.01, { message: 'Amount must be greater than 0!' }),
   expenseBy: zod.number().min(1, { message: 'Expense by is required!' }),
+  costcenterId: zod.union([zod.string(), zod.number()]).optional().nullable(),
   expenseSettlementNotes: zod.string().optional(),
   originalExpenseCurrency: zod.string().min(1, { message: 'Currency is required!' }),
   externalTransactionId: zod.string().optional(),
@@ -59,6 +60,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
   // ✅ Added state for AR invoices
   const [arInvoices, setArInvoices] = useState([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
+  const [costCenters, setCostCenters] = useState([]);
 
   console.log('🔍 ExpenseNewEditForm - currentExpense:', currentExpense);
   console.log('🔍 originalExpenseAmount:', currentExpense?.originalExpenseAmount);
@@ -71,6 +73,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
       expenseType: currentExpense?.expenseType ? String(currentExpense.expenseType) : '',
       expenseDate: currentExpense?.expenseDate || '',
       expenseBy: currentExpense?.expenseBy || '',
+      costcenterId: currentExpense?.costcenterId ? String(currentExpense.costcenterId) : '',
 
       // ✅ FIXED: Handle corrupted data and fallback properly
       originalExpenseAmount:
@@ -142,6 +145,19 @@ export function ExpenseNewEditForm({ currentExpense }) {
     fetchARInvoices();
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const list = await getCostCenters();
+      if (active) {
+        setCostCenters(list || []);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   // ✅ Clear linked invoice fields when expense type changes away from "Invoice Against Invoice"
   useEffect(() => {
     if (Number(watchedExpenseType) !== INVOICE_AGAINST_INVOICE_TYPE) {
@@ -189,6 +205,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
         linkedInvoiceNumber: data.linkedInvoiceNumber || null,
         linkedInvoiceId: data.linkedInvoiceId || null,
         linkedInvoiceAmount: data.linkedInvoiceAmount ? Number(data.linkedInvoiceAmount) : null,
+        costcenterId: data.costcenterId ? Number(data.costcenterId) : null,
       };
 
       if (currentExpense) {
@@ -252,7 +269,8 @@ export function ExpenseNewEditForm({ currentExpense }) {
                     setValue('linkedInvoiceAmount', invoice.totalAmount || 0);
                   }}
                 >
-                  {invoice.invoiceNumber} - {invoice.customerName} - {fCurrency(invoice.totalAmount)} {invoice.currencyCode || 'SAR'}
+                  {invoice.invoiceNumber} - {invoice.customerName} -{' '}
+                  {fCurrency(invoice.totalAmount)} {invoice.currencyCode || 'SAR'}
                 </MenuItem>
               ))
             )}
@@ -276,6 +294,22 @@ export function ExpenseNewEditForm({ currentExpense }) {
           type="number"
           InputLabelProps={{ shrink: true }}
         />
+
+        <Field.Select
+          name="costcenterId"
+          label="Cost Center"
+          InputLabelProps={{ shrink: true }}
+          displayEmpty
+        >
+          <MenuItem value="">
+            <em>Select cost center</em>
+          </MenuItem>
+          {costCenters.map((cc) => (
+            <MenuItem key={cc.id} value={cc.id}>
+              {cc.name || `Cost Center ${cc.id}`}
+            </MenuItem>
+          ))}
+        </Field.Select>
 
         <Field.Text
           name="expenseSettlementNotes"

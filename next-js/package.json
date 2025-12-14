@@ -54,6 +54,7 @@
     "@mui/material": "^7.3.1",
     "@mui/material-nextjs": "^7.3.0",
     "@mui/stylis-plugin-rtl": "^7.3.1",
+    "@mui/x-charts": "^7.29.1",
     "@mui/x-data-grid": "^8.9.2",
     "@mui/x-date-pickers": "^8.9.2",
     "@mui/x-tree-view": "^8.9.2",
