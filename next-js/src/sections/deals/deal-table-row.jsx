@@ -14,7 +14,7 @@ import TableCell from '@mui/material/TableCell';
 import IconButton from '@mui/material/IconButton';
 
 import { fDate } from 'src/utils/format-time';
-import { fNumber } from 'src/utils/format-number';
+import { fCurrency } from 'src/utils/format-number';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -24,6 +24,9 @@ import { CustomPopover } from 'src/components/custom-popover';
 export function DealTableRow({ row, selected, onSelectRow, onViewRow, onEditRow, onDeleteRow }) {
   const confirm = useBoolean();
   const popover = usePopover();
+
+  const currencyCode = getCurrencyCodeFromRegion(row.region || row.country);
+  const formatAmount = (value) => fCurrency(value || 0, { currencyCode });
 
   const getStatusColor = (status) => {
     const colors = {
@@ -35,13 +38,19 @@ export function DealTableRow({ row, selected, onSelectRow, onViewRow, onEditRow,
     return colors[status] || 'default';
   };
 
-  const formatSar = (value) => {
-    const formatted = fNumber(value || 0, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    return formatted ? `${formatted} SAR` : '';
+  const getBdmPaidAmount = () => {
+    if (
+      typeof row.bdmCommissionPaidAmount === 'number' &&
+      !Number.isNaN(row.bdmCommissionPaidAmount)
+    ) {
+      return Math.max(row.bdmCommissionPaidAmount, 0);
+    }
+    return row.bdmCommissionPaid ? row.bdmCommissionAmount || 0 : 0;
   };
+
+  const bdmTotal = row.bdmCommissionAmount || 0;
+  const bdmPaid = getBdmPaidAmount();
+  const bdmPending = Math.max(bdmTotal - bdmPaid, 0);
 
   return (
     <>
@@ -68,24 +77,36 @@ export function DealTableRow({ row, selected, onSelectRow, onViewRow, onEditRow,
 
         <TableCell sx={{ whiteSpace: 'nowrap' }}>{fDate(row.dealDate)}</TableCell>
 
-        <TableCell sx={{ color: 'info.main', fontWeight: 'fontWeightMedium', whiteSpace: 'nowrap' }}>
-          {formatSar(row.arInvoiceAmount)}
+        <TableCell
+          sx={{ color: 'info.main', fontWeight: 'fontWeightMedium', whiteSpace: 'nowrap' }}
+        >
+          {formatAmount(row.arInvoiceAmount)}
         </TableCell>
 
-        <TableCell sx={{ color: 'error.main', fontWeight: 'fontWeightMedium', whiteSpace: 'nowrap' }}>
-          {formatSar(row.apInvoiceAmount)}
+        <TableCell
+          sx={{ color: 'error.main', fontWeight: 'fontWeightMedium', whiteSpace: 'nowrap' }}
+        >
+          {formatAmount(row.apInvoiceAmount)}
         </TableCell>
 
-        <TableCell sx={{ color: 'success.main', fontWeight: 'fontWeightBold', whiteSpace: 'nowrap' }}>
-          {formatSar(row.grossProfit)}
+        <TableCell
+          sx={{ color: 'success.main', fontWeight: 'fontWeightBold', whiteSpace: 'nowrap' }}
+        >
+          {formatAmount(row.grossProfit)}
         </TableCell>
 
         <TableCell sx={{ color: 'warning.main', whiteSpace: 'nowrap' }}>
-          {formatSar(row.bdmCommissionAmount)}
+          {formatAmount(row.bdmCommissionAmount)}
         </TableCell>
 
-        <TableCell sx={{ color: 'primary.main', fontWeight: 'fontWeightBold', whiteSpace: 'nowrap' }}>
-          {formatSar(row.netProfitAfterBDM)}
+        <TableCell sx={{ color: 'warning.dark', whiteSpace: 'nowrap' }}>
+          {bdmPaid > 0 && bdmPending > 0 ? formatAmount(bdmPending) : '-'}
+        </TableCell>
+
+        <TableCell
+          sx={{ color: 'primary.main', fontWeight: 'fontWeightBold', whiteSpace: 'nowrap' }}
+        >
+          {formatAmount(row.netProfitAfterBDM)}
         </TableCell>
 
         <TableCell>
@@ -156,4 +177,18 @@ export function DealTableRow({ row, selected, onSelectRow, onViewRow, onEditRow,
       />
     </>
   );
+}
+
+function getCurrencyCodeFromRegion(region) {
+  const value = (region || '').toString().toLowerCase();
+
+  if (value.includes('uae') || value === 'ae' || value.includes('united arab emirates')) {
+    return 'AED';
+  }
+
+  if (value.includes('ksa') || value.includes('saudi') || value === 'sa') {
+    return 'SAR';
+  }
+
+  return 'USD';
 }

@@ -52,16 +52,22 @@ export function BDMManagementView({ deals, bdms }) {
         return {
           ...bdm,
           totalCommission,
-          paidCommission,
-          pendingCommission,
-          dealsCount,
-          activeDeals,
-          deals: bdmDeals,
-          paidRatio: totalCommission > 0 ? paidCommission / totalCommission : 0,
-        };
-      }),
-    [bdms, deals]
-  );
+              const bdmDeals = deals.filter((deal) => String(deal.bdmId) === String(bdm.id));
+
+              const totalCommission = bdmDeals.reduce((sum, deal) => sum + (deal.bdmCommissionAmount || 0), 0);
+
+              const paidCommission = bdmDeals.reduce((sum, deal) => {
+                const total = deal.bdmCommissionAmount || 0;
+                if (typeof deal.bdmCommissionPaidAmount === 'number' && !Number.isNaN(deal.bdmCommissionPaidAmount)) {
+                  return sum + Math.min(Math.max(deal.bdmCommissionPaidAmount, 0), total);
+                }
+                if (deal.bdmCommissionPaid) {
+                  return sum + total;
+                }
+                return sum;
+              }, 0);
+
+              const pendingCommission = Math.max(totalCommission - paidCommission, 0);
 
   // Calculate totals
   const totalCommissions = bdmSummaries.reduce((sum, bdm) => sum + bdm.totalCommission, 0);

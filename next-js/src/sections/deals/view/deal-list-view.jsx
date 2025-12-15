@@ -2,7 +2,6 @@
 
 import { useRouter } from 'next/navigation';
 import { useState, useCallback } from 'react';
-import { varAlpha } from 'minimal-shared/utils';
 import { useBoolean, useSetState } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
@@ -15,12 +14,8 @@ import IconButton from '@mui/material/IconButton';
 
 import { paths } from 'src/routes/paths';
 
-import { fDate } from 'src/utils/format-time';
-import { fNumber } from 'src/utils/format-number';
-
 import { DashboardContent } from 'src/layouts/dashboard';
 
-import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
@@ -48,6 +43,7 @@ const TABLE_HEAD = [
   { id: 'apInvoiceAmount', label: 'Cost (AP)', width: 180 },
   { id: 'grossProfit', label: 'Gross Profit', width: 180 },
   { id: 'bdmCommissionAmount', label: 'BDM Commission', width: 180 },
+  { id: 'bdmPendingAmount', label: 'BDM Pending', width: 180 },
   { id: 'netProfitAfterBDM', label: 'Net Profit', width: 180 },
   { id: 'status', label: 'Status', width: 110 },
   { id: '', width: 88 },
@@ -64,7 +60,6 @@ export function DealListView({ deals: initialDeals = [] }) {
   const table = useTable({ defaultOrderBy: 'dealDate', defaultOrder: 'desc' });
   const confirm = useBoolean();
 
-  const [deals, setDeals] = useState(initialDeals);
   const [tableData, setTableData] = useState(initialDeals);
 
   const filters = useSetState(defaultFilters);
@@ -101,33 +96,12 @@ export function DealListView({ deals: initialDeals = [] }) {
 
   const handleDeleteRow = useCallback(
     async (id) => {
-      // Implement delete logic
       const updatedData = tableData.filter((row) => row.id !== id);
       setTableData(updatedData);
       table.onUpdatePageDeleteRow(dataInPage.length);
     },
     [dataInPage.length, table, tableData]
   );
-
-  // Calculate totals
-  const totals = dataFiltered.reduce(
-    (acc, deal) => ({
-      revenue: acc.revenue + (deal.arInvoiceAmount || 0),
-      cost: acc.cost + (deal.apInvoiceAmount || 0),
-      grossProfit: acc.grossProfit + (deal.grossProfit || 0),
-      bdmCommission: acc.bdmCommission + (deal.bdmCommissionAmount || 0),
-      netProfit: acc.netProfit + (deal.netProfitAfterBDM || 0),
-    }),
-    { revenue: 0, cost: 0, grossProfit: 0, bdmCommission: 0, netProfit: 0 }
-  );
-
-  const formatSar = (value) => {
-    const formatted = fNumber(value || 0, {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
-    return formatted ? `${formatted} SAR` : '';
-  };
 
   return (
     <DashboardContent>
@@ -149,51 +123,6 @@ export function DealListView({ deals: initialDeals = [] }) {
         }
         sx={{ mb: { xs: 3, md: 5 } }}
       />
-
-      {/* Summary Cards */}
-      <Box
-        gap={3}
-        display="grid"
-        gridTemplateColumns={{ xs: 'repeat(1, 1fr)', sm: 'repeat(2, 1fr)', md: 'repeat(5, 1fr)' }}
-        sx={{ mb: 3 }}
-      >
-        <Card sx={{ p: 3 }}>
-          <Box sx={{ mb: 1, typography: 'subtitle2', color: 'text.secondary' }}>
-            Total Revenue
-          </Box>
-          <Box sx={{ typography: 'h4', color: 'info.main' }}>{formatSar(totals.revenue)}</Box>
-        </Card>
-
-        <Card sx={{ p: 3 }}>
-          <Box sx={{ mb: 1, typography: 'subtitle2', color: 'text.secondary' }}>Total Cost</Box>
-          <Box sx={{ typography: 'h4', color: 'error.main' }}>{formatSar(totals.cost)}</Box>
-        </Card>
-
-        <Card sx={{ p: 3 }}>
-          <Box sx={{ mb: 1, typography: 'subtitle2', color: 'text.secondary' }}>
-            Gross Profit
-          </Box>
-          <Box sx={{ typography: 'h4', color: 'success.main' }}>
-            {formatSar(totals.grossProfit)}
-          </Box>
-        </Card>
-
-        <Card sx={{ p: 3 }}>
-          <Box sx={{ mb: 1, typography: 'subtitle2', color: 'text.secondary' }}>
-            BDM Commission
-          </Box>
-          <Box sx={{ typography: 'h4', color: 'warning.main' }}>
-            {formatSar(totals.bdmCommission)}
-          </Box>
-        </Card>
-
-        <Card sx={{ p: 3 }}>
-          <Box sx={{ mb: 1, typography: 'subtitle2', color: 'text.secondary' }}>Net Profit</Box>
-          <Box sx={{ typography: 'h4', color: 'primary.main' }}>
-            {formatSar(totals.netProfit)}
-          </Box>
-        </Card>
-      </Box>
 
       <Card>
         <DealTableToolbar
@@ -235,7 +164,7 @@ export function DealListView({ deals: initialDeals = [] }) {
           />
 
           <Scrollbar sx={{ minHeight: 444 }}>
-            <Table size={table.dense ? 'small' : 'medium'} sx={{ minWidth: 1400 }}>
+            <Table size={table.dense ? 'small' : 'medium'} sx={{ minWidth: 1200 }}>
               <TableHeadCustom
                 order={table.order}
                 orderBy={table.orderBy}
@@ -300,23 +229,23 @@ function applyFilter({ inputData, comparator, filters }) {
     return a[1] - b[1];
   });
 
-  inputData = stabilizedThis.map((el) => el[0]);
+  let data = stabilizedThis.map((el) => el[0]);
 
   if (name) {
-    inputData = inputData.filter(
+    data = data.filter(
       (deal) =>
-        deal.dealNumber.toLowerCase().indexOf(name.toLowerCase()) !== -1 ||
-        deal.dealName.toLowerCase().indexOf(name.toLowerCase()) !== -1
+        deal.dealNumber?.toLowerCase().includes(name.toLowerCase()) ||
+        deal.dealName?.toLowerCase().includes(name.toLowerCase())
     );
   }
 
   if (status !== 'all') {
-    inputData = inputData.filter((deal) => deal.status === status);
+    data = data.filter((deal) => deal.status === status);
   }
 
   if (region !== 'all') {
-    inputData = inputData.filter((deal) => deal.region === region);
+    data = data.filter((deal) => deal.region === region);
   }
 
-  return inputData;
+  return data;
 }

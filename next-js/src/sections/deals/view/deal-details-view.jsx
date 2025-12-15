@@ -10,6 +10,7 @@ import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 
@@ -18,6 +19,7 @@ import { useRouter } from 'src/routes/hooks';
 
 import { fDate } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
+import { getExpenseByExpenseId } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import { deleteDeal, payBDMCommission } from 'src/actions/deals';
@@ -44,6 +46,27 @@ export function DealDetailsView({ deal }) {
   const confirm = useBoolean();
   const [isDeleting, setIsDeleting] = useState(false);
   const [isPayingBDM, setIsPayingBDM] = useState(false);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [paymentExpenseId, setPaymentExpenseId] = useState('');
+  const [isRecordingPayment, setIsRecordingPayment] = useState(false);
+  const [isFetchingExpense, setIsFetchingExpense] = useState(false);
+  const [fetchedExpense, setFetchedExpense] = useState(null);
+
+  const currencyCode = getCurrencyCodeFromRegion(deal.region || deal.country);
+  const formatCurrency = (value = 0) => fCurrency(value || 0, { currencyCode });
+
+  const bdmTotal = deal.bdmCommissionAmount || 0;
+  const bdmPaid = Math.max(
+    typeof deal.bdmCommissionPaidAmount === 'number' && !Number.isNaN(deal.bdmCommissionPaidAmount)
+      ? deal.bdmCommissionPaidAmount
+      : deal.bdmCommissionPaid
+        ? bdmTotal
+        : 0,
+    0
+  );
+  const bdmPending = Math.max(bdmTotal - bdmPaid, 0);
+  const paymentStatusText = bdmPending <= 0 ? 'Paid' : bdmPaid > 0 ? 'Partial' : 'Pending';
+  const paymentStatusColor = bdmPending <= 0 ? 'success' : 'warning';
 
   const handleDelete = async () => {
     try {
@@ -61,11 +84,16 @@ export function DealDetailsView({ deal }) {
   };
 
   const handlePayBDM = async () => {
+    if (bdmPending <= 0) {
+      toast.error('No pending commission to pay');
+      return;
+    }
+
     try {
       setIsPayingBDM(true);
-      // In real implementation, this would open a dialog to create an expense
-      // For now, we'll just call the API with a placeholder expense ID
-      await payBDMCommission(deal.id, 'expense-placeholder');
+      await payBDMCommission(deal.id, {
+        expenseId: paymentExpenseId || undefined,
+      });
       toast.success('BDM commission marked as paid');
       router.refresh();
     } catch (error) {
@@ -76,8 +104,77 @@ export function DealDetailsView({ deal }) {
     }
   };
 
+  const handleRecordPartialPayment = async () => {
+    const amountValue = Number(paymentAmount);
+
+    if (Number.isNaN(amountValue) || amountValue <= 0) {
+      toast.error('Enter a positive amount');
+      return;
+    }
+
+    if (amountValue > bdmPending) {
+      toast.error('Amount exceeds pending commission');
+      return;
+    }
+
+    try {
+      setIsRecordingPayment(true);
+      await payBDMCommission(deal.id, {
+        amount: amountValue,
+        expenseId: paymentExpenseId || undefined,
+      });
+      toast.success('Partial payment recorded');
+      setPaymentAmount('');
+      router.refresh();
+    } catch (error) {
+      console.error('Error recording partial BDM payment:', error);
+      toast.error('Failed to record payment');
+    } finally {
+      setIsRecordingPayment(false);
+    }
+  };
+
+  const handleFetchExpense = async () => {
+    const trimmed = (paymentExpenseId || '').trim();
+    if (!trimmed) {
+      toast.error('Enter an expense ID');
+      return;
+    }
+
+    const numericId = Number(trimmed);
+    if (Number.isNaN(numericId) || numericId <= 0) {
+      toast.error('Expense ID must be a positive number');
+      return;
+    }
+
+    setIsFetchingExpense(true);
+    try {
+      const expense = await getExpenseByExpenseId(trimmed);
+      setFetchedExpense(expense || null);
+
+      const expenseAmount = Number(
+        expense?.expenseAmount ??
+          expense?.expenseApprovedAmount ??
+          expense?.originalExpenseAmount ??
+          0
+      );
+      const pending = Math.max(bdmPending, 0);
+      if (expenseAmount > 0 && pending > 0) {
+        setPaymentAmount(String(Math.min(expenseAmount, pending)));
+      }
+
+      toast.success('Expense fetched');
+    } catch (error) {
+      console.error('Failed to fetch expense', error);
+      setFetchedExpense(null);
+      toast.error('Expense not found');
+    } finally {
+      setIsFetchingExpense(false);
+    }
+  };
+
   const renderHeader = (
-    <Stack spacing={3} sx={{ mb: 3 }}>
+    <Stack spacing={2} sx={{ mb: 3 }}>
       <CustomBreadcrumbs
         heading={deal.dealName}
         links={[
@@ -106,21 +203,19 @@ export function DealDetailsView({ deal }) {
         }
       />
 
-      <Stack direction="row" spacing={2} alignItems="center">
-        <Typography variant="h4">{deal.dealNumber}</Typography>
+      <Stack direction="row" spacing={1.5} alignItems="center">
+        <Typography variant="h5">{deal.dealNumber}</Typography>
         <Label color={STATUS_OPTIONS[deal.status]?.color || 'default'}>
           {STATUS_OPTIONS[deal.status]?.label || deal.status}
         </Label>
-        {deal.region && (
-          <Chip label={deal.region} size="small" variant="soft" color="primary" />
-        )}
+        {deal.region && <Chip label={deal.region} size="small" variant="soft" color="primary" />}
       </Stack>
     </Stack>
   );
 
   const renderOverview = (
     <Card>
-      <Stack spacing={3} sx={{ p: 3 }}>
+      <Stack spacing={2} sx={{ p: 2.5 }}>
         <Typography variant="h6">Deal Overview</Typography>
 
         <Grid container spacing={3}>
@@ -166,7 +261,7 @@ export function DealDetailsView({ deal }) {
 
   const renderInvoices = (
     <Card>
-      <Stack spacing={3} sx={{ p: 3 }}>
+      <Stack spacing={2} sx={{ p: 2.5 }}>
         <Typography variant="h6">Associated Invoices</Typography>
 
         <Grid container spacing={3}>
@@ -183,7 +278,7 @@ export function DealDetailsView({ deal }) {
                       Invoice #: {deal.arInvoiceNumber}
                     </Typography>
                     <Typography variant="h6" color="info.main">
-                      {fCurrency(deal.arInvoiceAmount)}
+                      {formatCurrency(deal.arInvoiceAmount)}
                     </Typography>
                   </>
                 ) : (
@@ -208,7 +303,7 @@ export function DealDetailsView({ deal }) {
                       Invoice #: {deal.apInvoiceNumber}
                     </Typography>
                     <Typography variant="h6" color="error.main">
-                      {fCurrency(deal.apInvoiceAmount)}
+                      {formatCurrency(deal.apInvoiceAmount)}
                     </Typography>
                   </>
                 ) : (
@@ -226,7 +321,7 @@ export function DealDetailsView({ deal }) {
 
   const renderProfitCalculation = (
     <Card>
-      <Stack spacing={2} sx={{ p: 3 }}>
+      <Stack spacing={2} sx={{ p: 2.5 }}>
         <Typography variant="h6">Profit Breakdown</Typography>
 
         <Stack spacing={2}>
@@ -235,7 +330,7 @@ export function DealDetailsView({ deal }) {
               Revenue (AR):
             </Typography>
             <Typography variant="subtitle1" color="info.main">
-              {fCurrency(deal.arInvoiceAmount || 0)}
+              {formatCurrency(deal.arInvoiceAmount || 0)}
             </Typography>
           </Stack>
 
@@ -244,7 +339,7 @@ export function DealDetailsView({ deal }) {
               Cost (AP):
             </Typography>
             <Typography variant="subtitle1" color="error.main">
-              -{fCurrency(deal.apInvoiceAmount || 0)}
+              -{formatCurrency(deal.apInvoiceAmount || 0)}
             </Typography>
           </Stack>
 
@@ -253,14 +348,14 @@ export function DealDetailsView({ deal }) {
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography variant="subtitle2">Gross Profit:</Typography>
             <Typography variant="h6" color="success.main">
-              {fCurrency(deal.grossProfit || 0)}
+              {formatCurrency(deal.grossProfit || 0)}
             </Typography>
           </Stack>
 
           <Stack direction="row" justifyContent="space-between" alignItems="center">
             <Typography variant="subtitle2">Net Profit Before BDM:</Typography>
             <Typography variant="h6" color="success.main">
-              {fCurrency(deal.netProfitBeforeBDM || 0)}
+              {formatCurrency(deal.netProfitBeforeBDM || 0)}
             </Typography>
           </Stack>
 
@@ -271,7 +366,7 @@ export function DealDetailsView({ deal }) {
                   BDM Commission:
                 </Typography>
                 <Typography variant="subtitle1" color="warning.main">
-                  -{fCurrency(deal.bdmCommissionAmount || 0)}
+                  -{formatCurrency(deal.bdmCommissionAmount || 0)}
                 </Typography>
               </Stack>
 
@@ -279,8 +374,8 @@ export function DealDetailsView({ deal }) {
 
               <Stack direction="row" justifyContent="space-between" alignItems="center">
                 <Typography variant="subtitle1">Final Net Profit:</Typography>
-                <Typography variant="h5" color="primary.main">
-                  {fCurrency(deal.netProfitAfterBDM || 0)}
+                <Typography variant="h6" color="primary.main">
+                  {formatCurrency(deal.netProfitAfterBDM || 0)}
                 </Typography>
               </Stack>
             </>
@@ -292,7 +387,7 @@ export function DealDetailsView({ deal }) {
 
   const renderBDM = deal.bdmId && (
     <Card>
-      <Stack spacing={3} sx={{ p: 3 }}>
+      <Stack spacing={2} sx={{ p: 2.5 }}>
         <Typography variant="h6">BDM Commission</Typography>
 
         <Stack spacing={2}>
@@ -320,7 +415,7 @@ export function DealDetailsView({ deal }) {
             </Typography>
             <Typography variant="subtitle2">
               {deal.bdmCommissionType === 'fixed'
-                ? fCurrency(deal.bdmCommissionValue)
+                ? formatCurrency(deal.bdmCommissionValue)
                 : `${deal.bdmCommissionValue}%`}
             </Typography>
           </Stack>
@@ -330,7 +425,25 @@ export function DealDetailsView({ deal }) {
           <Stack direction="row" justifyContent="space-between">
             <Typography variant="subtitle2">Commission Amount:</Typography>
             <Typography variant="h6" color="warning.main">
-              {fCurrency(deal.bdmCommissionAmount || 0)}
+              {formatCurrency(bdmTotal)}
+            </Typography>
+          </Stack>
+
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="body2" color="text.secondary">
+              Paid to Date:
+            </Typography>
+            <Typography variant="subtitle2" color="success.main">
+              {bdmPaid > 0 ? formatCurrency(bdmPaid) : '-'}
+            </Typography>
+          </Stack>
+
+          <Stack direction="row" justifyContent="space-between" alignItems="center">
+            <Typography variant="body2" color="text.secondary">
+              Pending:
+            </Typography>
+            <Typography variant="subtitle2" color="warning.dark">
+              {bdmPending > 0 ? formatCurrency(bdmPending) : '0'}
             </Typography>
           </Stack>
 
@@ -338,12 +451,10 @@ export function DealDetailsView({ deal }) {
             <Typography variant="body2" color="text.secondary">
               Payment Status:
             </Typography>
-            <Label color={deal.bdmCommissionPaid ? 'success' : 'warning'}>
-              {deal.bdmCommissionPaid ? 'Paid' : 'Pending'}
-            </Label>
+            <Label color={paymentStatusColor}>{paymentStatusText}</Label>
           </Stack>
 
-          {deal.bdmCommissionPaid && deal.bdmPaymentDate && (
+          {deal.bdmPaymentDate && (
             <Stack direction="row" justifyContent="space-between">
               <Typography variant="body2" color="text.secondary">
                 Payment Date:
@@ -352,17 +463,84 @@ export function DealDetailsView({ deal }) {
             </Stack>
           )}
 
-          {!deal.bdmCommissionPaid && (
-            <LoadingButton
-              fullWidth
-              variant="contained"
-              color="warning"
-              loading={isPayingBDM}
-              onClick={handlePayBDM}
-              startIcon={<Iconify icon="solar:wallet-money-bold" />}
-            >
-              Mark Commission as Paid
-            </LoadingButton>
+          {bdmPending > 0 && (
+            <Stack spacing={1.5}>
+              <Divider />
+
+              <Typography variant="subtitle2">Record BDM Payment</Typography>
+
+              <TextField
+                label="Amount"
+                type="number"
+                size="small"
+                value={paymentAmount}
+                onChange={(event) => setPaymentAmount(event.target.value)}
+                inputProps={{ min: 0, step: '0.01' }}
+              />
+
+              <TextField
+                label="Expense ID (optional)"
+                size="small"
+                value={paymentExpenseId}
+                onChange={(event) => setPaymentExpenseId(event.target.value)}
+              />
+
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="flex-start">
+                <LoadingButton
+                  variant="outlined"
+                  color="info"
+                  loading={isFetchingExpense}
+                  onClick={handleFetchExpense}
+                  startIcon={<Iconify icon="solar:search-bold" />}
+                  sx={{ minWidth: 180 }}
+                >
+                  Fetch Expense
+                </LoadingButton>
+
+                {fetchedExpense && (
+                  <Stack spacing={0.5} sx={{ minWidth: 200 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Amount:{' '}
+                      {formatCurrency(
+                        fetchedExpense.expenseAmount ||
+                          fetchedExpense.expenseApprovedAmount ||
+                          fetchedExpense.originalExpenseAmount ||
+                          0
+                      )}
+                    </Typography>
+                    {fetchedExpense.expenseApprovalStatus && (
+                      <Typography variant="caption" color="text.secondary">
+                        Status: {String(fetchedExpense.expenseApprovalStatus)}
+                      </Typography>
+                    )}
+                  </Stack>
+                )}
+              </Stack>
+
+              <Stack direction="row" spacing={1}>
+                <LoadingButton
+                  fullWidth
+                  variant="outlined"
+                  color="warning"
+                  loading={isRecordingPayment}
+                  onClick={handleRecordPartialPayment}
+                  startIcon={<Iconify icon="solar:coins-bold" />}
+                >
+                  Add Partial Payment
+                </LoadingButton>
+
+                <LoadingButton
+                  fullWidth
+                  variant="contained"
+                  color="warning"
+                  loading={isPayingBDM}
+                  onClick={handlePayBDM}
+                  startIcon={<Iconify icon="solar:wallet-money-bold" />}
+                >
+                  Pay Remaining
+                </LoadingButton>
+              </Stack>
+            </Stack>
           )}
         </Stack>
       </Stack>
@@ -402,4 +580,18 @@ export function DealDetailsView({ deal }) {
       />
     </DashboardContent>
   );
+}
+
+function getCurrencyCodeFromRegion(region) {
+  const value = (region || '').toString().toLowerCase();
+
+  if (value.includes('uae') || value === 'ae' || value.includes('united arab emirates')) {
+    return 'AED';
+  }
+
+  if (value.includes('ksa') || value.includes('saudi') || value === 'sa') {
+    return 'SAR';
+  }
+
+  return 'USD';
 }

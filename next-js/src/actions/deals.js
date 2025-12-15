@@ -53,14 +53,22 @@ export async function deleteDeal(id) {
   }
 }
 
-export async function payBDMCommission(dealId, expenseId) {
+export async function payBDMCommission(dealId, { amount, expenseId } = {}) {
   try {
-    const response = await axios.post(`${API_BASE_URL}/deals/${dealId}/pay-bdm`, {
-      expenseId,
-    });
+    const payload = {};
+
+    if (typeof amount === 'number') {
+      payload.amount = amount;
+    }
+
+    if (expenseId) {
+      payload.expenseId = expenseId;
+    }
+
+    const response = await axios.post(`${API_BASE_URL}/deals/${dealId}/pay-bdm`, payload);
     return response.data.deal;
   } catch (error) {
-    console.error(`Error paying BDM for deal ${dealId}:`, error);
+    console.error(`Error paying BDM for deal ${dealId}:`, error?.response?.data || error.message);
     throw error;
   }
 }
