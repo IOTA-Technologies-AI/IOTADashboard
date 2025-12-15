@@ -6,6 +6,19 @@ const API_KEY =
 const AUTH_TOKEN =
   'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2c2ZrcXB2dXRmYm15cWVoc3dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU2NzM2OTMsImV4cCI6MjA1MTI0OTY5M30.DeNT5NU3w_ayehNfJEZysbKS0SkDq19z5kDRniPyh7o';
 
+const PROXY_EXPENSES_BASE = '/api/proxy/expenses';
+
+const resolveProxyUrl = (suffix = '') => {
+  if (typeof window !== 'undefined') return `${PROXY_EXPENSES_BASE}${suffix}`;
+
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.SITE_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
+
+  return `${origin}${PROXY_EXPENSES_BASE}${suffix}`;
+};
+
 const PARTER_API_BASE_URL = 'https://staging-iwtapiserver-6x92.encr.app/getTotalInvoiceAmounts';
 const PARTER_AUTH_TOKEN = 'Bearer dGVzdEB0ZXN0LmNvbTpwYXN29yZDEyMyE=';
 
@@ -33,12 +46,7 @@ export async function getExpenseByExpenseId(id) {
 
 async function fetchTotalIotaBilling() {
   try {
-    const response = await fetch(`${API_BASE_URL}/expenses?select=expenseAmount.sum()`, {
-      headers: {
-        apikey: API_KEY,
-        Authorization: AUTH_TOKEN,
-      },
-    });
+    const response = await fetch(resolveProxyUrl('?select=expenseAmount.sum()'));
     const data = await response.json();
     return data[0]?.sum || 0; // Return the sum value
   } catch (error) {
@@ -316,7 +324,7 @@ export async function getExpenses() {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: 'https://staging-iotaapiserver-s572.encr.app/expenses',
+      url: resolveProxyUrl(),
       headers: {},
     };
 
@@ -341,7 +349,7 @@ export async function getExpense(referenceId) {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: `https://staging-iotaapiserver-s572.encr.app/expenses/${referenceId}`,
+      url: resolveProxyUrl(`/${referenceId}`),
       headers: {},
     };
 
@@ -364,7 +372,7 @@ export async function getExpensesWithLinkedInvoices() {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: 'https://staging-iotaapiserver-s572.encr.app/expenses',
+      url: resolveProxyUrl(),
       headers: {},
     };
 
@@ -394,7 +402,7 @@ export async function createExpense(expenseData) {
     let config = {
       method: 'post',
       maxBodyLength: Infinity,
-      url: 'https://staging-iotaapiserver-s572.encr.app/expenses',
+      url: resolveProxyUrl(),
       headers: {
         'Content-Type': 'application/json',
       },
@@ -431,7 +439,7 @@ export async function updateExpense(referenceId, expenseData) {
     let config = {
       method: 'patch',
       maxBodyLength: Infinity,
-      url: `https://staging-iotaapiserver-s572.encr.app/expenses/${referenceId}`,
+      url: resolveProxyUrl(`/${referenceId}`),
       headers: {
         'Content-Type': 'application/json',
       },
@@ -813,6 +821,43 @@ export async function deleteLeaveRequest(id) {
   }
 }
 
+// ---------------------------------------------------------------------------
+// RBAC
+// ---------------------------------------------------------------------------
+
+export async function fetchRoles() {
+  const response = await axios.get(`${API_BASE_URL}roles`);
+  return response.data?.roles || response.data || [];
+}
+
+export async function setUserRoleApi({ id, roleId }) {
+  if (!id || !roleId) throw new Error('id and roleId are required');
+  const response = await axios.patch(
+    `${API_BASE_URL}users?id=eq.${id}`,
+    { roleId },
+    { headers: { Prefer: 'return=representation' } }
+  );
+  return Array.isArray(response.data) ? response.data[0] : response.data;
+}
+
+export async function assignManagerApi({ managerId, userId }) {
+  if (!managerId || !userId) throw new Error('managerId and userId are required');
+  const response = await axios.post(
+    '/api/rbac/manager-users',
+    { managerId, userId },
+    { headers: { Prefer: 'return=representation' } }
+  );
+  return Array.isArray(response.data) ? response.data[0] : response.data;
+}
+
+export async function fetchManagerUsers(managerId) {
+  if (!managerId) return [];
+  const response = await axios.get(
+    `/api/rbac/manager-users?managerId=${encodeURIComponent(managerId)}`
+  );
+  return response.data || [];
+}
+
 export const apiHelper = {
   fetchTotalIotaBilling,
   fetchTotalPartnerBilling,
@@ -849,4 +894,8 @@ export const apiHelper = {
   updateLeaveRequest,
   deleteLeaveRequest,
   getAccountsReceivable: fetchAccountsReceivable,
+  fetchRoles,
+  setUserRoleApi,
+  assignManagerApi,
+  fetchManagerUsers,
 };

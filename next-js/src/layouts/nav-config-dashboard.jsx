@@ -104,7 +104,18 @@ export const navData = [
           { title: 'Create', path: paths.dashboard.user.new },
           { title: 'Edit', path: paths.dashboard.user.demo.edit },
           { title: 'Account', path: paths.dashboard.user.account, deepMatch: true },
+          {
+            title: 'Page Access',
+            path: paths.dashboard.user.pageAccess,
+            allowedRoles: ['superAdmin', 'admin'],
+          },
         ],
+      },
+      {
+        title: 'Access Control',
+        path: paths.dashboard.access.root,
+        icon: ICONS.lock,
+        allowedRoles: ['superAdmin', 'admin'],
       },
       {
         title: 'HR',

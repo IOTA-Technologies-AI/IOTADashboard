@@ -2,11 +2,16 @@
 
 import { merge } from 'es-toolkit';
 import { useBoolean } from 'minimal-shared/hooks';
+import { useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import { useTheme } from '@mui/material/styles';
 import { iconButtonClasses } from '@mui/material/IconButton';
+
+import { useRouter, usePathname } from 'src/routes/hooks';
+import { paths } from 'src/routes/paths';
+import { resolvePageAccess } from 'src/utils/pageAccess';
 
 import { allLangs } from 'src/locales';
 import { _contacts, _notifications } from 'src/_mock';
@@ -14,7 +19,7 @@ import { _contacts, _notifications } from 'src/_mock';
 import { Logo } from 'src/components/logo';
 import { useSettingsContext } from 'src/components/settings';
 
-import { useMockedUser } from 'src/auth/hooks';
+import { useAuthContext } from 'src/auth/hooks';
 
 import { NavMobile } from './nav-mobile';
 import { VerticalDivider } from './content';
@@ -38,8 +43,52 @@ import { MainSection, layoutClasses, HeaderSection, LayoutSection } from '../cor
 
 export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery = 'lg' }) {
   const theme = useTheme();
+  const router = useRouter();
+  const pathname = usePathname();
 
-  const { user } = useMockedUser();
+  const { user } = useAuthContext();
+
+  const roleIdToName = {
+    1: 'regular',
+    2: 'manager',
+    3: 'admin',
+    4: 'superAdmin',
+  };
+
+  const normalizeRole = (role, roleId) => {
+    if (role) return role;
+    if (roleId && roleIdToName[roleId]) return roleIdToName[roleId];
+    return 'regular';
+  };
+
+  const normalizedRole = normalizeRole(user?.role, user?.roleId);
+  const allowedPaths = resolvePageAccess(user?.id, normalizedRole);
+
+  const baseAlwaysAllowed = [
+    paths.dashboard.root,
+    `${paths.dashboard.root}/`,
+    paths.dashboard.general.app,
+    `${paths.dashboard.general.app}/`,
+    paths.dashboard.access.root,
+    `${paths.dashboard.access.root}/`,
+    paths.dashboard.user.pageAccess,
+  ];
+
+  const isDashboardHome = baseAlwaysAllowed.some((p) => pathname?.startsWith(p));
+
+  const isBlockedByPath =
+    !isDashboardHome &&
+    normalizedRole !== 'superAdmin' &&
+    pathname &&
+    (!Array.isArray(allowedPaths) ||
+      allowedPaths.length === 0 ||
+      !allowedPaths.some((allowedPath) => pathname.startsWith(allowedPath)));
+
+  useEffect(() => {
+    if (isBlockedByPath) {
+      router.replace(paths.page403);
+    }
+  }, [isBlockedByPath, router]);
 
   const settings = useSettingsContext();
 
@@ -53,7 +102,19 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
   const isNavHorizontal = settings.state.navLayout === 'horizontal';
   const isNavVertical = isNavMini || settings.state.navLayout === 'vertical';
 
-  const canDisplayItemByRole = (allowedRoles) => !allowedRoles?.includes(user?.role);
+  const canDisplayItemByRole = (allowedRoles, path) => {
+    const blockedByRole = allowedRoles?.length && !allowedRoles.includes(normalizedRole);
+
+    const blockedByAllowlist =
+      !isDashboardHome &&
+      normalizedRole !== 'superAdmin' &&
+      path &&
+      (!Array.isArray(allowedPaths) ||
+        allowedPaths.length === 0 ||
+        !allowedPaths.some((allowedPath) => path.startsWith(allowedPath)));
+
+    return blockedByRole || blockedByAllowlist;
+  };
 
   const renderHeader = () => {
     const headerSlotProps = {
@@ -171,6 +232,10 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
       }
     />
   );
+
+  if (isBlockedByPath) {
+    return null;
+  }
 
   const renderFooter = () => null;
 

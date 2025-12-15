@@ -8,6 +8,21 @@ import { supabase } from 'src/lib/supabase';
 
 import { AuthContext } from '../auth-context';
 
+const roleIdToName = {
+  1: 'regular',
+  2: 'manager',
+  3: 'admin',
+  4: 'superAdmin',
+};
+
+const normalizeRole = (role, roleId, metadata) => {
+  if (role) return role;
+  if (metadata?.role) return metadata.role;
+  if (roleId && roleIdToName[roleId]) return roleIdToName[roleId];
+  if (metadata?.roleId && roleIdToName[metadata.roleId]) return roleIdToName[metadata.roleId];
+  return 'regular';
+};
+
 // ----------------------------------------------------------------------
 
 /**
@@ -66,7 +81,7 @@ export function AuthProvider({ children }) {
             id: state.user?.id,
             accessToken: state.user?.access_token,
             displayName: state.user?.user_metadata.display_name,
-            role: state.user?.role ?? 'admin',
+            role: normalizeRole(state.user?.role, state.user?.roleId, state.user?.user_metadata),
           }
         : null,
       checkUserSession,
