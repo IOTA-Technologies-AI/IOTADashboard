@@ -12,7 +12,7 @@ import { DealNewEditForm } from '../deal-new-edit-form';
 
 export function DealEditView({ currentDeal }) {
   return (
-    <DashboardContent>
+    <DashboardContent sx={{ minHeight: '100vh', overflowY: 'auto', pb: { xs: 3, md: 4 } }}>
       <CustomBreadcrumbs
         heading="Edit deal"
         links={[

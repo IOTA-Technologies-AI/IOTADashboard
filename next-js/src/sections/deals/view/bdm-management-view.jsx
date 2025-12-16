@@ -37,37 +37,41 @@ export function BDMManagementView({ deals, bdms }) {
   const bdmSummaries = useMemo(
     () =>
       bdms.map((bdm) => {
-        const bdmDeals = deals.filter((deal) => deal.bdmId === bdm.id);
+        const bdmDeals = deals.filter((deal) => String(deal.bdmId) === String(bdm.id));
+
         const totalCommission = bdmDeals.reduce(
           (sum, deal) => sum + (deal.bdmCommissionAmount || 0),
           0
         );
-        const paidCommission = bdmDeals
-          .filter((deal) => deal.bdmCommissionPaid)
-          .reduce((sum, deal) => sum + (deal.bdmCommissionAmount || 0), 0);
-        const pendingCommission = totalCommission - paidCommission;
-        const dealsCount = bdmDeals.length;
-        const activeDeals = bdmDeals.filter((deal) => deal.status === 'active').length;
+
+        const paidCommission = bdmDeals.reduce((sum, deal) => {
+          const total = deal.bdmCommissionAmount || 0;
+          if (
+            typeof deal.bdmCommissionPaidAmount === 'number' &&
+            !Number.isNaN(deal.bdmCommissionPaidAmount)
+          ) {
+            return sum + Math.min(Math.max(deal.bdmCommissionPaidAmount, 0), total);
+          }
+          if (deal.bdmCommissionPaid) {
+            return sum + total;
+          }
+          return sum;
+        }, 0);
+
+        const pendingCommission = Math.max(totalCommission - paidCommission, 0);
 
         return {
           ...bdm,
           totalCommission,
-              const bdmDeals = deals.filter((deal) => String(deal.bdmId) === String(bdm.id));
-
-              const totalCommission = bdmDeals.reduce((sum, deal) => sum + (deal.bdmCommissionAmount || 0), 0);
-
-              const paidCommission = bdmDeals.reduce((sum, deal) => {
-                const total = deal.bdmCommissionAmount || 0;
-                if (typeof deal.bdmCommissionPaidAmount === 'number' && !Number.isNaN(deal.bdmCommissionPaidAmount)) {
-                  return sum + Math.min(Math.max(deal.bdmCommissionPaidAmount, 0), total);
-                }
-                if (deal.bdmCommissionPaid) {
-                  return sum + total;
-                }
-                return sum;
-              }, 0);
-
-              const pendingCommission = Math.max(totalCommission - paidCommission, 0);
+          paidCommission,
+          pendingCommission,
+          deals: bdmDeals,
+          dealsCount: bdmDeals.length,
+          activeDeals: bdmDeals.filter((deal) => deal.status === 'active').length,
+        };
+      }),
+    [bdms, deals]
+  );
 
   // Calculate totals
   const totalCommissions = bdmSummaries.reduce((sum, bdm) => sum + bdm.totalCommission, 0);
@@ -77,30 +81,32 @@ export function BDMManagementView({ deals, bdms }) {
 
   const renderSummary = (
     <Grid container spacing={3} sx={{ mb: 3 }}>
-      {[{
-        title: 'Total Commissions',
-        value: fCurrency(totalCommissions, { currency: 'SAR' }),
-        icon: 'solar:hand-money-bold-duotone',
-        color: 'primary',
-      },
-      {
-        title: 'Paid Commissions',
-        value: fCurrency(totalPaid, { currency: 'SAR' }),
-        icon: 'solar:check-circle-bold-duotone',
-        color: 'success',
-      },
-      {
-        title: 'Pending Commissions',
-        value: fCurrency(totalPending, { currency: 'SAR' }),
-        icon: 'solar:clock-circle-bold-duotone',
-        color: 'warning',
-      },
-      {
-        title: 'Total Deals',
-        value: totalDeals,
-        icon: 'solar:document-text-bold-duotone',
-        color: 'info',
-      }].map((item) => (
+      {[
+        {
+          title: 'Total Commissions',
+          value: fCurrency(totalCommissions, { currency: 'SAR' }),
+          icon: 'solar:hand-money-bold-duotone',
+          color: 'primary',
+        },
+        {
+          title: 'Paid Commissions',
+          value: fCurrency(totalPaid, { currency: 'SAR' }),
+          icon: 'solar:check-circle-bold-duotone',
+          color: 'success',
+        },
+        {
+          title: 'Pending Commissions',
+          value: fCurrency(totalPending, { currency: 'SAR' }),
+          icon: 'solar:clock-circle-bold-duotone',
+          color: 'warning',
+        },
+        {
+          title: 'Total Deals',
+          value: totalDeals,
+          icon: 'solar:document-text-bold-duotone',
+          color: 'info',
+        },
+      ].map((item) => (
         <Grid key={item.title} xs={12} sm={6} md={3}>
           <Card
             sx={{
@@ -154,7 +160,12 @@ export function BDMManagementView({ deals, bdms }) {
               </Stack>
 
               <Stack direction="row" spacing={2} alignItems="center">
-                <Chip size="small" label={`${bdm.activeDeals} active`} color="info" variant="soft" />
+                <Chip
+                  size="small"
+                  label={`${bdm.activeDeals} active`}
+                  color="info"
+                  variant="soft"
+                />
                 <Chip size="small" label={`${bdm.dealsCount} total deals`} variant="outlined" />
               </Stack>
 
@@ -322,8 +333,8 @@ export function BDMManagementView({ deals, bdms }) {
                               deal.status === 'completed'
                                 ? 'success'
                                 : deal.status === 'active'
-                                ? 'info'
-                                : 'default'
+                                  ? 'info'
+                                  : 'default'
                             }
                           >
                             {deal.status}
