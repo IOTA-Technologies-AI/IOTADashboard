@@ -308,8 +308,11 @@ export function BDMManagementView({ deals, bdms }) {
                       <TableCell>Deal Name</TableCell>
                       <TableCell>Date</TableCell>
                       <TableCell align="right">Commission</TableCell>
+                      <TableCell align="right">Paid to Date</TableCell>
+                      <TableCell align="right">Pending</TableCell>
+                      <TableCell align="center">Payment Date</TableCell>
+                      <TableCell align="center">Expense ID</TableCell>
                       <TableCell align="center">Status</TableCell>
-                      <TableCell align="center">Payment</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -327,23 +330,70 @@ export function BDMManagementView({ deals, bdms }) {
                             {fCurrency(deal.bdmCommissionAmount || 0, { currency: 'SAR' })}
                           </Typography>
                         </TableCell>
-                        <TableCell align="center">
-                          <Label
-                            color={
-                              deal.status === 'completed'
-                                ? 'success'
-                                : deal.status === 'active'
-                                  ? 'info'
-                                  : 'default'
-                            }
-                          >
-                            {deal.status}
-                          </Label>
+                        <TableCell align="right">
+                          <Typography variant="body2" color="success.main">
+                            {fCurrency(
+                              Math.max(
+                                typeof deal.bdmCommissionPaidAmount === 'number' &&
+                                  !Number.isNaN(deal.bdmCommissionPaidAmount)
+                                  ? deal.bdmCommissionPaidAmount
+                                  : deal.bdmCommissionPaid
+                                    ? deal.bdmCommissionAmount || 0
+                                    : 0,
+                                0
+                              ),
+                              { currency: 'SAR' }
+                            )}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="right">
+                          <Typography variant="body2" color="warning.dark">
+                            {fCurrency(
+                              Math.max(
+                                (deal.bdmCommissionAmount || 0) -
+                                  Math.max(
+                                    typeof deal.bdmCommissionPaidAmount === 'number' &&
+                                      !Number.isNaN(deal.bdmCommissionPaidAmount)
+                                      ? deal.bdmCommissionPaidAmount
+                                      : deal.bdmCommissionPaid
+                                        ? deal.bdmCommissionAmount || 0
+                                        : 0,
+                                    0
+                                  ),
+                                0
+                              ),
+                              { currency: 'SAR' }
+                            )}
+                          </Typography>
                         </TableCell>
                         <TableCell align="center">
-                          <Label color={deal.bdmCommissionPaid ? 'success' : 'warning'}>
-                            {deal.bdmCommissionPaid ? 'Paid' : 'Pending'}
-                          </Label>
+                          <Typography variant="body2" color="text.secondary">
+                            {deal.bdmPaymentDate ? fDate(deal.bdmPaymentDate) : '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Typography variant="body2" color="text.secondary">
+                            {deal.bdmPaymentExpenseId || '-'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Stack spacing={0.5} alignItems="center">
+                            <Label
+                              color={
+                                deal.status === 'completed'
+                                  ? 'success'
+                                  : deal.status === 'active'
+                                    ? 'info'
+                                    : 'default'
+                              }
+                            >
+                              {deal.status}
+                            </Label>
+
+                            <Label color={deal.bdmCommissionPaid ? 'success' : 'warning'}>
+                              {deal.bdmCommissionPaid ? 'Paid' : 'Pending'}
+                            </Label>
+                          </Stack>
                         </TableCell>
                       </TableRow>
                     ))}

@@ -53,6 +53,18 @@ export async function deleteDeal(id) {
   }
 }
 
+const extractErrorMessage = (error, fallback = 'Request failed') => {
+  const data = error?.response?.data;
+  return (
+    data?.message ||
+    data?.error ||
+    data?.error_description ||
+    data?.details ||
+    error?.message ||
+    fallback
+  );
+};
+
 export async function payBDMCommission(dealId, { amount, expenseId } = {}) {
   try {
     const payload = {};
@@ -68,7 +80,12 @@ export async function payBDMCommission(dealId, { amount, expenseId } = {}) {
     const response = await axios.post(`${API_BASE_URL}/deals/${dealId}/pay-bdm`, payload);
     return response.data.deal;
   } catch (error) {
-    console.error(`Error paying BDM for deal ${dealId}:`, error?.response?.data || error.message);
-    throw error;
+    const message = extractErrorMessage(error, 'Failed to pay BDM commission');
+    console.error(`Error paying BDM for deal ${dealId}:`, {
+      message,
+      status: error?.response?.status,
+      data: error?.response?.data,
+    });
+    throw new Error(message);
   }
 }

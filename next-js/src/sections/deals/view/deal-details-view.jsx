@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useBoolean } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
@@ -51,6 +51,8 @@ export function DealDetailsView({ deal }) {
   const [isRecordingPayment, setIsRecordingPayment] = useState(false);
   const [isFetchingExpense, setIsFetchingExpense] = useState(false);
   const [fetchedExpense, setFetchedExpense] = useState(null);
+  const [attachedExpense, setAttachedExpense] = useState(null);
+  const [attachedExpenseError, setAttachedExpenseError] = useState('');
 
   const currencyCode = getCurrencyCodeFromRegion(deal.region || deal.country);
   const formatCurrency = (value = 0) => fCurrency(value || 0, { currencyCode });
@@ -67,6 +69,51 @@ export function DealDetailsView({ deal }) {
   const bdmPending = Math.max(bdmTotal - bdmPaid, 0);
   const paymentStatusText = bdmPending <= 0 ? 'Paid' : bdmPaid > 0 ? 'Partial' : 'Pending';
   const paymentStatusColor = bdmPending <= 0 ? 'success' : 'warning';
+  const attachedExpenseId = deal.bdmPaymentExpenseId ? String(deal.bdmPaymentExpenseId) : '';
+  const trimmedExpenseInput = (paymentExpenseId || '').trim();
+  const isExpenseInputNumeric = trimmedExpenseInput ? /^\d+$/.test(trimmedExpenseInput) : true;
+  const isExpenseAlreadyAttached =
+    attachedExpenseId && trimmedExpenseInput && trimmedExpenseInput === attachedExpenseId;
+  const isAttachedExpenseNumeric = attachedExpenseId && /^\d+$/.test(attachedExpenseId);
+
+  // Load attached expense details (if any) so we can show amount/status
+  useEffect(() => {
+    let cancelled = false;
+
+    const load = async () => {
+      if (!attachedExpenseId) {
+        setAttachedExpense(null);
+        setAttachedExpenseError('');
+        return;
+      }
+
+      if (!isAttachedExpenseNumeric) {
+        setAttachedExpense(null);
+        setAttachedExpenseError('');
+        return;
+      }
+
+      try {
+        const exp = await getExpenseByExpenseId(attachedExpenseId);
+        if (!cancelled) {
+          setAttachedExpense(exp || null);
+          setAttachedExpenseError(exp ? '' : 'Attached expense not found.');
+        }
+      } catch (error) {
+        console.error('Failed to load attached expense', error);
+        if (!cancelled) {
+          setAttachedExpense(null);
+          setAttachedExpenseError('Failed to load attached expense.');
+        }
+      }
+    };
+
+    load();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [attachedExpenseId]);
 
   const handleDelete = async () => {
     try {
@@ -84,6 +131,18 @@ export function DealDetailsView({ deal }) {
   };
 
   const handlePayBDM = async () => {
+    const trimmedExpenseId = (paymentExpenseId || '').trim();
+
+    if (trimmedExpenseId && !/^\d+$/.test(trimmedExpenseId)) {
+      toast.error('Expense ID must be numeric');
+      return;
+    }
+
+    if (trimmedExpenseId && String(deal.bdmPaymentExpenseId || '') === trimmedExpenseId) {
+      toast.error('This expense is already attached to this deal. Use a different expense.');
+      return;
+    }
+
     if (bdmPending <= 0) {
       toast.error('No pending commission to pay');
       return;
@@ -92,13 +151,13 @@ export function DealDetailsView({ deal }) {
     try {
       setIsPayingBDM(true);
       await payBDMCommission(deal.id, {
-        expenseId: paymentExpenseId || undefined,
+        expenseId: trimmedExpenseId || undefined,
       });
       toast.success('BDM commission marked as paid');
       router.refresh();
     } catch (error) {
       console.error('Error paying BDM commission:', error);
-      toast.error('Failed to pay BDM commission');
+      toast.error(error?.message || 'Failed to pay BDM commission');
     } finally {
       setIsPayingBDM(false);
     }
@@ -106,6 +165,12 @@ export function DealDetailsView({ deal }) {
 
   const handleRecordPartialPayment = async () => {
     const amountValue = Number(paymentAmount);
+    const trimmedExpenseId = (paymentExpenseId || '').trim();
+
+    if (trimmedExpenseId && !/^\d+$/.test(trimmedExpenseId)) {
+      toast.error('Expense ID must be numeric');
+      return;
+    }
 
     if (Number.isNaN(amountValue) || amountValue <= 0) {
       toast.error('Enter a positive amount');
@@ -117,18 +182,23 @@ export function DealDetailsView({ deal }) {
       return;
     }
 
+    if (trimmedExpenseId && String(deal.bdmPaymentExpenseId || '') === trimmedExpenseId) {
+      toast.error('This expense is already attached to this deal. Use a different expense.');
+      return;
+    }
+
     try {
       setIsRecordingPayment(true);
       await payBDMCommission(deal.id, {
         amount: amountValue,
-        expenseId: paymentExpenseId || undefined,
+        expenseId: trimmedExpenseId || undefined,
       });
       toast.success('Partial payment recorded');
       setPaymentAmount('');
       router.refresh();
     } catch (error) {
       console.error('Error recording partial BDM payment:', error);
-      toast.error('Failed to record payment');
+      toast.error(error?.message || 'Failed to record payment');
     } finally {
       setIsRecordingPayment(false);
     }
@@ -454,6 +524,43 @@ export function DealDetailsView({ deal }) {
             <Label color={paymentStatusColor}>{paymentStatusText}</Label>
           </Stack>
 
+          {attachedExpenseId && isAttachedExpenseNumeric && (
+            <Stack spacing={0.5}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="body2" color="text.secondary">
+                  Attached Expense:
+                </Typography>
+                <Typography variant="subtitle2" color="text.primary">
+                  {attachedExpenseId}
+                </Typography>
+              </Stack>
+
+              {attachedExpense && (
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Typography variant="caption" color="text.secondary">
+                    Amount / Status:
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {formatCurrency(
+                      attachedExpense.expenseAmount ||
+                        attachedExpense.expenseApprovedAmount ||
+                        attachedExpense.originalExpenseAmount ||
+                        0
+                    )}
+                    {attachedExpense.expenseApprovalStatus
+                      ? ` • ${String(attachedExpense.expenseApprovalStatus)}`
+                      : ''}
+                  </Typography>
+                </Stack>
+              )}
+              {!attachedExpense && attachedExpenseError && (
+                <Typography variant="caption" color="text.secondary" textAlign="right">
+                  {attachedExpenseError}
+                </Typography>
+              )}
+            </Stack>
+          )}
+
           {deal.bdmPaymentDate && (
             <Stack direction="row" justifyContent="space-between">
               <Typography variant="body2" color="text.secondary">
@@ -483,6 +590,34 @@ export function DealDetailsView({ deal }) {
                 size="small"
                 value={paymentExpenseId}
                 onChange={(event) => setPaymentExpenseId(event.target.value)}
+                error={
+                  isExpenseAlreadyAttached ||
+                  (!isExpenseInputNumeric && Boolean(trimmedExpenseInput))
+                }
+                helperText={
+                  isExpenseAlreadyAttached
+                    ? 'This expense is already attached to this deal. Use a different expense.'
+                    : attachedExpenseId && isAttachedExpenseNumeric
+                      ? `Current attached expense: ${attachedExpenseId}`
+                      : !isExpenseInputNumeric && Boolean(trimmedExpenseInput)
+                        ? 'Expense ID must be numeric'
+                        : ''
+                }
+                InputProps={{
+                  endAdornment:
+                    attachedExpenseId && isAttachedExpenseNumeric && !isExpenseAlreadyAttached ? (
+                      <Typography variant="caption" color="text.secondary" sx={{ pr: 1 }}>
+                        {attachedExpense
+                          ? formatCurrency(
+                              attachedExpense.expenseAmount ||
+                                attachedExpense.expenseApprovedAmount ||
+                                attachedExpense.originalExpenseAmount ||
+                                0
+                            )
+                          : 'Attached'}
+                      </Typography>
+                    ) : undefined,
+                }}
               />
 
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="flex-start">

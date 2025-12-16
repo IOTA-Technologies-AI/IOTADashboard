@@ -49,8 +49,9 @@ export function DealTableRow({ row, selected, onSelectRow, onViewRow, onEditRow,
   };
 
   const bdmTotal = row.bdmCommissionAmount || 0;
-  const bdmPaid = getBdmPaidAmount();
+  const bdmPaid = Math.min(getBdmPaidAmount(), bdmTotal);
   const bdmPending = Math.max(bdmTotal - bdmPaid, 0);
+  const bdmPaymentDate = row.bdmPaymentDate ? fDate(row.bdmPaymentDate) : '-';
 
   return (
     <>
@@ -98,10 +99,15 @@ export function DealTableRow({ row, selected, onSelectRow, onViewRow, onEditRow,
         <TableCell sx={{ color: 'warning.main', whiteSpace: 'nowrap' }}>
           {formatAmount(row.bdmCommissionAmount)}
         </TableCell>
+        <TableCell sx={{ color: 'success.main', whiteSpace: 'nowrap' }}>
+          {bdmPaid > 0 ? formatAmount(bdmPaid) : '-'}
+        </TableCell>
 
         <TableCell sx={{ color: 'warning.dark', whiteSpace: 'nowrap' }}>
-          {bdmPaid > 0 && bdmPending > 0 ? formatAmount(bdmPending) : '-'}
+          {bdmPending > 0 ? formatAmount(bdmPending) : '-'}
         </TableCell>
+
+        <TableCell sx={{ whiteSpace: 'nowrap' }}>{bdmPaymentDate}</TableCell>
 
         <TableCell
           sx={{ color: 'primary.main', fontWeight: 'fontWeightBold', whiteSpace: 'nowrap' }}
