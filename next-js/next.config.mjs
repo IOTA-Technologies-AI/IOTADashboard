@@ -1,3 +1,5 @@
+import { withSentryConfig } from '@sentry/nextjs';
+
 /**
  * Static Exports in Next.js
  *
@@ -42,11 +44,11 @@ const nextConfig = {
   },
 };
 
-export default withSentryConfig(nextConfig, {
-  org: "iota-technologies",
-  project: "javascript-nextjs",
+const sentryConfig = {
+  org: 'iota-technologies',
+  project: 'javascript-nextjs',
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
-});
+};
 
-export default nextConfig;
+export default withSentryConfig(nextConfig, sentryConfig);
