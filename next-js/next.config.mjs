@@ -42,4 +42,11 @@ const nextConfig = {
   },
 };
 
+export default withSentryConfig(nextConfig, {
+  org: "iota-technologies",
+  project: "javascript-nextjs",
+  // Only print logs for uploading source maps in CI
+  silent: !process.env.CI,
+});
+
 export default nextConfig;
