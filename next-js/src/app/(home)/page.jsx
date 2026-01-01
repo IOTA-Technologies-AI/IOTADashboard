@@ -3,9 +3,9 @@ import { HomeView } from 'src/sections/home/view';
 // ----------------------------------------------------------------------
 
 export const metadata = {
-  title: 'Minimals UI: The starting point for your next project',
+  title: 'IOTA ERP | Unified operations platform',
   description:
-    'The starting point for your next project with Minimal UI Kit, built on the newest version of Material-UI ©, ready to be customized to your style',
+    'IOTA ERP centralizes finance, sales, projects, and operations into one workspace with real-time dashboards and automations.',
 };
 
 export default function Page() {

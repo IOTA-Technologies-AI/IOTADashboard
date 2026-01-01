@@ -19,7 +19,7 @@ import { Iconify } from 'src/components/iconify';
 
 const LINKS = [
   {
-    headline: 'Minimal',
+    headline: 'IOTA ERP',
     children: [
       { name: 'About us', href: paths.about },
       { name: 'Contact us', href: paths.contact },
@@ -33,7 +33,7 @@ const LINKS = [
       { name: 'Privacy policy', href: '#' },
     ],
   },
-  { headline: 'Contact', children: [{ name: 'support@minimals.cc', href: '#' }] },
+  { headline: 'Contact', children: [{ name: 'tech@iotatechnologies.ai', href: '#' }] },
 ];
 
 // ----------------------------------------------------------------------
@@ -77,8 +77,8 @@ export function Footer({ sx, layoutQuery = 'md', ...other }) {
                 [theme.breakpoints.up(layoutQuery)]: { mx: 'unset' },
               })}
             >
-              The starting point for your next project with Minimal UI Kit, built on the newest
-              version of Material-UI ©, ready to be customized to your style.
+              IOTA ERP unifies finance, sales, projects, and operations into one workspace with
+              real-time dashboards and automation-ready APIs.
             </Typography>
 
             <Box
@@ -169,8 +169,7 @@ export function HomeFooter({ sx, ...other }) {
         <Logo />
         <Box sx={{ mt: 1, typography: 'caption' }}>
           © All rights reserved.
-          <br /> made by
-          <Link href="https://minimals.cc/"> minimals.cc </Link>
+          <br /> IOTA Technologies
         </Box>
       </Container>
     </FooterRoot>

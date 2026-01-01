@@ -73,9 +73,9 @@ export function HomeHero({ sx, ...other }) {
         ]}
       >
         <Box component="span" sx={{ width: 1, opacity: 0.24 }}>
-          Boost your building
+          Run your business
         </Box>
-        process with
+        end-to-end with
         <Box
           component={m.span}
           animate={{ backgroundPosition: '200% center' }}
@@ -95,7 +95,7 @@ export function HomeHero({ sx, ...other }) {
             }),
           ]}
         >
-          Minimal
+          IOTA ERP
         </Box>
       </Box>
     </m.div>
@@ -113,7 +113,7 @@ export function HomeHero({ sx, ...other }) {
           }),
         ]}
       >
-        {`The starting point for your next project is based on MUI. \nEasy customization helps you build apps faster and better.`}
+        {`Unified ERP for finance, sales, projects, and operations.\nReal-time dashboards, approvals, and automation-ready APIs.`}
       </Typography>
     </m.div>
   );
@@ -146,7 +146,7 @@ export function HomeHero({ sx, ...other }) {
             />
           ))}
         </AvatarGroup>
-        160+ Happy customers
+        160+ teams streamline ops with IOTA
       </Box>
     </m.div>
   );
@@ -172,7 +172,7 @@ export function HomeHero({ sx, ...other }) {
             sx={{ height: 52 }}
           >
             <span>
-              Live preview
+              Open ERP dashboard
               <Box
                 component="small"
                 sx={[

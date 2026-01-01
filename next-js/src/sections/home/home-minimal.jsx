@@ -31,9 +31,9 @@ export function HomeMinimal({ sx, ...other }) {
   const renderDescription = () => (
     <>
       <SectionTitle
-        caption="Visualizing Success"
-        title="What's in"
-        txtGradient="Minimal?"
+        caption="ERP in action"
+        title="Why teams choose"
+        txtGradient="IOTA"
         sx={{ mb: { xs: 5, md: 8 }, textAlign: { xs: 'center', md: 'left' } }}
       />
 
@@ -130,8 +130,8 @@ export function HomeMinimal({ sx, ...other }) {
 
 const ITEMS = [
   {
-    title: 'Branding',
-    description: 'Consistent design makes it easy to brand your own.',
+    title: 'Unified operations',
+    description: 'Finance, sales, projects, inventory, and HR in one workspace with shared data.',
     icon: (
       <svg
         width="48"
@@ -161,8 +161,9 @@ const ITEMS = [
     ),
   },
   {
-    title: 'UI & UX design',
-    description: 'The kit is built on the principles of the atomic design system.',
+    title: 'Finance and billing',
+    description:
+      'Invoices, expenses, commissions, and payouts with audit-ready trails and approvals.',
     icon: (
       <svg
         width="48"
@@ -192,8 +193,8 @@ const ITEMS = [
     ),
   },
   {
-    title: 'Development',
-    description: 'Easy to customize and extend, saving you time and money.',
+    title: 'APIs and automation',
+    description: 'APIs and webhooks to integrate CRMs, banking, and BI so workflows stay in sync.',
     icon: (
       <svg
         width="48"
