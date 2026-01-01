@@ -32,17 +32,17 @@ export default async function Page({ params }) {
  *
  * NOTE: Remove all "generateStaticParams()" functions if not using static exports.
  */
-export async function generateStaticParams() {
-  try {
-    const res = await axios.get(endpoints.post.list);
-    const posts = res?.data?.posts || [];
-    const data = CONFIG.isStaticExport ? posts : posts.slice(0, 1);
+// export async function generateStaticParams() {
+//   try {
+//     const res = await axios.get(endpoints.post.list);
+//     const posts = res?.data?.posts || [];
+//     const data = CONFIG.isStaticExport ? posts : posts.slice(0, 1);
 
-    return data.map((post) => ({
-      title: kebabCase(post.title),
-    }));
-  } catch (error) {
-    console.warn('generateStaticParams posts failed', error?.message);
-    return [];
-  }
-}
+//     return data.map((post) => ({
+//       title: kebabCase(post.title),
+//     }));
+//   } catch (error) {
+//     console.warn('generateStaticParams posts failed', error?.message);
+//     return [];
+//   }
+// }
