@@ -28,10 +28,10 @@ export default async function Page({ params }) {
  *
  * NOTE: Remove all "generateStaticParams()" functions if not using static exports.
  */
-export async function generateStaticParams() {
-  const data = CONFIG.isStaticExport ? _userList : _userList.slice(0, 1);
-
-  return data.map((user) => ({
-    id: user.id,
-  }));
-}
+// export async function generateStaticParams() {
+//   const data = CONFIG.isStaticExport ? _userList : _userList.slice(0, 1);
+//
+//   return data.map((user) => ({
+//     id: user.id,
+//   }));
+// }

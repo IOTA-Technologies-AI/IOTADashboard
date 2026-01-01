@@ -31,24 +31,24 @@ export default async function Page({ params }) {
 
 // ----------------------------------------------------------------------
 
-export async function generateStaticParams() {
-  if (!CONFIG.isStaticExport) {
-    return [];
-  }
-
-  try {
-    // Fetch vendors from API for static generation
-    const vendors = await apiHelper.getVendors();
-
-    if (!vendors || !Array.isArray(vendors)) {
-      return [];
-    }
-
-    return vendors.map((vendor) => ({
-      id: vendor.id,
-    }));
-  } catch (error) {
-    console.error('Error generating static params:', error);
-    return [];
-  }
-}
+// export async function generateStaticParams() {
+//   if (!CONFIG.isStaticExport) {
+//    return [];
+//   }
+//
+//   try {
+//     // Fetch vendors from API for static generation
+//     const vendors = await apiHelper.getVendors();
+//
+//     if (!vendors || !Array.isArray(vendors)) {
+//       return [];
+//     }
+//
+//     return vendors.map((vendor) => ({
+//       id: vendor.id,
+//     }));
+//   } catch (error) {
+//     console.error('Error generating static params:', error);
+//     return [];
+//   }
+// }
