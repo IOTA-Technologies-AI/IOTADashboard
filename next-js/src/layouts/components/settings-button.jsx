@@ -4,13 +4,27 @@ import Badge from '@mui/material/Badge';
 import SvgIcon from '@mui/material/SvgIcon';
 import IconButton from '@mui/material/IconButton';
 
+import { useAuthContext } from 'src/auth/hooks';
 import { useSettingsContext } from 'src/components/settings';
 import { varTap, varHover, transitionTap } from 'src/components/animate';
 
 // ----------------------------------------------------------------------
 
 export function SettingsButton({ sx, ...other }) {
+  const { user } = useAuthContext();
   const settings = useSettingsContext();
+
+  const roleIdToName = { 1: 'regular', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
+  const normalizeRole = (role, roleId) => {
+    if (role) return role;
+    if (roleId && roleIdToName[roleId]) return roleIdToName[roleId];
+    return 'regular';
+  };
+
+  const role = normalizeRole(user?.role, user?.roleId);
+  const isAdmin = role === 'admin' || role === 'superAdmin';
+
+  if (!isAdmin) return null;
 
   return (
     <IconButton

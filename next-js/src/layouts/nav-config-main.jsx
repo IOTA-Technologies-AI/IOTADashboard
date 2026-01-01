@@ -15,7 +15,7 @@ export const navData = [
       {
         subheader: 'IOTA',
         items: [
-          { title: 'IOTA Brand Guidelines', path: '#' },
+          { title: 'Brand Guidelines', path: '/brand-guidelines' },
           { title: 'Visit Us', path: '#' },
         ],
       },

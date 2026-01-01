@@ -15,6 +15,7 @@ export const NavLi = styled(
   { shouldForwardProp: (prop) => !['disabled', 'sx'].includes(prop) }
 )(() => ({
   display: 'inline-block',
+  position: 'relative',
   variants: [{ props: { disabled: true }, style: { cursor: 'not-allowed' } }],
 }));
 

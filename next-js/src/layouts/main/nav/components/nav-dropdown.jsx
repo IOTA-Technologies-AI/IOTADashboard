@@ -22,14 +22,11 @@ export const NavDropdown = styled(({ open, children, ...other }) => (
   </Fade>
 ))(({ theme }) => ({
   left: 0,
-  right: 0,
-  marginTop: 12,
-  width: '100%',
-  position: 'fixed',
-  marginLeft: 'auto',
-  marginRight: 'auto',
+  top: 'calc(100% + 12px)',
+  width: 'fit-content',
+  minWidth: 220,
+  position: 'absolute',
   padding: theme.spacing(1.5),
   zIndex: theme.zIndex.drawer * 2,
-  maxWidth: theme.breakpoints.values.lg,
-  top: 'calc(var(--layout-header-desktop-height) / 2)',
+  maxWidth: 480,
 }));
