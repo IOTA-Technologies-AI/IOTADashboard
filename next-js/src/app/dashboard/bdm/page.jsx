@@ -3,6 +3,10 @@ import { getDeals } from 'src/actions/deals';
 
 import { BDMListView } from 'src/sections/bdm/view/bdm-list-view';
 
+// Mark dynamic because data is fetched with no-store from external APIs.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function Page() {
   const [bdms = [], deals = []] = await Promise.all([getBDMs(), getDeals()]);
 
