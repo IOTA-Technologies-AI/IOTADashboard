@@ -180,7 +180,7 @@ export function PlusIcon() {
 
 // ----------------------------------------------------------------------
 
-const TEXT = 'Minimal Design System';
+const TEXT = 'IOTA TECHNOLOGIES';
 
 export function Texts({ sx, ...other }) {
   return (
