@@ -15,6 +15,20 @@ const roleIdToName = {
   4: 'superAdmin',
 };
 
+const displayNameFromMetadata = (user) => {
+  const meta = user?.user_metadata || {};
+  return (
+    meta.display_name ||
+    meta.name ||
+    meta.full_name ||
+    meta.given_name ||
+    meta.first_name ||
+    (meta.given_name && meta.family_name && `${meta.given_name} ${meta.family_name}`) ||
+    user?.email ||
+    'User'
+  );
+};
+
 const normalizeRole = (role, roleId, metadata) => {
   if (role) return role;
   if (metadata?.role) return metadata.role;
@@ -80,7 +94,7 @@ export function AuthProvider({ children }) {
             ...state.user,
             id: state.user?.id,
             accessToken: state.user?.access_token,
-            displayName: state.user?.user_metadata.display_name,
+            displayName: displayNameFromMetadata(state.user),
             role: normalizeRole(state.user?.role, state.user?.roleId, state.user?.user_metadata),
           }
         : null,
