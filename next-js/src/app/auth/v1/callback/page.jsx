@@ -1,18 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-import Alert from '@mui/material/Alert';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import CircularProgress from '@mui/material/CircularProgress';
-import Container from '@mui/material/Container';
+import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
+import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
+import CircularProgress from '@mui/material/CircularProgress';
+
+import { paths } from 'src/routes/paths';
 
 import { supabase } from 'src/lib/supabase';
-import { paths } from 'src/routes/paths';
 
 export default function SupabaseAuthCallbackPage() {
   const router = useRouter();
