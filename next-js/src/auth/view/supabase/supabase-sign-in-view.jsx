@@ -12,6 +12,7 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import IconButton from '@mui/material/IconButton';
 import InputAdornment from '@mui/material/InputAdornment';
+import Divider from '@mui/material/Divider';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
@@ -19,6 +20,7 @@ import { RouterLink } from 'src/routes/components';
 
 import { Iconify } from 'src/components/iconify';
 import { Form, Field, schemaUtils } from 'src/components/hook-form';
+import { supabase } from 'src/lib/supabase';
 
 import { useAuthContext } from '../../hooks';
 import { getErrorMessage } from '../../utils';
@@ -45,6 +47,7 @@ export function SupabaseSignInView() {
   const { checkUserSession } = useAuthContext();
 
   const [errorMessage, setErrorMessage] = useState(null);
+  const [oauthLoading, setOauthLoading] = useState(false);
 
   const defaultValues = {
     email: '',
@@ -74,8 +77,45 @@ export function SupabaseSignInView() {
     }
   });
 
+  const handleMicrosoftSignIn = async () => {
+    setErrorMessage(null);
+    setOauthLoading(true);
+    try {
+      const redirectTo = `${window.location.origin}/auth/v1/callback?next=${encodeURIComponent(paths.dashboard.root)}`;
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'azure',
+        options: {
+          redirectTo,
+          scopes: 'openid profile email offline_access',
+        },
+      });
+      if (error) {
+        throw error;
+      }
+    } catch (error) {
+      console.error(error);
+      setErrorMessage(getErrorMessage(error));
+    } finally {
+      setOauthLoading(false);
+    }
+  };
+
   const renderForm = () => (
     <Box sx={{ gap: 3, display: 'flex', flexDirection: 'column' }}>
+      <Button
+        fullWidth
+        size="large"
+        variant="outlined"
+        color="primary"
+        onClick={handleMicrosoftSignIn}
+        loading={oauthLoading}
+        loadingIndicator="Redirecting to Microsoft..."
+      >
+        Sign in with Microsoft
+      </Button>
+
+      <Divider>Or use email</Divider>
+
       <Field.Text name="email" label="Email address" slotProps={{ inputLabel: { shrink: true } }} />
 
       <Box sx={{ gap: 1.5, display: 'flex', flexDirection: 'column' }}>
