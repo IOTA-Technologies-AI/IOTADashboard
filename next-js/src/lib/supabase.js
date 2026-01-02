@@ -4,9 +4,15 @@ import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-const isSupabase = CONFIG.auth.method === 'supabase';
+const normalizeSupabaseUrl = (url) => {
+  if (!url) return '';
+  const trimmed = url.trim().replace(/\/?$/, '');
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+};
 
-const supabaseUrl = CONFIG.supabase.url;
+const isSupabase = CONFIG.auth.method === 'supabase';
+const supabaseUrl = normalizeSupabaseUrl(CONFIG.supabase.url);
 const supabaseKey = CONFIG.supabase.key;
 
-export const supabase = isSupabase ? createClient(supabaseUrl, supabaseKey) : {};
+export const supabase =
+  isSupabase && supabaseUrl && supabaseKey ? createClient(supabaseUrl, supabaseKey) : {};
