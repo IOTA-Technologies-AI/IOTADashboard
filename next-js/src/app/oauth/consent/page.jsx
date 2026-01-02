@@ -16,6 +16,12 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { CONFIG } from 'src/global-config';
 
+const normalizeSupabaseUrl = (url) => {
+  if (!url) return '';
+  const trimmed = url.trim().replace(/\/?$/, '');
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+};
+
 const parseScopes = (scopeString) =>
   scopeString
     ?.split(/\s+/)
@@ -37,7 +43,7 @@ export default function OAuthConsentPage() {
   const scopes = useMemo(() => parseScopes(searchParams.get('scope')), [searchParams]);
   const appName = searchParams.get('client_name') || 'Third-party application';
 
-  const supabaseAuthUrl = `${CONFIG.supabase.url}/auth/v1/oauth/authorize`;
+  const supabaseAuthUrl = `${normalizeSupabaseUrl(CONFIG.supabase.url)}/auth/v1/oauth/authorize`;
 
   const handleAction = async (accept) => {
     setError('');
