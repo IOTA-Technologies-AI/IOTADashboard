@@ -18,7 +18,7 @@ export const CONFIG = {
    * @method jwt | amplify | firebase | supabase | auth0
    */
   auth: {
-    method: 'jwt',
+    method: 'supabase',
     skip: false,
     redirectPath: paths.dashboard.root,
   },
