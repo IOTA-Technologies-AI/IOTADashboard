@@ -12,10 +12,6 @@ import Divider from '@mui/material/Divider';
 import InputBase from '@mui/material/InputBase';
 import CardHeader from '@mui/material/CardHeader';
 
-import { fNumber } from 'src/utils/format-number';
-
-import { _socials } from 'src/_mock';
-
 import { Iconify } from 'src/components/iconify';
 
 import { ProfilePostItem } from './profile-post-item';
@@ -31,23 +27,23 @@ export function ProfileHome({ info, posts, sx, ...other }) {
     }
   };
 
-  const renderFollows = () => (
-    <Card sx={{ py: 3, textAlign: 'center', typography: 'h4' }}>
+  const renderSummary = () => (
+    <Card sx={{ py: 3, textAlign: 'center' }}>
       <Stack
         divider={<Divider orientation="vertical" flexItem sx={{ borderStyle: 'dashed' }} />}
-        sx={{ flexDirection: 'row' }}
+        sx={{ flexDirection: 'row', typography: 'h6' }}
       >
         <Stack sx={{ width: 1 }}>
-          {fNumber(info.totalFollowers)}
+          {info.role || 'Role unavailable'}
           <Box component="span" sx={{ color: 'text.secondary', typography: 'body2' }}>
-            Follower
+            Role
           </Box>
         </Stack>
 
         <Stack sx={{ width: 1 }}>
-          {fNumber(info.totalFollowing)}
+          {info.managerName || 'Manager unavailable'}
           <Box component="span" sx={{ color: 'text.secondary', typography: 'body2' }}>
-            Following
+            Manager
           </Box>
         </Stack>
       </Stack>
@@ -72,9 +68,9 @@ export function ProfileHome({ info, posts, sx, ...other }) {
         <Box sx={{ gap: 2, display: 'flex', lineHeight: '24px' }}>
           <Iconify width={24} icon="mingcute:location-fill" />
           <span>
-            Live at
+            Location
             <Link variant="subtitle2" color="inherit">
-              &nbsp;{info.country}
+              &nbsp;{info.location || 'Not provided'}
             </Link>
           </span>
         </Box>
@@ -86,23 +82,22 @@ export function ProfileHome({ info, posts, sx, ...other }) {
 
         <Box sx={{ gap: 2, display: 'flex', lineHeight: '24px' }}>
           <Iconify width={24} icon="solar:case-minimalistic-bold" />
-          <span>
-            {info.role} at
-            <Link variant="subtitle2" color="inherit">
-              &nbsp;{info.company}
-            </Link>
-          </span>
+          <span>{info.department ? `Department: ${info.department}` : 'Department not set'}</span>
         </Box>
 
         <Box sx={{ gap: 2, display: 'flex', lineHeight: '24px' }}>
-          <Iconify width={24} icon="solar:case-minimalistic-bold" />
+          <Iconify width={24} icon="solar:user-bold" />
           <span>
-            Studied at
-            <Link variant="subtitle2" color="inherit">
-              &nbsp;{info.school}
-            </Link>
+            {info.managerTitle ? `${info.managerName} • ${info.managerTitle}` : info.managerName}
           </span>
         </Box>
+
+        {info.officeLocation && (
+          <Box sx={{ gap: 2, display: 'flex', lineHeight: '24px' }}>
+            <Iconify width={24} icon="solar:building-2-bold" />
+            <span>Office: {info.officeLocation}</span>
+          </Box>
+        )}
       </Box>
     </Card>
   );
@@ -146,33 +141,29 @@ export function ProfileHome({ info, posts, sx, ...other }) {
 
   const renderSocials = () => (
     <Card>
-      <CardHeader title="Social" />
+      <CardHeader title="Contact" />
 
       <Box sx={{ p: 3, gap: 2, display: 'flex', flexDirection: 'column', typography: 'body2' }}>
-        {_socials.map((social) => (
-          <Box
-            key={social.label}
-            sx={{
-              gap: 2,
-              display: 'flex',
-              lineHeight: '20px',
-              wordBreak: 'break-all',
-              alignItems: 'flex-start',
-            }}
-          >
-            {social.value === 'twitter' && <Iconify icon="socials:twitter" />}
-            {social.value === 'facebook' && <Iconify icon="socials:facebook" />}
-            {social.value === 'instagram' && <Iconify icon="socials:instagram" />}
-            {social.value === 'linkedin' && <Iconify icon="socials:linkedin" />}
-
-            <Link color="inherit">
-              {social.value === 'facebook' && info.socialLinks.facebook}
-              {social.value === 'instagram' && info.socialLinks.instagram}
-              {social.value === 'linkedin' && info.socialLinks.linkedin}
-              {social.value === 'twitter' && info.socialLinks.twitter}
-            </Link>
+        {info.phone && (
+          <Box sx={{ gap: 2, display: 'flex', alignItems: 'center' }}>
+            <Iconify icon="solar:phone-bold" />
+            <Link color="inherit">{info.phone}</Link>
           </Box>
-        ))}
+        )}
+
+        {info.userPrincipalName && (
+          <Box sx={{ gap: 2, display: 'flex', alignItems: 'center' }}>
+            <Iconify icon="solar:letter-bold" />
+            <Link color="inherit">{info.userPrincipalName}</Link>
+          </Box>
+        )}
+
+        {info.managerEmail && (
+          <Box sx={{ gap: 2, display: 'flex', alignItems: 'center' }}>
+            <Iconify icon="solar:envelope-bold" />
+            <Link color="inherit">{info.managerEmail}</Link>
+          </Box>
+        )}
       </Box>
     </Card>
   );
@@ -180,7 +171,7 @@ export function ProfileHome({ info, posts, sx, ...other }) {
   return (
     <Grid container spacing={3} sx={sx} {...other}>
       <Grid size={{ xs: 12, md: 4 }} sx={{ gap: 3, display: 'flex', flexDirection: 'column' }}>
-        {renderFollows()}
+        {renderSummary()}
         {renderAbout()}
         {renderSocials()}
       </Grid>

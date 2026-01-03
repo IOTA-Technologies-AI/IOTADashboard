@@ -15,7 +15,8 @@ import { fData } from 'src/utils/format-number';
 import { toast } from 'src/components/snackbar';
 import { Form, Field, schemaUtils } from 'src/components/hook-form';
 
-import { useMockedUser } from 'src/auth/hooks';
+import { useAuthContext } from 'src/auth/hooks';
+import { useMicrosoftProfile } from 'src/auth/hooks/use-microsoft-profile';
 
 // ----------------------------------------------------------------------
 
@@ -39,19 +40,20 @@ export const UpdateUserSchema = z.object({
 // ----------------------------------------------------------------------
 
 export function AccountGeneral() {
-  const { user } = useMockedUser();
+  const { user } = useAuthContext();
+  const { profile } = useMicrosoftProfile();
 
   const currentUser = {
-    displayName: user?.displayName,
-    email: user?.email,
+    displayName: profile?.displayName || user?.displayName,
+    email: profile?.email || user?.email,
     photoURL: user?.photoURL,
-    phoneNumber: user?.phoneNumber,
-    country: user?.country,
-    address: user?.address,
-    state: user?.state,
-    city: user?.city,
+    phoneNumber: profile?.phone || user?.phoneNumber,
+    country: profile?.country || user?.country,
+    address: user?.address || profile?.officeLocation,
+    state: profile?.state || user?.state,
+    city: profile?.city || user?.city,
     zipCode: user?.zipCode,
-    about: user?.about,
+    about: profile?.jobTitle || user?.about,
     isPublic: user?.isPublic,
   };
 

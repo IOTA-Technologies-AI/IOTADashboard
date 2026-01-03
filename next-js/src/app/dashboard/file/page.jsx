@@ -22,6 +22,7 @@ import {
   clearOneDriveToken,
   getMicrosoftAuthUrl,
   exchangeCodeForToken,
+  seedOneDriveToken,
 } from 'src/utils/onedrive-helper';
 
 import { CONFIG } from 'src/global-config';
@@ -37,6 +38,8 @@ import { FileManagerPanel } from 'src/sections/file-manager/file-manager-panel';
 import { FileStorageOverview } from 'src/sections/file-manager/file-storage-overview';
 import { FileManagerFolderItem } from 'src/sections/file-manager/file-manager-folder-item';
 import { FileManagerCreateFolderDialog } from 'src/sections/file-manager/file-manager-create-folder-dialog';
+
+import { useAuthContext } from 'src/auth/hooks';
 
 // ----------------------------------------------------------------------
 
@@ -54,6 +57,7 @@ const FILE_TYPE_OPTIONS = [
 
 export default function FilePage() {
   const searchParams = useSearchParams();
+  const { user } = useAuthContext();
 
   const [loading, setLoading] = useState(false);
   const [authenticated, setAuthenticated] = useState(false);
@@ -72,14 +76,24 @@ export default function FilePage() {
   const newFilesDialog = useBoolean();
   const newFolderDialog = useBoolean();
 
-  // Check if already authenticated
+  // Check if already authenticated (reuse provider token first if available)
   useEffect(() => {
-    const { accessToken } = getOneDriveToken();
-    if (accessToken) {
+    const stored = getOneDriveToken();
+    const providerToken = user?.provider_token || user?.providerToken;
+    const providerRefresh = user?.provider_refresh_token || user?.providerRefreshToken;
+
+    if (stored.accessToken) {
+      setAuthenticated(true);
+      loadFiles(null);
+      return;
+    }
+
+    const seeded = seedOneDriveToken(providerToken, providerRefresh);
+    if (seeded) {
       setAuthenticated(true);
       loadFiles(null);
     }
-  }, []);
+  }, [user]);
 
   // Handle OAuth callback
   useEffect(() => {

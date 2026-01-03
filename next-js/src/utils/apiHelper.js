@@ -6,19 +6,6 @@ const API_KEY =
 const AUTH_TOKEN =
   'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2c2ZrcXB2dXRmYm15cWVoc3dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU2NzM2OTMsImV4cCI6MjA1MTI0OTY5M30.DeNT5NU3w_ayehNfJEZysbKS0SkDq19z5kDRniPyh7o';
 
-const PROXY_EXPENSES_BASE = '/api/proxy/expenses';
-
-const resolveProxyUrl = (suffix = '') => {
-  if (typeof window !== 'undefined') return `${PROXY_EXPENSES_BASE}${suffix}`;
-
-  const origin =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    process.env.SITE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
-
-  return `${origin}${PROXY_EXPENSES_BASE}${suffix}`;
-};
-
 const PARTER_API_BASE_URL = 'https://staging-iwtapiserver-6x92.encr.app/getTotalInvoiceAmounts';
 const PARTER_AUTH_TOKEN = 'Bearer dGVzdEB0ZXN0LmNvbTpwYXN29yZDEyMyE=';
 
@@ -46,9 +33,12 @@ export async function getExpenseByExpenseId(id) {
 
 async function fetchTotalIotaBilling() {
   try {
-    const response = await fetch(resolveProxyUrl('?select=expenseAmount.sum()'));
-    const data = await response.json();
-    return data[0]?.sum || 0; // Return the sum value
+    const response = await axios.get(`${API_BASE_URL}expenses`);
+    const expenses = response.data?.expenses || [];
+    return expenses.reduce(
+      (sum, expense) => sum + Number(expense.expenseAmount ?? expense.amount ?? 0),
+      0
+    );
   } catch (error) {
     console.error('Failed to fetch total IOTA billing:', error);
     throw error; // Re-throw the error for the caller to handle
@@ -324,7 +314,7 @@ export async function getExpenses() {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: resolveProxyUrl(),
+      url: `${API_BASE_URL}expenses`,
       headers: {},
     };
 
@@ -349,7 +339,7 @@ export async function getExpense(referenceId) {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: resolveProxyUrl(`/${referenceId}`),
+      url: `${API_BASE_URL}expenses/${referenceId}`,
       headers: {},
     };
 
@@ -372,7 +362,7 @@ export async function getExpensesWithLinkedInvoices() {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: resolveProxyUrl(),
+      url: `${API_BASE_URL}expenses`,
       headers: {},
     };
 
@@ -402,7 +392,7 @@ export async function createExpense(expenseData) {
     let config = {
       method: 'post',
       maxBodyLength: Infinity,
-      url: resolveProxyUrl(),
+      url: `${API_BASE_URL}expenses`,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -439,7 +429,7 @@ export async function updateExpense(referenceId, expenseData) {
     let config = {
       method: 'patch',
       maxBodyLength: Infinity,
-      url: resolveProxyUrl(`/${referenceId}`),
+      url: `${API_BASE_URL}expenses/${referenceId}`,
       headers: {
         'Content-Type': 'application/json',
       },

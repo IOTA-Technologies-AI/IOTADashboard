@@ -17,7 +17,6 @@ import { CustomPopover } from 'src/components/custom-popover';
 import { useAuthContext } from 'src/auth/hooks';
 
 import { AccountButton } from './account-button';
-import { OrganizationSummary } from './organization-summary';
 import { SignOutButton } from './sign-out-button';
 
 // ----------------------------------------------------------------------
@@ -45,8 +44,6 @@ export function AccountPopover({ data = [], sx, ...other }) {
           {user?.email}
         </Typography>
       </Box>
-
-      <OrganizationSummary user={user} dense />
 
       <Divider sx={{ borderStyle: 'dashed' }} />
 

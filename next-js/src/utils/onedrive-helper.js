@@ -30,6 +30,20 @@ export const clearOneDriveToken = () => {
   }
 };
 
+// Seed storage from an existing Microsoft provider token (e.g., Supabase session)
+export const seedOneDriveToken = (accessToken, refreshToken) => {
+  if (!accessToken) return false;
+
+  const { accessToken: existingAccess } = getOneDriveToken();
+
+  if (!existingAccess) {
+    setOneDriveToken(accessToken, refreshToken);
+    return true;
+  }
+
+  return false;
+};
+
 // Authentication
 export async function getMicrosoftAuthUrl() {
   const response = await axios.get(`${API_BASE_URL}/onedrive/auth-url`);
@@ -48,14 +62,36 @@ export async function refreshAccessToken(refreshToken) {
 
 // File operations
 export async function listOneDriveFiles(folderId = null) {
-  const { accessToken } = getOneDriveToken();
+  const { accessToken, refreshToken } = getOneDriveToken();
   if (!accessToken) throw new Error('Not authenticated with OneDrive');
 
   const params = new URLSearchParams({ accessToken });
   if (folderId) params.append('folderId', folderId);
 
-  const response = await axios.get(`${API_BASE_URL}/onedrive/files?${params.toString()}`);
-  return response.data.value;
+  try {
+    const response = await axios.get(`${API_BASE_URL}/onedrive/files?${params.toString()}`);
+    return response.data.value;
+  } catch (error) {
+    const status = error?.response?.status;
+    if (status === 401 && refreshToken) {
+      const refreshed = await refreshAccessToken(refreshToken);
+      const newAccess = refreshed.access_token || refreshed.accessToken;
+      const newRefresh = refreshed.refresh_token || refreshed.refreshToken || refreshToken;
+
+      if (newAccess) {
+        setOneDriveToken(newAccess, newRefresh);
+        const retryParams = new URLSearchParams({ accessToken: newAccess });
+        if (folderId) retryParams.append('folderId', folderId);
+
+        const retryResponse = await axios.get(
+          `${API_BASE_URL}/onedrive/files?${retryParams.toString()}`
+        );
+        return retryResponse.data.value;
+      }
+    }
+
+    throw error;
+  }
 }
 
 export async function getOneDriveItem(itemId) {
