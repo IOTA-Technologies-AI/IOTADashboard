@@ -14,9 +14,10 @@ import { RouterLink } from 'src/routes/components';
 import { Label } from 'src/components/label';
 import { CustomPopover } from 'src/components/custom-popover';
 
-import { useMockedUser } from 'src/auth/hooks';
+import { useAuthContext } from 'src/auth/hooks';
 
 import { AccountButton } from './account-button';
+import { OrganizationSummary } from './organization-summary';
 import { SignOutButton } from './sign-out-button';
 
 // ----------------------------------------------------------------------
@@ -26,7 +27,7 @@ export function AccountPopover({ data = [], sx, ...other }) {
 
   const { open, anchorEl, onClose, onOpen } = usePopover();
 
-  const { user } = useMockedUser();
+  const { user } = useAuthContext();
 
   const renderMenuActions = () => (
     <CustomPopover
@@ -44,6 +45,8 @@ export function AccountPopover({ data = [], sx, ...other }) {
           {user?.email}
         </Typography>
       </Box>
+
+      <OrganizationSummary user={user} dense />
 
       <Divider sx={{ borderStyle: 'dashed' }} />
 

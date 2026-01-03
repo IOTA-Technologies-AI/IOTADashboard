@@ -27,8 +27,8 @@ import { AnimateBorder } from 'src/components/animate';
 //import { useMockedUser } from 'src/auth/hooks';
 import { useAuthContext } from 'src/auth/hooks';
 
-import { UpgradeBlock } from './nav-upgrade';
 import { AccountButton } from './account-button';
+import { OrganizationSummary } from './organization-summary';
 import { SignOutButton } from './sign-out-button';
 
 // ----------------------------------------------------------------------
@@ -159,6 +159,10 @@ export function AccountDrawer({ data = [], sx, ...other }) {
             </Typography>
           </Box>
 
+          <Box sx={{ px: 2.5 }}>
+            <OrganizationSummary user={user} />
+          </Box>
+
           <Box
             sx={{
               p: 3,
@@ -193,10 +197,6 @@ export function AccountDrawer({ data = [], sx, ...other }) {
           </Box>
 
           {renderList()}
-
-          <Box sx={{ px: 2.5, py: 3 }}>
-            <UpgradeBlock />
-          </Box>
         </Scrollbar>
 
         <Box sx={{ p: 2.5 }}>
