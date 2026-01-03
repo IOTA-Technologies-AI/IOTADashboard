@@ -24,9 +24,13 @@ import {
   EXPENSE_CURRENCIES,
   EXPENSE_APPROVAL_STATUS_OPTIONS,
 } from 'src/utils/constants/enums';
+import { getOneDriveToken, refreshAccessToken, seedOneDriveToken } from 'src/utils/onedrive-helper';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
+
+import { useAuthContext } from 'src/auth/hooks';
+import { useMicrosoftProfile } from 'src/auth/hooks/use-microsoft-profile';
 
 // ----------------------------------------------------------------------
 const INVOICE_AGAINST_INVOICE_TYPE = 18;
@@ -56,12 +60,114 @@ const ExpenseSchema = zod.object({
 
 export function ExpenseNewEditForm({ currentExpense }) {
   const router = useRouter();
+  const { user } = useAuthContext();
+  const { profile } = useMicrosoftProfile();
+
+  const roleIdToName = {
+    1: 'regular',
+    2: 'manager',
+    3: 'admin',
+    4: 'superAdmin',
+  };
+
+  const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
+  const isSuperAdmin = normalizedRole === 'superAdmin';
 
   // ✅ Added state for AR invoices
   const [arInvoices, setArInvoices] = useState([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [costCenters, setCostCenters] = useState([]);
 
+  const getTokens = () => {
+    const stored = getOneDriveToken();
+    return {
+      accessToken: stored.accessToken || user?.provider_token || user?.providerToken,
+      refreshToken:
+        stored.refreshToken || user?.provider_refresh_token || user?.providerRefreshToken,
+    };
+  };
+
+  const fetchWithAuth = async (url, init, refreshToken) => {
+    const response = await fetch(url, init);
+
+    if (response.status === 401 && refreshToken) {
+      const refreshed = await refreshAccessToken(refreshToken);
+      const newAccess = refreshed.access_token || refreshed.accessToken;
+      const newRefresh = refreshed.refresh_token || refreshed.refreshToken || refreshToken;
+
+      if (newAccess) {
+        seedOneDriveToken(newAccess, newRefresh);
+        const retryInit = {
+          ...init,
+          headers: { ...init.headers, Authorization: `Bearer ${newAccess}` },
+        };
+        return fetch(url, retryInit);
+      }
+    }
+
+    return response;
+  };
+
+  const notifyManagerForApproval = async (createdExpense, submittedExpense) => {
+    const managerEmail = profile?.managerEmail;
+    if (!managerEmail) {
+      console.warn('No manager email found for approval notification');
+      return;
+    }
+
+    const { accessToken, refreshToken } = getTokens();
+    if (!accessToken) {
+      console.warn('No Microsoft token available for approval email');
+      return;
+    }
+
+    const subject = `Expense ${createdExpense?.referenceId || ''} awaiting your approval`;
+    const amount = submittedExpense?.originalExpenseAmount || submittedExpense?.expenseAmount;
+    const currency = submittedExpense?.originalExpenseCurrency || 'SAR';
+    const submitter = profile?.displayName || user?.displayName || user?.email || 'A team member';
+    const expenseDate = submittedExpense?.expenseDate;
+
+    const mailPayload = {
+      message: {
+        subject,
+        body: {
+          contentType: 'HTML',
+          content: `
+            <p>Hello,</p>
+            <p>${submitter} submitted an expense that needs your approval.</p>
+            <ul>
+              <li><strong>Amount:</strong> ${amount ? `${amount} ${currency}` : 'N/A'}</li>
+              <li><strong>Date:</strong> ${expenseDate || 'N/A'}</li>
+              <li><strong>Reference:</strong> ${createdExpense?.referenceId || createdExpense?.id || 'N/A'}</li>
+            </ul>
+            <p>Please review and approve it in the dashboard.</p>
+          `,
+        },
+        toRecipients: [{ emailAddress: { address: managerEmail } }],
+      },
+      saveToSentItems: false,
+    };
+
+    const init = {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(mailPayload),
+    };
+
+    const res = await fetchWithAuth(
+      'https://graph.microsoft.com/v1.0/me/sendMail',
+      init,
+      refreshToken
+    );
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || 'Failed to send approval email');
+    }
+  };
   console.log('🔍 ExpenseNewEditForm - currentExpense:', currentExpense);
   console.log('🔍 originalExpenseAmount:', currentExpense?.originalExpenseAmount);
   console.log('🔍 expenseAmount:', currentExpense?.expenseAmount);
@@ -83,12 +189,13 @@ export function ExpenseNewEditForm({ currentExpense }) {
           : currentExpense?.expenseAmount || 0,
 
       expenseSettlementNotes: currentExpense?.expenseSettlementNotes || '',
-      expenseApprovalStatus:
-        currentExpense?.expenseApprovalStatus === true
+      expenseApprovalStatus: isSuperAdmin
+        ? currentExpense?.expenseApprovalStatus === true
           ? 'approved'
           : currentExpense?.expenseApprovalStatus === false
             ? 'rejected'
-            : 'pending',
+            : 'pending'
+        : 'pending',
       expenseApprovedBy: currentExpense?.expenseApprovedBy || '',
       expenseApprovedDate: currentExpense?.expenseApprovedDate || '',
       expenseApprovedAmount: currentExpense?.expenseApprovedAmount || 0,
@@ -107,7 +214,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
       linkedInvoiceId: currentExpense?.linkedInvoiceId || '',
       linkedInvoiceAmount: currentExpense?.linkedInvoiceAmount || 0,
     }),
-    [currentExpense]
+    [currentExpense, isSuperAdmin]
   );
 
   const methods = useForm({
@@ -175,6 +282,8 @@ export function ExpenseNewEditForm({ currentExpense }) {
 
   const onSubmit = handleSubmit(async (data) => {
     try {
+      const resolvedStatus = isSuperAdmin ? data.expenseApprovalStatus : 'pending';
+
       const expenseData = {
         expenseType: data.expenseType,
         expenseDate: data.expenseDate,
@@ -188,16 +297,11 @@ export function ExpenseNewEditForm({ currentExpense }) {
 
         externalTransactionId: data.externalTransactionId || null,
         expenseApprovalStatus:
-          data.expenseApprovalStatus === 'approved'
-            ? true
-            : data.expenseApprovalStatus === 'rejected'
-              ? false
-              : null,
-        expenseApprovedBy: data.expenseApprovedBy || null,
-        expenseApprovedDate: data.expenseApprovedDate || null,
-        expenseApprovedAmount: data.expenseApprovedAmount
-          ? Number(data.expenseApprovedAmount)
-          : null,
+          resolvedStatus === 'approved' ? true : resolvedStatus === 'rejected' ? false : null,
+        expenseApprovedBy: isSuperAdmin ? data.expenseApprovedBy || null : null,
+        expenseApprovedDate: isSuperAdmin ? data.expenseApprovedDate || null : null,
+        expenseApprovedAmount:
+          isSuperAdmin && data.expenseApprovedAmount ? Number(data.expenseApprovedAmount) : null,
         originalTransactionDate: data.originalTransactionDate || null,
         fileLocation: data.fileLocation || null,
 
@@ -212,7 +316,13 @@ export function ExpenseNewEditForm({ currentExpense }) {
         await apiHelper.updateExpense(currentExpense.referenceId, expenseData);
         toast.success('Expense updated successfully!');
       } else {
-        await apiHelper.createExpense(expenseData);
+        const createdExpense = await apiHelper.createExpense(expenseData);
+        try {
+          await notifyManagerForApproval(createdExpense, expenseData);
+        } catch (notifyError) {
+          console.warn('Failed to send approval email:', notifyError);
+          toast.error('Expense created, but failed to notify manager.');
+        }
         toast.success('Expense created successfully!');
       }
 
@@ -358,8 +468,15 @@ export function ExpenseNewEditForm({ currentExpense }) {
           name="expenseApprovalStatus"
           label="Approval Status"
           InputLabelProps={{ shrink: true }}
+          disabled={!isSuperAdmin}
+          helperText={
+            !isSuperAdmin ? 'Regular users default to Pending until manager approval.' : undefined
+          }
         >
-          {EXPENSE_APPROVAL_STATUS_OPTIONS.map((status) => (
+          {(isSuperAdmin
+            ? EXPENSE_APPROVAL_STATUS_OPTIONS
+            : [EXPENSE_APPROVAL_STATUS_OPTIONS[0]]
+          ).map((status) => (
             <MenuItem key={status.value} value={status.value}>
               {status.label}
             </MenuItem>
