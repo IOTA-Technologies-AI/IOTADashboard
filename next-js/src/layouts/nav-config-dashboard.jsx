@@ -5,8 +5,101 @@ import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 
 import { paths } from 'src/routes/paths';
 
-            allowedRoles: ['superAdmin', 'admin'],
-          },
+import { CONFIG } from 'src/global-config';
+
+import { Label } from 'src/components/label';
+import { Iconify } from 'src/components/iconify';
+import { SvgColor } from 'src/components/svg-color';
+
+// ----------------------------------------------------------------------
+
+const icon = (name) => <SvgColor src={`${CONFIG.assetsDir}/assets/icons/navbar/${name}.svg`} />;
+
+const ICONS = {
+  job: icon('ic-job'),
+  blog: icon('ic-blog'),
+  chat: icon('ic-chat'),
+  mail: icon('ic-mail'),
+  user: icon('ic-user'),
+  file: icon('ic-file'),
+  lock: icon('ic-lock'),
+  tour: icon('ic-tour'),
+  order: icon('ic-order'),
+  label: icon('ic-label'),
+  blank: icon('ic-blank'),
+  kanban: icon('ic-kanban'),
+  folder: icon('ic-folder'),
+  course: icon('ic-course'),
+  params: icon('ic-params'),
+  banking: icon('ic-banking'),
+  booking: icon('ic-booking'),
+  invoice: icon('ic-invoice'),
+  product: icon('ic-product'),
+  calendar: icon('ic-calendar'),
+  disabled: icon('ic-disabled'),
+  external: icon('ic-external'),
+  subpaths: icon('ic-subpaths'),
+  menuItem: icon('ic-menu-item'),
+  ecommerce: icon('ic-ecommerce'),
+  analytics: icon('ic-analytics'),
+  dashboard: icon('ic-dashboard'),
+  vendor: <HandshakeIcon style={{ width: 24, height: 24 }} />,
+  expense: <MoneyOffIcon style={{ width: 24, height: 24 }} />,
+  deals: <BusinessIcon style={{ width: 24, height: 24 }} />,
+  payroll: <AttachMoneyIcon style={{ width: 24, height: 24 }} />,
+};
+
+// ----------------------------------------------------------------------
+
+/**
+ * Input nav data is an array of navigation section items used to define the structure and content of a navigation bar.
+ * Each section contains a subheader and an array of items, which can include nested children items.
+ *
+ * Each item can have the following properties:
+ * - `title`: The title of the navigation item.
+ * - `path`: The URL path the item links to.
+ * - `icon`: An optional icon component to display alongside the title.
+ * - `info`: Optional additional information to display, such as a label.
+ * - `allowedRoles`: An optional array of roles that are allowed to see the item.
+ * - `caption`: An optional caption to display below the title.
+ * - `children`: An optional array of nested navigation items.
+ * - `disabled`: An optional boolean to disable the item.
+ * - `deepMatch`: An optional boolean to indicate if the item should match subpaths.
+ */
+export const navData = [
+  /**
+   * Overview
+   */
+  {
+    subheader: 'Overview',
+    items: [
+      { title: 'App', path: paths.dashboard.root, icon: ICONS.dashboard },
+      { title: 'Ecommerce', path: paths.dashboard.general.ecommerce, icon: ICONS.ecommerce },
+      { title: 'Analytics', path: paths.dashboard.general.analytics, icon: ICONS.analytics },
+      { title: 'Banking', path: paths.dashboard.general.banking, icon: ICONS.banking },
+      { title: 'Booking', path: paths.dashboard.general.booking, icon: ICONS.booking },
+      { title: 'Accounts', path: paths.dashboard.general.account, icon: ICONS.dashboard },
+      { title: 'File', path: paths.dashboard.general.file, icon: ICONS.file },
+      { title: 'Course', path: paths.dashboard.general.course, icon: ICONS.course },
+    ],
+  },
+  /**
+   * Management
+   */
+  {
+    subheader: 'Management',
+    items: [
+      {
+        title: 'User',
+        path: paths.dashboard.user.root,
+        icon: ICONS.user,
+        children: [
+          { title: 'Profile', path: paths.dashboard.user.root },
+          { title: 'Cards', path: paths.dashboard.user.cards },
+          { title: 'List', path: paths.dashboard.user.list },
+          { title: 'Create', path: paths.dashboard.user.new },
+          { title: 'Edit', path: paths.dashboard.user.demo.edit },
+          { title: 'Account', path: paths.dashboard.user.account, deepMatch: true },
         ],
       },
       {
@@ -25,7 +118,67 @@ import { paths } from 'src/routes/paths';
             path: paths.dashboard.hr.employee.root,
             children: [
               { title: 'All Employees', path: paths.dashboard.hr.employee.root },
-              { title: 'Payroll', path: paths.dashboard.hr.employee.finance.payroll.root },
+              {
+                title: 'Finance',
+                children: [
+                  {
+                    title: 'Payroll',
+                    path: paths.dashboard.hr.employee.finance.payroll.root,
+                    icon: ICONS.payroll,
+                  },
+                  { title: 'Loan Request', path: paths.dashboard.hr.employee.finance.loanRequest },
+                  {
+                    title: 'Expense Claim',
+                    path: paths.dashboard.hr.employee.finance.expenseClaim,
+                  },
+                  {
+                    title: 'Payslip Request',
+                    path: paths.dashboard.hr.employee.finance.payslipRequest,
+                  },
+                ],
+              },
+              {
+                title: 'HR Services',
+                children: [
+                  {
+                    title: 'Flight Ticket',
+                    path: paths.dashboard.hr.employee.hrServices.flightTicket,
+                  },
+                  {
+                    title: 'Asset Request',
+                    path: paths.dashboard.hr.employee.hrServices.assetRequest,
+                  },
+                  {
+                    title: 'Asset Clearance',
+                    path: paths.dashboard.hr.employee.hrServices.assetClearance,
+                  },
+                  {
+                    title: 'Exit/Re-Entry Visa',
+                    path: paths.dashboard.hr.employee.hrServices.exitReentryVisa,
+                  },
+                  {
+                    title: 'Resignation',
+                    path: paths.dashboard.hr.employee.hrServices.resignation,
+                  },
+                  {
+                    title: 'Chamber Letter',
+                    path: paths.dashboard.hr.employee.hrServices.chamberLetter,
+                  },
+                ],
+              },
+              {
+                title: 'Government & Others',
+                children: [
+                  {
+                    title: 'Insurance Request',
+                    path: paths.dashboard.hr.employee.government.insuranceRequest,
+                  },
+                  {
+                    title: 'Iqama Renewal',
+                    path: paths.dashboard.hr.employee.government.iqamaRenewal,
+                  },
+                ],
+              },
             ],
           },
           { title: 'Employee Offer Management', path: paths.dashboard.hr.offerManagement.root },
@@ -70,13 +223,13 @@ import { paths } from 'src/routes/paths';
           { title: 'Details', path: paths.dashboard.invoice.demo.details },
           { title: 'Create', path: paths.dashboard.invoice.new },
           { title: 'Edit', path: paths.dashboard.invoice.demo.edit },
-          { title: 'VAT', path: paths.dashboard.invoice.vat }, // ✅ ADD THIS
+          { title: 'VAT', path: paths.dashboard.invoice.vat },
         ],
       },
       {
         title: 'Vendor',
         path: paths.dashboard.vendor.root,
-        icon: ICONS.vendor, // or create a new vendor icon
+        icon: ICONS.vendor,
         children: [
           { title: 'List', path: paths.dashboard.vendor.root },
           { title: 'Details', path: paths.dashboard.vendor.demo.details },
@@ -195,14 +348,8 @@ import { paths } from 'src/routes/paths';
                 title: 'Level 2b',
                 path: '#/dashboard/menu-level/1a/2b',
                 children: [
-                  {
-                    title: 'Level 3a',
-                    path: '#/dashboard/menu-level/1a/2b/3a',
-                  },
-                  {
-                    title: 'Level 3b',
-                    path: '#/dashboard/menu-level/1a/2b/3b',
-                  },
+                  { title: 'Level 3a', path: '#/dashboard/menu-level/1a/2b/3a' },
+                  { title: 'Level 3b', path: '#/dashboard/menu-level/1a/2b/3b' },
                 ],
               },
             ],
@@ -210,12 +357,7 @@ import { paths } from 'src/routes/paths';
           { title: 'Level 1b', path: '#/dashboard/menu-level/1b' },
         ],
       },
-      {
-        title: 'Disabled',
-        path: '#disabled',
-        icon: ICONS.disabled,
-        disabled: true,
-      },
+      { title: 'Disabled', path: '#disabled', icon: ICONS.disabled, disabled: true },
       {
         title: 'Label',
         path: '#label',
@@ -242,12 +384,7 @@ import { paths } from 'src/routes/paths';
         path: '/dashboard/params?id=e99f09a7-dd88-49d5-b1c8-1daf80c2d7b1',
         icon: ICONS.params,
       },
-      {
-        title: 'Subpaths',
-        path: '/dashboard/subpaths',
-        icon: ICONS.subpaths,
-        deepMatch: true,
-      },
+      { title: 'Subpaths', path: '/dashboard/subpaths', icon: ICONS.subpaths, deepMatch: true },
       {
         title: 'External link',
         path: 'https://www.google.com/',
