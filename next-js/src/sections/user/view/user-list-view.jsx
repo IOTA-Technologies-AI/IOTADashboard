@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { varAlpha } from 'minimal-shared/utils';
 import { useBoolean, useSetState } from 'minimal-shared/hooks';
 
@@ -18,7 +18,8 @@ import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { _roles, _userList, USER_STATUS_OPTIONS } from 'src/_mock';
+import { USER_STATUS_OPTIONS } from 'src/_mock';
+import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
@@ -62,7 +63,19 @@ export function UserListView() {
 
   const confirmDialog = useBoolean();
 
-  const [tableData, setTableData] = useState(_userList);
+  const [tableData, setTableData] = useState([]);
+  const { users, loading } = useMicrosoftUsers();
+
+  const roleOptions = useMemo(
+    () => Array.from(new Set(tableData.map((u) => u.role).filter(Boolean))),
+    [tableData]
+  );
+
+  useEffect(() => {
+    if (Array.isArray(users)) {
+      setTableData(users);
+    }
+  }, [users]);
 
   const filters = useSetState({ name: '', role: [], status: 'all' });
   const { state: currentFilters, setState: updateFilters } = filters;
@@ -201,7 +214,7 @@ export function UserListView() {
           <UserTableToolbar
             filters={filters}
             onResetPage={table.onResetPage}
-            options={{ roles: _roles }}
+            options={{ roles: roleOptions }}
           />
 
           {canReset && (

@@ -11,6 +11,7 @@ import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 
 import { fData } from 'src/utils/format-number';
+import { getOneDriveToken, refreshAccessToken, seedOneDriveToken } from 'src/utils/onedrive-helper';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field, schemaUtils } from 'src/components/hook-form';
@@ -83,13 +84,118 @@ export function AccountGeneral() {
     formState: { isSubmitting },
   } = methods;
 
+  const getTokens = () => {
+    const stored = getOneDriveToken();
+    return {
+      accessToken: stored.accessToken || user?.provider_token || user?.providerToken,
+      refreshToken:
+        stored.refreshToken || user?.provider_refresh_token || user?.providerRefreshToken,
+    };
+  };
+
+  const fetchWithAuth = async (url, init, refreshToken) => {
+    const response = await fetch(url, init);
+
+    if (response.status === 401 && refreshToken) {
+      const refreshed = await refreshAccessToken(refreshToken);
+      const newAccess = refreshed.access_token || refreshed.accessToken;
+      const newRefresh = refreshed.refresh_token || refreshed.refreshToken || refreshToken;
+
+      if (newAccess) {
+        seedOneDriveToken(newAccess, newRefresh);
+        const retryInit = {
+          ...init,
+          headers: { ...init.headers, Authorization: `Bearer ${newAccess}` },
+        };
+        return fetch(url, retryInit);
+      }
+    }
+
+    return response;
+  };
+
+  const updateMicrosoftProfile = async (data) => {
+    const { accessToken, refreshToken } = getTokens();
+
+    if (!accessToken) {
+      toast.error('Microsoft token not available. Please reconnect.');
+      return;
+    }
+
+    const body = {
+      displayName: data.displayName,
+      jobTitle: data.about,
+      businessPhones: data.phoneNumber ? [data.phoneNumber] : [],
+      mobilePhone: data.phoneNumber,
+      officeLocation: data.address,
+      city: data.city,
+      state: data.state,
+      country: data.country,
+    };
+
+    const init = {
+      method: 'PATCH',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    };
+
+    const res = await fetchWithAuth('https://graph.microsoft.com/v1.0/me', init, refreshToken);
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || 'Failed to update Microsoft profile');
+    }
+  };
+
+  const uploadMicrosoftPhoto = async (photoFile) => {
+    if (!photoFile) return;
+
+    const { accessToken, refreshToken } = getTokens();
+
+    if (!accessToken) {
+      toast.error('Microsoft token not available for photo upload.');
+      return;
+    }
+
+    const arrayBuffer = await photoFile.arrayBuffer();
+    const init = {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': photoFile.type || 'image/jpeg',
+      },
+      body: arrayBuffer,
+    };
+
+    const res = await fetchWithAuth(
+      'https://graph.microsoft.com/v1.0/me/photo/$value',
+      init,
+      refreshToken
+    );
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || 'Failed to upload photo to Microsoft');
+    }
+  };
+
   const onSubmit = handleSubmit(async (data) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      toast.success('Update success!');
-      console.info('DATA', data);
+      await updateMicrosoftProfile(data);
+
+      const photoValue = data.photoURL;
+      const fileToUpload = photoValue instanceof File ? photoValue : photoValue?.[0];
+      if (fileToUpload) {
+        await uploadMicrosoftPhoto(fileToUpload);
+      }
+
+      toast.success('Profile updated in Microsoft 365');
     } catch (error) {
       console.error(error);
+      toast.error(error?.message || 'Failed to update Microsoft profile');
     }
   });
 

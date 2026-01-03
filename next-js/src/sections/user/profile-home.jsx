@@ -21,6 +21,21 @@ import { ProfilePostItem } from './profile-post-item';
 export function ProfileHome({ info, posts, sx, ...other }) {
   const fileRef = useRef(null);
 
+  const displayLocation = (() => {
+    if (!info.location) return '';
+    const parts = info.location
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
+    const unique = Array.from(new Set(parts));
+    return unique.join(', ');
+  })();
+
+  const uniqueEmails = (() => {
+    const emails = [info.email, info.userPrincipalName, info.managerEmail].filter(Boolean);
+    return Array.from(new Set(emails));
+  })();
+
   const handleAttach = () => {
     if (fileRef.current) {
       fileRef.current.click();
@@ -70,7 +85,7 @@ export function ProfileHome({ info, posts, sx, ...other }) {
           <span>
             Location
             <Link variant="subtitle2" color="inherit">
-              &nbsp;{info.location || 'Not provided'}
+              &nbsp;{displayLocation || 'Not provided'}
             </Link>
           </span>
         </Box>
@@ -91,13 +106,6 @@ export function ProfileHome({ info, posts, sx, ...other }) {
             {info.managerTitle ? `${info.managerName} • ${info.managerTitle}` : info.managerName}
           </span>
         </Box>
-
-        {info.officeLocation && (
-          <Box sx={{ gap: 2, display: 'flex', lineHeight: '24px' }}>
-            <Iconify width={24} icon="solar:building-2-bold" />
-            <span>Office: {info.officeLocation}</span>
-          </Box>
-        )}
       </Box>
     </Card>
   );
@@ -151,19 +159,12 @@ export function ProfileHome({ info, posts, sx, ...other }) {
           </Box>
         )}
 
-        {info.userPrincipalName && (
-          <Box sx={{ gap: 2, display: 'flex', alignItems: 'center' }}>
-            <Iconify icon="solar:letter-bold" />
-            <Link color="inherit">{info.userPrincipalName}</Link>
-          </Box>
-        )}
-
-        {info.managerEmail && (
-          <Box sx={{ gap: 2, display: 'flex', alignItems: 'center' }}>
+        {uniqueEmails.map((email) => (
+          <Box key={email} sx={{ gap: 2, display: 'flex', alignItems: 'center' }}>
             <Iconify icon="solar:envelope-bold" />
-            <Link color="inherit">{info.managerEmail}</Link>
+            <Link color="inherit">{email}</Link>
           </Box>
-        )}
+        ))}
       </Box>
     </Card>
   );
