@@ -72,6 +72,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
 
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
   const isSuperAdmin = normalizedRole === 'superAdmin';
+  const isAdminOrSuper = normalizedRole === 'admin' || normalizedRole === 'superAdmin';
 
   // ✅ Added state for AR invoices
   const [arInvoices, setArInvoices] = useState([]);
@@ -282,6 +283,11 @@ export function ExpenseNewEditForm({ currentExpense }) {
 
   const onSubmit = handleSubmit(async (data) => {
     try {
+      if (currentExpense && !isAdminOrSuper) {
+        toast.error('Only admins and super admins can edit expenses');
+        return;
+      }
+
       const resolvedStatus = isSuperAdmin ? data.expenseApprovalStatus : 'pending';
 
       const expenseData = {
@@ -535,6 +541,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
         size="large"
         variant="contained"
         loading={isSubmitting}
+        disabled={currentExpense ? !isAdminOrSuper : false}
       >
         {currentExpense ? 'Update Expense' : 'Create Expense'}
       </LoadingButton>
@@ -546,6 +553,11 @@ export function ExpenseNewEditForm({ currentExpense }) {
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 8 }}>
           <Stack spacing={3}>
+            {currentExpense && !isAdminOrSuper && (
+              <Alert severity="error">
+                Only admins and super admins can edit expenses. You have view-only access.
+              </Alert>
+            )}
             {renderBasicInfo}
             {renderApprovalInfo}
             {renderAdditionalInfo}

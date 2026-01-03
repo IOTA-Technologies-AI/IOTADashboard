@@ -32,6 +32,7 @@ export function InvoiceTableRow({
   onSelectRow,
   onDeleteRow,
   detailsHref,
+  canEdit = true,
 }) {
   const menuActions = usePopover();
   const confirmDialog = useBoolean();
@@ -51,25 +52,29 @@ export function InvoiceTableRow({
           </MenuItem>
         </li>
 
-        <li>
-          <MenuItem component={RouterLink} href={editHref} onClick={menuActions.onClose}>
-            <Iconify icon="solar:pen-bold" />
-            Edit
-          </MenuItem>
-        </li>
+        {canEdit && (
+          <>
+            <li>
+              <MenuItem component={RouterLink} href={editHref} onClick={menuActions.onClose}>
+                <Iconify icon="solar:pen-bold" />
+                Edit
+              </MenuItem>
+            </li>
 
-        <Divider sx={{ borderStyle: 'dashed' }} />
+            <Divider sx={{ borderStyle: 'dashed' }} />
 
-        <MenuItem
-          onClick={() => {
-            confirmDialog.onTrue();
-            menuActions.onClose();
-          }}
-          sx={{ color: 'error.main' }}
-        >
-          <Iconify icon="solar:trash-bin-trash-bold" />
-          Delete
-        </MenuItem>
+            <MenuItem
+              onClick={() => {
+                confirmDialog.onTrue();
+                menuActions.onClose();
+              }}
+              sx={{ color: 'error.main' }}
+            >
+              <Iconify icon="solar:trash-bin-trash-bold" />
+              Delete
+            </MenuItem>
+          </>
+        )}
       </MenuList>
     </CustomPopover>
   );
@@ -94,7 +99,8 @@ export function InvoiceTableRow({
         <TableCell padding="checkbox">
           <Checkbox
             checked={selected}
-            onClick={onSelectRow}
+            disabled={!canEdit}
+            onClick={canEdit ? onSelectRow : undefined}
             slotProps={{
               input: {
                 id: `${row.id}-checkbox`,

@@ -18,6 +18,7 @@ import { createInvoice, updateInvoice, getCostCenters } from 'src/utils/apiHelpe
 
 import { toast } from 'src/components/snackbar';
 import { Field, Form, schemaUtils } from 'src/components/hook-form';
+import { useAuthContext } from 'src/auth/hooks';
 
 import { InvoiceCreateEditStatusDate } from './invoice-create-edit-status-date';
 import { defaultItem, InvoiceCreateEditDetails } from './invoice-create-edit-details';
@@ -63,16 +64,27 @@ export const InvoiceCreateSchema = z
 
 export function InvoiceCreateEditForm({ currentInvoice }) {
   const router = useRouter();
+  const { user } = useAuthContext();
 
   const loadingSave = useBoolean();
   const loadingSend = useBoolean();
   const [costCenters, setCostCenters] = useState([]);
 
+  const roleIdToName = {
+    1: 'regular',
+    2: 'manager',
+    3: 'admin',
+    4: 'superAdmin',
+  };
+
+  const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
+  const canEditByRole = normalizedRole === 'admin' || normalizedRole === 'superAdmin';
+
   const isEdit = !!currentInvoice?.id;
 
   // ✅ CHECK IF INVOICE IS PAID - Cannot edit
   const isPaid = currentInvoice?.status === 'paid';
-  const canEdit = !isPaid;
+  const canSubmitChanges = isEdit ? canEditByRole && !isPaid : !isPaid;
 
   const defaultValues = {
     invoiceNumber: `INV-${Date.now()}`,
@@ -120,7 +132,12 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
   }, []);
 
   const handleSaveAsDraft = handleSubmit(async (data) => {
-    if (!canEdit) {
+    if (isEdit && !canEditByRole) {
+      toast.error('Only admins and super admins can edit invoices');
+      return;
+    }
+
+    if (!canSubmitChanges) {
       toast.error('Cannot edit paid or approved invoices');
       return;
     }
@@ -176,7 +193,12 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
 
   // ✅ Submit for Approval - Changes status to "pending" (waiting for approver)
   const handleSubmitForApproval = handleSubmit(async (data) => {
-    if (!canEdit) {
+    if (isEdit && !canEditByRole) {
+      toast.error('Only admins and super admins can edit invoices');
+      return;
+    }
+
+    if (!canSubmitChanges) {
       toast.error('Cannot edit paid or approved invoices');
       return;
     }
@@ -250,6 +272,12 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         </Alert>
       )}
 
+      {isEdit && !canEditByRole && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          Only admins and super admins can edit invoices. You have view-only access.
+        </Alert>
+      )}
+
       <Card>
         <InvoiceCreateEditAddress />
         <Box sx={{ p: 3, pt: 0 }}>
@@ -287,7 +315,7 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
           variant="outlined"
           color="inherit"
           onClick={handleSaveAsDraft}
-          disabled={loadingSave.value || isSubmitting || !canEdit}
+          disabled={loadingSave.value || isSubmitting || !canSubmitChanges}
         >
           {isEdit ? 'Update Draft' : 'Save as draft'}
         </Button>
@@ -296,7 +324,7 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
           size="large"
           variant="contained"
           onClick={handleSubmitForApproval}
-          disabled={loadingSend.value || isSubmitting || !canEdit}
+          disabled={loadingSend.value || isSubmitting || !canSubmitChanges}
         >
           {/* ✅ CHANGED TO "Submit for Approval" */}
           {isEdit ? 'Update & Submit for Approval' : 'Create & Submit for Approval'}

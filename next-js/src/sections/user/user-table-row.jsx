@@ -24,7 +24,14 @@ import { UserQuickEditForm } from './user-quick-edit-form';
 
 // ----------------------------------------------------------------------
 
-export function UserTableRow({ row, selected, editHref, onSelectRow, onDeleteRow }) {
+export function UserTableRow({
+  row,
+  selected,
+  editHref,
+  onSelectRow,
+  onDeleteRow,
+  canEdit = true,
+}) {
   const menuActions = usePopover();
   const confirmDialog = useBoolean();
   const quickEditForm = useBoolean();
@@ -45,23 +52,31 @@ export function UserTableRow({ row, selected, editHref, onSelectRow, onDeleteRow
       slotProps={{ arrow: { placement: 'right-top' } }}
     >
       <MenuList>
-        <li>
-          <MenuItem component={RouterLink} href={editHref} onClick={() => menuActions.onClose()}>
-            <Iconify icon="solar:pen-bold" />
-            Edit
-          </MenuItem>
-        </li>
+        {canEdit && (
+          <>
+            <li>
+              <MenuItem
+                component={RouterLink}
+                href={editHref}
+                onClick={() => menuActions.onClose()}
+              >
+                <Iconify icon="solar:pen-bold" />
+                Edit
+              </MenuItem>
+            </li>
 
-        <MenuItem
-          onClick={() => {
-            confirmDialog.onTrue();
-            menuActions.onClose();
-          }}
-          sx={{ color: 'error.main' }}
-        >
-          <Iconify icon="solar:trash-bin-trash-bold" />
-          Delete
-        </MenuItem>
+            <MenuItem
+              onClick={() => {
+                confirmDialog.onTrue();
+                menuActions.onClose();
+              }}
+              sx={{ color: 'error.main' }}
+            >
+              <Iconify icon="solar:trash-bin-trash-bold" />
+              Delete
+            </MenuItem>
+          </>
+        )}
       </MenuList>
     </CustomPopover>
   );
@@ -86,7 +101,8 @@ export function UserTableRow({ row, selected, editHref, onSelectRow, onDeleteRow
         <TableCell padding="checkbox">
           <Checkbox
             checked={selected}
-            onClick={onSelectRow}
+            disabled={!canEdit}
+            onClick={canEdit ? onSelectRow : undefined}
             slotProps={{
               input: {
                 id: `${row.id}-checkbox`,
@@ -101,14 +117,20 @@ export function UserTableRow({ row, selected, editHref, onSelectRow, onDeleteRow
             <Avatar alt={row.name} src={row.avatarUrl} />
 
             <Stack sx={{ typography: 'body2', flex: '1 1 auto', alignItems: 'flex-start' }}>
-              <Link
-                component={RouterLink}
-                href={editHref}
-                color="inherit"
-                sx={{ cursor: 'pointer' }}
-              >
-                {row.name}
-              </Link>
+              {canEdit ? (
+                <Link
+                  component={RouterLink}
+                  href={editHref}
+                  color="inherit"
+                  sx={{ cursor: 'pointer' }}
+                >
+                  {row.name}
+                </Link>
+              ) : (
+                <Box component="span" sx={{ color: 'text.primary' }}>
+                  {row.name}
+                </Box>
+              )}
               <Box component="span" sx={{ color: 'text.disabled' }}>
                 {row.email}
               </Box>
@@ -138,18 +160,21 @@ export function UserTableRow({ row, selected, editHref, onSelectRow, onDeleteRow
 
         <TableCell>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <Tooltip title="Quick edit" placement="top" arrow>
-              <IconButton
-                color={quickEditForm.value ? 'inherit' : 'default'}
-                onClick={quickEditForm.onTrue}
-              >
-                <Iconify icon="solar:pen-bold" />
-              </IconButton>
-            </Tooltip>
+            {canEdit && (
+              <Tooltip title="Quick edit" placement="top" arrow>
+                <IconButton
+                  color={quickEditForm.value ? 'inherit' : 'default'}
+                  onClick={quickEditForm.onTrue}
+                >
+                  <Iconify icon="solar:pen-bold" />
+                </IconButton>
+              </Tooltip>
+            )}
 
             <IconButton
               color={menuActions.open ? 'inherit' : 'default'}
               onClick={menuActions.onOpen}
+              disabled={!canEdit}
             >
               <Iconify icon="eva:more-vertical-fill" />
             </IconButton>

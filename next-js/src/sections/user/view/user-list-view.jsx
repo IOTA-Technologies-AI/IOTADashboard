@@ -20,6 +20,7 @@ import { RouterLink } from 'src/routes/components';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { USER_STATUS_OPTIONS } from 'src/_mock';
 import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
+import { useAuthContext } from 'src/auth/hooks';
 
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
@@ -59,6 +60,16 @@ const TABLE_HEAD = [
 // ----------------------------------------------------------------------
 
 export function UserListView() {
+  const { user } = useAuthContext();
+  const roleIdToName = {
+    1: 'regular',
+    2: 'manager',
+    3: 'admin',
+    4: 'superAdmin',
+  };
+  const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
+  const canEdit = normalizedRole === 'admin' || normalizedRole === 'superAdmin';
+
   const table = useTable();
 
   const confirmDialog = useBoolean();
@@ -95,6 +106,10 @@ export function UserListView() {
 
   const handleDeleteRow = useCallback(
     (id) => {
+      if (!canEdit) {
+        toast.error('Only admins and super admins can edit users');
+        return;
+      }
       const deleteRow = tableData.filter((row) => row.id !== id);
 
       toast.success('Delete success!');
@@ -103,10 +118,14 @@ export function UserListView() {
 
       table.onUpdatePageDeleteRow(dataInPage.length);
     },
-    [dataInPage.length, table, tableData]
+    [canEdit, dataInPage.length, table, tableData]
   );
 
   const handleDeleteRows = useCallback(() => {
+    if (!canEdit) {
+      toast.error('Only admins and super admins can edit users');
+      return;
+    }
     const deleteRows = tableData.filter((row) => !table.selected.includes(row.id));
 
     toast.success('Delete success!');
@@ -114,7 +133,7 @@ export function UserListView() {
     setTableData(deleteRows);
 
     table.onUpdatePageDeleteRows(dataInPage.length, dataFiltered.length);
-  }, [dataFiltered.length, dataInPage.length, table, tableData]);
+  }, [canEdit, dataFiltered.length, dataInPage.length, table, tableData]);
 
   const handleFilterStatus = useCallback(
     (event, newValue) => {
@@ -238,11 +257,13 @@ export function UserListView() {
                 )
               }
               action={
-                <Tooltip title="Delete">
-                  <IconButton color="primary" onClick={confirmDialog.onTrue}>
-                    <Iconify icon="solar:trash-bin-trash-bold" />
-                  </IconButton>
-                </Tooltip>
+                canEdit ? (
+                  <Tooltip title="Delete">
+                    <IconButton color="primary" onClick={confirmDialog.onTrue}>
+                      <Iconify icon="solar:trash-bin-trash-bold" />
+                    </IconButton>
+                  </Tooltip>
+                ) : null
               }
             />
 
@@ -276,6 +297,7 @@ export function UserListView() {
                         selected={table.selected.includes(row.id)}
                         onSelectRow={() => table.onSelectRow(row.id)}
                         onDeleteRow={() => handleDeleteRow(row.id)}
+                        canEdit={canEdit}
                         editHref={paths.dashboard.user.edit(row.id)}
                       />
                     ))}

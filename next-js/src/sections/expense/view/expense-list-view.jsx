@@ -26,10 +26,13 @@ import { EXPENSE_TYPES } from 'src/utils/constants/enums';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
+import { useAuthContext } from 'src/auth/hooks';
+
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { CustomPopover } from 'src/components/custom-popover';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { toast } from 'src/components/snackbar';
 import {
   useTable,
   emptyRows,
@@ -64,6 +67,16 @@ const TABLE_HEAD = [
 // ----------------------------------------------------------------------
 
 export function ExpenseListView({ expenses: initialExpenses = [] }) {
+  const { user } = useAuthContext();
+  const roleIdToName = {
+    1: 'regular',
+    2: 'manager',
+    3: 'admin',
+    4: 'superAdmin',
+  };
+  const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
+  const canEdit = normalizedRole === 'admin' || normalizedRole === 'superAdmin';
+
   const table = useTable({ defaultRowsPerPage: 25 });
   const router = useRouter();
   const [expenses] = useState(() =>
@@ -133,9 +146,13 @@ export function ExpenseListView({ expenses: initialExpenses = [] }) {
 
   const handleEditRow = useCallback(
     (id) => {
+      if (!canEdit) {
+        toast.error('Only admins and super admins can edit expenses');
+        return;
+      }
       router.push(paths.dashboard.expense.edit(id));
     },
-    [router]
+    [canEdit, router]
   );
 
   // Export functions
@@ -369,6 +386,7 @@ export function ExpenseListView({ expenses: initialExpenses = [] }) {
                   <ExpenseTableRow
                     key={row.referenceId}
                     row={row}
+                    canEdit={canEdit}
                     onEditRow={() => handleEditRow(row.referenceId)}
                     onViewRow={() => handleViewRow(row.referenceId)}
                   />

@@ -1,25 +1,22 @@
 import { Iconify } from 'src/components/iconify';
+import { paths } from 'src/routes/paths';
 
 // ----------------------------------------------------------------------
 
 export const _account = [
-  { label: 'Home', href: '/', icon: <Iconify icon="solar:home-angle-bold-duotone" /> },
+  {
+    label: 'Home',
+    href: paths.dashboard.root,
+    icon: <Iconify icon="solar:home-angle-bold-duotone" />,
+  },
   {
     label: 'Profile',
-    href: '#',
+    href: paths.dashboard.user.profile,
     icon: <Iconify icon="custom:profile-duotone" />,
   },
   {
-    label: 'Projects',
-    href: '#',
-    icon: <Iconify icon="solar:notes-bold-duotone" />,
-    info: '3',
+    label: 'Settings',
+    href: paths.dashboard.user.account,
+    icon: <Iconify icon="solar:settings-bold-duotone" />,
   },
-  {
-    label: 'Subscription',
-    href: '#',
-    icon: <Iconify icon="custom:invoice-duotone" />,
-  },
-  { label: 'Security', href: '#', icon: <Iconify icon="solar:shield-keyhole-bold-duotone" /> },
-  { label: 'Account settings', href: '#', icon: <Iconify icon="solar:settings-bold-duotone" /> },
 ];

@@ -50,6 +50,7 @@ import { InvoiceAnalytic } from '../invoice-analytic';
 import { InvoiceTableRow } from '../invoice-table-row';
 import { InvoiceTableToolbar } from '../invoice-table-toolbar';
 import { InvoiceTableFiltersResult } from '../invoice-table-filters-result';
+import { useAuthContext } from 'src/auth/hooks';
 
 // ----------------------------------------------------------------------
 
@@ -95,6 +96,16 @@ const mapBackendInvoiceToFrontend = (invoice) => ({
 });
 
 export function InvoiceListView() {
+  const { user } = useAuthContext();
+  const roleIdToName = {
+    1: 'regular',
+    2: 'manager',
+    3: 'admin',
+    4: 'superAdmin',
+  };
+  const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
+  const canEdit = normalizedRole === 'admin' || normalizedRole === 'superAdmin';
+
   const theme = useTheme();
   const table = useTable({ defaultOrderBy: 'createDate' });
   const confirmDialog = useBoolean();
@@ -198,6 +209,11 @@ export function InvoiceListView() {
 
   const handleDeleteRow = useCallback(
     async (id) => {
+      if (!canEdit) {
+        toast.error('Only admins and super admins can edit or delete invoices');
+        return;
+      }
+
       try {
         // Call backend API to delete invoice
         await deleteInvoice(id);
@@ -213,10 +229,15 @@ export function InvoiceListView() {
         toast.error('Failed to delete invoice');
       }
     },
-    [dataInPage.length, table, tableData]
+    [canEdit, dataInPage.length, table, tableData]
   );
 
   const handleDeleteRows = useCallback(async () => {
+    if (!canEdit) {
+      toast.error('Only admins and super admins can edit or delete invoices');
+      return;
+    }
+
     try {
       // Call backend API to delete all selected invoices
       const deletePromises = table.selected.map((id) => deleteInvoice(id));
@@ -232,7 +253,7 @@ export function InvoiceListView() {
       console.error('Failed to delete invoices:', error);
       toast.error('Failed to delete invoices');
     }
-  }, [dataFiltered.length, dataInPage.length, table, tableData]);
+  }, [canEdit, dataFiltered.length, dataInPage.length, table, tableData]);
 
   const handleFilterStatus = useCallback(
     (event, newValue) => {
@@ -406,31 +427,33 @@ export function InvoiceListView() {
                 );
               }}
               action={
-                <Box sx={{ display: 'flex' }}>
-                  <Tooltip title="Sent">
-                    <IconButton color="primary">
-                      <Iconify icon="custom:send-fill" />
-                    </IconButton>
-                  </Tooltip>
+                canEdit ? (
+                  <Box sx={{ display: 'flex' }}>
+                    <Tooltip title="Sent">
+                      <IconButton color="primary">
+                        <Iconify icon="custom:send-fill" />
+                      </IconButton>
+                    </Tooltip>
 
-                  <Tooltip title="Download">
-                    <IconButton color="primary">
-                      <Iconify icon="solar:download-bold" />
-                    </IconButton>
-                  </Tooltip>
+                    <Tooltip title="Download">
+                      <IconButton color="primary">
+                        <Iconify icon="solar:download-bold" />
+                      </IconButton>
+                    </Tooltip>
 
-                  <Tooltip title="Print">
-                    <IconButton color="primary">
-                      <Iconify icon="solar:printer-minimalistic-bold" />
-                    </IconButton>
-                  </Tooltip>
+                    <Tooltip title="Print">
+                      <IconButton color="primary">
+                        <Iconify icon="solar:printer-minimalistic-bold" />
+                      </IconButton>
+                    </Tooltip>
 
-                  <Tooltip title="Delete">
-                    <IconButton color="primary" onClick={confirmDialog.onTrue}>
-                      <Iconify icon="solar:trash-bin-trash-bold" />
-                    </IconButton>
-                  </Tooltip>
-                </Box>
+                    <Tooltip title="Delete">
+                      <IconButton color="primary" onClick={confirmDialog.onTrue}>
+                        <Iconify icon="solar:trash-bin-trash-bold" />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                ) : null
               }
             />
 
@@ -472,6 +495,7 @@ export function InvoiceListView() {
                             selected={table.selected.includes(row.id)}
                             onSelectRow={() => table.onSelectRow(row.id)}
                             onDeleteRow={() => handleDeleteRow(row.id)}
+                            canEdit={canEdit}
                             editHref={paths.dashboard.invoice.edit(row.id)}
                             detailsHref={paths.dashboard.invoice.details(row.id)}
                           />

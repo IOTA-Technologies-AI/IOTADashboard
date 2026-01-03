@@ -35,6 +35,28 @@ export function AccountDrawer({ data = [], sx, ...other }) {
   //const { user } = useMockedUser();
   const { user } = useAuthContext();
 
+  const roleIdToName = {
+    1: 'regular',
+    2: 'manager',
+    3: 'admin',
+    4: 'superAdmin',
+  };
+
+  const normalizeRole = (role, roleId) => {
+    if (role) return role;
+    if (roleId && roleIdToName[roleId]) return roleIdToName[roleId];
+    return 'regular';
+  };
+
+  const roleLabel = normalizeRole(user?.role, user?.roleId);
+  const roleColorMap = {
+    superAdmin: 'error',
+    admin: 'info',
+    manager: 'warning',
+    regular: 'default',
+  };
+  const roleColor = roleColorMap[roleLabel] || 'default';
+
   const { value: open, onFalse: onClose, onTrue: onOpen } = useBoolean();
 
   const renderAvatar = () => (
@@ -153,6 +175,10 @@ export function AccountDrawer({ data = [], sx, ...other }) {
             <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }} noWrap>
               {user?.email}
             </Typography>
+
+            <Label color={roleColor} variant="soft" sx={{ mt: 1, textTransform: 'capitalize' }}>
+              {roleLabel}
+            </Label>
           </Box>
 
           <Box sx={{ px: 2.5 }}>

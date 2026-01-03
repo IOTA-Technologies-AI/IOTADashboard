@@ -25,7 +25,15 @@ import { CustomPopover } from 'src/components/custom-popover';
 
 // ----------------------------------------------------------------------
 
-export function ExpenseTableRow({ row, selected, onEditRow, onViewRow, onSelectRow, onDeleteRow }) {
+export function ExpenseTableRow({
+  row,
+  selected,
+  onEditRow,
+  onViewRow,
+  onSelectRow,
+  onDeleteRow,
+  canEdit = true,
+}) {
   const confirm = useBoolean();
   const popover = usePopover();
 
@@ -142,15 +150,17 @@ export function ExpenseTableRow({ row, selected, onEditRow, onViewRow, onSelectR
             View
           </MenuItem>
 
-          <MenuItem
-            onClick={() => {
-              onEditRow();
-              popover.onClose();
-            }}
-          >
-            <Iconify icon="solar:pen-bold" />
-            Edit
-          </MenuItem>
+          {canEdit && (
+            <MenuItem
+              onClick={() => {
+                onEditRow();
+                popover.onClose();
+              }}
+            >
+              <Iconify icon="solar:pen-bold" />
+              Edit
+            </MenuItem>
+          )}
         </MenuList>
       </CustomPopover>
 
