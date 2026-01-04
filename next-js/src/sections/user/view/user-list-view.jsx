@@ -77,10 +77,10 @@ export function UserListView() {
   const [tableData, setTableData] = useState([]);
   const { users, loading } = useMicrosoftUsers();
 
-  const roleOptions = useMemo(
-    () => Array.from(new Set(tableData.map((u) => u.role).filter(Boolean))),
-    [tableData]
-  );
+  const roleOptions = useMemo(() => {
+    if (!Array.isArray(tableData)) return [];
+    return Array.from(new Set(tableData.map((u) => u.role).filter(Boolean)));
+  }, [tableData]);
 
   useEffect(() => {
     if (Array.isArray(users)) {
