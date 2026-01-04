@@ -7,11 +7,14 @@ const flattenNavItems = (navItems, parentGroup) => {
     const currentGroup = parentGroup ? `${parentGroup}-${navItem.title}` : navItem.title;
     const groupArray = currentGroup.split('-');
 
-    flattenedItems.push({
-      title: navItem.title,
-      path: navItem.path,
-      group: groupArray.length > 2 ? `${groupArray[0]}.${groupArray[1]}` : groupArray[0],
-    });
+    // Skip items without a concrete path to avoid passing undefined into consumers like autosuggest.
+    if (navItem.path) {
+      flattenedItems.push({
+        title: navItem.title,
+        path: navItem.path,
+        group: groupArray.length > 2 ? `${groupArray[0]}.${groupArray[1]}` : groupArray[0],
+      });
+    }
 
     if (navItem.children) {
       flattenedItems = flattenedItems.concat(flattenNavItems(navItem.children, currentGroup));
