@@ -16,6 +16,28 @@ const buildLocation = (me) => {
   return parts.join(', ');
 };
 
+const buildProfileFromUser = (user) => {
+  if (!user) return null;
+  const meta = user.user_metadata || {};
+  return {
+    displayName:
+      user.displayName || meta.display_name || meta.name || meta.full_name || user.email || 'User',
+    email: user.email,
+    jobTitle: user.role || meta.role || meta.jobTitle,
+    department: meta.department,
+    managerName: meta.managerName,
+    managerTitle: meta.managerTitle,
+    managerEmail: meta.managerEmail,
+    phone: meta.phone || meta.mobilePhone,
+    userPrincipalName: user.email,
+    officeLocation: meta.officeLocation,
+    location: [meta.city, meta.state, meta.country].filter(Boolean).join(', '),
+    city: meta.city,
+    state: meta.state,
+    country: meta.country,
+  };
+};
+
 export function useMicrosoftProfile() {
   const { user } = useAuthContext();
 
@@ -71,7 +93,11 @@ export function useMicrosoftProfile() {
     const refreshToken =
       stored.refreshToken || user?.provider_refresh_token || user?.providerRefreshToken;
 
-    if (!accessToken) return;
+    // Fallback: populate from local user if no Graph token is present
+    if (!accessToken) {
+      setProfile((prev) => prev || buildProfileFromUser(user));
+      return;
+    }
 
     setLoading(true);
     setError(null);
@@ -94,6 +120,7 @@ export function useMicrosoftProfile() {
         }
       } else {
         setError(err);
+        setProfile((prev) => prev || buildProfileFromUser(user));
       }
     } finally {
       setLoading(false);

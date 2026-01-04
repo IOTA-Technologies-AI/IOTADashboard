@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 
 import { getOneDriveToken, seedOneDriveToken, refreshAccessToken } from 'src/utils/onedrive-helper';
+import { supabase } from 'src/lib/supabase';
 
 import { useAuthContext } from './use-auth-context';
 
@@ -31,43 +32,76 @@ export function useMicrosoftUsers() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const fetchUsers = useCallback(async (accessToken, refreshToken) => {
-    setLoading(true);
-    setError(null);
-
+  const fetchFromSupabase = useCallback(async () => {
     try {
-      const response = await fetch(USERS_ENDPOINT, {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
+      const { data, error } = await supabase
+        .from('users')
+        .select('id, full_name, email, company, department, mobile_phone, phone, role, role_id')
+        .order('full_name', { ascending: true });
 
-      if (response.status === 401 && refreshToken) {
-        const refreshed = await refreshAccessToken(refreshToken);
-        const newAccess = refreshed.access_token || refreshed.accessToken;
-        const newRefresh = refreshed.refresh_token || refreshed.refreshToken || refreshToken;
+      if (error) throw error;
 
-        if (newAccess) {
-          seedOneDriveToken(newAccess, newRefresh);
-          return fetchUsers(newAccess, newRefresh);
-        }
-      }
+      const mapped = (data || []).map((u) => ({
+        id: u.id,
+        name: u.full_name || u.email || 'User',
+        phoneNumber: u.mobile_phone || u.phone || '',
+        company: u.company || '',
+        role: u.role || u.role_id || 'Member',
+        status: 'active',
+        email: u.email,
+        username: u.email,
+        location: u.department || '',
+      }));
 
-      if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || 'Failed to fetch Microsoft users');
-      }
-
-      const data = await response.json();
-      const mapped = Array.isArray(data.value) ? data.value.map(mapUser) : [];
       setUsers(mapped);
       return mapped;
     } catch (err) {
       setError(err);
       setUsers([]);
       return [];
-    } finally {
-      setLoading(false);
     }
   }, []);
+
+  const fetchUsers = useCallback(
+    async (accessToken, refreshToken) => {
+      setLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch(USERS_ENDPOINT, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+
+        if (response.status === 401 && refreshToken) {
+          const refreshed = await refreshAccessToken(refreshToken);
+          const newAccess = refreshed.access_token || refreshed.accessToken;
+          const newRefresh = refreshed.refresh_token || refreshed.refreshToken || refreshToken;
+
+          if (newAccess) {
+            seedOneDriveToken(newAccess, newRefresh);
+            return fetchUsers(newAccess, newRefresh);
+          }
+        }
+
+        if (!response.ok) {
+          const text = await response.text();
+          throw new Error(text || 'Failed to fetch Microsoft users');
+        }
+
+        const data = await response.json();
+        const mapped = Array.isArray(data.value) ? data.value.map(mapUser) : [];
+        setUsers(mapped);
+        return mapped;
+      } catch (err) {
+        setError(err);
+        // Fallback to Supabase users if Graph fails
+        return fetchFromSupabase();
+      } finally {
+        setLoading(false);
+      }
+    },
+    [fetchFromSupabase]
+  );
 
   useEffect(() => {
     const stored = getOneDriveToken();
@@ -75,10 +109,13 @@ export function useMicrosoftUsers() {
     const refreshToken =
       stored.refreshToken || user?.provider_refresh_token || user?.providerRefreshToken;
 
-    if (!accessToken) return;
+    if (!accessToken) {
+      fetchFromSupabase();
+      return;
+    }
 
     fetchUsers(accessToken, refreshToken);
-  }, [fetchUsers, user]);
+  }, [fetchFromSupabase, fetchUsers, user]);
 
   return { users, loading, error };
 }
