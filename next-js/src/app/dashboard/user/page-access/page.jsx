@@ -2,39 +2,42 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-import Alert from '@mui/material/Alert';
-import Autocomplete from '@mui/material/Autocomplete';
-import Button from '@mui/material/Button';
 import Card from '@mui/material/Card';
-import CardHeader from '@mui/material/CardHeader';
 import Chip from '@mui/material/Chip';
-import Container from '@mui/material/Container';
+import Alert from '@mui/material/Alert';
+import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
-import Stack from '@mui/material/Stack';
+import Container from '@mui/material/Container';
 import TextField from '@mui/material/TextField';
+import CardHeader from '@mui/material/CardHeader';
 import Typography from '@mui/material/Typography';
+import Autocomplete from '@mui/material/Autocomplete';
 
-import { RoleGuard } from 'src/auth/guard';
-import { _userList } from 'src/_mock';
-import { supabase } from 'src/lib/supabase';
-import { navData as dashboardNavData } from 'src/layouts/nav-config-dashboard';
 import { paths } from 'src/routes/paths';
+
 import {
   getPageAccessForUser,
   removePageAccessForUser,
   savePageAccessForUser,
 } from 'src/utils/pageAccess';
 
-const baseFromPath = (path) => {
-  const parts = (path || '').split('/').filter(Boolean);
+import { _userList } from 'src/_mock';
+import { supabase } from 'src/lib/supabase';
+import { navData as dashboardNavData } from 'src/layouts/nav-config-dashboard';
+
+import { RoleGuard } from 'src/auth/guard';
+
+const baseFromPath = (pathname) => {
+  const parts = (pathname || '').split('/').filter(Boolean);
   if (!parts.length) return '';
   if (parts[0] === 'dashboard' && parts.length >= 2) return `/${parts[0]}/${parts[1]}`;
   return `/${parts.slice(0, 2).join('/')}`;
 };
 
 const flattenNav = (items, prefix = []) =>
-  items.flatMap((item) => {
+  (Array.isArray(items) ? items : []).flatMap((item) => {
     const labelParts = [...prefix, item.title];
     const current = item.path
       ? [
@@ -54,7 +57,8 @@ const flattenNav = (items, prefix = []) =>
 const computeRoleDefaults = (role, pages) => {
   if (!role) return [];
   const base = ['/dashboard', '/dashboard/', '/dashboard/app'];
-  const list = pages.filter((item) => {
+  const safePages = Array.isArray(pages) ? pages : [];
+  const list = safePages.filter((item) => {
     if (!item.path) return false;
     const allowed = item.allowedRoles;
     return !allowed || allowed.includes(role);
@@ -104,10 +108,10 @@ const buildMockRows = (pages) =>
   _userList.map((user) => {
     const role = normalizeRole(user.role, user.roleId);
     const storedPaths = getPageAccessForUser(user.id);
-    const paths = storedPaths?.length
+    const userPaths = storedPaths?.length
       ? storedPaths
       : user.paths || computeRoleDefaults(role, pages);
-    return { ...user, role, paths };
+    return { ...user, role, paths: userPaths };
   });
 
 export default function UserPageAccess() {
@@ -121,25 +125,32 @@ export default function UserPageAccess() {
   const routePages = useMemo(() => flattenRoutes(paths.dashboard), []);
   const allPages = useMemo(() => {
     const merged = new Map();
-    [...navPages, ...routePages].forEach((item) => {
-      if (!item.path) return;
+    [...(navPages || []), ...(routePages || [])].forEach((item) => {
+      if (!item || !item.path) return;
       if (!merged.has(item.path)) {
         merged.set(item.path, item);
       }
     });
-    return merged ? Array.from(merged.values()) : [];
+    return Array.from(merged.values());
   }, [navPages, routePages]);
 
   const mainPages = useMemo(
-    () => allPages.filter((item) => item.path && item.basePath === item.path),
+    () =>
+      (Array.isArray(allPages) ? allPages : []).filter(
+        (item) => item.path && item.basePath === item.path
+      ),
     [allPages]
   );
   const subPages = useMemo(
-    () => allPages.filter((item) => item.path && item.basePath && item.basePath !== item.path),
+    () =>
+      (Array.isArray(allPages) ? allPages : []).filter(
+        (item) => item.path && item.basePath && item.basePath !== item.path
+      ),
     [allPages]
   );
 
-  const unionPaths = (a, b) => Array.from(new Set([...(a || []), ...(b || [])]));
+  const unionPaths = (a, b) =>
+    Array.from(new Set([...(Array.isArray(a) ? a : []), ...(Array.isArray(b) ? b : [])]));
 
   useEffect(() => {
     const loadUsers = async () => {
@@ -158,7 +169,7 @@ export default function UserPageAccess() {
           const role = normalizeRole(user.role, user.role_id);
           const storedPaths = getPageAccessForUser(user.id);
           const dbPaths = Array.isArray(user.allowed_paths) ? user.allowed_paths : [];
-          const paths = storedPaths?.length
+          const userPaths = storedPaths?.length
             ? storedPaths
             : dbPaths.length
               ? dbPaths
@@ -170,7 +181,7 @@ export default function UserPageAccess() {
             email: user.email,
             role,
             roleId: user.role_id,
-            paths,
+            paths: userPaths,
           };
         });
 
@@ -207,8 +218,10 @@ export default function UserPageAccess() {
     removePageAccessForUser(userId);
   };
 
-  const handlePathsChange = (userId, paths) => {
-    setRows((prev) => prev.map((user) => (user.id === userId ? { ...user, paths } : user)));
+  const handlePathsChange = (userId, newPaths) => {
+    setRows((prev) =>
+      prev.map((user) => (user.id === userId ? { ...user, paths: newPaths } : user))
+    );
   };
 
   const handleResetUser = (userId) => {
@@ -250,6 +263,10 @@ export default function UserPageAccess() {
       setLoading(false);
     }
   };
+
+  const selectedUser = rows.find((u) => u.id === selectedUserId);
+  const selectedPaths = Array.isArray(selectedUser?.paths) ? selectedUser.paths : [];
+  const selectedRole = selectedUser?.role || '';
 
   return (
     <RoleGuard allowedRoles={['superAdmin', 'admin']}>
@@ -298,7 +315,7 @@ export default function UserPageAccess() {
                       select
                       fullWidth
                       label="Role"
-                      value={rows.find((r) => r.id === selectedUserId)?.role || ''}
+                      value={selectedRole}
                       onChange={(e) => handleRoleChange(selectedUserId, e.target.value)}
                     >
                       {roleOptions.map((role) => (
@@ -314,11 +331,9 @@ export default function UserPageAccess() {
                       options={mainPages}
                       getOptionLabel={(option) => option.title}
                       isOptionEqualToValue={(option, value) => option.path === value.path}
-                      value={mainPages.filter((page) =>
-                        rows.find((r) => r.id === selectedUserId)?.paths.includes(page.path)
-                      )}
+                      value={mainPages.filter((page) => selectedPaths.includes(page.path))}
                       onChange={(_, value) => {
-                        const currentPaths = rows.find((r) => r.id === selectedUserId)?.paths || [];
+                        const currentPaths = selectedPaths;
                         const selectedBases = new Set(value.map((v) => v.basePath));
                         const subSelected = subPages
                           .filter((page) => page.basePath && selectedBases.has(page.basePath))
@@ -351,10 +366,9 @@ export default function UserPageAccess() {
                       multiple
                       disableCloseOnSelect
                       options={subPages.filter((page) => {
-                        const mainSelected = rows.find((r) => r.id === selectedUserId)?.paths || [];
                         const bases = new Set(
                           mainPages
-                            .filter((p) => mainSelected.includes(p.path))
+                            .filter((p) => selectedPaths.includes(p.path))
                             .map((p) => p.basePath)
                         );
                         return page.basePath && bases.has(page.basePath);
@@ -362,14 +376,16 @@ export default function UserPageAccess() {
                       getOptionLabel={(option) => option.title}
                       isOptionEqualToValue={(option, value) => option.path === value.path}
                       value={subPages.filter((page) => {
-                        const userPaths = rows.find((r) => r.id === selectedUserId)?.paths || [];
-                        if (!userPaths.includes(page.path)) return false;
-                        const mainSelected = mainPages.filter((p) => userPaths.includes(p.path));
-                        const bases = new Set(mainSelected.map((p) => p.basePath));
+                        if (!selectedPaths.includes(page.path)) return false;
+                        const bases = new Set(
+                          mainPages
+                            .filter((p) => selectedPaths.includes(p.path))
+                            .map((p) => p.basePath)
+                        );
                         return page.basePath && bases.has(page.basePath);
                       })}
                       onChange={(_, value) => {
-                        const currentPaths = rows.find((r) => r.id === selectedUserId)?.paths || [];
+                        const currentPaths = selectedPaths;
                         const mainSelected = mainPages.filter((page) =>
                           currentPaths.includes(page.path)
                         );
@@ -423,9 +439,7 @@ export default function UserPageAccess() {
                     </Stack>
 
                     <Typography variant="caption" color="text.secondary">
-                      {`Selected (${rows.find((r) => r.id === selectedUserId)?.paths.length || 0}): ${
-                        rows.find((r) => r.id === selectedUserId)?.paths.join(', ') || ''
-                      }`}
+                      {`Selected (${selectedPaths.length}): ${selectedPaths.join(', ')}`}
                     </Typography>
                   </Stack>
                 </Card>

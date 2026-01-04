@@ -12,6 +12,8 @@ const safeParse = (value) => {
 
 const hasWindow = () => typeof window !== 'undefined';
 
+const toSafeArray = (value) => (Array.isArray(value) ? value : []);
+
 export const getPageAccessMap = () => {
   if (!hasWindow()) return {};
   return safeParse(window.localStorage.getItem(STORAGE_KEY));
@@ -26,27 +28,27 @@ export const getPageAccessForUser = (userId) => {
   if (!userId || !hasWindow()) return [];
   const map = getPageAccessMap();
   const entry = map[userId];
-  return Array.isArray(entry) ? entry : [];
+  return toSafeArray(entry);
 };
 
 export const getPageAccessForRole = (role) => {
   if (!role || !hasWindow()) return [];
   const map = getRoleAccessMap();
   const entry = map[role];
-  return Array.isArray(entry) ? entry : [];
+  return toSafeArray(entry);
 };
 
 export const savePageAccessForUser = (userId, paths) => {
   if (!userId || !hasWindow()) return;
   const map = getPageAccessMap();
-  map[userId] = Array.from(new Set(paths || []));
+  map[userId] = Array.from(new Set(toSafeArray(paths)));
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(map));
 };
 
 export const savePageAccessForRole = (role, paths) => {
   if (!role || !hasWindow()) return;
   const map = getRoleAccessMap();
-  map[role] = Array.from(new Set(paths || []));
+  map[role] = Array.from(new Set(toSafeArray(paths)));
   window.localStorage.setItem(ROLE_STORAGE_KEY, JSON.stringify(map));
 };
 
