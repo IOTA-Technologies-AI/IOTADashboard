@@ -32,7 +32,7 @@ export function ProfileHome({ info, posts, sx, ...other }) {
   })();
 
   const uniqueEmails = (() => {
-    const emails = [info.email, info.userPrincipalName, info.managerEmail].filter(Boolean);
+    const emails = [info.email, info.userPrincipalName].filter(Boolean);
     return Array.from(new Set(emails));
   })();
 
@@ -44,23 +44,11 @@ export function ProfileHome({ info, posts, sx, ...other }) {
 
   const renderSummary = () => (
     <Card sx={{ py: 3, textAlign: 'center' }}>
-      <Stack
-        divider={<Divider orientation="vertical" flexItem sx={{ borderStyle: 'dashed' }} />}
-        sx={{ flexDirection: 'row', typography: 'h6' }}
-      >
-        <Stack sx={{ width: 1 }}>
-          {info.role || 'Role unavailable'}
-          <Box component="span" sx={{ color: 'text.secondary', typography: 'body2' }}>
-            Role
-          </Box>
-        </Stack>
-
-        <Stack sx={{ width: 1 }}>
-          {info.managerName || 'Manager unavailable'}
-          <Box component="span" sx={{ color: 'text.secondary', typography: 'body2' }}>
-            Manager
-          </Box>
-        </Stack>
+      <Stack sx={{ typography: 'h6' }}>
+        {info.role || 'Role unavailable'}
+        <Box component="span" sx={{ color: 'text.secondary', typography: 'body2' }}>
+          Role
+        </Box>
       </Stack>
     </Card>
   );
@@ -98,13 +86,6 @@ export function ProfileHome({ info, posts, sx, ...other }) {
         <Box sx={{ gap: 2, display: 'flex', lineHeight: '24px' }}>
           <Iconify width={24} icon="solar:case-minimalistic-bold" />
           <span>{info.department ? `Department: ${info.department}` : 'Department not set'}</span>
-        </Box>
-
-        <Box sx={{ gap: 2, display: 'flex', lineHeight: '24px' }}>
-          <Iconify width={24} icon="solar:user-bold" />
-          <span>
-            {info.managerTitle ? `${info.managerName} • ${info.managerTitle}` : info.managerName}
-          </span>
         </Box>
       </Box>
     </Card>

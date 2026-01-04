@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
 import { paths } from 'src/routes/paths';
 
@@ -9,14 +9,31 @@ import { fetchInvoice } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
+import { toast } from 'src/components/snackbar';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+
+import { useAuthContext } from 'src/auth/hooks';
 
 import { InvoiceCreateEditForm } from '../invoice-create-edit-form';
 
 export function InvoiceEditView({ invoice: initialInvoice }) {
   const params = useParams();
+  const router = useRouter();
+  const { user } = useAuthContext();
+
+  const roleIdToName = { 1: 'regular', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
+  const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
+  const canEdit = normalizedRole === 'superAdmin';
+
   const [invoice, setInvoice] = useState(initialInvoice);
   const [loading, setLoading] = useState(!initialInvoice);
+
+  useEffect(() => {
+    if (!canEdit) {
+      toast.error('Only super admins can edit invoices');
+      router.replace(paths.dashboard.invoice.root);
+    }
+  }, [canEdit, router]);
 
   useEffect(() => {
     if (!initialInvoice && params?.id) {
@@ -74,7 +91,7 @@ export function InvoiceEditView({ invoice: initialInvoice }) {
     }
   }, [initialInvoice, params?.id]);
 
-  if (loading) {
+  if (loading || !canEdit) {
     return <div>Loading...</div>;
   }
 

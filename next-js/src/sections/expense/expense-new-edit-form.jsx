@@ -13,6 +13,7 @@ import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import CircularProgress from '@mui/material/CircularProgress'; // ✅ Added for loading state
+import Alert from '@mui/material/Alert';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
@@ -72,7 +73,6 @@ export function ExpenseNewEditForm({ currentExpense }) {
 
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
   const isSuperAdmin = normalizedRole === 'superAdmin';
-  const isAdminOrSuper = normalizedRole === 'admin' || normalizedRole === 'superAdmin';
 
   // ✅ Added state for AR invoices
   const [arInvoices, setArInvoices] = useState([]);
@@ -283,8 +283,8 @@ export function ExpenseNewEditForm({ currentExpense }) {
 
   const onSubmit = handleSubmit(async (data) => {
     try {
-      if (currentExpense && !isAdminOrSuper) {
-        toast.error('Only admins and super admins can edit expenses');
+      if (currentExpense && !isSuperAdmin) {
+        toast.error('Only super admins can edit expenses');
         return;
       }
 
@@ -541,7 +541,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
         size="large"
         variant="contained"
         loading={isSubmitting}
-        disabled={currentExpense ? !isAdminOrSuper : false}
+        disabled={currentExpense ? !isSuperAdmin : false}
       >
         {currentExpense ? 'Update Expense' : 'Create Expense'}
       </LoadingButton>
@@ -553,9 +553,9 @@ export function ExpenseNewEditForm({ currentExpense }) {
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 8 }}>
           <Stack spacing={3}>
-            {currentExpense && !isAdminOrSuper && (
+            {currentExpense && !isSuperAdmin && (
               <Alert severity="error">
-                Only admins and super admins can edit expenses. You have view-only access.
+                Only super admins can edit expenses. You have view-only access.
               </Alert>
             )}
             {renderBasicInfo}

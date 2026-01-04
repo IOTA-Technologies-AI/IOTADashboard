@@ -78,7 +78,7 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
   };
 
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
-  const canEditByRole = normalizedRole === 'admin' || normalizedRole === 'superAdmin';
+  const canEditByRole = normalizedRole === 'superAdmin';
 
   const isEdit = !!currentInvoice?.id;
 

@@ -75,7 +75,7 @@ export function ExpenseListView({ expenses: initialExpenses = [] }) {
     4: 'superAdmin',
   };
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
-  const canEdit = normalizedRole === 'admin' || normalizedRole === 'superAdmin';
+  const canEdit = normalizedRole === 'superAdmin';
 
   const table = useTable({ defaultRowsPerPage: 25 });
   const router = useRouter();

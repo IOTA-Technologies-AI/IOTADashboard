@@ -104,7 +104,7 @@ export function InvoiceListView() {
     4: 'superAdmin',
   };
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
-  const canEdit = normalizedRole === 'admin' || normalizedRole === 'superAdmin';
+  const canEdit = normalizedRole === 'superAdmin';
 
   const theme = useTheme();
   const table = useTable({ defaultOrderBy: 'createDate' });
