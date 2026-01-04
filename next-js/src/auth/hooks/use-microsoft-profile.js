@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback } from 'react';
 
 import { getOneDriveToken, seedOneDriveToken, refreshAccessToken } from 'src/utils/onedrive-helper';
-import { supabase } from 'src/lib/supabase';
 
 import { useAuthContext } from './use-auth-context';
 
@@ -17,26 +16,17 @@ const buildLocation = (me) => {
   return parts.join(', ');
 };
 
-const buildProfileFromUser = (user) => {
-  if (!user) return null;
-  const meta = user.user_metadata || {};
-  return {
-    displayName:
-      user.displayName || meta.display_name || meta.name || meta.full_name || user.email || 'User',
-    email: user.email,
-    jobTitle: user.role || meta.role || meta.jobTitle,
-    department: meta.department,
-    managerName: meta.managerName,
-    managerTitle: meta.managerTitle,
-    managerEmail: meta.managerEmail,
-    phone: meta.phone || meta.mobilePhone,
-    userPrincipalName: user.email,
-    officeLocation: meta.officeLocation,
-    location: [meta.city, meta.state, meta.country].filter(Boolean).join(', '),
-    city: meta.city,
-    state: meta.state,
-    country: meta.country,
-  };
+const decodeJwt = (token) => {
+  try {
+    const payload = token?.split?.('.')[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    return JSON.parse(atob(padded));
+  } catch (err) {
+    console.warn('Unable to decode JWT payload for role inspection', err);
+    return null;
+  }
 };
 
 export function useMicrosoftProfile() {
@@ -47,7 +37,7 @@ export function useMicrosoftProfile() {
   const [error, setError] = useState(null);
 
   const runProfileFetch = useCallback(
-    async (token) => {
+    async (token, inferredRole) => {
       const headers = { Authorization: `Bearer ${token}` };
 
       const [meRes, managerRes] = await Promise.all([
@@ -63,15 +53,30 @@ export function useMicrosoftProfile() {
 
       const me = await meRes.json();
 
+      console.info('Microsoft profile role fields', {
+        graphJobTitle: me?.jobTitle,
+        graphDepartment: me?.department,
+        inferredRole,
+        userRole: user?.role,
+        userRoleId: user?.roleId,
+        supabaseRole: user?.user_metadata?.role,
+      });
+
       let manager = null;
       if (managerRes.ok) {
         manager = await managerRes.json();
       }
 
+      const resolvedRole = inferredRole || me?.jobTitle || me?.department || user?.role;
+
+      console.info('Microsoft profile resolved role selection', {
+        resolvedRole,
+      });
+
       setProfile({
         displayName: me?.displayName || user?.displayName || user?.email,
         email: me?.mail || me?.userPrincipalName || user?.email,
-        jobTitle: me?.jobTitle || user?.role,
+        jobTitle: resolvedRole,
         department: me?.department,
         managerName: manager?.displayName,
         managerTitle: manager?.jobTitle,
@@ -88,55 +93,34 @@ export function useMicrosoftProfile() {
     [user]
   );
 
-  const fetchProfileFromSupabase = useCallback(async () => {
-    try {
-      if (!user?.id) return null;
-      const { data, error } = await supabase
-        .from('users')
-        .select(
-          'full_name, email, role, department, manager_name, manager_title, manager_email, phone, city, state, country, office_location'
-        )
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      if (!data) return null;
-
-      const supaProfile = {
-        displayName: data.full_name || user.email || 'User',
-        email: data.email || user.email,
-        jobTitle: data.role,
-        department: data.department,
-        managerName: data.manager_name,
-        managerTitle: data.manager_title,
-        managerEmail: data.manager_email,
-        phone: data.phone,
-        userPrincipalName: data.email || user.email,
-        officeLocation: data.office_location,
-        location: [data.city, data.state, data.country].filter(Boolean).join(', '),
-        city: data.city,
-        state: data.state,
-        country: data.country,
-      };
-
-      setProfile((prev) => prev || supaProfile);
-      return supaProfile;
-    } catch (err) {
-      setError(err);
-      return null;
-    }
-  }, [user]);
-
   const fetchProfile = useCallback(async () => {
     const stored = getOneDriveToken();
     const accessToken = stored.accessToken || user?.provider_token || user?.providerToken;
     const refreshToken =
       stored.refreshToken || user?.provider_refresh_token || user?.providerRefreshToken;
 
-    // Fallback: populate from local user or Supabase if no Graph token is present
+    const claims = decodeJwt(accessToken);
+    const tokenRoles = claims?.roles || claims?.wids || [];
+    const appRole = Array.isArray(tokenRoles) ? tokenRoles[0] : tokenRoles;
+
+    console.info('Profile fetch: token claims for role resolution', {
+      tokenRoles,
+      appRole,
+      oid: claims?.oid,
+      tid: claims?.tid,
+      upn: claims?.upn || claims?.preferred_username,
+    });
+
+    console.info('Profile fetch: tokens', {
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken,
+      fromStored: !!stored.accessToken,
+      fromProvider: !!user?.provider_token || !!user?.providerToken,
+    });
+
+    // If we don't have a Graph access token, we cannot fetch Microsoft 365 data.
     if (!accessToken) {
-      await fetchProfileFromSupabase();
-      setProfile((prev) => prev || buildProfileFromUser(user));
+      console.warn('Microsoft profile: no access token available (provider_token missing)');
       return;
     }
 
@@ -144,7 +128,7 @@ export function useMicrosoftProfile() {
     setError(null);
 
     try {
-      await runProfileFetch(accessToken);
+      await runProfileFetch(accessToken, appRole);
     } catch (err) {
       if (err?.status === 401 && refreshToken) {
         try {
@@ -154,20 +138,33 @@ export function useMicrosoftProfile() {
 
           if (newAccess) {
             seedOneDriveToken(newAccess, newRefresh);
-            await runProfileFetch(newAccess);
+            const refreshedClaims = decodeJwt(newAccess);
+            const refreshedRoles = refreshedClaims?.roles || refreshedClaims?.wids || [];
+            const refreshedRole = Array.isArray(refreshedRoles)
+              ? refreshedRoles[0]
+              : refreshedRoles;
+
+            console.info('Profile fetch: refreshed token claims', {
+              refreshedRoles,
+              refreshedRole,
+              oid: refreshedClaims?.oid,
+              tid: refreshedClaims?.tid,
+              upn: refreshedClaims?.upn || refreshedClaims?.preferred_username,
+            });
+
+            await runProfileFetch(newAccess, refreshedRole);
           }
         } catch (refreshError) {
           setError(refreshError);
         }
       } else {
         setError(err);
-        await fetchProfileFromSupabase();
-        setProfile((prev) => prev || buildProfileFromUser(user));
+        console.error('Microsoft profile fetch failed', err);
       }
     } finally {
       setLoading(false);
     }
-  }, [fetchProfileFromSupabase, runProfileFetch, user]);
+  }, [runProfileFetch, user]);
 
   useEffect(() => {
     fetchProfile();
