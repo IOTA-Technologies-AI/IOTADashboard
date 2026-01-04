@@ -23,6 +23,15 @@ export function ExpenseEditView({ expense }) {
   const roleIdToName = { 1: 'regular', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
   const canEdit = normalizedRole === 'superAdmin';
+  const appRoles = user?.app_metadata?.roles || user?.roles || user?.user_metadata?.roles;
+
+  console.info('Expense edit role check', {
+    expected: 'superAdmin',
+    normalizedRole,
+    role: user?.role,
+    roleId: user?.roleId,
+    appRoles,
+  });
 
   useEffect(() => {
     if (!canEdit) {
