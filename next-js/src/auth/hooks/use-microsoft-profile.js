@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 
 import { getOneDriveToken, seedOneDriveToken, refreshAccessToken } from 'src/utils/onedrive-helper';
+import { supabase } from 'src/lib/supabase';
 
 import { useAuthContext } from './use-auth-context';
 
@@ -87,14 +88,54 @@ export function useMicrosoftProfile() {
     [user]
   );
 
+  const fetchProfileFromSupabase = useCallback(async () => {
+    try {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('users')
+        .select(
+          'full_name, email, role, department, manager_name, manager_title, manager_email, phone, city, state, country, office_location'
+        )
+        .eq('id', user.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      if (!data) return null;
+
+      const supaProfile = {
+        displayName: data.full_name || user.email || 'User',
+        email: data.email || user.email,
+        jobTitle: data.role,
+        department: data.department,
+        managerName: data.manager_name,
+        managerTitle: data.manager_title,
+        managerEmail: data.manager_email,
+        phone: data.phone,
+        userPrincipalName: data.email || user.email,
+        officeLocation: data.office_location,
+        location: [data.city, data.state, data.country].filter(Boolean).join(', '),
+        city: data.city,
+        state: data.state,
+        country: data.country,
+      };
+
+      setProfile((prev) => prev || supaProfile);
+      return supaProfile;
+    } catch (err) {
+      setError(err);
+      return null;
+    }
+  }, [user]);
+
   const fetchProfile = useCallback(async () => {
     const stored = getOneDriveToken();
     const accessToken = stored.accessToken || user?.provider_token || user?.providerToken;
     const refreshToken =
       stored.refreshToken || user?.provider_refresh_token || user?.providerRefreshToken;
 
-    // Fallback: populate from local user if no Graph token is present
+    // Fallback: populate from local user or Supabase if no Graph token is present
     if (!accessToken) {
+      await fetchProfileFromSupabase();
       setProfile((prev) => prev || buildProfileFromUser(user));
       return;
     }
@@ -120,12 +161,13 @@ export function useMicrosoftProfile() {
         }
       } else {
         setError(err);
+        await fetchProfileFromSupabase();
         setProfile((prev) => prev || buildProfileFromUser(user));
       }
     } finally {
       setLoading(false);
     }
-  }, [runProfileFetch, user]);
+  }, [fetchProfileFromSupabase, runProfileFetch, user]);
 
   useEffect(() => {
     fetchProfile();
