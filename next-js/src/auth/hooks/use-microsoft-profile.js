@@ -29,6 +29,8 @@ const decodeJwt = (token) => {
   }
 };
 
+const looksLikeGuid = (value) => typeof value === 'string' && /^[0-9a-fA-F-]{32,36}$/.test(value);
+
 export function useMicrosoftProfile() {
   const { user } = useAuthContext();
 
@@ -67,7 +69,11 @@ export function useMicrosoftProfile() {
         manager = await managerRes.json();
       }
 
-      const resolvedRole = inferredRole || me?.jobTitle || me?.department || user?.role;
+      const resolvedRole =
+        me?.jobTitle ||
+        me?.department ||
+        (!looksLikeGuid(inferredRole) && inferredRole) ||
+        user?.role;
 
       console.info('Microsoft profile resolved role selection', {
         resolvedRole,
