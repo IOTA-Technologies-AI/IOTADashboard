@@ -127,7 +127,7 @@ export default function UserPageAccess() {
         merged.set(item.path, item);
       }
     });
-    return Array.from(merged.values());
+    return merged ? Array.from(merged.values()) : [];
   }, [navPages, routePages]);
 
   const mainPages = useMemo(
