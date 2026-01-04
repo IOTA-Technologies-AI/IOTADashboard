@@ -102,6 +102,10 @@ export function useMicrosoftProfile() {
     const claims = decodeJwt(accessToken);
     const tokenRoles = claims?.roles || claims?.wids || [];
     const appRole = Array.isArray(tokenRoles) ? tokenRoles[0] : tokenRoles;
+    const audience = claims?.aud;
+    const isGraphAudience =
+      audience === 'https://graph.microsoft.com' ||
+      audience === '00000003-0000-0000-c000-000000000000';
 
     console.info('Profile fetch: token claims for role resolution', {
       tokenRoles,
@@ -109,6 +113,7 @@ export function useMicrosoftProfile() {
       oid: claims?.oid,
       tid: claims?.tid,
       upn: claims?.upn || claims?.preferred_username,
+      aud: audience,
     });
 
     console.info('Profile fetch: tokens', {
@@ -121,6 +126,26 @@ export function useMicrosoftProfile() {
     // If we don't have a Graph access token, we cannot fetch Microsoft 365 data.
     if (!accessToken) {
       console.warn('Microsoft profile: no access token available (provider_token missing)');
+      return;
+    }
+
+    if (!isGraphAudience) {
+      console.warn(
+        'Microsoft profile: access token audience is not Microsoft Graph; skipping fetch',
+        {
+          aud: audience,
+        }
+      );
+
+      const fallbackRole = appRole || user?.role;
+      setProfile((prev) => ({
+        ...prev,
+        displayName: user?.displayName || claims?.name || claims?.upn || user?.email,
+        email: user?.email || claims?.upn,
+        jobTitle: fallbackRole,
+      }));
+
+      setError(new Error('Microsoft token is not scoped for Graph. Please sign in again.'));
       return;
     }
 
