@@ -29,6 +29,15 @@ const mapUser = (user) => {
   };
 };
 
+const buildError = (params = {}) => ({
+  code: params.code || 'INTERNAL_ERROR',
+  message: params.message || 'An internal error occurred',
+  status: params.status,
+  graphCode: params.graphCode,
+  requestId: params.requestId,
+  raw: params.raw,
+});
+
 export function useMicrosoftUsers() {
   const { user } = useAuthContext();
 
@@ -65,8 +74,43 @@ export function useMicrosoftUsers() {
       }
 
       if (!response.ok) {
-        const text = await response.text();
-        throw new Error(text || 'Failed to fetch Microsoft users');
+        let graphError;
+        try {
+          graphError = await response.json();
+        } catch (jsonErr) {
+          graphError = null;
+        }
+
+        const code = graphError?.error?.code;
+        const requestId = graphError?.error?.innerError?.['request-id'];
+
+        if (code === 'Authorization_RequestDenied') {
+          const errObj = buildError({
+            code: 'INSUFFICIENT_PRIVILEGES',
+            message: 'Authorization_RequestDenied',
+            status: response.status,
+            graphCode: code,
+            requestId,
+            raw: graphError,
+          });
+          setError(errObj);
+          setUsers([]);
+          console.error('Microsoft users fetch failed: insufficient privileges', errObj);
+          return [];
+        }
+
+        const errObj = buildError({
+          code: 'GRAPH_ERROR',
+          message: graphError?.error?.message || 'Failed to fetch Microsoft users',
+          status: response.status,
+          graphCode: code,
+          requestId,
+          raw: graphError,
+        });
+        setError(errObj);
+        setUsers([]);
+        console.error('Microsoft users fetch failed', errObj);
+        return [];
       }
 
       const data = await response.json();
@@ -74,9 +118,10 @@ export function useMicrosoftUsers() {
       setUsers(mapped);
       return mapped;
     } catch (err) {
-      setError(err);
+      const errObj = buildError({ code: 'FETCH_FAILED', message: err?.message, raw: err });
+      setError(errObj);
       setUsers([]);
-      console.error('Microsoft users fetch failed', err);
+      console.error('Microsoft users fetch failed', errObj);
       return [];
     } finally {
       setLoading(false);
@@ -98,7 +143,7 @@ export function useMicrosoftUsers() {
 
     if (!accessToken) {
       console.warn('Microsoft users: no access token available (provider_token missing)');
-      setError(new Error('Connect Microsoft to load users')); // prompt UI to show state
+      setError(buildError({ code: 'NO_TOKEN', message: 'Connect Microsoft to load users' }));
       setUsers([]);
       return;
     }

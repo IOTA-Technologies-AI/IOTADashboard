@@ -15,6 +15,43 @@ const roleIdToName = {
   4: 'superAdmin',
 };
 
+// Map Azure AD appRole GUIDs to friendly roles. Defaults are the current App Registration IDs;
+// env vars can override but are optional now that we normalize Task.* values too.
+const appRoleIdToName = {
+  'e86d21ea-be40-41a0-8f3d-3df66965f3c5': 'regular',
+  '0beb17cc-7663-43a2-97d3-dcb5176914be': 'manager',
+  '37d3b66a-2659-4e33-b8a0-27825ef72593': 'admin',
+  '69a563e8-d75e-47bd-b720-eaf301c91738': 'superAdmin',
+  ...(process.env.NEXT_PUBLIC_AZURE_ROLE_REGULAR
+    ? { [process.env.NEXT_PUBLIC_AZURE_ROLE_REGULAR]: 'regular' }
+    : {}),
+  ...(process.env.NEXT_PUBLIC_AZURE_ROLE_MANAGER
+    ? { [process.env.NEXT_PUBLIC_AZURE_ROLE_MANAGER]: 'manager' }
+    : {}),
+  ...(process.env.NEXT_PUBLIC_AZURE_ROLE_ADMIN
+    ? { [process.env.NEXT_PUBLIC_AZURE_ROLE_ADMIN]: 'admin' }
+    : {}),
+  ...(process.env.NEXT_PUBLIC_AZURE_ROLE_SUPERADMIN
+    ? { [process.env.NEXT_PUBLIC_AZURE_ROLE_SUPERADMIN]: 'superAdmin' }
+    : {}),
+};
+
+const appRoleValueToName = {
+  Task: 'regular',
+  'Task.User': 'regular',
+  'Task.Manager': 'manager',
+  'Task.Admin': 'admin',
+  'Task.SuperAdmin': 'superAdmin',
+};
+
+const normalizeRoleString = (value) => {
+  if (!value) return null;
+  if (appRoleValueToName[value]) return appRoleValueToName[value];
+  if (value.startsWith('Task.')) return value.slice('Task.'.length).toLowerCase();
+  if (appRoleIdToName[value]) return appRoleIdToName[value];
+  return null;
+};
+
 const displayNameFromMetadata = (user) => {
   const meta = user?.user_metadata || {};
   return (
@@ -29,11 +66,20 @@ const displayNameFromMetadata = (user) => {
   );
 };
 
-const normalizeRole = (role, roleId, metadata) => {
+const normalizeRole = (role, roleId, metadata, appRoles) => {
   if (role) return role;
   if (metadata?.role) return metadata.role;
   if (roleId && roleIdToName[roleId]) return roleIdToName[roleId];
   if (metadata?.roleId && roleIdToName[metadata.roleId]) return roleIdToName[metadata.roleId];
+
+  const rolesArray = []
+    .concat(appRoles || [])
+    .filter(Boolean)
+    .map((r) => String(r));
+
+  const mapped = rolesArray.map((r) => normalizeRoleString(r)).find(Boolean);
+  if (mapped) return mapped;
+
   return 'regular';
 };
 
@@ -95,7 +141,14 @@ export function AuthProvider({ children }) {
             id: state.user?.id,
             accessToken: state.user?.access_token,
             displayName: displayNameFromMetadata(state.user),
-            role: normalizeRole(state.user?.role, state.user?.roleId, state.user?.user_metadata),
+            role: normalizeRole(
+              state.user?.role,
+              state.user?.roleId,
+              state.user?.user_metadata,
+              state.user?.app_metadata?.roles ||
+                state.user?.roles ||
+                state.user?.user_metadata?.roles
+            ),
           }
         : null,
       checkUserSession,

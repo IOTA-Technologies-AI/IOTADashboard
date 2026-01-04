@@ -90,11 +90,23 @@ export function UserListView() {
 
   useEffect(() => {
     if (error) {
-      toast.error(
-        error.message || 'Failed to load Microsoft users. Please reconnect to Microsoft.'
-      );
+      console.error('Microsoft users error', error);
+      if (error.code === 'NO_TOKEN') {
+        toast.warning('Connect Microsoft to load users');
+        return;
+      }
+
+      toast.error('An internal error occurred. Please try again or contact an admin.');
     }
   }, [error]);
+
+  useEffect(() => {
+    console.info('Current user role', {
+      role: user?.role,
+      roleId: user?.roleId,
+      normalizedRole,
+    });
+  }, [normalizedRole, user?.role, user?.roleId]);
 
   const filters = useSetState({ name: '', role: [], status: 'all' });
   const { state: currentFilters, setState: updateFilters } = filters;
