@@ -16,6 +16,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { toast } from 'src/components/snackbar';
 import {
   useTable,
   emptyRows,
@@ -26,6 +27,8 @@ import {
   TableHeadCustom,
   TablePaginationCustom,
 } from 'src/components/table';
+
+import { useAuthContext } from 'src/auth/hooks';
 
 import { VendorTableRow } from '../vendor-table-row';
 import { VendorTableToolbar } from '../vendor-table-toolbar';
@@ -50,6 +53,11 @@ export function VendorListView({ vendors = [] }) {
   const table = useTable();
   const router = useRouter();
   const confirm = useBoolean();
+  const { user } = useAuthContext();
+
+  const roleIdToName = { 1: 'regular', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
+  const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
+  const canEdit = normalizedRole === 'superAdmin';
 
   const [tableData, setTableData] = useState(vendors);
 
@@ -90,9 +98,13 @@ export function VendorListView({ vendors = [] }) {
 
   const handleEditRow = useCallback(
     (id) => {
+      if (!canEdit) {
+        toast.error('Only super admins can edit vendors');
+        return;
+      }
       router.push(paths.dashboard.vendor.edit(id));
     },
-    [router]
+    [canEdit, router]
   );
 
   const handleViewRow = useCallback(

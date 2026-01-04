@@ -75,7 +75,7 @@ export function UserListView() {
   const confirmDialog = useBoolean();
 
   const [tableData, setTableData] = useState([]);
-  const { users, loading } = useMicrosoftUsers();
+  const { users, loading, error } = useMicrosoftUsers();
 
   const roleOptions = useMemo(() => {
     if (!Array.isArray(tableData)) return [];
@@ -87,6 +87,14 @@ export function UserListView() {
       setTableData(users);
     }
   }, [users]);
+
+  useEffect(() => {
+    if (error) {
+      toast.error(
+        error.message || 'Failed to load Microsoft users. Please reconnect to Microsoft.'
+      );
+    }
+  }, [error]);
 
   const filters = useSetState({ name: '', role: [], status: 'all' });
   const { state: currentFilters, setState: updateFilters } = filters;

@@ -2,7 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
-import { getOneDriveToken, seedOneDriveToken, refreshAccessToken } from 'src/utils/onedrive-helper';
+import {
+  getOneDriveToken,
+  seedOneDriveToken,
+  refreshAccessToken,
+  clearOneDriveToken,
+} from 'src/utils/onedrive-helper';
 
 import { useAuthContext } from './use-auth-context';
 
@@ -41,13 +46,21 @@ export function useMicrosoftUsers() {
       });
 
       if (response.status === 401 && refreshToken) {
-        const refreshed = await refreshAccessToken(refreshToken);
-        const newAccess = refreshed.access_token || refreshed.accessToken;
-        const newRefresh = refreshed.refresh_token || refreshed.refreshToken || refreshToken;
+        try {
+          const refreshed = await refreshAccessToken(refreshToken);
+          const newAccess = refreshed?.access_token || refreshed?.accessToken;
+          const newRefresh = refreshed?.refresh_token || refreshed?.refreshToken || refreshToken;
 
-        if (newAccess) {
-          seedOneDriveToken(newAccess, newRefresh);
-          return fetchUsers(newAccess, newRefresh);
+          if (newAccess) {
+            seedOneDriveToken(newAccess, newRefresh);
+            return fetchUsers(newAccess, newRefresh);
+          }
+        } catch (refreshErr) {
+          console.error('Microsoft users token refresh failed', refreshErr);
+          clearOneDriveToken();
+          setError(new Error('Microsoft session expired. Please reconnect to Microsoft.'));
+          setUsers([]);
+          return [];
         }
       }
 
@@ -85,6 +98,8 @@ export function useMicrosoftUsers() {
 
     if (!accessToken) {
       console.warn('Microsoft users: no access token available (provider_token missing)');
+      setError(new Error('Connect Microsoft to load users')); // prompt UI to show state
+      setUsers([]);
       return;
     }
 
