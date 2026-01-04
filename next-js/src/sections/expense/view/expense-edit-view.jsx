@@ -37,11 +37,11 @@ export function ExpenseEditView({ expense }) {
     <DashboardContent>
       <CustomBreadcrumbs
         heading="Edit"
-        links=[
+        links={[
           { name: 'Dashboard', href: paths.dashboard.root },
           { name: 'Expense', href: paths.dashboard.expense.root },
           { name: expense?.expenseTypeDesc || 'Edit' },
-        ]
+        ]}
         sx={{ mb: { xs: 3, md: 5 } }}
       />
 
