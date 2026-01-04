@@ -126,57 +126,6 @@ export const navData = [
                     path: paths.dashboard.hr.employee.finance.payroll.root,
                     icon: ICONS.payroll,
                   },
-                  { title: 'Loan Request', path: paths.dashboard.hr.employee.finance.loanRequest },
-                  {
-                    title: 'Expense Claim',
-                    path: paths.dashboard.hr.employee.finance.expenseClaim,
-                  },
-                  {
-                    title: 'Payslip Request',
-                    path: paths.dashboard.hr.employee.finance.payslipRequest,
-                  },
-                ],
-              },
-              {
-                title: 'HR Services',
-                children: [
-                  {
-                    title: 'Flight Ticket',
-                    path: paths.dashboard.hr.employee.hrServices.flightTicket,
-                  },
-                  {
-                    title: 'Asset Request',
-                    path: paths.dashboard.hr.employee.hrServices.assetRequest,
-                  },
-                  {
-                    title: 'Asset Clearance',
-                    path: paths.dashboard.hr.employee.hrServices.assetClearance,
-                  },
-                  {
-                    title: 'Exit/Re-Entry Visa',
-                    path: paths.dashboard.hr.employee.hrServices.exitReentryVisa,
-                  },
-                  {
-                    title: 'Resignation',
-                    path: paths.dashboard.hr.employee.hrServices.resignation,
-                  },
-                  {
-                    title: 'Chamber Letter',
-                    path: paths.dashboard.hr.employee.hrServices.chamberLetter,
-                  },
-                ],
-              },
-              {
-                title: 'Government & Others',
-                children: [
-                  {
-                    title: 'Insurance Request',
-                    path: paths.dashboard.hr.employee.government.insuranceRequest,
-                  },
-                  {
-                    title: 'Iqama Renewal',
-                    path: paths.dashboard.hr.employee.government.iqamaRenewal,
-                  },
                 ],
               },
             ],
