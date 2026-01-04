@@ -11,7 +11,7 @@ export const _account = [
   },
   {
     label: 'Profile',
-    href: paths.dashboard.user.profile,
+    href: paths.dashboard.user.root,
     icon: <Iconify icon="custom:profile-duotone" />,
   },
   {

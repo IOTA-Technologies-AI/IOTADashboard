@@ -182,7 +182,8 @@ export const paths = {
       new: `${ROOTS.DASHBOARD}/user/new`,
       list: `${ROOTS.DASHBOARD}/user/list`,
       cards: `${ROOTS.DASHBOARD}/user/cards`,
-      profile: `${ROOTS.DASHBOARD}/user/profile`,
+      // Keep profile aligned to the root user page to avoid 404s on /dashboard/user/profile.
+      profile: `${ROOTS.DASHBOARD}/user`,
       account: `${ROOTS.DASHBOARD}/user/account`,
       pageAccess: `${ROOTS.DASHBOARD}/user/page-access`,
       edit: (id) => `${ROOTS.DASHBOARD}/user/${id}/edit`,

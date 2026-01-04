@@ -82,16 +82,19 @@ export default function FilePage() {
     const providerToken = user?.provider_token || user?.providerToken;
     const providerRefresh = user?.provider_refresh_token || user?.providerRefreshToken;
 
+    // 1) Stored token wins
     if (stored.accessToken) {
       setAuthenticated(true);
       loadFiles(null);
       return;
     }
 
-    const seeded = seedOneDriveToken(providerToken, providerRefresh);
-    if (seeded) {
+    // 2) Seed from the existing login token so we avoid re-prompting OneDrive sign-in
+    if (providerToken) {
+      setOneDriveToken(providerToken, providerRefresh);
       setAuthenticated(true);
       loadFiles(null);
+      return;
     }
   }, [user]);
 
@@ -137,16 +140,7 @@ export default function FilePage() {
     }
   };
 
-  const handleSignOut = () => {
-    clearOneDriveToken();
-    setAuthenticated(false);
-    setAllItems([]);
-    setFolders([]);
-    setAllFiles([]);
-    setCurrentFolderId(null);
-    setBreadcrumbs([{ id: null, name: 'My Files' }]);
-    toast.success('Signed out from OneDrive');
-  };
+  // Note: We intentionally keep users signed in with their login token; no explicit sign-out control here.
 
   const loadFiles = async (folderId) => {
     try {
@@ -425,15 +419,6 @@ export default function FilePage() {
       <DashboardContent maxWidth="xl">
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
           <Typography variant="h4">Business Files</Typography>
-          <Button
-            variant="outlined"
-            color="error"
-            size="small"
-            startIcon={<Iconify icon="eva:log-out-outline" />}
-            onClick={handleSignOut}
-          >
-            Sign Out
-          </Button>
         </Box>
 
         {/* Breadcrumbs */}
