@@ -44,11 +44,17 @@ const appRoleValueToName = {
   'Task.SuperAdmin': 'superAdmin',
 };
 
+const SUPER_ADMIN_IDS = ['69a563e8-d75e-47bd-b720-eaf301c91738'];
+const SUPER_ADMIN_VALUES = ['Task.SuperAdmin', 'task.superadmin', 'superAdmin', 'superadmin'];
+
 const normalizeRoleString = (value) => {
   if (!value) return null;
-  if (appRoleValueToName[value]) return appRoleValueToName[value];
-  if (value.startsWith('Task.')) return value.slice('Task.'.length).toLowerCase();
-  if (appRoleIdToName[value]) return appRoleIdToName[value];
+  const val = String(value);
+  if (appRoleValueToName[val]) return appRoleValueToName[val];
+  if (SUPER_ADMIN_VALUES.includes(val)) return 'superAdmin';
+  if (SUPER_ADMIN_IDS.includes(val)) return 'superAdmin';
+  if (val.toLowerCase().startsWith('task.')) return val.slice('Task.'.length).toLowerCase();
+  if (appRoleIdToName[val]) return appRoleIdToName[val];
   return null;
 };
 
@@ -66,9 +72,19 @@ const displayNameFromMetadata = (user) => {
   );
 };
 
+const isPlaceholderRole = (value) => value === 'authenticated' || value === 'unauthenticated';
+
 const normalizeRole = (role, roleId, metadata, appRoles) => {
-  if (role) return role;
-  if (metadata?.role) return metadata.role;
+  const roleCandidate = isPlaceholderRole(role) ? null : role;
+  const metaRole = isPlaceholderRole(metadata?.role) ? null : metadata?.role;
+
+  if (SUPER_ADMIN_VALUES.includes(roleCandidate) || SUPER_ADMIN_IDS.includes(roleCandidate))
+    return 'superAdmin';
+  if (SUPER_ADMIN_VALUES.includes(metaRole) || SUPER_ADMIN_IDS.includes(metaRole))
+    return 'superAdmin';
+
+  if (roleCandidate) return roleCandidate;
+  if (metaRole) return metaRole;
   if (roleId && roleIdToName[roleId]) return roleIdToName[roleId];
   if (metadata?.roleId && roleIdToName[metadata.roleId]) return roleIdToName[metadata.roleId];
 
@@ -133,31 +149,40 @@ export function AuthProvider({ children }) {
 
   const status = state.loading ? 'loading' : checkAuthenticated;
 
-  const memoizedValue = useMemo(
-    () => ({
+  const memoizedValue = useMemo(() => {
+    const appRoles =
+      state.user?.app_metadata?.roles || state.user?.roles || state.user?.user_metadata?.roles;
+
+    const role = state.user
+      ? normalizeRole(state.user?.role, state.user?.roleId, state.user?.user_metadata, appRoles)
+      : null;
+
+    if (state.user) {
+      console.info('Auth login role map', {
+        expectedSuperAdminId: '69a563e8-d75e-47bd-b720-eaf301c91738',
+        userRoles: appRoles,
+        userRole: state.user?.role,
+        userRoleId: state.user?.roleId,
+        normalizedRole: role,
+      });
+    }
+
+    return {
       user: state.user
         ? {
             ...state.user,
             id: state.user?.id,
             accessToken: state.user?.access_token,
             displayName: displayNameFromMetadata(state.user),
-            role: normalizeRole(
-              state.user?.role,
-              state.user?.roleId,
-              state.user?.user_metadata,
-              state.user?.app_metadata?.roles ||
-                state.user?.roles ||
-                state.user?.user_metadata?.roles
-            ),
+            role,
           }
         : null,
       checkUserSession,
       loading: status === 'loading',
       authenticated: status === 'authenticated',
       unauthenticated: status === 'unauthenticated',
-    }),
-    [checkUserSession, state.user, status]
-  );
+    };
+  }, [checkUserSession, state.user, status]);
 
   return <AuthContext value={memoizedValue}>{children}</AuthContext>;
 }
