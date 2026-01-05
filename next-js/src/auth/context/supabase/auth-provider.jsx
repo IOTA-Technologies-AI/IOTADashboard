@@ -166,9 +166,11 @@ export function AuthProvider({ children }) {
       }
       try {
         const claims = decodeJwt(state.user?.access_token || state.user?.accessToken);
-        const userId = claims?.oid || claims?.sub;
+        const metadataOid = state.user?.user_metadata?.azure_oid || state.user?.user_metadata?.oid;
+        const userId = claims?.oid || metadataOid || claims?.sub;
+
         if (!userId) {
-          console.warn('No oid/sub claim found; skipping app-role-assignments fetch');
+          console.warn('No oid/sub/metadata oid found; skipping app-role-assignments fetch');
           setApiAppRoles([]);
           return;
         }
@@ -199,14 +201,17 @@ export function AuthProvider({ children }) {
       state.user?.app_metadata?.roles || state.user?.roles || state.user?.user_metadata?.roles;
 
     const claims = decodeJwt(state.user?.access_token || state.user?.accessToken);
+    const metadataOid = state.user?.user_metadata?.azure_oid || state.user?.user_metadata?.oid;
+    const oid = claims?.oid || metadataOid;
     if (state.user) {
       console.info('Auth token claims (sanitized)', {
-        oid: claims?.oid,
+        oid,
         sub: claims?.sub,
         roles: claims?.roles,
         wids: claims?.wids,
         tid: claims?.tid,
         aud: claims?.aud,
+        metadataOid,
       });
     }
     const tokenRoles = claims?.roles || claims?.wids || [];
