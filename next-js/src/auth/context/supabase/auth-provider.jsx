@@ -199,6 +199,16 @@ export function AuthProvider({ children }) {
       state.user?.app_metadata?.roles || state.user?.roles || state.user?.user_metadata?.roles;
 
     const claims = decodeJwt(state.user?.access_token || state.user?.accessToken);
+    if (state.user) {
+      console.info('Auth token claims (sanitized)', {
+        oid: claims?.oid,
+        sub: claims?.sub,
+        roles: claims?.roles,
+        wids: claims?.wids,
+        tid: claims?.tid,
+        aud: claims?.aud,
+      });
+    }
     const tokenRoles = claims?.roles || claims?.wids || [];
 
     const role = state.user
