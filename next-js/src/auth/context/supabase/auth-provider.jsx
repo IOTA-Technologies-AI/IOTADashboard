@@ -165,12 +165,20 @@ export function AuthProvider({ children }) {
         return;
       }
       try {
-        const res = await fetch('/app-role-assignments');
+        const claims = decodeJwt(state.user?.access_token || state.user?.accessToken);
+        const userId = claims?.oid || claims?.sub;
+        if (!userId) {
+          console.warn('No oid/sub claim found; skipping app-role-assignments fetch');
+          setApiAppRoles([]);
+          return;
+        }
+
+        const res = await fetch(`/app-role-assignments?userId=${encodeURIComponent(userId)}`);
         if (!res.ok) throw new Error(`app-role-assignments failed ${res.status}`);
         const data = await res.json();
         const roles = Array.isArray(data?.appRoles) ? data.appRoles.map((r) => r.appRoleId) : [];
         setApiAppRoles(roles);
-        console.info('Auth role fetch from API', { appRoles: roles });
+        console.info('Auth role fetch from API', { appRoles: roles, userId });
       } catch (err) {
         console.warn('App role assignments fetch failed; falling back to token/metadata', err);
         setApiAppRoles([]);
