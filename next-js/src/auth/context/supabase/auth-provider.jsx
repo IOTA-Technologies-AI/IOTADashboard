@@ -1,7 +1,7 @@
 'use client';
 
 import { useSetState } from 'minimal-shared/hooks';
-import { useMemo, useEffect, useCallback } from 'react';
+import { useMemo, useEffect, useCallback, useState } from 'react';
 
 import axios from 'src/lib/axios';
 import { supabase } from 'src/lib/supabase';
@@ -74,7 +74,20 @@ const displayNameFromMetadata = (user) => {
 
 const isPlaceholderRole = (value) => value === 'authenticated' || value === 'unauthenticated';
 
-const normalizeRole = (role, roleId, metadata, appRoles) => {
+const decodeJwt = (token) => {
+  try {
+    const payload = token?.split?.('.')[1];
+    if (!payload) return null;
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    return JSON.parse(atob(padded));
+  } catch (err) {
+    console.warn('Unable to decode JWT payload for role inspection', err);
+    return null;
+  }
+};
+
+const normalizeRole = (role, roleId, metadata, appRoles, tokenRoles) => {
   const roleCandidate = isPlaceholderRole(role) ? null : role;
   const metaRole = isPlaceholderRole(metadata?.role) ? null : metadata?.role;
 
@@ -90,6 +103,7 @@ const normalizeRole = (role, roleId, metadata, appRoles) => {
 
   const rolesArray = []
     .concat(appRoles || [])
+    .concat(tokenRoles || [])
     .filter(Boolean)
     .map((r) => String(r));
 
@@ -109,6 +123,7 @@ const normalizeRole = (role, roleId, metadata, appRoles) => {
 
 export function AuthProvider({ children }) {
   const { state, setState } = useSetState({ user: null, loading: true });
+  const [apiAppRoles, setApiAppRoles] = useState([]);
 
   const checkUserSession = useCallback(async () => {
     try {
@@ -143,6 +158,28 @@ export function AuthProvider({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    const fetchAppRoles = async () => {
+      if (!state.user) {
+        setApiAppRoles([]);
+        return;
+      }
+      try {
+        const res = await fetch('/app-role-assignments');
+        if (!res.ok) throw new Error(`app-role-assignments failed ${res.status}`);
+        const data = await res.json();
+        const roles = Array.isArray(data?.appRoles) ? data.appRoles.map((r) => r.appRoleId) : [];
+        setApiAppRoles(roles);
+        console.info('Auth role fetch from API', { appRoles: roles });
+      } catch (err) {
+        console.warn('App role assignments fetch failed; falling back to token/metadata', err);
+        setApiAppRoles([]);
+      }
+    };
+
+    fetchAppRoles();
+  }, [state.user]);
+
   // ----------------------------------------------------------------------
 
   const checkAuthenticated = state.user ? 'authenticated' : 'unauthenticated';
@@ -153,17 +190,28 @@ export function AuthProvider({ children }) {
     const appRoles =
       state.user?.app_metadata?.roles || state.user?.roles || state.user?.user_metadata?.roles;
 
+    const claims = decodeJwt(state.user?.access_token || state.user?.accessToken);
+    const tokenRoles = claims?.roles || claims?.wids || [];
+
     const role = state.user
-      ? normalizeRole(state.user?.role, state.user?.roleId, state.user?.user_metadata, appRoles)
+      ? normalizeRole(
+          state.user?.role,
+          state.user?.roleId,
+          state.user?.user_metadata,
+          [...(appRoles || []), ...apiAppRoles],
+          tokenRoles
+        )
       : null;
 
     if (state.user) {
       console.info('Auth login role map', {
         expectedSuperAdminId: '69a563e8-d75e-47bd-b720-eaf301c91738',
         userRoles: appRoles,
+        apiAppRoles,
         userRole: state.user?.role,
         userRoleId: state.user?.roleId,
         normalizedRole: role,
+        tokenRoles,
       });
     }
 
@@ -182,7 +230,7 @@ export function AuthProvider({ children }) {
       authenticated: status === 'authenticated',
       unauthenticated: status === 'unauthenticated',
     };
-  }, [checkUserSession, state.user, status]);
+  }, [apiAppRoles, checkUserSession, state.user, status]);
 
   return <AuthContext value={memoizedValue}>{children}</AuthContext>;
 }
