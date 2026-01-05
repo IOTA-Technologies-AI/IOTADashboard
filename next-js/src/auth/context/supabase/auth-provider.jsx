@@ -74,6 +74,21 @@ const displayNameFromMetadata = (user) => {
 
 const isPlaceholderRole = (value) => value === 'authenticated' || value === 'unauthenticated';
 
+const azureIdentityData = (user) => {
+  if (!user?.identities || !Array.isArray(user.identities)) return {};
+  const azureIdentity = user.identities.find((i) => i?.provider === 'azure');
+  return azureIdentity?.identity_data || {};
+};
+
+const resolveAzureUserId = (user, claims) => {
+  const metadataOid = user?.user_metadata?.azure_oid || user?.user_metadata?.oid;
+  const identityData = azureIdentityData(user);
+
+  return (
+    identityData?.oid || claims?.oid || metadataOid || identityData?.sub || claims?.sub || null
+  );
+};
+
 const decodeJwt = (token) => {
   try {
     const payload = token?.split?.('.')[1];
@@ -166,8 +181,7 @@ export function AuthProvider({ children }) {
       }
       try {
         const claims = decodeJwt(state.user?.access_token || state.user?.accessToken);
-        const metadataOid = state.user?.user_metadata?.azure_oid || state.user?.user_metadata?.oid;
-        const userId = claims?.oid || metadataOid || claims?.sub;
+        const userId = resolveAzureUserId(state.user, claims);
 
         if (!userId) {
           console.warn('No oid/sub/metadata oid found; skipping app-role-assignments fetch');
@@ -201,8 +215,8 @@ export function AuthProvider({ children }) {
       state.user?.app_metadata?.roles || state.user?.roles || state.user?.user_metadata?.roles;
 
     const claims = decodeJwt(state.user?.access_token || state.user?.accessToken);
-    const metadataOid = state.user?.user_metadata?.azure_oid || state.user?.user_metadata?.oid;
-    const oid = claims?.oid || metadataOid;
+    const identityData = azureIdentityData(state.user);
+    const oid = resolveAzureUserId(state.user, claims);
     if (state.user) {
       console.info('Auth token claims (sanitized)', {
         oid,
@@ -211,7 +225,8 @@ export function AuthProvider({ children }) {
         wids: claims?.wids,
         tid: claims?.tid,
         aud: claims?.aud,
-        metadataOid,
+        identityOid: identityData?.oid,
+        identitySub: identityData?.sub,
       });
     }
     const tokenRoles = claims?.roles || claims?.wids || [];
