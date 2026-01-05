@@ -83,9 +83,16 @@ const azureIdentityData = (user) => {
 const resolveAzureUserId = (user, claims) => {
   const metadataOid = user?.user_metadata?.azure_oid || user?.user_metadata?.oid;
   const identityData = azureIdentityData(user);
+  const customClaims = identityData?.custom_claims || {};
 
   return (
-    identityData?.oid || claims?.oid || metadataOid || identityData?.sub || claims?.sub || null
+    customClaims?.oid ||
+    identityData?.oid ||
+    claims?.oid ||
+    metadataOid ||
+    identityData?.sub ||
+    claims?.sub ||
+    null
   );
 };
 
