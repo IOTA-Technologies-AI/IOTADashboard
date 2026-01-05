@@ -80,6 +80,12 @@ const azureIdentityData = (user) => {
   return azureIdentity?.identity_data || {};
 };
 
+const identityRoles = (user) => {
+  const identityData = azureIdentityData(user);
+  const customClaims = identityData?.custom_claims || {};
+  return customClaims?.roles || identityData?.roles || [];
+};
+
 const resolveAzureUserId = (user, claims) => {
   const metadataOid = user?.user_metadata?.azure_oid || user?.user_metadata?.oid;
   const identityData = azureIdentityData(user);
@@ -188,20 +194,25 @@ export function AuthProvider({ children }) {
       }
       try {
         const claims = decodeJwt(state.user?.access_token || state.user?.accessToken);
-        const userId = resolveAzureUserId(state.user, claims);
+        let inlineRoles = identityRoles(state.user);
 
-        if (!userId) {
-          console.warn('No oid/sub/metadata oid found; skipping app-role-assignments fetch');
-          setApiAppRoles([]);
+        // If roles are not in the session payload, fetch the fresh user (identities) from Supabase.
+        if (!inlineRoles.length) {
+          const { data, error } = await supabase.auth.getUser();
+          if (!error && data?.user) {
+            inlineRoles = identityRoles(data.user);
+          }
+        }
+
+        if (inlineRoles.length) {
+          setApiAppRoles(inlineRoles);
+          console.info('Auth role fetch from identity claims (no API call)', { inlineRoles });
           return;
         }
 
-        const res = await fetch(`/app-role-assignments?userId=${encodeURIComponent(userId)}`);
-        if (!res.ok) throw new Error(`app-role-assignments failed ${res.status}`);
-        const data = await res.json();
-        const roles = Array.isArray(data?.appRoles) ? data.appRoles.map((r) => r.appRoleId) : [];
-        setApiAppRoles(roles);
-        console.info('Auth role fetch from API', { appRoles: roles, userId });
+        // No inline roles found; skip calling the approle API per current requirement.
+        console.warn('No inline roles found in identity claims; approle API skipped');
+        setApiAppRoles([]);
       } catch (err) {
         console.warn('App role assignments fetch failed; falling back to token/metadata', err);
         setApiAppRoles([]);
@@ -223,6 +234,7 @@ export function AuthProvider({ children }) {
 
     const claims = decodeJwt(state.user?.access_token || state.user?.accessToken);
     const identityData = azureIdentityData(state.user);
+    const inlineRoles = identityRoles(state.user);
     const oid = resolveAzureUserId(state.user, claims);
     if (state.user) {
       console.info('Auth token claims (sanitized)', {
@@ -236,7 +248,7 @@ export function AuthProvider({ children }) {
         identitySub: identityData?.sub,
       });
     }
-    const tokenRoles = claims?.roles || claims?.wids || [];
+    const tokenRoles = inlineRoles.length ? inlineRoles : claims?.roles || claims?.wids || [];
 
     const role = state.user
       ? normalizeRole(
