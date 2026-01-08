@@ -71,7 +71,12 @@ export const fetcher = async (args) => {
 
 export const endpoints = {
   chat: '/api/chat',
-  kanban: '/api/kanban',
+  kanban: '/sales/board',
+  sales: {
+    board: '/sales/board',
+    stages: '/sales/stages',
+    deals: '/sales/deals',
+  },
   calendar: '/api/calendar',
   auth: {
     me: 'https://vbjtplyfvrngvtqwydum.supabase.co/rest/v1/user?select=*&loginId=eq.',

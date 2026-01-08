@@ -19,14 +19,18 @@ export function KanbanTaskAdd({ status, openAddTask, onAddTask, onCloseAddTask }
   const defaultTask = useMemo(
     () => ({
       id: uuidv4(),
-      status,
+      stageId: status,
+      status: 'open',
       name: taskName.trim() ? taskName : 'Untitled',
+      value: 0,
+      currency: 'USD',
       priority: 'medium',
+      description: '',
       attachments: [],
       labels: [],
       comments: [],
       assignee: [],
-      due: [today(), fAdd({ days: 1 })],
+      due: [today(), fAdd({ days: 7 })],
       reporter: { id: _mock.id(16), name: _mock.fullName(16), avatarUrl: _mock.image.avatar(16) },
     }),
     [status, taskName]

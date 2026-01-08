@@ -4,15 +4,38 @@ import { useMemo, startTransition } from 'react';
 import axios, { fetcher, endpoints } from 'src/lib/axios';
 
 // ----------------------------------------------------------------------
+const enableServer = true;
 
-const enableServer = false;
-
-const KANBAN_ENDPOINT = endpoints.kanban;
+const KANBAN_ENDPOINT = endpoints.sales.board;
 
 const swrOptions = {
   revalidateIfStale: enableServer,
   revalidateOnFocus: enableServer,
   revalidateOnReconnect: enableServer,
+};
+
+let currentPipelineId = null;
+
+const defaultReporter = { id: 'sales-reporter', name: 'Sales', avatarUrl: '' };
+
+const normalizeDealToTask = (deal = {}) => {
+  const startDate = new Date().toISOString();
+  const endDate = deal.expectedCloseDate || startDate;
+
+  return {
+    ...deal,
+    priority: deal.priority || 'medium',
+    attachments: deal.attachments || [],
+    labels: deal.labels || [],
+    comments: deal.comments || [],
+    assignee: deal.assignee || [],
+    reporter: deal.reporter || defaultReporter,
+    due: deal.due || [startDate, endDate],
+    status: deal.status || 'open',
+    value: deal.value ?? 0,
+    currency: deal.currency || 'USD',
+    stageId: deal.stageId,
+  };
 };
 
 // ----------------------------------------------------------------------
@@ -24,46 +47,65 @@ export function useGetBoard() {
 
   const memoizedValue = useMemo(() => {
     const tasks = data?.board.tasks ?? {};
+    const normalizedTasks = {};
+
+    Object.entries(tasks).forEach(([stageId, stageTasks]) => {
+      normalizedTasks[stageId] = (stageTasks || []).map((task) =>
+        normalizeDealToTask({ ...task, stageId })
+      );
+    });
+
     const columns = data?.board.columns ?? [];
+    const pipelineId = data?.board.pipelineId ?? null;
+
+    if (pipelineId) {
+      currentPipelineId = pipelineId;
+    }
 
     return {
-      board: { tasks, columns },
+      board: { tasks: normalizedTasks, columns, pipelineId },
       boardLoading: isLoading,
       boardError: error,
       boardValidating: isValidating,
       boardEmpty: !isLoading && !isValidating && !columns.length,
     };
-  }, [data?.board.columns, data?.board.tasks, error, isLoading, isValidating]);
+  }, [
+    data?.board.columns,
+    data?.board.tasks,
+    data?.board.pipelineId,
+    error,
+    isLoading,
+    isValidating,
+  ]);
 
   return memoizedValue;
 }
 
 // ----------------------------------------------------------------------
 
-export async function createColumn(columnData) {
-  /**
-   * Work on server
-   */
-  if (enableServer) {
-    const data = { columnData };
-    await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'create-column' } });
-  }
+export async function createColumn(columnData, pipelineIdOverride) {
+  const pipelineId = pipelineIdOverride || currentPipelineId;
 
-  /**
-   * Work in local
-   */
+  const payload = {
+    pipelineId,
+    name: columnData.name,
+    position: columnData.position || 1000,
+    probability: columnData.probability ?? null,
+    isClosedWon: columnData.isClosedWon ?? false,
+    isClosedLost: columnData.isClosedLost ?? false,
+    color: columnData.color ?? null,
+  };
+
+  const res = await axios.post(endpoints.sales.stages, payload);
+  const stage = res.stage || res.data?.stage || res.data?.[0] || res.data;
+
   mutate(
     KANBAN_ENDPOINT,
     (currentData) => {
       const { board } = currentData;
-
-      // add new column in board.columns
-      const columns = [...board.columns, columnData];
-
-      // add new task in board.tasks
-      const tasks = { ...board.tasks, [columnData.id]: [] };
-
-      return { ...currentData, board: { ...board, columns, tasks } };
+      const columns = [...board.columns, stage];
+      const tasks = { ...board.tasks, [stage.id]: [] };
+      return { ...currentData, board: { ...board, columns, tasks, pipelineId } };
     },
     false
   );
@@ -72,17 +114,8 @@ export async function createColumn(columnData) {
 // ----------------------------------------------------------------------
 
 export async function updateColumn(columnId, columnName) {
-  /**
-   * Work on server
-   */
-  if (enableServer) {
-    const data = { columnId, columnName };
-    await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'update-column' } });
-  }
+  await axios.patch(`${endpoints.sales.stages}/${columnId}`, { name: columnName });
 
-  /**
-   * Work in local
-   */
   startTransition(() => {
     mutate(
       KANBAN_ENDPOINT,
@@ -90,13 +123,7 @@ export async function updateColumn(columnId, columnName) {
         const { board } = currentData;
 
         const columns = board.columns.map((column) =>
-          column.id === columnId
-            ? {
-                // Update data when found
-                ...column,
-                name: columnName,
-              }
-            : column
+          column.id === columnId ? { ...column, name: columnName } : column
         );
 
         return { ...currentData, board: { ...board, columns } };
@@ -109,87 +136,68 @@ export async function updateColumn(columnId, columnName) {
 // ----------------------------------------------------------------------
 
 export async function moveColumn(updateColumns) {
-  /**
-   * Work in local
-   */
+  const pipelineId = currentPipelineId;
+
   startTransition(() => {
     mutate(
       KANBAN_ENDPOINT,
       (currentData) => {
         const { board } = currentData;
-
         return { ...currentData, board: { ...board, columns: updateColumns } };
       },
       false
     );
   });
 
-  /**
-   * Work on server
-   */
-  if (enableServer) {
-    const data = { updateColumns };
-    await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'move-column' } });
-  }
+  const stages = updateColumns.map((col, index) => ({ id: col.id, position: (index + 1) * 100 }));
+  await axios.post(`${endpoints.sales.stages}/reorder`, { pipelineId, stages });
 }
 
 // ----------------------------------------------------------------------
 
 export async function clearColumn(columnId) {
-  /**
-   * Work on server
-   */
-  if (enableServer) {
-    const data = { columnId };
-    await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'clear-column' } });
-  }
+  let tasksToDelete = [];
 
-  /**
-   * Work in local
-   */
   startTransition(() => {
     mutate(
       KANBAN_ENDPOINT,
       (currentData) => {
         const { board } = currentData;
 
-        // remove all tasks in column
-        const tasks = { ...board.tasks, [columnId]: [] };
+        const boardTasks = board.tasks || {};
+        tasksToDelete = boardTasks[columnId] || [];
+
+        const tasks = { ...boardTasks, [columnId]: [] };
 
         return { ...currentData, board: { ...board, tasks } };
       },
       false
     );
   });
+
+  if (tasksToDelete.length) {
+    await Promise.all(
+      tasksToDelete.map((task) => axios.delete(`${endpoints.sales.deals}/${task.id}`))
+    );
+  }
 }
 
 // ----------------------------------------------------------------------
 
 export async function deleteColumn(columnId) {
-  /**
-   * Work on server
-   */
-  if (enableServer) {
-    const data = { columnId };
-    await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'delete-column' } });
-  }
+  await axios.delete(`${endpoints.sales.stages}/${columnId}`);
 
-  /**
-   * Work in local
-   */
   mutate(
     KANBAN_ENDPOINT,
     (currentData) => {
       const { board } = currentData;
 
-      // delete column in board.columns
       const columns = board.columns.filter((column) => column.id !== columnId);
-
-      // delete tasks by column deleted
-      const tasks = Object.keys(board.tasks)
+      const boardTasks = board.tasks || {};
+      const tasks = Object.keys(boardTasks)
         .filter((key) => key !== columnId)
         .reduce((obj, key) => {
-          obj[key] = board.tasks[key];
+          obj[key] = boardTasks[key];
           return obj;
         }, {});
 
@@ -202,25 +210,34 @@ export async function deleteColumn(columnId) {
 // ----------------------------------------------------------------------
 
 export async function createTask(columnId, taskData) {
-  /**
-   * Work on server
-   */
-  if (enableServer) {
-    const data = { columnId, taskData };
-    await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'create-task' } });
-  }
+  const pipelineId = currentPipelineId;
 
-  /**
-   * Work in local
-   */
+  if (!pipelineId) throw new Error('Pipeline is not ready yet');
+
+  const payload = {
+    pipelineId,
+    stageId: columnId,
+    name: taskData.name || 'Untitled',
+    value: taskData.value ?? 0,
+    currency: taskData.currency || 'USD',
+    probability: taskData.probability ?? null,
+    status: taskData.status || 'open',
+    expectedCloseDate: taskData.due?.[1] || taskData.expectedCloseDate || null,
+    description: taskData.description || '',
+  };
+
+  const res = await axios.post(endpoints.sales.deals, payload);
+  const deal = res.deal || res.data?.deal || res.data?.[0] || res.data;
+  const task = normalizeDealToTask({ ...deal, stageId: columnId });
+
   startTransition(() => {
     mutate(
       KANBAN_ENDPOINT,
       (currentData) => {
         const { board } = currentData;
-
-        // add task in board.tasks
-        const tasks = { ...board.tasks, [columnId]: [taskData, ...board.tasks[columnId]] };
+        const boardTasks = board.tasks || {};
+        const columnTasks = boardTasks[columnId] || [];
+        const tasks = { ...boardTasks, [columnId]: [task, ...columnTasks] };
 
         return { ...currentData, board: { ...board, tasks } };
       },
@@ -232,38 +249,39 @@ export async function createTask(columnId, taskData) {
 // ----------------------------------------------------------------------
 
 export async function updateTask(columnId, taskData) {
-  /**
-   * Work on server
-   */
-  if (enableServer) {
-    const data = { columnId, taskData };
-    await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'update-task' } });
-  }
+  const payload = {
+    stageId: columnId,
+    name: taskData.name,
+    value: taskData.value,
+    currency: taskData.currency,
+    probability: taskData.probability,
+    status: taskData.status,
+    expectedCloseDate: taskData.due?.[1] || taskData.expectedCloseDate,
+    description: taskData.description,
+  };
 
-  /**
-   * Work in local
-   */
+  const res = await axios.patch(`${endpoints.sales.deals}/${taskData.id}`, payload);
+  const deal = res.deal || res.data?.deal || res.data?.[0] || res.data;
+  const updatedTask = normalizeDealToTask({ ...deal, stageId: columnId });
+
   startTransition(() => {
     mutate(
       KANBAN_ENDPOINT,
       (currentData) => {
         const { board } = currentData;
+        const boardTasks = board.tasks || {};
+        const tasksInColumn = boardTasks[columnId] || [];
 
-        // tasks in column
-        const tasksInColumn = board.tasks[columnId];
-
-        // find and update task
         const updateTasks = tasksInColumn.map((task) =>
           task.id === taskData.id
             ? {
-                // Update data when found
                 ...task,
-                ...taskData,
+                ...updatedTask,
               }
             : task
         );
 
-        const tasks = { ...board.tasks, [columnId]: updateTasks };
+        const tasks = { ...boardTasks, [columnId]: updateTasks };
 
         return { ...currentData, board: { ...board, tasks } };
       },
@@ -275,56 +293,51 @@ export async function updateTask(columnId, taskData) {
 // ----------------------------------------------------------------------
 
 export async function moveTask(updateTasks) {
-  /**
-   * Work in local
-   */
+  const normalizedTasks = {};
+  const updates = [];
+
+  Object.entries(updateTasks).forEach(([stageId, tasks]) => {
+    normalizedTasks[stageId] = (tasks || []).map((task) => {
+      const nextTask = normalizeDealToTask({ ...task, stageId });
+      updates.push({ id: task.id, stageId });
+      return nextTask;
+    });
+  });
+
   startTransition(() => {
     mutate(
       KANBAN_ENDPOINT,
       (currentData) => {
         const { board } = currentData;
 
-        // update board.tasks
-        const tasks = updateTasks;
-
-        return { ...currentData, board: { ...board, tasks } };
+        return { ...currentData, board: { ...board, tasks: normalizedTasks } };
       },
       false
     );
   });
 
-  /**
-   * Work on server
-   */
-  if (enableServer) {
-    const data = { updateTasks };
-    await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'move-task' } });
-  }
+  await Promise.all(
+    updates.map((update) =>
+      axios.patch(`${endpoints.sales.deals}/${update.id}`, { stageId: update.stageId })
+    )
+  );
 }
 
 // ----------------------------------------------------------------------
 
 export async function deleteTask(columnId, taskId) {
-  /**
-   * Work on server
-   */
-  if (enableServer) {
-    const data = { columnId, taskId };
-    await axios.post(KANBAN_ENDPOINT, data, { params: { endpoint: 'delete-task' } });
-  }
+  await axios.delete(`${endpoints.sales.deals}/${taskId}`);
 
-  /**
-   * Work in local
-   */
   mutate(
     KANBAN_ENDPOINT,
     (currentData) => {
       const { board } = currentData;
+      const boardTasks = board.tasks || {};
+      const columnTasks = boardTasks[columnId] || [];
 
-      // delete task in column
       const tasks = {
-        ...board.tasks,
-        [columnId]: board.tasks[columnId].filter((task) => task.id !== taskId),
+        ...boardTasks,
+        [columnId]: columnTasks.filter((task) => task.id !== taskId),
       };
 
       return { ...currentData, board: { ...board, tasks } };
