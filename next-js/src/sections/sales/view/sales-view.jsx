@@ -56,9 +56,12 @@ function SalesHighlights({ totals, stageBreakdown }) {
       <Grid size={{ xs: 12, md: 8 }}>
         <Box
           sx={{
+            p: { md: 2 },
+            gap: { xs: 3, md: 2 },
             display: 'grid',
-            gap: 3,
-            gridTemplateColumns: { xs: 'repeat(1, 1fr)', md: 'repeat(2, 1fr)' },
+            borderRadius: { md: 2 },
+            bgcolor: { md: 'background.neutral' },
+            gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
           }}
         >
           <BookingTotalIncomes
@@ -69,12 +72,13 @@ function SalesHighlights({ totals, stageBreakdown }) {
               categories: stageBreakdown.map((stage) => stage.label || stage.status),
               series: [{ data: stageBreakdown.map((stage) => stage.quantity) }],
             }}
+            sx={{ boxShadow: { md: 'none' } }}
           />
 
           <BookingBooked
             title="Stage conversion"
             data={stageBreakdown}
-            sx={{ boxShadow: 'none' }}
+            sx={{ boxShadow: { md: 'none' } }}
           />
         </Box>
       </Grid>
@@ -87,6 +91,7 @@ function SalesHighlights({ totals, stageBreakdown }) {
               { label: 'Open', percent: totals.openPercent, total: totals.activeDeals },
             ],
           }}
+          sx={{ boxShadow: { md: 'none' }, height: '100%' }}
         />
       </Grid>
     </Grid>

@@ -5,7 +5,7 @@ import { CONFIG } from 'src/global-config';
 // ----------------------------------------------------------------------
 
 const axiosInstance = axios.create({
-  baseURL: CONFIG.serverUrl,
+  baseURL: CONFIG.serverUrl || 'https://staging-iotaapiserver-s572.encr.app/supabaseservices',
   headers: {
     'Content-Type': 'application/json',
     apikey:

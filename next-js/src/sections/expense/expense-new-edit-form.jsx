@@ -735,14 +735,20 @@ export function ExpenseNewEditForm({ currentExpense }) {
           p: 3,
           gap: 3,
           display: 'grid',
-          gridTemplateColumns: { xs: 'repeat(1, 1fr)', md: 'repeat(2, 1fr)' },
+          alignItems: 'start',
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
         }}
       >
         <Typography variant="h6" sx={{ gridColumn: '1 / -1', mb: 0 }}>
           Additional Information
         </Typography>
-        <Field.DatePicker name="originalTransactionDate" label="Original Transaction Date" />
-        <Stack spacing={1.5}>
+        <Field.DatePicker
+          name="originalTransactionDate"
+          label="Original Transaction Date"
+          slotProps={{ textField: { fullWidth: true } }}
+        />
+
+        <Stack spacing={1.5} sx={{ minHeight: 1 }}>
           <Typography variant="subtitle2">Receipt attachment</Typography>
           <UploadBox
             accept={{
@@ -771,10 +777,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
               </Stack>
             }
             sx={{
-              minHeight: 140,
-              borderStyle: 'dashed',
-              borderColor: 'divider',
-              bgcolor: 'background.neutral',
+              width: '100%',
             }}
           />
 
