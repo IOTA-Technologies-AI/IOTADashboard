@@ -4,16 +4,18 @@ import { useState } from 'react';
 import { AnimatePresence } from 'framer-motion';
 
 import Box from '@mui/material/Box';
+import Button from '@mui/material/Button';
 import Switch from '@mui/material/Switch';
 import { styled } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import GlobalStyles from '@mui/material/GlobalStyles';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
-import { useGetBoard } from 'src/actions/kanban';
+import { createColumn, useGetBoard } from 'src/actions/kanban';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { EmptyContent } from 'src/components/empty-content';
+import { Iconify } from 'src/components/iconify';
 
 import { kanbanClasses } from '../classes';
 import { useBoardDnd } from '../hooks/use-board-dnd';
@@ -42,7 +44,7 @@ const inputGlobalStyles = () => (
 
 // ----------------------------------------------------------------------
 
-export function KanbanView({ title = 'Kanban', renderBeforeBoard }) {
+export function KanbanView({ title = 'Kanban', renderBeforeBoard, maxWidth = false, loading }) {
   const { board, boardLoading, boardEmpty } = useGetBoard();
   const { boardRef } = useBoardDnd(board);
 
@@ -54,7 +56,32 @@ export function KanbanView({ title = 'Kanban', renderBeforeBoard }) {
     </Box>
   );
 
-  const renderEmpty = () => <EmptyContent filled sx={{ py: 10, maxHeight: { md: 480 } }} />;
+  const renderEmpty = () => (
+    <Box
+      sx={{
+        py: 10,
+        maxHeight: { md: 480 },
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <EmptyContent
+        title="No stages yet"
+        description="Add your first stage (+) and use @ in names/descriptions to tag teammates."
+        action={
+          <Button
+            variant="contained"
+            startIcon={<Iconify icon="mingcute:add-line" />}
+            onClick={() => createColumn({ name: 'New stage' })}
+          >
+            Add stage
+          </Button>
+        }
+        sx={{ width: '100%', maxWidth: 420 }}
+      />
+    </Box>
+  );
 
   const renderList = () => (
     <FlexibleColumnContainer columnFixed={columnFixed}>
@@ -100,11 +127,11 @@ export function KanbanView({ title = 'Kanban', renderBeforeBoard }) {
       {inputGlobalStyles()}
 
       <DashboardContent
-        maxWidth={false}
+        maxWidth={maxWidth}
         sx={{
-          pb: 0,
+          pb: 3,
           pl: { sm: 3 },
-          pr: { sm: 0 },
+          pr: { sm: 3 },
           minHeight: 0,
           flex: '1 1 0',
           display: 'flex',
@@ -116,7 +143,11 @@ export function KanbanView({ title = 'Kanban', renderBeforeBoard }) {
         {renderBeforeBoard ? <Box sx={{ mb: 3 }}>{renderBeforeBoard}</Box> : null}
 
         <ScrollContainer ref={boardRef}>
-          {boardLoading ? renderLoading() : <>{boardEmpty ? renderEmpty() : renderList()}</>}
+          {boardLoading || loading ? (
+            renderLoading()
+          ) : (
+            <>{boardEmpty ? renderEmpty() : renderList()}</>
+          )}
         </ScrollContainer>
       </DashboardContent>
     </>

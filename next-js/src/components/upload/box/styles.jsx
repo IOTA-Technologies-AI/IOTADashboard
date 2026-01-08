@@ -7,19 +7,26 @@ import { uploadClasses } from '../classes';
 // ----------------------------------------------------------------------
 
 export const UploadArea = styled('div')(({ theme }) => ({
-  width: 64,
-  height: 64,
-  flexShrink: 0,
+  width: '100%',
+  minHeight: 180,
+  padding: theme.spacing(2),
   display: 'flex',
   cursor: 'pointer',
   alignItems: 'center',
   justifyContent: 'center',
-  borderRadius: theme.shape.borderRadius,
-  color: theme.vars.palette.text.disabled,
-  backgroundColor: varAlpha(theme.vars.palette.grey['500Channel'], 0.08),
-  border: `dashed 1px ${varAlpha(theme.vars.palette.grey['500Channel'], 0.2)}`,
+  flexDirection: 'column',
+  gap: theme.spacing(1),
+  borderRadius: theme.shape.borderRadius * 1.5,
+  color: theme.vars.palette.text.secondary,
+  background: `linear-gradient(135deg, ${varAlpha(theme.vars.palette.primary.mainChannel, 0.04)}, ${varAlpha(theme.vars.palette.grey['500Channel'], 0.04)})`,
+  border: `dashed 1px ${varAlpha(theme.vars.palette.grey['500Channel'], 0.24)}`,
+  transition: theme.transitions.create(['border-color', 'box-shadow', 'transform'], {
+    duration: theme.transitions.duration.shorter,
+  }),
   '&:hover': {
-    opacity: 0.72,
+    borderColor: theme.vars.palette.primary.main,
+    boxShadow: theme.vars.customShadows.z8,
+    transform: 'translateY(-2px)',
   },
   [`&.${uploadClasses.state.dragActive}`]: {
     opacity: 0.72,

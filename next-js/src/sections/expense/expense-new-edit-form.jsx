@@ -135,6 +135,87 @@ export function ExpenseNewEditForm({ currentExpense }) {
     return `Accounts/Expense Attachments/${year}/${month}`;
   };
 
+  const encodeGraphPath = (path) => path.split('/').map(encodeURIComponent).join('/');
+
+  const uploadViaSimplePut = async ({ accessToken, file, folderPath, fileName }) => {
+    const encodedPath = encodeGraphPath(folderPath);
+    const targetUrl = `https://graph.microsoft.com/v1.0/me/drive/root:/${encodedPath}/${encodeURIComponent(fileName)}:/content`;
+
+    const res = await fetch(targetUrl, {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'Content-Type': file.type || 'application/octet-stream',
+      },
+      body: file,
+    });
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(text || 'Upload failed');
+    }
+
+    return res.json();
+  };
+
+  const uploadViaSession = async ({ accessToken, file, folderPath, fileName }) => {
+    const encodedPath = encodeGraphPath(folderPath);
+    const sessionRes = await fetch(
+      `https://graph.microsoft.com/v1.0/me/drive/root:/${encodedPath}/${encodeURIComponent(fileName)}:/createUploadSession`,
+      {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          item: {
+            '@microsoft.graph.conflictBehavior': 'replace',
+            name: fileName,
+            description: 'Expense attachment upload',
+          },
+        }),
+      }
+    );
+
+    if (!sessionRes.ok) {
+      const text = await sessionRes.text();
+      throw new Error(text || 'Failed to start upload session');
+    }
+
+    const session = await sessionRes.json();
+    const uploadUrl = session.uploadUrl;
+    if (!uploadUrl) throw new Error('Missing upload URL');
+
+    const chunkSize = 320 * 1024; // 320KB chunks keep memory low
+    let start = 0;
+    let lastResponse = null;
+
+    while (start < file.size) {
+      const end = Math.min(start + chunkSize, file.size);
+      const chunk = file.slice(start, end);
+
+      const res = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Length': `${chunk.size}`,
+          'Content-Range': `bytes ${start}-${end - 1}/${file.size}`,
+        },
+        body: chunk,
+      });
+
+      if (!(res.status === 200 || res.status === 201 || res.status === 202)) {
+        const text = await res.text();
+        throw new Error(text || 'Chunk upload failed');
+      }
+
+      lastResponse = await res.json();
+      start = end;
+    }
+
+    return lastResponse;
+  };
+
   const getTokens = () => {
     const stored = getOneDriveToken();
     return {
@@ -360,20 +441,46 @@ export function ExpenseNewEditForm({ currentExpense }) {
     setUploadingAttachment(true);
 
     try {
-      const base64Content = await fileToBase64(file);
       const safeName = sanitizeFileName(file.name);
       const folderPath = getAttachmentFolder();
-      const userId = profile?.userPrincipalName || profile?.mail || user?.email;
+      const { accessToken, refreshToken } = getTokens();
 
-      const uploadResponse = await apiHelper.uploadExpenseAttachment({
-        folderPath,
-        fileName: safeName,
-        fileContent: base64Content,
-        userId,
-      });
+      if (!accessToken) {
+        throw new Error('Missing Microsoft access token. Please reconnect your account.');
+      }
+
+      const useSession = file.size > 3.5 * 1024 * 1024; // >3.5MB => upload session
+
+      const uploadFn = async (token) => {
+        if (useSession) {
+          return uploadViaSession({ accessToken: token, file, folderPath, fileName: safeName });
+        }
+        return uploadViaSimplePut({ accessToken: token, file, folderPath, fileName: safeName });
+      };
+
+      let uploadResponse;
+      try {
+        uploadResponse = await uploadFn(accessToken);
+      } catch (err) {
+        if (refreshToken) {
+          const refreshed = await refreshAccessToken(refreshToken);
+          const newAccess = refreshed.access_token || refreshed.accessToken;
+          const newRefresh = refreshed.refresh_token || refreshed.refreshToken || refreshToken;
+          if (newAccess) {
+            seedOneDriveToken(newAccess, newRefresh);
+            uploadResponse = await uploadFn(newAccess);
+          } else {
+            throw err;
+          }
+        } else {
+          throw err;
+        }
+      }
 
       const uploadedUrl =
-        uploadResponse?.webUrl || uploadResponse?.url || uploadResponse?.downloadUrl;
+        uploadResponse?.webUrl ||
+        uploadResponse?.['@microsoft.graph.downloadUrl'] ||
+        uploadResponse?.id;
 
       if (!uploadedUrl) {
         throw new Error('Upload did not return a file URL.');

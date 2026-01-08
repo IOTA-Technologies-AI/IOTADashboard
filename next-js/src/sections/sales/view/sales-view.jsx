@@ -1,15 +1,17 @@
 'use client';
 
+import { useMemo } from 'react';
+
 import Box from '@mui/material/Box';
 import Grid from '@mui/material/Grid';
 
-import { _bookingsOverview } from 'src/_mock';
 import {
   BookingIllustration,
   CheckInIllustration,
   CheckoutIllustration,
 } from 'src/assets/illustrations';
 
+import { useGetBoard } from 'src/actions/kanban';
 import { KanbanView } from 'src/sections/kanban/view';
 import { BookingBooked } from 'src/sections/overview/booking/booking-booked';
 import { BookingTotalIncomes } from 'src/sections/overview/booking/booking-total-incomes';
@@ -18,33 +20,29 @@ import { BookingCheckInWidgets } from 'src/sections/overview/booking/booking-che
 
 // ----------------------------------------------------------------------
 
-const summaryCards = [
-  {
-    title: 'Total deals',
-    percent: 4.2,
-    total: 128,
-    icon: <BookingIllustration />,
-  },
-  {
-    title: 'Active pipeline',
-    percent: 1.1,
-    total: 76,
-    icon: <CheckInIllustration />,
-  },
-  {
-    title: 'Closed won',
-    percent: 0.6,
-    total: 22,
-    icon: <CheckoutIllustration />,
-  },
-];
-
-// ----------------------------------------------------------------------
-
-function SalesHighlights() {
+function SalesHighlights({ totals, stageBreakdown }) {
   return (
     <Grid container spacing={3}>
-      {summaryCards.map((card) => (
+      {[
+        {
+          title: 'Total deals',
+          percent: 0,
+          total: totals.totalDeals,
+          icon: <BookingIllustration />,
+        },
+        {
+          title: 'Active pipeline',
+          percent: 0,
+          total: totals.activeDeals,
+          icon: <CheckInIllustration />,
+        },
+        {
+          title: 'Closed won',
+          percent: 0,
+          total: totals.closedWon,
+          icon: <CheckoutIllustration />,
+        },
+      ].map((card) => (
         <Grid key={card.title} size={{ xs: 12, md: 4 }}>
           <BookingWidgetSummary
             title={card.title}
@@ -65,17 +63,17 @@ function SalesHighlights() {
         >
           <BookingTotalIncomes
             title="Pipeline velocity"
-            total={187650}
+            total={totals.totalValue}
             percent={2.6}
             chart={{
-              categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
-              series: [{ data: [10, 41, 80, 100, 60, 120, 69, 91, 160] }],
+              categories: stageBreakdown.map((stage) => stage.label || stage.status),
+              series: [{ data: stageBreakdown.map((stage) => stage.quantity) }],
             }}
           />
 
           <BookingBooked
             title="Stage conversion"
-            data={_bookingsOverview}
+            data={stageBreakdown}
             sx={{ boxShadow: 'none' }}
           />
         </Box>
@@ -85,8 +83,8 @@ function SalesHighlights() {
         <BookingCheckInWidgets
           chart={{
             series: [
-              { label: 'Won', percent: 62.5, total: 22500 },
-              { label: 'Open', percent: 37.5, total: 13500 },
+              { label: 'Won', percent: totals.closedWonPercent, total: totals.closedWon },
+              { label: 'Open', percent: totals.openPercent, total: totals.activeDeals },
             ],
           }}
         />
@@ -98,5 +96,45 @@ function SalesHighlights() {
 // ----------------------------------------------------------------------
 
 export function SalesView() {
-  return <KanbanView title="Sales pipeline" renderBeforeBoard={<SalesHighlights />} />;
+  const { board, boardLoading } = useGetBoard();
+
+  const { totals, stageBreakdown } = useMemo(() => {
+    const tasks = board?.tasks || {};
+    const deals = Object.values(tasks).flat();
+
+    const totalDeals = deals.length;
+    const closedWon = deals.filter((d) => d.status === 'won').length;
+    const activeDeals = deals.filter((d) => d.status !== 'won' && d.status !== 'lost').length;
+    const totalValue = deals.reduce((sum, d) => sum + (Number(d.value) || 0), 0);
+
+    const stages = (board?.columns || []).map((stage) => {
+      const quantity = (tasks[stage.id] || []).length;
+      const value = totalDeals ? Math.min(100, (quantity / Math.max(totalDeals, 1)) * 100) : 0;
+      return { status: stage.name, quantity, value };
+    });
+
+    const openPercent = totalDeals ? Math.round((activeDeals / totalDeals) * 100) : 0;
+    const closedWonPercent = totalDeals ? Math.round((closedWon / totalDeals) * 100) : 0;
+
+    return {
+      totals: {
+        totalDeals,
+        activeDeals,
+        closedWon,
+        totalValue,
+        openPercent,
+        closedWonPercent,
+      },
+      stageBreakdown: stages,
+    };
+  }, [board?.columns, board?.tasks]);
+
+  return (
+    <KanbanView
+      title="Sales pipeline"
+      maxWidth="xl"
+      renderBeforeBoard={<SalesHighlights totals={totals} stageBreakdown={stageBreakdown} />}
+      loading={boardLoading}
+    />
+  );
 }

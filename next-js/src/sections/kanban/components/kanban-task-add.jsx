@@ -85,7 +85,9 @@ export function KanbanTaskAdd({ status, openAddTask, onAddTask, onCloseAddTask }
           />
         </Paper>
 
-        <FormHelperText sx={{ mx: 1 }}>Press Enter to create the task.</FormHelperText>
+        <FormHelperText sx={{ mx: 1 }}>
+          Press Enter to create the deal. Type @ to tag teammates.
+        </FormHelperText>
       </Box>
     </ClickAwayListener>
   );
