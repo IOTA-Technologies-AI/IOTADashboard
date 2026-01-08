@@ -452,6 +452,30 @@ export async function updateExpense(referenceId, expenseData) {
   }
 }
 
+export async function uploadExpenseAttachment({ folderPath, fileName, fileContent, userId }) {
+  if (!fileName || !fileContent || !folderPath) {
+    throw new Error('folderPath, fileName, and fileContent are required');
+  }
+
+  const payload = {
+    folderPath,
+    fileName,
+    fileContent,
+    userId,
+  };
+
+  try {
+    const response = await axios.post(`${API_BASE_URL}onedrive/upload`, payload, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('❌ Expense attachment upload failed:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
 // Add these functions to your existing apiHelper.js
 
 // Accounts Receivable APIs
@@ -863,6 +887,7 @@ export const apiHelper = {
   getExpense,
   createExpense,
   updateExpense,
+  uploadExpenseAttachment,
   createInvoice,
   fetchInvoices,
   fetchInvoice,

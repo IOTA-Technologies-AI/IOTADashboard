@@ -14,6 +14,8 @@ import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import CircularProgress from '@mui/material/CircularProgress'; // ✅ Added for loading state
 import Alert from '@mui/material/Alert';
+import Chip from '@mui/material/Chip';
+import LinearProgress from '@mui/material/LinearProgress';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
@@ -29,12 +31,30 @@ import { getOneDriveToken, refreshAccessToken, seedOneDriveToken } from 'src/uti
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
+import { UploadBox } from 'src/components/upload/box/upload-box';
+import { Iconify } from 'src/components/iconify';
 
 import { useAuthContext } from 'src/auth/hooks';
 import { useMicrosoftProfile } from 'src/auth/hooks/use-microsoft-profile';
 
 // ----------------------------------------------------------------------
 const INVOICE_AGAINST_INVOICE_TYPE = 18;
+const MAX_ATTACHMENT_SIZE = 20 * 1024 * 1024; // 20MB
+const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'];
+const MONTH_NAMES = [
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
+];
 
 const ExpenseSchema = zod.object({
   expenseType: zod.coerce.number().min(1, { message: 'Expense type is required!' }),
@@ -78,6 +98,42 @@ export function ExpenseNewEditForm({ currentExpense }) {
   const [arInvoices, setArInvoices] = useState([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [costCenters, setCostCenters] = useState([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [attachmentName, setAttachmentName] = useState('');
+  const [attachmentError, setAttachmentError] = useState('');
+
+  const sanitizeFileName = (fileName) => {
+    const parts = fileName.split('.');
+    const ext = (parts.pop() || '').toLowerCase();
+    const safeBase = parts
+      .join('.')
+      .replace(/[^a-z0-9-_]+/gi, '_')
+      .replace(/_{2,}/g, '_')
+      .replace(/^_|_$/g, '')
+      .slice(0, 80);
+
+    const finalExt = ext ? `.${ext}` : '';
+    return `${safeBase || 'attachment'}${finalExt}`;
+  };
+
+  const fileToBase64 = (file) =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result?.toString() || '';
+        const commaIndex = result.indexOf(',');
+        resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const getAttachmentFolder = () => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = MONTH_NAMES[now.getMonth()];
+    return `Accounts/Expense Attachments/${year}/${month}`;
+  };
 
   const getTokens = () => {
     const stored = getOneDriveToken();
@@ -281,8 +337,69 @@ export function ExpenseNewEditForm({ currentExpense }) {
     }
   }, [currentExpense, defaultValues, reset]);
 
+  const handleAttachmentUpload = async (files) => {
+    const file = files?.[0];
+    if (!file) return;
+
+    const ext = (file.name.split('.').pop() || '').toLowerCase();
+    if (!ALLOWED_EXTENSIONS.includes(ext)) {
+      const message = 'Only pdf, doc, docx, png, and jpg files are allowed.';
+      setAttachmentError(message);
+      toast.error(message);
+      return;
+    }
+
+    if (file.size > MAX_ATTACHMENT_SIZE) {
+      const message = 'File size exceeds 20MB limit.';
+      setAttachmentError(message);
+      toast.error(message);
+      return;
+    }
+
+    setAttachmentError('');
+    setUploadingAttachment(true);
+
+    try {
+      const base64Content = await fileToBase64(file);
+      const safeName = sanitizeFileName(file.name);
+      const folderPath = getAttachmentFolder();
+      const userId = profile?.userPrincipalName || profile?.mail || user?.email;
+
+      const uploadResponse = await apiHelper.uploadExpenseAttachment({
+        folderPath,
+        fileName: safeName,
+        fileContent: base64Content,
+        userId,
+      });
+
+      const uploadedUrl =
+        uploadResponse?.webUrl || uploadResponse?.url || uploadResponse?.downloadUrl;
+
+      if (!uploadedUrl) {
+        throw new Error('Upload did not return a file URL.');
+      }
+
+      setValue('fileLocation', uploadedUrl);
+      setAttachmentName(safeName);
+      toast.success('Attachment uploaded to OneDrive.');
+    } catch (error) {
+      console.error('Attachment upload failed:', error);
+      const message =
+        error?.message || 'Failed to upload attachment. Please try again with a valid file.';
+      setAttachmentError(message);
+      toast.error(message);
+    } finally {
+      setUploadingAttachment(false);
+    }
+  };
+
   const onSubmit = handleSubmit(async (data) => {
     try {
+      if (uploadingAttachment) {
+        toast.error('Please wait for the attachment upload to finish.');
+        return;
+      }
+
       if (currentExpense && !isSuperAdmin) {
         toast.error('Only super admins can edit expenses');
         return;
@@ -518,7 +635,63 @@ export function ExpenseNewEditForm({ currentExpense }) {
           Additional Information
         </Typography>
         <Field.DatePicker name="originalTransactionDate" label="Original Transaction Date" />
-        <Field.Text name="fileLocation" label="Receipt URL" placeholder="Optional" />
+        <Stack spacing={1.5}>
+          <Typography variant="subtitle2">Receipt attachment</Typography>
+          <UploadBox
+            accept={{
+              'application/pdf': ['.pdf'],
+              'application/msword': ['.doc'],
+              'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+              'image/png': ['.png'],
+              'image/jpeg': ['.jpg', '.jpeg'],
+            }}
+            multiple={false}
+            maxFiles={1}
+            disabled={uploadingAttachment}
+            onDrop={handleAttachmentUpload}
+            onDropRejected={() =>
+              toast.error('Only pdf, doc, docx, png, and jpg files under 20MB are allowed.')
+            }
+            placeholder={
+              <Stack spacing={1} alignItems="center">
+                <Iconify icon="eva:cloud-upload-fill" width={28} />
+                <Typography variant="body2" color="text.secondary" align="center">
+                  Drop receipt here, or click to browse
+                </Typography>
+                <Typography variant="caption" color="text.secondary" align="center">
+                  Allowed: pdf, doc, docx, png, jpg. Max 20MB.
+                </Typography>
+              </Stack>
+            }
+            sx={{
+              minHeight: 140,
+              borderStyle: 'dashed',
+              borderColor: 'divider',
+              bgcolor: 'background.neutral',
+            }}
+          />
+
+          {uploadingAttachment && <LinearProgress />}
+
+          {attachmentName ? (
+            <Chip
+              color="success"
+              variant="outlined"
+              icon={<Iconify icon="eva:checkmark-circle-2-fill" width={18} />}
+              label={`Uploaded: ${attachmentName}`}
+            />
+          ) : null}
+
+          {attachmentError ? <Alert severity="error">{attachmentError}</Alert> : null}
+
+          <Field.Text
+            name="fileLocation"
+            label="Receipt URL"
+            placeholder="Auto-filled after upload"
+            InputLabelProps={{ shrink: true }}
+            helperText="We save attachments to OneDrive → Accounts/Expense Attachments/YYYY/Mon"
+          />
+        </Stack>
       </Box>
     </Card>
   );
@@ -541,7 +714,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
         size="large"
         variant="contained"
         loading={isSubmitting}
-        disabled={currentExpense ? !isSuperAdmin : false}
+        disabled={uploadingAttachment || (currentExpense ? !isSuperAdmin : false)}
       >
         {currentExpense ? 'Update Expense' : 'Create Expense'}
       </LoadingButton>

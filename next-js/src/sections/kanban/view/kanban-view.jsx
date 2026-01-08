@@ -42,7 +42,7 @@ const inputGlobalStyles = () => (
 
 // ----------------------------------------------------------------------
 
-export function KanbanView() {
+export function KanbanView({ title = 'Kanban', renderBeforeBoard }) {
   const { board, boardLoading, boardEmpty } = useGetBoard();
   const { boardRef } = useBoardDnd(board);
 
@@ -77,7 +77,7 @@ export function KanbanView() {
         justifyContent: 'space-between',
       }}
     >
-      <Typography variant="h4">Kanban</Typography>
+      <Typography variant="h4">{title}</Typography>
 
       <FormControlLabel
         label="Fixed column"
@@ -112,6 +112,8 @@ export function KanbanView() {
         }}
       >
         {renderHead()}
+
+        {renderBeforeBoard ? <Box sx={{ mb: 3 }}>{renderBeforeBoard}</Box> : null}
 
         <ScrollContainer ref={boardRef}>
           {boardLoading ? renderLoading() : <>{boardEmpty ? renderEmpty() : renderList()}</>}
