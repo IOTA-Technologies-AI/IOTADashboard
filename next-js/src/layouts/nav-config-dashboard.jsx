@@ -253,7 +253,7 @@ export const navData = [
       },
       { title: 'Chat', path: paths.dashboard.chat, icon: ICONS.chat },
       { title: 'Calendar', path: paths.dashboard.calendar, icon: ICONS.calendar },
-      { title: 'Kanban', path: paths.dashboard.kanban, icon: ICONS.kanban },
+      { title: 'Sales', path: paths.dashboard.sales, icon: ICONS.kanban },
     ],
   },
   /**
