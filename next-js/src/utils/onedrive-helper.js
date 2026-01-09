@@ -164,13 +164,20 @@ const fileToBase64 = (file) =>
     reader.readAsDataURL(file);
   });
 
-export async function uploadOneDriveFiles(files, { folderPath = '', userId } = {}) {
+export async function uploadOneDriveFiles(
+  files,
+  { folderPath = '', userId, accessToken, refreshToken } = {}
+) {
   if (!files || !files.length) return [];
 
-  const uploads = files.map(async (file) => {
+  const tokens = ensureAccessToken(accessToken, refreshToken);
+  if (!tokens.accessToken) throw new Error('Not authenticated with OneDrive');
+
+  const uploadWithToken = async (file, token) => {
     const base64Content = await fileToBase64(file);
 
     const payload = {
+      accessToken: token,
       folderPath,
       fileName: file.name,
       fileContent: base64Content,
@@ -179,9 +186,30 @@ export async function uploadOneDriveFiles(files, { folderPath = '', userId } = {
 
     const response = await axios.post(`${API_BASE_URL}/onedrive/upload`, payload, {
       headers: { 'Content-Type': 'application/json' },
+      maxBodyLength: Infinity,
     });
 
     return response.data;
+  };
+
+  const uploads = files.map(async (file) => {
+    try {
+      return await uploadWithToken(file, tokens.accessToken);
+    } catch (error) {
+      const status = error?.response?.status;
+      if (status === 401 && tokens.refreshToken) {
+        const refreshed = await refreshAccessToken(tokens.refreshToken);
+        const newAccess = refreshed.access_token || refreshed.accessToken;
+        const newRefresh = refreshed.refresh_token || refreshed.refreshToken || tokens.refreshToken;
+
+        if (newAccess) {
+          setOneDriveToken(newAccess, newRefresh);
+          return await uploadWithToken(file, newAccess);
+        }
+      }
+
+      throw error;
+    }
   });
 
   return Promise.all(uploads);
