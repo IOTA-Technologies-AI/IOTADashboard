@@ -4,6 +4,7 @@ import { useSetState } from 'minimal-shared/hooks';
 import { useMemo, useEffect, useCallback, useState } from 'react';
 
 import axios from 'src/lib/axios';
+import { seedOneDriveToken } from 'src/utils/onedrive-helper';
 import { supabase } from 'src/lib/supabase';
 
 import { AuthContext } from '../auth-context';
@@ -185,6 +186,19 @@ export function AuthProvider({ children }) {
     checkUserSession();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Seed OneDrive tokens from the authenticated session (provider tokens), so we don't force
+  // users to re-login to Microsoft for OneDrive actions.
+  useEffect(() => {
+    if (!state.user) return;
+
+    const token = state.user?.provider_token || state.user?.providerToken;
+    const refresh = state.user?.provider_refresh_token || state.user?.providerRefreshToken;
+
+    if (token) {
+      seedOneDriveToken(token, refresh);
+    }
+  }, [state.user]);
 
   useEffect(() => {
     const fetchAppRoles = async () => {
