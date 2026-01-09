@@ -4,10 +4,11 @@ import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-const baseURL = (CONFIG.serverUrl || 'https://staging-iotaapiserver-s572.encr.app').replace(
-  /\/$/,
-  ''
-);
+// Prefer same-origin for client calls so Next.js API proxies avoid CORS; fall back to configured host on server.
+const baseURL =
+  typeof window === 'undefined'
+    ? (CONFIG.serverUrl || 'https://staging-iotaapiserver-s572.encr.app').replace(/\/$/, '')
+    : '';
 
 const axiosInstance = axios.create({
   baseURL,

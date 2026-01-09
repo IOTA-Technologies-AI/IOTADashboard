@@ -2,6 +2,8 @@ import BusinessIcon from '@mui/icons-material/Business';
 import MoneyOffIcon from '@mui/icons-material/MoneyOff';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import LeaderboardIcon from '@mui/icons-material/Leaderboard';
+import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
 
 import { paths } from 'src/routes/paths';
 
@@ -47,6 +49,8 @@ const ICONS = {
   expense: <MoneyOffIcon style={{ width: 24, height: 24 }} />,
   deals: <BusinessIcon style={{ width: 24, height: 24 }} />,
   payroll: <AttachMoneyIcon style={{ width: 24, height: 24 }} />,
+  sales: <LeaderboardIcon style={{ width: 24, height: 24 }} />,
+  todo: <FormatListNumberedIcon style={{ width: 24, height: 24 }} />,
 };
 
 // ----------------------------------------------------------------------
@@ -80,8 +84,8 @@ export const navData = [
       { title: 'Booking', path: paths.dashboard.general.booking, icon: ICONS.booking },
       { title: 'Accounts', path: paths.dashboard.general.account, icon: ICONS.dashboard },
       { title: 'File', path: paths.dashboard.general.file, icon: ICONS.file },
-      { title: 'Sales', path: paths.dashboard.sales, icon: ICONS.kanban },
-      { title: 'To Do', path: paths.dashboard.todo, icon: ICONS.kanban },
+      { title: 'Sales', path: paths.dashboard.sales, icon: ICONS.sales },
+      { title: 'To Do', path: paths.dashboard.todo, icon: ICONS.todo },
       { title: 'Course', path: paths.dashboard.general.course, icon: ICONS.course },
     ],
   },
