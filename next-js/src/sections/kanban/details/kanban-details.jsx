@@ -31,16 +31,9 @@ import { KanbanDetailsAttachments } from './kanban-details-attachments';
 import { KanbanDetailsCommentList } from './kanban-details-comment-list';
 import { KanbanDetailsCommentInput } from './kanban-details-comment-input';
 import { KanbanContactsDialog } from '../components/kanban-contacts-dialog';
+import { createSubtask, deleteSubtask, updateSubtask, useGetSubtasks } from 'src/actions/todo';
 
 // ----------------------------------------------------------------------
-
-const SUBTASKS = [
-  'Complete project proposal',
-  'Conduct market research',
-  'Design user interface mockups',
-  'Develop backend api',
-  'Implement authentication system',
-];
 
 const BlockLabel = styled('span')(({ theme }) => ({
   ...theme.typography.caption,
@@ -61,7 +54,10 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
   const [taskName, setTaskName] = useState(task.name);
   const [priority, setPriority] = useState(task.priority);
   const [taskDescription, setTaskDescription] = useState(task.description);
-  const [subtaskCompleted, setSubtaskCompleted] = useState(SUBTASKS.slice(0, 2));
+  const [assignees, setAssignees] = useState(task.assignee || []);
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
+
+  const { subtasks, subtasksLoading, subtasksError } = useGetSubtasks(task.id);
 
   const rangePicker = useDateRangePicker(dayjs(task.due[0]), dayjs(task.due[1]));
 
@@ -92,13 +88,53 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
     setPriority(newValue);
   }, []);
 
-  const handleClickSubtaskComplete = (taskId) => {
-    const selected = subtaskCompleted.includes(taskId)
-      ? subtaskCompleted.filter((value) => value !== taskId)
-      : [...subtaskCompleted, taskId];
+  const handleClickSubtaskComplete = useCallback(
+    async (subtask) => {
+      try {
+        await updateSubtask(task.id, subtask.id, { isDone: !subtask.isDone });
+      } catch (error) {
+        console.error('toggle subtask failed', error);
+      }
+    },
+    [task.id]
+  );
 
-    setSubtaskCompleted(selected);
-  };
+  const handleDeleteSubtask = useCallback(
+    async (subtaskId) => {
+      try {
+        await deleteSubtask(task.id, subtaskId);
+      } catch (error) {
+        console.error('delete subtask failed', error);
+      }
+    },
+    [task.id]
+  );
+
+  const handleAddSubtask = useCallback(async () => {
+    const title = newSubtaskTitle.trim();
+    if (!title) return;
+    try {
+      await createSubtask(task.id, title);
+      setNewSubtaskTitle('');
+    } catch (error) {
+      console.error('create subtask failed', error);
+    }
+  }, [newSubtaskTitle, task.id]);
+
+  const handleToggleAssignee = useCallback(
+    (contact) => {
+      setAssignees((prev) => {
+        const exists = prev.some((item) => item.id === contact.id);
+        const nextAssignees = exists
+          ? prev.filter((item) => item.id !== contact.id)
+          : [...prev, { ...contact }];
+
+        onUpdateTask?.({ ...task, assignee: nextAssignees });
+        return nextAssignees;
+      });
+    },
+    [onUpdateTask, task]
+  );
 
   const renderToolbar = () => (
     <KanbanDetailsToolbar
@@ -151,7 +187,7 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
         <BlockLabel sx={{ height: 40, lineHeight: '40px' }}>Assignee</BlockLabel>
 
         <Box sx={{ gap: 1, display: 'flex', flexWrap: 'wrap' }}>
-          {task.assignee.map((user) => (
+          {assignees.map((user) => (
             <Avatar key={user.id} alt={user.name} src={user.avatarUrl} />
           ))}
 
@@ -170,9 +206,10 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
           </Tooltip>
 
           <KanbanContactsDialog
-            assignee={task.assignee}
+            assignee={assignees}
             open={contactsDialog.value}
             onClose={contactsDialog.onFalse}
+            onSelect={handleToggleAssignee}
           />
         </Box>
       </Box>
@@ -260,39 +297,79 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
     <Box sx={{ gap: 3, display: 'flex', flexDirection: 'column' }}>
       <div>
         <Typography variant="body2" sx={{ mb: 1 }}>
-          {subtaskCompleted.length} of {SUBTASKS.length}
+          {subtasks.filter((s) => s.isDone).length} of {subtasks.length}
         </Typography>
 
         <LinearProgress
           variant="determinate"
-          value={(subtaskCompleted.length / SUBTASKS.length) * 100}
+          value={
+            subtasks.length ? (subtasks.filter((s) => s.isDone).length / subtasks.length) * 100 : 0
+          }
         />
       </div>
 
-      <FormGroup>
-        {SUBTASKS.map((taskItem) => (
-          <FormControlLabel
-            key={taskItem}
-            control={
-              <Checkbox
-                disableRipple
-                name={taskItem}
-                checked={subtaskCompleted.includes(taskItem)}
-              />
-            }
-            label={taskItem}
-            onChange={() => handleClickSubtaskComplete(taskItem)}
-          />
-        ))}
-      </FormGroup>
+      {subtasksLoading && (
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          Loading subtasks...
+        </Typography>
+      )}
 
-      <Button
-        variant="outlined"
-        startIcon={<Iconify icon="mingcute:add-line" />}
-        sx={{ alignSelf: 'flex-start' }}
-      >
-        Add subtask
-      </Button>
+      {subtasksError && (
+        <Typography variant="body2" sx={{ color: 'error.main' }}>
+          Failed to load subtasks
+        </Typography>
+      )}
+
+      {!subtasksLoading && !subtasks.length && !subtasksError && (
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          No subtasks yet.
+        </Typography>
+      )}
+
+      {!!subtasks.length && (
+        <FormGroup>
+          {subtasks.map((taskItem) => (
+            <FormControlLabel
+              key={taskItem.id}
+              control={
+                <Checkbox
+                  disableRipple
+                  name={taskItem.title}
+                  checked={taskItem.isDone}
+                  onChange={() => handleClickSubtaskComplete(taskItem)}
+                />
+              }
+              label={taskItem.title}
+              slotProps={{ typography: { noWrap: true } }}
+              onClick={(event) => event.stopPropagation()}
+              onChange={() => handleClickSubtaskComplete(taskItem)}
+              secondaryAction={
+                <IconButton size="small" onClick={() => handleDeleteSubtask(taskItem.id)}>
+                  <Iconify icon="solar:trash-bin-trash-bold" />
+                </IconButton>
+              }
+            />
+          ))}
+        </FormGroup>
+      )}
+
+      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+        <TextField
+          size="small"
+          value={newSubtaskTitle}
+          onChange={(e) => setNewSubtaskTitle(e.target.value)}
+          placeholder="New subtask"
+        />
+        <Button
+          variant="outlined"
+          startIcon={<Iconify icon="mingcute:add-line" />}
+          onClick={handleAddSubtask}
+          disabled={!newSubtaskTitle.trim()}
+          sx={{ alignSelf: 'flex-start' }}
+        >
+          Add subtask
+        </Button>
+      </Box>
     </Box>
   );
 

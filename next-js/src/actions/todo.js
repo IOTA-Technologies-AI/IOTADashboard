@@ -7,6 +7,9 @@ import axios, { fetcher, endpoints } from 'src/lib/axios';
 
 const enableServer = true;
 const TODO_ENDPOINT = endpoints.todo.board;
+const subtasksKey = (taskId) => (taskId ? [endpoints.todo.subtasks, { params: { taskId } }] : null);
+const remindersKey = (taskId) =>
+  taskId ? [endpoints.todo.reminders, { params: { taskId } }] : null;
 
 const swrOptions = {
   revalidateIfStale: enableServer,
@@ -80,6 +83,89 @@ export function useGetTodoBoard() {
   ]);
 
   return memoizedValue;
+}
+
+// ----------------------------------------------------------------------
+// Subtasks
+// ----------------------------------------------------------------------
+
+export function useGetSubtasks(taskId) {
+  const { data, isLoading, error, isValidating } = useSWR(subtasksKey(taskId), fetcher, {
+    ...swrOptions,
+  });
+
+  return {
+    subtasks: data?.subtasks || [],
+    subtasksLoading: isLoading,
+    subtasksError: error,
+    subtasksValidating: isValidating,
+  };
+}
+
+export async function createSubtask(taskId, title) {
+  const payload = { taskId, title: title || 'Untitled' };
+  await axios.post(endpoints.todo.subtasks, payload);
+
+  startTransition(() => {
+    mutate(subtasksKey(taskId));
+  });
+}
+
+export async function updateSubtask(taskId, subtaskId, patch) {
+  await axios.patch(`${endpoints.todo.subtasks}/${subtaskId}`, patch);
+
+  startTransition(() => {
+    mutate(subtasksKey(taskId));
+  });
+}
+
+export async function deleteSubtask(taskId, subtaskId) {
+  await axios.delete(`${endpoints.todo.subtasks}/${subtaskId}`);
+
+  startTransition(() => {
+    mutate(subtasksKey(taskId));
+  });
+}
+
+// ----------------------------------------------------------------------
+// Reminders
+// ----------------------------------------------------------------------
+
+export function useGetReminders(taskId) {
+  const { data, isLoading, error, isValidating } = useSWR(remindersKey(taskId), fetcher, {
+    ...swrOptions,
+  });
+
+  return {
+    reminders: data?.reminders || [],
+    remindersLoading: isLoading,
+    remindersError: error,
+    remindersValidating: isValidating,
+  };
+}
+
+export async function createReminder(payload) {
+  await axios.post(endpoints.todo.reminders, payload);
+
+  startTransition(() => {
+    mutate(remindersKey(payload.taskId));
+  });
+}
+
+export async function updateReminder(taskId, reminderId, patch) {
+  await axios.patch(`${endpoints.todo.reminders}/${reminderId}`, patch);
+
+  startTransition(() => {
+    mutate(remindersKey(taskId));
+  });
+}
+
+export async function deleteReminder(taskId, reminderId) {
+  await axios.delete(`${endpoints.todo.reminders}/${reminderId}`);
+
+  startTransition(() => {
+    mutate(remindersKey(taskId));
+  });
 }
 
 // ----------------------------------------------------------------------

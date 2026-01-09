@@ -87,6 +87,8 @@ export const endpoints = {
     board: '/api/todo/board',
     stages: '/api/todo/stages',
     tasks: '/api/todo/tasks',
+    subtasks: '/api/todo/subtasks',
+    reminders: '/api/todo/reminders',
   },
   sales: {
     board: `${apiHost}/sales/board`,
