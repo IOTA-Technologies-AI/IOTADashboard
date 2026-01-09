@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 
 import { CONFIG } from 'src/global-config';
 
-const BASE_URL = (CONFIG.serverUrl || 'https://staging-iotaapiserver-s572.encr.app').replace(
-  /\/$/,
-  ''
-);
+const normalizeHost = (url) =>
+  (url || 'https://staging-iotaapiserver-s572.encr.app')
+    .replace(/\/supabaseservices\/?$/, '')
+    .replace(/\/$/, '');
+
+const BASE_URL = normalizeHost(CONFIG.serverUrl);
 const defaultHeaders = {
   'Content-Type': 'application/json',
   apikey:

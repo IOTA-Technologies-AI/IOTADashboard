@@ -5,10 +5,12 @@ import { CONFIG } from 'src/global-config';
 // ----------------------------------------------------------------------
 
 // Prefer same-origin for client calls so Next.js API proxies avoid CORS; fall back to configured host on server.
-const apiHost = (CONFIG.serverUrl || 'https://staging-iotaapiserver-s572.encr.app').replace(
-  /\/$/,
-  ''
-);
+const normalizeHost = (url) =>
+  (url || 'https://staging-iotaapiserver-s572.encr.app')
+    .replace(/\/supabaseservices\/?$/, '')
+    .replace(/\/$/, '');
+
+const apiHost = normalizeHost(CONFIG.serverUrl);
 
 // Client: same-origin for /api/* proxies to avoid CORS; Server: use configured host.
 const baseURL = typeof window === 'undefined' ? apiHost : '';
