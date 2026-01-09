@@ -23,6 +23,7 @@ import {
   getMicrosoftAuthUrl,
   exchangeCodeForToken,
   seedOneDriveToken,
+  uploadOneDriveFiles,
 } from 'src/utils/onedrive-helper';
 
 import { CONFIG } from 'src/global-config';
@@ -85,15 +86,15 @@ export default function FilePage() {
     // 1) Stored token wins
     if (stored.accessToken) {
       setAuthenticated(true);
-      loadFiles(null);
+      loadFiles(null, { accessToken: stored.accessToken, refreshToken: stored.refreshToken });
       return;
     }
 
     // 2) Seed from the existing login token so we avoid re-prompting OneDrive sign-in
     if (providerToken) {
-      setOneDriveToken(providerToken, providerRefresh);
+      seedOneDriveToken(providerToken, providerRefresh);
       setAuthenticated(true);
-      loadFiles(null);
+      loadFiles(null, { accessToken: providerToken, refreshToken: providerRefresh });
       return;
     }
   }, [user]);
@@ -142,10 +143,10 @@ export default function FilePage() {
 
   // Note: We intentionally keep users signed in with their login token; no explicit sign-out control here.
 
-  const loadFiles = async (folderId) => {
+  const loadFiles = async (folderId, tokenHints = {}) => {
     try {
       setLoading(true);
-      const items = await listOneDriveFiles(folderId);
+      const items = await listOneDriveFiles(folderId, tokenHints);
 
       console.log('Raw items from OneDrive:', items);
       console.log('First item keys:', items[0] ? Object.keys(items[0]) : 'No items');
@@ -238,13 +239,40 @@ export default function FilePage() {
 
       try {
         setUploadProgress(true);
+
+        const pathFromBreadcrumbs =
+          breadcrumbs
+            .slice(1)
+            .map((crumb) => crumb.name)
+            .filter(Boolean)
+            .join('/') || 'Business Files';
+
         toast.info(`Uploading ${acceptedFiles.length} file(s) to OneDrive...`);
 
-        // TODO: Implement actual OneDrive upload
-        await new Promise((resolve) => setTimeout(resolve, 1500));
+        const tokenHints = getOneDriveToken();
+        const uploadResults = await uploadOneDriveFiles(acceptedFiles, {
+          folderPath: pathFromBreadcrumbs,
+          userId:
+            user?.email ||
+            user?.user_metadata?.email ||
+            user?.user_metadata?.preferred_username ||
+            user?.id,
+          accessToken: tokenHints.accessToken,
+          refreshToken: tokenHints.refreshToken,
+        });
 
-        toast.success(`Successfully uploaded ${acceptedFiles.length} business file(s)!`);
-        await loadFiles(currentFolderId);
+        const successes = uploadResults.filter((res) => !res.error).length;
+        const failures = uploadResults.length - successes;
+
+        if (successes) {
+          toast.success(
+            `Uploaded ${successes} file(s) to OneDrive${failures ? ' (some failed)' : ''}`
+          );
+        } else {
+          toast.error('Failed to upload files');
+        }
+
+        await loadFiles(currentFolderId, tokenHints);
       } catch (error) {
         console.error('Upload error:', error);
         toast.error('Failed to upload files');
@@ -252,7 +280,7 @@ export default function FilePage() {
         setUploadProgress(false);
       }
     },
-    [currentFolderId]
+    [breadcrumbs, currentFolderId, user]
   );
 
   const handleFileClick = useCallback((file) => {

@@ -3,31 +3,39 @@ import axios from 'axios';
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL || 'https://staging-iotaapiserver-s572.encr.app';
 
+const hasWindow = typeof window !== 'undefined';
+
 // Token management
+const persistTokens = (accessToken, refreshToken) => {
+  if (!hasWindow) return;
+  if (accessToken) localStorage.setItem('onedrive_access_token', accessToken);
+  if (refreshToken) localStorage.setItem('onedrive_refresh_token', refreshToken);
+};
+
 export const setOneDriveToken = (accessToken, refreshToken) => {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('onedrive_access_token', accessToken);
-    if (refreshToken) {
-      localStorage.setItem('onedrive_refresh_token', refreshToken);
-    }
-  }
+  if (!hasWindow) return;
+  if (!accessToken && !refreshToken) return;
+
+  // Preserve an existing refresh token if the new one is missing
+  const existing = getOneDriveToken();
+  const nextRefresh = refreshToken || existing.refreshToken;
+
+  persistTokens(accessToken || existing.accessToken, nextRefresh);
 };
 
 export const getOneDriveToken = () => {
-  if (typeof window !== 'undefined') {
-    return {
-      accessToken: localStorage.getItem('onedrive_access_token'),
-      refreshToken: localStorage.getItem('onedrive_refresh_token'),
-    };
-  }
-  return { accessToken: null, refreshToken: null };
+  if (!hasWindow) return { accessToken: null, refreshToken: null };
+
+  const accessToken = localStorage.getItem('onedrive_access_token') || null;
+  const refreshToken = localStorage.getItem('onedrive_refresh_token') || null;
+
+  return { accessToken, refreshToken };
 };
 
 export const clearOneDriveToken = () => {
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('onedrive_access_token');
-    localStorage.removeItem('onedrive_refresh_token');
-  }
+  if (!hasWindow) return;
+  localStorage.removeItem('onedrive_access_token');
+  localStorage.removeItem('onedrive_refresh_token');
 };
 
 // Seed storage from an existing Microsoft provider token (e.g., Supabase session)
@@ -42,6 +50,22 @@ export const seedOneDriveToken = (accessToken, refreshToken) => {
   }
 
   return false;
+};
+
+const ensureAccessToken = (fallbackAccessToken, fallbackRefreshToken) => {
+  const stored = getOneDriveToken();
+
+  if (stored.accessToken) return stored;
+
+  if (fallbackAccessToken) {
+    setOneDriveToken(fallbackAccessToken, fallbackRefreshToken);
+    return {
+      accessToken: fallbackAccessToken,
+      refreshToken: fallbackRefreshToken || stored.refreshToken,
+    };
+  }
+
+  return { accessToken: null, refreshToken: fallbackRefreshToken || stored.refreshToken };
 };
 
 // Authentication
@@ -61,8 +85,12 @@ export async function refreshAccessToken(refreshToken) {
 }
 
 // File operations
-export async function listOneDriveFiles(folderId = null) {
-  const { accessToken, refreshToken } = getOneDriveToken();
+export async function listOneDriveFiles(folderId = null, options = {}) {
+  const { accessToken, refreshToken } = ensureAccessToken(
+    options.accessToken,
+    options.refreshToken
+  );
+
   if (!accessToken) throw new Error('Not authenticated with OneDrive');
 
   const params = new URLSearchParams({ accessToken });
@@ -122,4 +150,39 @@ export async function searchOneDrive(query) {
     `${API_BASE_URL}/onedrive/search?accessToken=${accessToken}&query=${encodeURIComponent(query)}`
   );
   return response.data.value;
+}
+
+const fileToBase64 = (file) =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result || '';
+      const base64 = typeof result === 'string' ? result.split(',').pop() : '';
+      resolve(base64 || '');
+    };
+    reader.onerror = (error) => reject(error);
+    reader.readAsDataURL(file);
+  });
+
+export async function uploadOneDriveFiles(files, { folderPath = '', userId } = {}) {
+  if (!files || !files.length) return [];
+
+  const uploads = files.map(async (file) => {
+    const base64Content = await fileToBase64(file);
+
+    const payload = {
+      folderPath,
+      fileName: file.name,
+      fileContent: base64Content,
+      userId,
+    };
+
+    const response = await axios.post(`${API_BASE_URL}/onedrive/upload`, payload, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    return response.data;
+  });
+
+  return Promise.all(uploads);
 }
