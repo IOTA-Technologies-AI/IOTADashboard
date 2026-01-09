@@ -5,10 +5,13 @@ import { CONFIG } from 'src/global-config';
 // ----------------------------------------------------------------------
 
 // Prefer same-origin for client calls so Next.js API proxies avoid CORS; fall back to configured host on server.
-const baseURL =
-  typeof window === 'undefined'
-    ? (CONFIG.serverUrl || 'https://staging-iotaapiserver-s572.encr.app').replace(/\/$/, '')
-    : '';
+const apiHost = (CONFIG.serverUrl || 'https://staging-iotaapiserver-s572.encr.app').replace(
+  /\/$/,
+  ''
+);
+
+// Client: same-origin for /api/* proxies to avoid CORS; Server: use configured host.
+const baseURL = typeof window === 'undefined' ? apiHost : '';
 
 const axiosInstance = axios.create({
   baseURL,
@@ -84,9 +87,9 @@ export const endpoints = {
     tasks: '/api/todo/tasks',
   },
   sales: {
-    board: '/sales/board',
-    stages: '/sales/stages',
-    deals: '/sales/deals',
+    board: `${apiHost}/sales/board`,
+    stages: `${apiHost}/sales/stages`,
+    deals: `${apiHost}/sales/deals`,
   },
   calendar: '/api/calendar',
   auth: {

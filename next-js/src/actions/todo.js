@@ -10,8 +10,10 @@ const TODO_ENDPOINT = endpoints.todo.board;
 
 const swrOptions = {
   revalidateIfStale: enableServer,
-  revalidateOnFocus: enableServer,
-  revalidateOnReconnect: enableServer,
+  revalidateOnFocus: false,
+  revalidateOnReconnect: false,
+  // Avoid 5s retry loops on network/CORS errors; surface once to the UI instead of spamming.
+  shouldRetryOnError: false,
 };
 
 let currentPipelineId = null;
