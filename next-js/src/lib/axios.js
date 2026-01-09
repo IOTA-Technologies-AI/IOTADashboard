@@ -42,7 +42,7 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
-    const { msg } = error.response.data;
+    const msg = error?.response?.data?.msg;
     const message =
       error?.response?.data?.message || msg || error?.message || 'Something went wrong!';
     console.error('Axios error:', message);
@@ -73,9 +73,9 @@ export const endpoints = {
   chat: '/api/chat',
   kanban: '/sales/board',
   todo: {
-    board: '/todo/board',
-    stages: '/todo/stages',
-    tasks: '/todo/tasks',
+    board: '/api/todo/board',
+    stages: '/api/todo/stages',
+    tasks: '/api/todo/tasks',
   },
   sales: {
     board: '/sales/board',
