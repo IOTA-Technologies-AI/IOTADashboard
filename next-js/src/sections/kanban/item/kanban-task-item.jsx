@@ -4,7 +4,7 @@ import { createPortal } from 'react-dom';
 import { useBoolean } from 'minimal-shared/hooks';
 import { mergeClasses } from 'minimal-shared/utils';
 
-import { deleteTask, updateTask } from 'src/actions/kanban';
+import { useKanbanActions } from '../context/actions-context';
 
 import { kanbanClasses } from '../classes';
 import { KanbanDetails } from '../details/kanban-details';
@@ -49,6 +49,7 @@ const renderTaskPreview = (state, task) =>
 export function KanbanTaskItem({ task, columnId, sx, ...other }) {
   const taskDetailsDialog = useBoolean();
   const { taskRef, state } = useTaskItemDnd(task, columnId);
+  const { deleteTask, updateTask } = useKanbanActions();
 
   const handleDeleteTask = useCallback(async () => {
     try {

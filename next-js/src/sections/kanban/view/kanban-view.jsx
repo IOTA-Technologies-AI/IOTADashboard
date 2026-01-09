@@ -11,11 +11,13 @@ import Typography from '@mui/material/Typography';
 import GlobalStyles from '@mui/material/GlobalStyles';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
-import { createColumn, useGetBoard } from 'src/actions/kanban';
+import { useGetBoard } from 'src/actions/kanban';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { EmptyContent } from 'src/components/empty-content';
 import { Iconify } from 'src/components/iconify';
+
+import { KanbanActionsProvider, defaultKanbanActions } from '../context/actions-context';
 
 import { kanbanClasses } from '../classes';
 import { useBoardDnd } from '../hooks/use-board-dnd';
@@ -44,8 +46,16 @@ const inputGlobalStyles = () => (
 
 // ----------------------------------------------------------------------
 
-export function KanbanView({ title = 'Kanban', renderBeforeBoard, maxWidth = false, loading }) {
-  const { board, boardLoading, boardEmpty } = useGetBoard();
+export function KanbanView({
+  title = 'Kanban',
+  renderBeforeBoard,
+  maxWidth = false,
+  loading,
+  useBoardHook = useGetBoard,
+  actions,
+}) {
+  const actionSet = actions || defaultKanbanActions;
+  const { board, boardLoading, boardEmpty } = useBoardHook();
   const { boardRef } = useBoardDnd(board);
 
   const [columnFixed, setColumnFixed] = useState(false);
@@ -73,7 +83,7 @@ export function KanbanView({ title = 'Kanban', renderBeforeBoard, maxWidth = fal
           <Button
             variant="contained"
             startIcon={<Iconify icon="mingcute:add-line" />}
-            onClick={() => createColumn({ name: 'New stage' })}
+            onClick={() => actionSet.createColumn({ name: 'New stage' })}
           >
             Add stage
           </Button>
@@ -145,24 +155,24 @@ export function KanbanView({ title = 'Kanban', renderBeforeBoard, maxWidth = fal
         <ScrollContainer ref={boardRef}>
           {boardLoading || loading ? (
             renderLoading()
-          ) : (
-            <>{boardEmpty ? renderEmpty() : renderList()}</>
-          )}
-        </ScrollContainer>
-      </DashboardContent>
-    </>
-  );
-}
+          return (
+            <KanbanActionsProvider actions={actionSet}>
+              <DashboardContent
+                maxWidth={maxWidth}
+                sx={{
+                  '--container-max-width': maxWidth ? 'var(--max-width)' : '1200px',
+                }}
+              >
+                {inputGlobalStyles()}
 
-// ----------------------------------------------------------------------
+                {renderBeforeBoard}
 
-const flexStyles = {
-  minHeight: 0,
-  flex: '1 1 auto',
-};
-
-const ScrollContainer = styled('div')(({ theme }) => ({
-  ...theme.mixins.scrollbarStyles(theme),
+                {boardLoading || loading ? renderLoading() : null}
+                {!boardLoading && !loading && boardEmpty ? renderEmpty() : null}
+                {!boardLoading && !loading && !boardEmpty ? renderBoard() : null}
+              </DashboardContent>
+            </KanbanActionsProvider>
+          );
   ...flexStyles,
   display: 'flex',
   overflowX: 'auto',

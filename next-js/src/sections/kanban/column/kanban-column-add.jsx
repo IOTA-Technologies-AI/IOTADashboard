@@ -8,7 +8,7 @@ import TextField from '@mui/material/TextField';
 import { inputBaseClasses } from '@mui/material/InputBase';
 import ClickAwayListener from '@mui/material/ClickAwayListener';
 
-import { createColumn } from 'src/actions/kanban';
+import { useKanbanActions } from '../context/actions-context';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -16,6 +16,7 @@ import { Iconify } from 'src/components/iconify';
 
 export function KanbanColumnAdd({ sx, ...other }) {
   const openAddColumn = useBoolean();
+  const { createColumn } = useKanbanActions();
 
   const [columnName, setColumnName] = useState('');
 
@@ -35,7 +36,7 @@ export function KanbanColumnAdd({ sx, ...other }) {
     } catch (error) {
       console.error(error);
     }
-  }, [columnName, openAddColumn]);
+  }, [columnName, createColumn, openAddColumn]);
 
   const handleKeyUpCreateColumn = useCallback(
     (event) => {

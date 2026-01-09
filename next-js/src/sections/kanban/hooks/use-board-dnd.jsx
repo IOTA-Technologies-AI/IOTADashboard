@@ -7,7 +7,7 @@ import { autoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-sc
 import { reorderWithEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/util/reorder-with-edge';
 import { unsafeOverflowAutoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-scroll/unsafe-overflow/element';
 
-import { moveTask, moveColumn } from 'src/actions/kanban';
+import { useKanbanActions } from '../context/actions-context';
 
 import { bindAll } from '../utils/bind-event-listener';
 import { getAttr, triggerFlashEffect, isInvalidOrSameIndex } from '../utils/helpers';
@@ -29,6 +29,7 @@ const PANNING_STOP_EVENTS = [
 
 export function useBoardDnd(board) {
   const boardRef = useRef(null);
+  const { moveTask, moveColumn } = useKanbanActions();
 
   const handleTaskDrop = useCallback(
     ({ source, location }) => {

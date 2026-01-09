@@ -4,7 +4,7 @@ import { AnimatePresence } from 'framer-motion';
 import { useBoolean } from 'minimal-shared/hooks';
 import { mergeClasses } from 'minimal-shared/utils';
 
-import { createTask, clearColumn, updateColumn, deleteColumn } from 'src/actions/kanban';
+import { useKanbanActions } from '../context/actions-context';
 
 import { kanbanClasses } from '../classes';
 import { DropIndicator } from '../item/styles';
@@ -24,6 +24,7 @@ const TaskList = memo(({ column, tasks }) =>
 // ----------------------------------------------------------------------
 
 export function KanbanColumn({ column, tasks, sx, ...other }) {
+  const { createTask, clearColumn, updateColumn, deleteColumn } = useKanbanActions();
   const { taskListRef, dragHandleRef, columnRef, columnWrapperRef, state } = useColumnDnd(column);
 
   const openAddTask = useBoolean();
