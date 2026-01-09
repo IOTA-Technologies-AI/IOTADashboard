@@ -80,7 +80,7 @@ export const navData = [
       { title: 'Booking', path: paths.dashboard.general.booking, icon: ICONS.booking },
       { title: 'Accounts', path: paths.dashboard.general.account, icon: ICONS.dashboard },
       { title: 'File', path: paths.dashboard.general.file, icon: ICONS.file },
-      { title: 'Sales', path: paths.dashboard.sales, icon: ICONS.kanban },
+      { title: 'To Do', path: paths.dashboard.todo, icon: ICONS.kanban },
       { title: 'Course', path: paths.dashboard.general.course, icon: ICONS.course },
     ],
   },
@@ -254,7 +254,7 @@ export const navData = [
       },
       { title: 'Chat', path: paths.dashboard.chat, icon: ICONS.chat },
       { title: 'Calendar', path: paths.dashboard.calendar, icon: ICONS.calendar },
-      { title: 'Sales', path: paths.dashboard.sales, icon: ICONS.kanban },
+      { title: 'To Do', path: paths.dashboard.todo, icon: ICONS.kanban },
     ],
   },
   /**
