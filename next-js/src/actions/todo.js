@@ -402,6 +402,8 @@ export async function updateTask(columnId, taskData, userInfo = {}) {
     description: taskData.description,
     status: taskData.status,
     expectedCloseDate: taskData.due?.[1] || taskData.expectedCloseDate,
+    // Labels
+    labels: taskData.labels,
     // Include assignee fields if provided
     assigneeEmail: taskData.assigneeEmail,
     assigneeName: taskData.assigneeName,

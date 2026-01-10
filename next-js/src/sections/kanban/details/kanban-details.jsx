@@ -70,6 +70,8 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
   const [priority, setPriority] = useState(task.priority);
   const [taskDescription, setTaskDescription] = useState(task.description);
   const [assignees, setAssignees] = useState(task.assignee || []);
+  const [labels, setLabels] = useState(task.labels || []);
+  const [newLabelText, setNewLabelText] = useState('');
   const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
   const [newReminderAt, setNewReminderAt] = useState(
     dayjs().add(1, 'hour').format('YYYY-MM-DDTHH:mm')
@@ -203,16 +205,55 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
       {/* Reporter */}
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         <BlockLabel>Reporter</BlockLabel>
-        <Avatar alt={task.reporter.name} src={task.reporter.avatarUrl} />
+        <Tooltip title={task.reporter.name || 'Unknown'} arrow>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Avatar
+              alt={task.reporter.name}
+              src={task.reporter.avatarUrl}
+              sx={{ width: 32, height: 32 }}
+            />
+            <Typography variant="body2" sx={{ maxWidth: 120 }} noWrap>
+              {task.reporter.name
+                ? task.reporter.name.length > 12
+                  ? `${task.reporter.name.slice(0, 12)}...`
+                  : task.reporter.name
+                : 'Unknown'}
+            </Typography>
+          </Box>
+        </Tooltip>
       </Box>
 
       {/* Assignee */}
       <Box sx={{ display: 'flex' }}>
         <BlockLabel sx={{ height: 40, lineHeight: '40px' }}>Assignee</BlockLabel>
 
-        <Box sx={{ gap: 1, display: 'flex', flexWrap: 'wrap' }}>
-          {assignees.map((user) => (
-            <Avatar key={user.id} alt={user.name} src={user.avatarUrl} />
+        <Box sx={{ gap: 1, display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
+          {assignees.map((assignee) => (
+            <Tooltip key={assignee.id} title={assignee.name || assignee.email || 'Unknown'} arrow>
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 0.5,
+                  p: 0.5,
+                  borderRadius: 1,
+                  bgcolor: 'action.hover',
+                }}
+              >
+                <Avatar
+                  alt={assignee.name}
+                  src={assignee.avatarUrl}
+                  sx={{ width: 28, height: 28 }}
+                />
+                <Typography variant="caption" sx={{ maxWidth: 80 }} noWrap>
+                  {assignee.name
+                    ? assignee.name.length > 8
+                      ? `${assignee.name.slice(0, 8)}...`
+                      : assignee.name
+                    : 'N/A'}
+                </Typography>
+              </Box>
+            </Tooltip>
           ))}
 
           <Tooltip title="Add assignee">
@@ -240,15 +281,57 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
 
       {/* Label */}
       <Box sx={{ display: 'flex' }}>
-        <BlockLabel sx={{ height: 24, lineHeight: '24px' }}>Labels</BlockLabel>
+        <BlockLabel sx={{ height: 40, lineHeight: '40px' }}>Labels</BlockLabel>
 
-        {!!task.labels.length && (
-          <Box sx={{ gap: 1, display: 'flex', flexWrap: 'wrap' }}>
-            {task.labels.map((label) => (
-              <Chip key={label} color="info" label={label} size="small" variant="soft" />
-            ))}
+        <Box sx={{ gap: 1, display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
+          {labels.map((label) => (
+            <Chip
+              key={label}
+              color="info"
+              label={label}
+              size="small"
+              variant="soft"
+              onDelete={() => {
+                const newLabels = labels.filter((l) => l !== label);
+                setLabels(newLabels);
+                onUpdateTask({ ...task, labels: newLabels });
+              }}
+            />
+          ))}
+          <Box sx={{ display: 'flex', gap: 0.5, alignItems: 'center' }}>
+            <TextField
+              size="small"
+              placeholder="Add label"
+              value={newLabelText}
+              onChange={(e) => setNewLabelText(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && newLabelText.trim()) {
+                  e.preventDefault();
+                  const newLabels = [...labels, newLabelText.trim()];
+                  setLabels(newLabels);
+                  onUpdateTask({ ...task, labels: newLabels });
+                  setNewLabelText('');
+                }
+              }}
+              sx={{ width: 100 }}
+              slotProps={{ input: { sx: { fontSize: '0.75rem', py: 0.5 } } }}
+            />
+            <IconButton
+              size="small"
+              onClick={() => {
+                if (newLabelText.trim()) {
+                  const newLabels = [...labels, newLabelText.trim()];
+                  setLabels(newLabels);
+                  onUpdateTask({ ...task, labels: newLabels });
+                  setNewLabelText('');
+                }
+              }}
+              disabled={!newLabelText.trim()}
+            >
+              <Iconify icon="mingcute:add-line" width={16} />
+            </IconButton>
           </Box>
-        )}
+        </Box>
       </Box>
 
       {/* Due date */}

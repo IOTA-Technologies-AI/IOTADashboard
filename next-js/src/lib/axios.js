@@ -92,9 +92,9 @@ export const endpoints = {
     comments: '/api/todo/comments',
   },
   sales: {
-    board: `${apiHost}/sales/board`,
-    stages: `${apiHost}/sales/stages`,
-    deals: `${apiHost}/sales/deals`,
+    board: '/api/sales/board',
+    stages: '/api/sales/stages',
+    deals: '/api/sales/deals',
   },
   calendar: '/api/calendar',
   auth: {

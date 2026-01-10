@@ -25,6 +25,7 @@ const TaskList = memo(({ column, tasks }) =>
 
 export function KanbanColumn({ column, tasks, canManageColumns = true, sx, ...other }) {
   const { createTask, clearColumn, updateColumn, deleteColumn } = useKanbanActions();
+  // Only admins/superAdmins can reorder, create, delete, or clear columns
   const { taskListRef, dragHandleRef, columnRef, columnWrapperRef, state } = useColumnDnd(column, {
     enableColumnDnD: canManageColumns,
   });
