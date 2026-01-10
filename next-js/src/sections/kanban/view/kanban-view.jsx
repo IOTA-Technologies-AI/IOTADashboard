@@ -52,6 +52,7 @@ export function KanbanView({
   loading,
   useBoardHook = useGetBoard,
   actions,
+  canManageColumns = true,
 }) {
   const actionSet = actions || defaultKanbanActions;
   const { board, boardLoading, boardEmpty } = useBoardHook();
@@ -96,10 +97,15 @@ export function KanbanView({
     <FlexibleColumnContainer columnFixed={columnFixed}>
       <AnimatePresence>
         {board.columns.map((column) => (
-          <KanbanColumn key={column.id} column={column} tasks={board.tasks[column.id]} />
+          <KanbanColumn
+            key={column.id}
+            column={column}
+            tasks={board.tasks[column.id]}
+            canManageColumns={canManageColumns}
+          />
         ))}
       </AnimatePresence>
-      <KanbanColumnAdd />
+      {canManageColumns ? <KanbanColumnAdd /> : null}
     </FlexibleColumnContainer>
   );
 

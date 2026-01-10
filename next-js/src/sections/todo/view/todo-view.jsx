@@ -30,7 +30,16 @@ const todoActions = {
 };
 
 export function TodoView() {
+  const { user } = useAuthContext();
+  const canManageColumns = ['admin', 'superAdmin'].includes(user?.role);
+
   return (
-    <KanbanView title="To Do" maxWidth="xl" useBoardHook={useGetTodoBoard} actions={todoActions} />
+    <KanbanView
+      title="To Do"
+      maxWidth="xl"
+      useBoardHook={useGetTodoBoard}
+      actions={todoActions}
+      canManageColumns={canManageColumns}
+    />
   );
 }

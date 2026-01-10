@@ -51,6 +51,7 @@ export const ColumnRoot = styled('div')(({ theme }) => {
     flexDirection: 'column',
     gap: 'var(--kanban-item-gap)',
     borderRadius: 'var(--kanban-column-radius)',
+    border: `1px solid ${varAlpha(theme.vars.palette.grey['500Channel'], 0.18)}`,
     backgroundColor: theme.vars.palette.background.neutral,
     '&::before': backgroundOverStyles.idle,
     [`&.${kanbanClasses.state.dragging}`]: {

@@ -23,9 +23,11 @@ const TaskList = memo(({ column, tasks }) =>
 
 // ----------------------------------------------------------------------
 
-export function KanbanColumn({ column, tasks, sx, ...other }) {
+export function KanbanColumn({ column, tasks, canManageColumns = true, sx, ...other }) {
   const { createTask, clearColumn, updateColumn, deleteColumn } = useKanbanActions();
-  const { taskListRef, dragHandleRef, columnRef, columnWrapperRef, state } = useColumnDnd(column);
+  const { taskListRef, dragHandleRef, columnRef, columnWrapperRef, state } = useColumnDnd(column, {
+    enableColumnDnD: canManageColumns,
+  });
 
   const openAddTask = useBoolean();
 
@@ -33,7 +35,9 @@ export function KanbanColumn({ column, tasks, sx, ...other }) {
     async (columnName) => {
       try {
         if (column.name !== columnName) {
-          updateColumn(column.id, columnName);
+          if (canManageColumns) {
+            updateColumn(column.id, columnName);
+          }
 
           toast.success('Update success!', { position: 'top-center' });
         }
@@ -45,6 +49,7 @@ export function KanbanColumn({ column, tasks, sx, ...other }) {
   );
 
   const handleClearColumn = useCallback(async () => {
+    if (!canManageColumns) return;
     try {
       clearColumn(column.id);
     } catch (error) {
@@ -53,6 +58,7 @@ export function KanbanColumn({ column, tasks, sx, ...other }) {
   }, [column.id]);
 
   const handleDeleteColumn = useCallback(async () => {
+    if (!canManageColumns) return;
     try {
       deleteColumn(column.id);
 
@@ -84,6 +90,7 @@ export function KanbanColumn({ column, tasks, sx, ...other }) {
       onClearColumn={handleClearColumn}
       onDeleteColumn={handleDeleteColumn}
       onToggleAddTask={openAddTask.onToggle}
+      canManageColumns={canManageColumns}
     />
   );
 

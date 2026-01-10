@@ -23,7 +23,7 @@ import {
 const COLUMN_SCROLL_SPEED = 'standard';
 const COLUMN_OVERFLOW_DISTANCE = 1000;
 
-export function useColumnDnd(column) {
+export function useColumnDnd(column, { enableColumnDnD = true } = {}) {
   const columnRef = useRef(null);
   const columnWrapperRef = useRef(null);
   const taskListRef = useRef(null);
@@ -32,6 +32,8 @@ export function useColumnDnd(column) {
   const [state, setState] = useState({ type: kanbanClasses.state.idle });
 
   useEffect(() => {
+    if (!enableColumnDnD) return undefined;
+
     const columnWrapperEl = columnWrapperRef.current;
     const columnEl = columnRef.current;
     const taskListEl = taskListRef.current;
@@ -159,7 +161,7 @@ export function useColumnDnd(column) {
     });
 
     return combine(dragColumn, dropColumnTarget, scrollTaskList, overflowTaskListScroll);
-  }, [column]);
+  }, [column, enableColumnDnD]);
 
   return {
     state,

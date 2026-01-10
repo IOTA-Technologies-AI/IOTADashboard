@@ -26,6 +26,7 @@ export function KanbanColumnToolBar({
   onDeleteColumn,
   onUpdateColumn,
   onToggleAddTask,
+  canManageColumns = true,
   ...other
 }) {
   const uniqueId = useId();
@@ -80,17 +81,17 @@ export function KanbanColumnToolBar({
       onClose={menuActions.onClose}
     >
       <MenuList>
-        <MenuItem onClick={handleRename}>
+        <MenuItem onClick={handleRename} disabled={!canManageColumns}>
           <Iconify icon="solar:pen-bold" />
           Rename
         </MenuItem>
 
-        <MenuItem onClick={handleClear}>
+        <MenuItem onClick={handleClear} disabled={!canManageColumns}>
           <Iconify icon="solar:eraser-bold" />
           Clear
         </MenuItem>
 
-        <MenuItem onClick={handleDelete} sx={{ color: 'error.main' }}>
+        <MenuItem onClick={handleDelete} disabled={!canManageColumns} sx={{ color: 'error.main' }}>
           <Iconify icon="solar:trash-bin-trash-bold" />
           Delete
         </MenuItem>
@@ -135,8 +136,9 @@ export function KanbanColumnToolBar({
         left: 0,
         width: 1,
         height: 1,
-        cursor: 'grab',
         position: 'absolute',
+        cursor: canManageColumns ? 'grab' : 'default',
+        pointerEvents: canManageColumns ? 'auto' : 'none',
       }}
     />
   );
@@ -177,8 +179,11 @@ export function KanbanColumnToolBar({
           onKeyUp={handleKeyUpUpdateColumn}
           onFocus={() => setIsRenaming(true)}
           onBlur={() => setIsRenaming(false)}
-          inputProps={{ id: `${columnName}-${uniqueId}-column-input` }}
-          sx={{ mx: 1 }}
+          inputProps={{
+            id: `${columnName}-${uniqueId}-column-input`,
+            readOnly: !canManageColumns,
+          }}
+          sx={{ mx: 1, pointerEvents: canManageColumns ? 'auto' : 'none' }}
         />
 
         <IconButton size="small" color="inherit" onClick={onToggleAddTask}>
@@ -189,6 +194,7 @@ export function KanbanColumnToolBar({
           size="small"
           color={menuActions.open ? 'inherit' : 'default'}
           onClick={menuActions.onOpen}
+          disabled={!canManageColumns}
         >
           <Iconify icon="solar:menu-dots-bold-duotone" />
         </IconButton>
