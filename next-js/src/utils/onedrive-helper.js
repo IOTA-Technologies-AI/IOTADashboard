@@ -98,7 +98,7 @@ export async function listOneDriveFiles(folderId = null, options = {}) {
 
   try {
     const response = await axios.get(`${API_BASE_URL}/onedrive/files?${params.toString()}`);
-    return response.data.value;
+    return Array.isArray(response.data?.value) ? response.data.value : [];
   } catch (error) {
     const status = error?.response?.status;
     if (status === 401 && refreshToken) {
@@ -114,7 +114,7 @@ export async function listOneDriveFiles(folderId = null, options = {}) {
         const retryResponse = await axios.get(
           `${API_BASE_URL}/onedrive/files?${retryParams.toString()}`
         );
-        return retryResponse.data.value;
+        return Array.isArray(retryResponse.data?.value) ? retryResponse.data.value : [];
       }
     }
 
