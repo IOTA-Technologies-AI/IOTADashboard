@@ -133,10 +133,17 @@ export async function listOneDriveFiles(folderId = null, options = {}) {
 
     return Array.isArray(data?.value) ? data.value : [];
   } catch (error) {
+    console.error('[OneDrive] Request failed:', error);
+    console.log('[OneDrive] Error response:', error?.response);
+    console.log('[OneDrive] Error status:', error?.response?.status);
+    console.log('[OneDrive] Error data:', error?.response?.data);
+
     const status = error?.response?.status;
     const errorCode = error?.response?.data?.code;
     const errorMessage = error?.response?.data?.message || error?.message || '';
     const isAuthError = status === 401 || errorCode === 'unauthenticated';
+
+    console.log('[OneDrive] Is auth error?', isAuthError, 'Has refresh token?', !!refreshToken);
 
     if (isAuthError && refreshToken) {
       console.log('[OneDrive] Token expired, attempting refresh...');
