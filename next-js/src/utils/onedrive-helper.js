@@ -39,17 +39,12 @@ export const clearOneDriveToken = () => {
 };
 
 // Seed storage from an existing Microsoft provider token (e.g., Supabase session)
+// Always updates the token if a new one is provided - ensures fresh tokens replace stale ones
 export const seedOneDriveToken = (accessToken, refreshToken) => {
   if (!accessToken) return false;
 
-  const { accessToken: existingAccess } = getOneDriveToken();
-
-  if (!existingAccess) {
-    setOneDriveToken(accessToken, refreshToken);
-    return true;
-  }
-
-  return false;
+  setOneDriveToken(accessToken, refreshToken);
+  return true;
 };
 
 const ensureAccessToken = (fallbackAccessToken, fallbackRefreshToken) => {

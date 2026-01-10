@@ -184,6 +184,31 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     checkUserSession();
+
+    // Listen for auth state changes to capture provider tokens from OAuth flow
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        // Capture provider_token immediately when user signs in via OAuth
+        const providerToken = session?.provider_token;
+        const providerRefreshToken = session?.provider_refresh_token;
+
+        if (providerToken) {
+          console.log('[Auth] Captured provider token from OAuth sign-in');
+          seedOneDriveToken(providerToken, providerRefreshToken);
+        }
+
+        // Update user state with full session including provider tokens
+        setState({ user: { ...session, ...session?.user }, loading: false });
+      } else if (event === 'SIGNED_OUT') {
+        setState({ user: null, loading: false });
+      }
+    });
+
+    return () => {
+      subscription?.unsubscribe();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
