@@ -368,8 +368,15 @@ export function ExpenseNewEditForm({ currentExpense }) {
     watch,
     setValue,
     handleSubmit,
-    formState: { isSubmitting },
+    formState: { isSubmitting, errors },
   } = methods;
+
+  // Debug: Log form validation errors
+  useEffect(() => {
+    if (Object.keys(errors).length > 0) {
+      console.error('🔴 Form validation errors:', errors);
+    }
+  }, [errors]);
 
   // ✅ Watch expense type to show/hide invoice dropdown
   const watchedExpenseType = watch('expenseType');
@@ -505,6 +512,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
   };
 
   const onSubmit = handleSubmit(async (data) => {
+    console.log('🟢 onSubmit called with data:', data);
     try {
       if (uploadingAttachment) {
         toast.error('Please wait for the attachment upload to finish.');
@@ -518,33 +526,46 @@ export function ExpenseNewEditForm({ currentExpense }) {
 
       const resolvedStatus = isSuperAdmin ? data.expenseApprovalStatus : 'pending';
 
+      // Build expenseData, omitting empty optional fields
       const expenseData = {
         expenseType: data.expenseType,
         expenseDate: data.expenseDate,
         expenseBy: data.expenseBy,
-        expenseSettlementNotes: data.expenseSettlementNotes || '',
 
         // Send original amount and currency
         originalExpenseAmount: Number(data.originalExpenseAmount),
         originalExpenseCurrency: data.originalExpenseCurrency,
         expenseAmount: 0, // Backend will calculate this
 
-        externalTransactionId: data.externalTransactionId || '',
         expenseApprovalStatus:
           resolvedStatus === 'approved' ? true : resolvedStatus === 'rejected' ? false : null,
-        expenseApprovedBy: isSuperAdmin ? data.expenseApprovedBy || null : null,
-        expenseApprovedDate: isSuperAdmin ? data.expenseApprovedDate || null : null,
-        expenseApprovedAmount:
-          isSuperAdmin && data.expenseApprovedAmount ? Number(data.expenseApprovedAmount) : null,
-        originalTransactionDate: data.originalTransactionDate || null,
-        fileLocation: data.fileLocation || null,
-
-        // ✅ Added linked invoice fields
-        linkedInvoiceNumber: data.linkedInvoiceNumber || null,
-        linkedInvoiceId: data.linkedInvoiceId || null,
-        linkedInvoiceAmount: data.linkedInvoiceAmount ? Number(data.linkedInvoiceAmount) : null,
-        costcenterId: data.costcenterId ? Number(data.costcenterId) : null,
       };
+
+      // Only include optional string fields if they have a value
+      if (data.expenseSettlementNotes)
+        expenseData.expenseSettlementNotes = data.expenseSettlementNotes;
+      if (data.externalTransactionId)
+        expenseData.externalTransactionId = data.externalTransactionId;
+      if (data.fileLocation) expenseData.fileLocation = data.fileLocation;
+      if (data.originalTransactionDate)
+        expenseData.originalTransactionDate = data.originalTransactionDate;
+
+      // Linked invoice fields - only include if expense type is "Invoice Against Invoice"
+      if (data.linkedInvoiceNumber) expenseData.linkedInvoiceNumber = data.linkedInvoiceNumber;
+      if (data.linkedInvoiceId) expenseData.linkedInvoiceId = data.linkedInvoiceId;
+      if (data.linkedInvoiceAmount)
+        expenseData.linkedInvoiceAmount = Number(data.linkedInvoiceAmount);
+
+      // Cost center
+      if (data.costcenterId) expenseData.costcenterId = Number(data.costcenterId);
+
+      // Super admin only fields
+      if (isSuperAdmin) {
+        if (data.expenseApprovedBy) expenseData.expenseApprovedBy = data.expenseApprovedBy;
+        if (data.expenseApprovedDate) expenseData.expenseApprovedDate = data.expenseApprovedDate;
+        if (data.expenseApprovedAmount)
+          expenseData.expenseApprovedAmount = Number(data.expenseApprovedAmount);
+      }
 
       if (currentExpense) {
         await apiHelper.updateExpense(currentExpense.referenceId, expenseData);
