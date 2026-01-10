@@ -105,11 +105,16 @@ export async function listOneDriveFiles(folderId = null, options = {}) {
     const isAuthError = status === 401 || errorCode === 'unauthenticated';
 
     if (isAuthError && refreshToken) {
+      console.log('[OneDrive] Token expired, attempting refresh...');
       const refreshed = await refreshAccessToken(refreshToken);
+      console.log('[OneDrive] Refresh response keys:', Object.keys(refreshed || {}));
+      console.log('[OneDrive] Has access_token:', !!refreshed?.access_token);
+
       const newAccess = refreshed.access_token || refreshed.accessToken;
       const newRefresh = refreshed.refresh_token || refreshed.refreshToken || refreshToken;
 
       if (newAccess) {
+        console.log('[OneDrive] Got new access token, retrying...');
         setOneDriveToken(newAccess, newRefresh);
         const retryParams = new URLSearchParams({ accessToken: newAccess });
         if (folderId) retryParams.append('folderId', folderId);
