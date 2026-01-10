@@ -101,7 +101,10 @@ export async function listOneDriveFiles(folderId = null, options = {}) {
     return Array.isArray(response.data?.value) ? response.data.value : [];
   } catch (error) {
     const status = error?.response?.status;
-    if (status === 401 && refreshToken) {
+    const errorCode = error?.response?.data?.code;
+    const isAuthError = status === 401 || errorCode === 'unauthenticated';
+
+    if (isAuthError && refreshToken) {
       const refreshed = await refreshAccessToken(refreshToken);
       const newAccess = refreshed.access_token || refreshed.accessToken;
       const newRefresh = refreshed.refresh_token || refreshed.refreshToken || refreshToken;
