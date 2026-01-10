@@ -522,14 +522,14 @@ export function ExpenseNewEditForm({ currentExpense }) {
         expenseType: data.expenseType,
         expenseDate: data.expenseDate,
         expenseBy: data.expenseBy,
-        expenseSettlementNotes: data.expenseSettlementNotes || null,
+        expenseSettlementNotes: data.expenseSettlementNotes || '',
 
         // Send original amount and currency
         originalExpenseAmount: Number(data.originalExpenseAmount),
         originalExpenseCurrency: data.originalExpenseCurrency,
         expenseAmount: 0, // Backend will calculate this
 
-        externalTransactionId: data.externalTransactionId || null,
+        externalTransactionId: data.externalTransactionId || '',
         expenseApprovalStatus:
           resolvedStatus === 'approved' ? true : resolvedStatus === 'rejected' ? false : null,
         expenseApprovedBy: isSuperAdmin ? data.expenseApprovedBy || null : null,
