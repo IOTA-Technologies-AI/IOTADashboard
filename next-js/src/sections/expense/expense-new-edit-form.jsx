@@ -393,7 +393,9 @@ export function ExpenseNewEditForm({ currentExpense }) {
   useEffect(() => {
     let active = true;
     (async () => {
+      console.log('[ExpenseForm] Fetching cost centers...');
       const list = await getCostCenters();
+      console.log('[ExpenseForm] Cost centers received:', list);
       if (active && list && list.length > 0) {
         setCostCenters(list);
       }
@@ -645,7 +647,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
             <em>Select cost center</em>
           </MenuItem>
           {costCenters.map((cc) => (
-            <MenuItem key={cc.id} value={cc.id}>
+            <MenuItem key={cc.id} value={String(cc.id)}>
               {cc.name || `Cost Center ${cc.id}`}
             </MenuItem>
           ))}

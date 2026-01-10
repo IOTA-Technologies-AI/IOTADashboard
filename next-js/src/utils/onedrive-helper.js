@@ -102,27 +102,43 @@ export async function listOneDriveFiles(folderId = null, options = {}) {
   } catch (error) {
     const status = error?.response?.status;
     const errorCode = error?.response?.data?.code;
+    const errorMessage = error?.response?.data?.message || error?.message || '';
     const isAuthError = status === 401 || errorCode === 'unauthenticated';
 
     if (isAuthError && refreshToken) {
       console.log('[OneDrive] Token expired, attempting refresh...');
-      const refreshed = await refreshAccessToken(refreshToken);
-      console.log('[OneDrive] Refresh response keys:', Object.keys(refreshed || {}));
-      console.log('[OneDrive] Has access_token:', !!refreshed?.access_token);
+      try {
+        const refreshed = await refreshAccessToken(refreshToken);
+        console.log('[OneDrive] Refresh response keys:', Object.keys(refreshed || {}));
+        console.log('[OneDrive] Has access_token:', !!refreshed?.access_token);
 
-      const newAccess = refreshed.access_token || refreshed.accessToken;
-      const newRefresh = refreshed.refresh_token || refreshed.refreshToken || refreshToken;
+        const newAccess = refreshed.access_token || refreshed.accessToken;
+        const newRefresh = refreshed.refresh_token || refreshed.refreshToken || refreshToken;
 
-      if (newAccess) {
-        console.log('[OneDrive] Got new access token, retrying...');
-        setOneDriveToken(newAccess, newRefresh);
-        const retryParams = new URLSearchParams({ accessToken: newAccess });
-        if (folderId) retryParams.append('folderId', folderId);
+        if (newAccess) {
+          console.log('[OneDrive] Got new access token, retrying...');
+          setOneDriveToken(newAccess, newRefresh);
+          const retryParams = new URLSearchParams({ accessToken: newAccess });
+          if (folderId) retryParams.append('folderId', folderId);
 
-        const retryResponse = await axios.get(
-          `${API_BASE_URL}/onedrive/files?${retryParams.toString()}`
+          const retryResponse = await axios.get(
+            `${API_BASE_URL}/onedrive/files?${retryParams.toString()}`
+          );
+          return Array.isArray(retryResponse.data?.value) ? retryResponse.data.value : [];
+        }
+      } catch (refreshError) {
+        console.error(
+          '[OneDrive] Refresh failed:',
+          refreshError?.response?.data || refreshError?.message
         );
-        return Array.isArray(retryResponse.data?.value) ? retryResponse.data.value : [];
+        // Clear tokens if refresh failed - user needs to re-authenticate
+        clearOneDriveToken();
+        const refreshErrorMsg =
+          refreshError?.response?.data?.message || refreshError?.message || '';
+        if (refreshErrorMsg.includes('re-authenticate') || refreshErrorMsg.includes('expired')) {
+          throw new Error('OneDrive session expired. Please reconnect your OneDrive account.');
+        }
+        throw refreshError;
       }
     }
 
