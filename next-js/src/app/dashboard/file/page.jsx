@@ -114,11 +114,22 @@ export default function FilePage() {
     }
   }, [searchParams, authenticated]);
 
+  // Get the OneDrive redirect URI based on current origin
+  const getOneDriveRedirectUri = () => {
+    if (typeof window === 'undefined') return '';
+    return `${window.location.origin}/dashboard/file`;
+  };
+
   const handleTokenExchange = async (code) => {
     try {
       setLoading(true);
-      const tokenData = await exchangeCodeForToken(code);
+      const redirectUri = getOneDriveRedirectUri();
+      const tokenData = await exchangeCodeForToken(code, redirectUri);
       setOneDriveToken(tokenData.access_token, tokenData.refresh_token);
+      // Store the redirect URI for later refresh calls
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('onedrive_redirect_uri', redirectUri);
+      }
       setAuthenticated(true);
       toast.success('Successfully connected to OneDrive!');
       await loadFiles(null);
@@ -133,7 +144,8 @@ export default function FilePage() {
 
   const handleSignIn = async () => {
     try {
-      const authUrl = await getMicrosoftAuthUrl();
+      const redirectUri = getOneDriveRedirectUri();
+      const authUrl = await getMicrosoftAuthUrl(redirectUri);
       window.location.href = authUrl;
     } catch (error) {
       console.error('Sign in error:', error);

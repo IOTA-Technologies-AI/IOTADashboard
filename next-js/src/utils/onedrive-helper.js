@@ -69,20 +69,33 @@ const ensureAccessToken = (fallbackAccessToken, fallbackRefreshToken) => {
 };
 
 // Authentication
-export async function getMicrosoftAuthUrl() {
-  const response = await axios.get(`${API_BASE_URL}/onedrive/auth-url`);
+export async function getMicrosoftAuthUrl(redirectUri) {
+  const params = new URLSearchParams();
+  if (redirectUri) params.append('redirectUri', redirectUri);
+  const url = `${API_BASE_URL}/onedrive/auth-url${params.toString() ? `?${params}` : ''}`;
+  const response = await axios.get(url);
   return response.data.authUrl;
 }
 
-export async function exchangeCodeForToken(code) {
-  const response = await axios.post(`${API_BASE_URL}/onedrive/token`, { code });
+export async function exchangeCodeForToken(code, redirectUri) {
+  const payload = { code };
+  if (redirectUri) payload.redirectUri = redirectUri;
+  const response = await axios.post(`${API_BASE_URL}/onedrive/token`, payload);
   return response.data;
 }
 
-export async function refreshAccessToken(refreshToken) {
-  const response = await axios.post(`${API_BASE_URL}/onedrive/refresh`, { refreshToken });
+export async function refreshAccessToken(refreshToken, redirectUri) {
+  const payload = { refreshToken };
+  if (redirectUri) payload.redirectUri = redirectUri;
+  const response = await axios.post(`${API_BASE_URL}/onedrive/refresh`, payload);
   return response.data;
 }
+
+// Helper to get stored redirect URI
+const getStoredRedirectUri = () => {
+  if (!hasWindow) return null;
+  return localStorage.getItem('onedrive_redirect_uri') || null;
+};
 
 // File operations
 export async function listOneDriveFiles(folderId = null, options = {}) {
@@ -108,7 +121,8 @@ export async function listOneDriveFiles(folderId = null, options = {}) {
     if (isAuthError && refreshToken) {
       console.log('[OneDrive] Token expired, attempting refresh...');
       try {
-        const refreshed = await refreshAccessToken(refreshToken);
+        const storedRedirectUri = getStoredRedirectUri();
+        const refreshed = await refreshAccessToken(refreshToken, storedRedirectUri);
         console.log('[OneDrive] Refresh response keys:', Object.keys(refreshed || {}));
         console.log('[OneDrive] Has access_token:', !!refreshed?.access_token);
 
