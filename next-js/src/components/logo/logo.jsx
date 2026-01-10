@@ -26,8 +26,7 @@ export function Logo({ sx, disabled, className, href = '/', isSingle = true, ...
     <img
       alt="Single logo"
       src={`${CONFIG.assetsDir}/logo/logo-single.svg`}
-      width="100%"
-      height="100%"
+      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
     />
   );
 
@@ -35,8 +34,7 @@ export function Logo({ sx, disabled, className, href = '/', isSingle = true, ...
     <img
       alt="Full logo"
       src={`${CONFIG.assetsDir}/logo/logo-full.svg`}
-      width="100%"
-      height="100%"
+      style={{ width: '100%', height: '100%', objectFit: 'contain' }}
     />
   );
   /*
@@ -179,7 +177,7 @@ export function Logo({ sx, disabled, className, href = '/', isSingle = true, ...
       className={mergeClasses([logoClasses.root, className])}
       sx={[
         {
-          width: 40,
+          width: 56,
           height: 40,
           ...(!isSingle && { width: 102, height: 36 }),
           ...(disabled && { pointerEvents: 'none' }),
