@@ -313,6 +313,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
   console.log('🔍 expenseAmount:', currentExpense?.expenseAmount);
   console.log('🔍 originalExpenseCurrency:', currentExpense?.originalExpenseCurrency);
   console.log('🔍 expenseCurrency:', currentExpense?.expenseCurrency);
+  console.log('🔍 costcenterId:', currentExpense?.costcenterId);
 
   const defaultValues = useMemo(
     () => ({
@@ -380,6 +381,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
 
   // ✅ Watch expense type to show/hide invoice dropdown
   const watchedExpenseType = watch('expenseType');
+  const watchedApprovalStatus = watch('expenseApprovalStatus');
   const showInvoiceDropdown = Number(watchedExpenseType) === INVOICE_AGAINST_INVOICE_TYPE;
 
   // ✅ Fetch AR invoices on mount
@@ -428,6 +430,24 @@ export function ExpenseNewEditForm({ currentExpense }) {
       reset(defaultValues);
     }
   }, [currentExpense, defaultValues, reset]);
+
+  // ✅ Auto-fill approval fields when status changes to "approved"
+  useEffect(() => {
+    if (watchedApprovalStatus === 'approved' && isSuperAdmin) {
+      // Get current user's display name
+      const approverName = profile?.displayName || user?.displayName || user?.email || '';
+      const currentApprovedBy = watch('expenseApprovedBy');
+      const currentApprovedDate = watch('expenseApprovedDate');
+
+      // Only auto-fill if fields are empty
+      if (!currentApprovedBy) {
+        setValue('expenseApprovedBy', approverName);
+      }
+      if (!currentApprovedDate) {
+        setValue('expenseApprovedDate', new Date().toISOString());
+      }
+    }
+  }, [watchedApprovalStatus, isSuperAdmin, profile, user, setValue, watch]);
 
   const handleAttachmentUpload = async (files) => {
     const file = files?.[0];
@@ -854,7 +874,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
         loading={isSubmitting}
         disabled={uploadingAttachment || (currentExpense ? !isSuperAdmin : false)}
       >
-        {currentExpense ? 'Update Expense' : 'Create Expense'}
+        {currentExpense ? 'Approve Expense' : 'Create Expense'}
       </LoadingButton>
     </Box>
   );

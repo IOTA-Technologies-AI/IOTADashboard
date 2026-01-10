@@ -473,17 +473,32 @@ export function ExpenseDetails({ expense }) {
   const renderActions = (
     <Card sx={{ p: 2 }}>
       <Stack spacing={1.5}>
-        <Button
-          fullWidth
-          size="small"
-          variant="contained"
-          color="inherit"
-          startIcon={<Iconify icon="solar:pen-bold" width={18} />}
-          component={RouterLink}
-          href={paths.dashboard.expense.edit(expense?.referenceId)}
-        >
-          Edit
-        </Button>
+        {/* Show "Approve Expense" for pending expenses, "Edit" for others */}
+        {expense?.expenseApprovalStatus === null || expense?.expenseApprovalStatus === undefined ? (
+          <Button
+            fullWidth
+            size="small"
+            variant="contained"
+            color="success"
+            startIcon={<Iconify icon="solar:check-circle-bold" width={18} />}
+            component={RouterLink}
+            href={paths.dashboard.expense.edit(expense?.referenceId)}
+          >
+            Approve Expense
+          </Button>
+        ) : (
+          <Button
+            fullWidth
+            size="small"
+            variant="contained"
+            color="inherit"
+            startIcon={<Iconify icon="solar:pen-bold" width={18} />}
+            component={RouterLink}
+            href={paths.dashboard.expense.edit(expense?.referenceId)}
+          >
+            Edit
+          </Button>
+        )}
 
         <Button
           fullWidth
