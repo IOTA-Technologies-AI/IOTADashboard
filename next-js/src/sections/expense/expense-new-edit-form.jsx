@@ -35,6 +35,7 @@ import { Form, Field } from 'src/components/hook-form';
 import { UploadBox } from 'src/components/upload/box/upload-box';
 
 import { useAuthContext } from 'src/auth/hooks';
+import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 import { useMicrosoftProfile } from 'src/auth/hooks/use-microsoft-profile';
 
 // ----------------------------------------------------------------------
@@ -60,7 +61,7 @@ const ExpenseSchema = zod.object({
   expenseType: zod.coerce.number().min(1, { message: 'Expense type is required!' }),
   expenseDate: zod.string().min(1, { message: 'Expense date is required!' }),
   originalExpenseAmount: zod.number().min(0.01, { message: 'Amount must be greater than 0!' }),
-  expenseBy: zod.number().min(1, { message: 'Expense by is required!' }),
+  expenseBy: zod.string().min(1, { message: 'Expense by is required!' }),
   costcenterId: zod.union([zod.string(), zod.number()]).optional().nullable(),
   expenseSettlementNotes: zod.string().optional(),
   originalExpenseCurrency: zod.string().min(1, { message: 'Currency is required!' }),
@@ -83,6 +84,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
   const router = useRouter();
   const { user } = useAuthContext();
   const { profile } = useMicrosoftProfile();
+  const { users: microsoftUsers, loading: loadingUsers } = useMicrosoftUsers();
 
   const roleIdToName = {
     1: 'regular',
@@ -629,13 +631,21 @@ export function ExpenseNewEditForm({ currentExpense }) {
           InputLabelProps={{ shrink: true }}
         />
 
-        <Field.Text
+        <Field.Select
           name="expenseBy"
-          label="Expense By (Employee ID)"
-          placeholder="1"
-          type="number"
+          label="Expense By"
           InputLabelProps={{ shrink: true }}
-        />
+          displayEmpty
+        >
+          <MenuItem value="">
+            <em>{loadingUsers ? 'Loading users...' : 'Select user'}</em>
+          </MenuItem>
+          {microsoftUsers.map((msUser) => (
+            <MenuItem key={msUser.id} value={msUser.name}>
+              {msUser.name} {msUser.email ? `(${msUser.email})` : ''}
+            </MenuItem>
+          ))}
+        </Field.Select>
 
         <Field.Select
           name="costcenterId"
