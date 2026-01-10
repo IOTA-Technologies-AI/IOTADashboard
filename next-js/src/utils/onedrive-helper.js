@@ -92,7 +92,7 @@ export async function refreshAccessToken(refreshToken, redirectUri) {
 }
 
 // Helper to get stored redirect URI
-const getStoredRedirectUri = () => {
+export const getStoredRedirectUri = () => {
   if (!hasWindow) return null;
   return localStorage.getItem('onedrive_redirect_uri') || null;
 };

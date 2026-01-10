@@ -7,6 +7,7 @@ import {
   seedOneDriveToken,
   refreshAccessToken,
   clearOneDriveToken,
+  getStoredRedirectUri,
 } from 'src/utils/onedrive-helper';
 
 import { useAuthContext } from './use-auth-context';
@@ -56,7 +57,8 @@ export function useMicrosoftUsers() {
 
       if (response.status === 401 && refreshToken) {
         try {
-          const refreshed = await refreshAccessToken(refreshToken);
+          const storedRedirectUri = getStoredRedirectUri();
+          const refreshed = await refreshAccessToken(refreshToken, storedRedirectUri);
           const newAccess = refreshed?.access_token || refreshed?.accessToken;
           const newRefresh = refreshed?.refresh_token || refreshed?.refreshToken || refreshToken;
 
