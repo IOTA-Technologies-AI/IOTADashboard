@@ -8,31 +8,31 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
+import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
-import CircularProgress from '@mui/material/CircularProgress'; // ✅ Added for loading state
-import Alert from '@mui/material/Alert';
-import Chip from '@mui/material/Chip';
 import LinearProgress from '@mui/material/LinearProgress';
+import CircularProgress from '@mui/material/CircularProgress'; // ✅ Added for loading state
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
 import { fCurrency } from 'src/utils/format-number'; // ✅ Added for formatting
 import { apiHelper, getCostCenters } from 'src/utils/apiHelper';
+import { getOneDriveToken, seedOneDriveToken, refreshAccessToken } from 'src/utils/onedrive-helper';
 import {
   EXPENSE_TYPES,
   EXPENSE_CURRENCIES,
   EXPENSE_APPROVAL_STATUS_OPTIONS,
 } from 'src/utils/constants/enums';
-import { getOneDriveToken, refreshAccessToken, seedOneDriveToken } from 'src/utils/onedrive-helper';
 
 import { toast } from 'src/components/snackbar';
+import { Iconify } from 'src/components/iconify';
 import { Form, Field } from 'src/components/hook-form';
 import { UploadBox } from 'src/components/upload/box/upload-box';
-import { Iconify } from 'src/components/iconify';
 
 import { useAuthContext } from 'src/auth/hooks';
 import { useMicrosoftProfile } from 'src/auth/hooks/use-microsoft-profile';
@@ -394,8 +394,8 @@ export function ExpenseNewEditForm({ currentExpense }) {
     let active = true;
     (async () => {
       const list = await getCostCenters();
-      if (active) {
-        setCostCenters(list || []);
+      if (active && list && list.length > 0) {
+        setCostCenters(list);
       }
     })();
     return () => {

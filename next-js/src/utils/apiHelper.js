@@ -161,29 +161,14 @@ export async function getVendors() {
 }
 
 export async function getCostCenters() {
-  // Skip remote fetch unless explicitly enabled to avoid noisy 404s in environments
-  if (process.env.NEXT_PUBLIC_COST_CENTER_API_ENABLED !== 'true') {
+  try {
+    const response = await axios.get(`${API_BASE_URL}costcenters`);
+    const list = response.data?.costCenters || response.data?.data || response.data || [];
+    return Array.isArray(list) ? list : [];
+  } catch (error) {
+    console.warn('⚠️ Cost center fetch failed:', error.response?.status, error.message);
     return [];
   }
-
-  const endpoints = ['costCenters', 'costcenters', 'cost-centers'];
-
-  for (const path of endpoints) {
-    try {
-      const response = await axios.get(`${API_BASE_URL}${path}`);
-      const list = response.data?.costCenters || response.data?.data || response.data || [];
-      if (Array.isArray(list) && list.length) return list;
-    } catch (error) {
-      const status = error.response?.status;
-      if (status && status !== 404) {
-        console.warn('⚠️ Cost center fetch failed', { path, status, message: error.message });
-      }
-      // continue to next endpoint on 404 or empty
-    }
-  }
-
-  console.warn('⚠️ Cost centers unavailable after all endpoints, using defaults');
-  return [];
 }
 
 // Payroll APIs
