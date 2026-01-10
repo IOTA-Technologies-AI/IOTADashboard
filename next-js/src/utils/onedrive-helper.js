@@ -106,6 +106,9 @@ export async function listOneDriveFiles(folderId = null, options = {}) {
 
   try {
     const response = await axios.get(`${API_BASE_URL}/onedrive/files?${params.toString()}`);
+    console.log('[OneDrive] Raw API response:', response);
+    console.log('[OneDrive] response.data:', response.data);
+    console.log('[OneDrive] response.data.value:', response.data?.value);
     return Array.isArray(response.data?.value) ? response.data.value : [];
   } catch (error) {
     const status = error?.response?.status;
