@@ -105,11 +105,33 @@ export async function listOneDriveFiles(folderId = null, options = {}) {
   if (folderId) params.append('folderId', folderId);
 
   try {
-    const response = await axios.get(`${API_BASE_URL}/onedrive/files?${params.toString()}`);
+    const url = `${API_BASE_URL}/onedrive/files?${params.toString()}`;
+    console.log('[OneDrive] Fetching URL:', url);
+
+    const response = await axios.get(url, {
+      headers: { Accept: 'application/json' },
+      responseType: 'json',
+    });
+
+    console.log('[OneDrive] Response status:', response.status);
+    console.log('[OneDrive] Response headers:', response.headers);
+    console.log('[OneDrive] Response data type:', typeof response.data);
     console.log('[OneDrive] Raw API response:', response);
     console.log('[OneDrive] response.data:', response.data);
     console.log('[OneDrive] response.data.value:', response.data?.value);
-    return Array.isArray(response.data?.value) ? response.data.value : [];
+
+    // Handle case where response.data might be a string that needs parsing
+    let data = response.data;
+    if (typeof data === 'string' && data) {
+      try {
+        data = JSON.parse(data);
+        console.log('[OneDrive] Parsed string response:', data);
+      } catch (e) {
+        console.error('[OneDrive] Failed to parse response string:', e);
+      }
+    }
+
+    return Array.isArray(data?.value) ? data.value : [];
   } catch (error) {
     const status = error?.response?.status;
     const errorCode = error?.response?.data?.code;
