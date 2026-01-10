@@ -1,7 +1,5 @@
 'use client';
 
-import { KanbanView } from 'src/sections/kanban/view';
-
 import {
   useGetTodoBoard,
   createTask as createTodoTask,
@@ -14,6 +12,10 @@ import {
   clearColumn as clearTodoColumn,
   deleteColumn as deleteTodoColumn,
 } from 'src/actions/todo';
+
+import { KanbanView } from 'src/sections/kanban/view';
+
+import { useAuthContext } from 'src/auth/hooks';
 
 // ----------------------------------------------------------------------
 
