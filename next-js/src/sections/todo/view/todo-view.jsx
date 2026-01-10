@@ -1,5 +1,7 @@
 'use client';
 
+import { useMemo } from 'react';
+
 import {
   useGetTodoBoard,
   createTask as createTodoTask,
@@ -19,21 +21,33 @@ import { useAuthContext } from 'src/auth/hooks';
 
 // ----------------------------------------------------------------------
 
-const todoActions = {
-  createTask: createTodoTask,
-  moveTask: moveTodoTask,
-  updateTask: updateTodoTask,
-  deleteTask: deleteTodoTask,
-  createColumn: createTodoColumn,
-  moveColumn: moveTodoColumn,
-  updateColumn: updateTodoColumn,
-  clearColumn: clearTodoColumn,
-  deleteColumn: deleteTodoColumn,
-};
-
 export function TodoView() {
   const { user } = useAuthContext();
   const canManageColumns = ['admin', 'superAdmin'].includes(user?.role);
+
+  // Wrap createTask and updateTask to automatically include user info
+  const todoActions = useMemo(
+    () => ({
+      createTask: (columnId, taskData) =>
+        createTodoTask(columnId, taskData, {
+          email: user?.email,
+          displayName: user?.displayName || user?.email,
+        }),
+      moveTask: moveTodoTask,
+      updateTask: (columnId, taskData) =>
+        updateTodoTask(columnId, taskData, {
+          email: user?.email,
+          displayName: user?.displayName || user?.email,
+        }),
+      deleteTask: deleteTodoTask,
+      createColumn: createTodoColumn,
+      moveColumn: moveTodoColumn,
+      updateColumn: updateTodoColumn,
+      clearColumn: clearTodoColumn,
+      deleteColumn: deleteTodoColumn,
+    }),
+    [user?.email, user?.displayName]
+  );
 
   return (
     <KanbanView

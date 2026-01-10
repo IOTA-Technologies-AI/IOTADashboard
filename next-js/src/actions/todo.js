@@ -10,6 +10,7 @@ const TODO_ENDPOINT = endpoints.todo.board;
 const subtasksKey = (taskId) => (taskId ? [endpoints.todo.subtasks, { params: { taskId } }] : null);
 const remindersKey = (taskId) =>
   taskId ? [endpoints.todo.reminders, { params: { taskId } }] : null;
+const commentsKey = (taskId) => (taskId ? [endpoints.todo.comments, { params: { taskId } }] : null);
 
 const swrOptions = {
   revalidateIfStale: enableServer,
@@ -27,6 +28,17 @@ const normalizeTask = (item = {}, stageId) => {
   const startDate = new Date().toISOString();
   const endDate = item.expectedCloseDate || item.due?.[1] || startDate;
 
+  // Build assignee array from assigneeEmail/assigneeName fields
+  const assigneeList = [];
+  if (item.assigneeEmail) {
+    assigneeList.push({
+      id: item.assigneeEmail,
+      name: item.assigneeName || item.assigneeEmail,
+      email: item.assigneeEmail,
+      avatarUrl: '',
+    });
+  }
+
   return {
     ...item,
     stageId: stageId || item.stageId,
@@ -34,8 +46,12 @@ const normalizeTask = (item = {}, stageId) => {
     attachments: item.attachments || [],
     labels: item.labels || [],
     comments: item.comments || [],
-    assignee: item.assignee || [],
-    reporter: item.reporter || defaultReporter,
+    assignee: assigneeList.length > 0 ? assigneeList : item.assignee || [],
+    reporter: item.reporter || {
+      id: item.createdByEmail || 'todo-reporter',
+      name: item.createdByName || 'Workspace',
+      avatarUrl: '',
+    },
     due: item.due || [startDate, endDate],
     status: item.status || 'open',
     value: item.value ?? 0,
@@ -169,6 +185,50 @@ export async function deleteReminder(taskId, reminderId) {
 }
 
 // ----------------------------------------------------------------------
+// Comments
+// ----------------------------------------------------------------------
+
+export function useGetComments(taskId) {
+  const { data, isLoading, error, isValidating } = useSWR(commentsKey(taskId), fetcher, {
+    ...swrOptions,
+  });
+
+  return {
+    comments: data?.comments || [],
+    commentsLoading: isLoading,
+    commentsError: error,
+    commentsValidating: isValidating,
+  };
+}
+
+export async function createComment(payload) {
+  await axios.post(endpoints.todo.comments, payload);
+
+  startTransition(() => {
+    mutate(commentsKey(payload.taskId));
+    // Also refresh the board to update comment count
+    mutate(TODO_ENDPOINT);
+  });
+}
+
+export async function updateComment(taskId, commentId, patch) {
+  await axios.patch(`${endpoints.todo.comments}/${commentId}`, patch);
+
+  startTransition(() => {
+    mutate(commentsKey(taskId));
+  });
+}
+
+export async function deleteComment(taskId, commentId) {
+  await axios.delete(`${endpoints.todo.comments}/${commentId}`);
+
+  startTransition(() => {
+    mutate(commentsKey(taskId));
+    mutate(TODO_ENDPOINT);
+  });
+}
+
+// ----------------------------------------------------------------------
 
 export async function createColumn(columnData, pipelineIdOverride) {
   const pipelineId = pipelineIdOverride || currentPipelineId;
@@ -293,7 +353,7 @@ export async function deleteColumn(columnId) {
 
 // ----------------------------------------------------------------------
 
-export async function createTask(columnId, taskData) {
+export async function createTask(columnId, taskData, userInfo = {}) {
   const pipelineId = currentPipelineId;
 
   if (!pipelineId) throw new Error('Board is not ready yet');
@@ -305,6 +365,12 @@ export async function createTask(columnId, taskData) {
     description: taskData.description || '',
     expectedCloseDate: taskData.due?.[1] || taskData.expectedCloseDate || null,
     status: taskData.status || 'open',
+    // Creator info
+    createdByEmail: userInfo.email || null,
+    createdByName: userInfo.displayName || userInfo.email || null,
+    // Assignee info (if provided)
+    assigneeEmail: taskData.assigneeEmail || null,
+    assigneeName: taskData.assigneeName || null,
   };
 
   const res = await axios.post(endpoints.todo.tasks, payload);
@@ -329,13 +395,16 @@ export async function createTask(columnId, taskData) {
 
 // ----------------------------------------------------------------------
 
-export async function updateTask(columnId, taskData) {
+export async function updateTask(columnId, taskData, userInfo = {}) {
   const payload = {
     stageId: columnId,
     name: taskData.name,
     description: taskData.description,
     status: taskData.status,
     expectedCloseDate: taskData.due?.[1] || taskData.expectedCloseDate,
+    // Include assignee fields if provided
+    assigneeEmail: taskData.assigneeEmail,
+    assigneeName: taskData.assigneeName,
   };
 
   const res = await axios.patch(`${endpoints.todo.tasks}/${taskData.id}`, payload);

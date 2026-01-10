@@ -42,7 +42,10 @@ import {
   updateSubtask,
   useGetReminders,
   useGetSubtasks,
+  useGetComments,
+  createComment,
 } from 'src/actions/todo';
+import { useAuthContext } from 'src/auth/hooks';
 
 // ----------------------------------------------------------------------
 
@@ -58,6 +61,7 @@ const BlockLabel = styled('span')(({ theme }) => ({
 
 export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose }) {
   const tabs = useTabs('overview');
+  const { user } = useAuthContext();
 
   const likeToggle = useBoolean();
   const contactsDialog = useBoolean();
@@ -72,9 +76,11 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
   );
   const [newReminderChannel, setNewReminderChannel] = useState('email');
   const [newReminderEmail, setNewReminderEmail] = useState(task.assignee?.[0]?.email || '');
+  const [newCommentText, setNewCommentText] = useState('');
 
   const { subtasks, subtasksLoading, subtasksError } = useGetSubtasks(task.id);
   const { reminders, remindersLoading, remindersError } = useGetReminders(task.id);
+  const { comments, commentsLoading, commentsError } = useGetComments(task.id);
 
   const rangePicker = useDateRangePicker(dayjs(task.due[0]), dayjs(task.due[1]));
 
@@ -176,7 +182,7 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
         { value: 'overview', label: 'Overview' },
         { value: 'subTasks', label: 'Subtasks' },
         { value: 'reminders', label: 'Reminders' },
-        { value: 'comments', label: `Comments (${task.comments.length})` },
+        { value: 'comments', label: `Comments (${comments.length})` },
       ].map((tab) => (
         <Tab key={tab.value} value={tab.value} label={tab.label} />
       ))}
@@ -565,8 +571,91 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
     </Box>
   );
 
-  const renderTabComments = () =>
-    !!task.comments.length && <KanbanDetailsCommentList comments={task.comments} />;
+  const handleAddComment = async () => {
+    if (!newCommentText.trim()) return;
+    try {
+      await createComment({
+        taskId: task.id,
+        authorEmail: user?.email || 'anonymous@iotatechnologies.io',
+        authorName: user?.displayName || user?.email || 'Anonymous',
+        content: newCommentText.trim(),
+      });
+      setNewCommentText('');
+    } catch (error) {
+      console.error('Failed to add comment:', error);
+    }
+  };
+
+  const renderTabComments = () => (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {commentsLoading ? (
+        <Typography variant="body2" color="text.secondary">
+          Loading comments...
+        </Typography>
+      ) : commentsError ? (
+        <Typography variant="body2" color="error">
+          Failed to load comments
+        </Typography>
+      ) : comments.length === 0 ? (
+        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+          No comments yet. Be the first to add one!
+        </Typography>
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          {comments.map((comment) => (
+            <Box
+              key={comment.id}
+              sx={{
+                p: 2,
+                borderRadius: 1,
+                bgcolor: 'background.neutral',
+              }}
+            >
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Avatar sx={{ width: 32, height: 32 }}>
+                  {(comment.authorName || comment.authorEmail || 'A')[0].toUpperCase()}
+                </Avatar>
+                <Box>
+                  <Typography variant="subtitle2">
+                    {comment.authorName || comment.authorEmail}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {comment.createdAt ? fDateTime(comment.createdAt) : ''}
+                  </Typography>
+                </Box>
+              </Box>
+              <Typography variant="body2">{comment.content}</Typography>
+            </Box>
+          ))}
+        </Box>
+      )}
+
+      {/* Comment Input */}
+      <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Add a comment..."
+          value={newCommentText}
+          onChange={(e) => setNewCommentText(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleAddComment();
+            }
+          }}
+        />
+        <Button
+          variant="contained"
+          size="small"
+          onClick={handleAddComment}
+          disabled={!newCommentText.trim()}
+        >
+          Post
+        </Button>
+      </Box>
+    </Box>
+  );
 
   return (
     <Drawer
@@ -588,8 +677,6 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
         {tabs.value === 'reminders' && renderTabReminders()}
         {tabs.value === 'comments' && renderTabComments()}
       </Scrollbar>
-
-      {tabs.value === 'comments' && <KanbanDetailsCommentInput />}
     </Drawer>
   );
 }
