@@ -571,13 +571,8 @@ export function ExpenseNewEditForm({ currentExpense }) {
         await apiHelper.updateExpense(currentExpense.referenceId, expenseData);
         toast.success('Expense updated successfully!');
       } else {
-        const createdExpense = await apiHelper.createExpense(expenseData);
-        try {
-          await notifyManagerForApproval(createdExpense, expenseData);
-        } catch (notifyError) {
-          console.warn('Failed to send approval email:', notifyError);
-          toast.error('Expense created, but failed to notify manager.');
-        }
+        // Backend handles approval email notifications via Resend
+        await apiHelper.createExpense(expenseData);
         toast.success('Expense created successfully!');
       }
 
