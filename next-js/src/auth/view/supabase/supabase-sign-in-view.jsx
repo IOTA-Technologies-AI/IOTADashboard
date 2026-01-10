@@ -58,7 +58,7 @@ export function SupabaseSignInView() {
         provider: 'azure',
         options: {
           redirectTo,
-          scopes: 'openid profile email offline_access',
+          scopes: 'openid profile email offline_access User.Read User.ReadBasic.All',
           flowType: 'pkce',
         },
       });
