@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect } from 'react';
+import { m } from 'framer-motion';
+
+import Container from '@mui/material/Container';
+import Typography from '@mui/material/Typography';
 
 import { paths } from 'src/routes/paths';
-import { useRouter } from 'src/routes/hooks';
 
 import { DashboardContent } from 'src/layouts/dashboard';
+import { ForbiddenIllustration } from 'src/assets/illustrations';
 
-import { toast } from 'src/components/snackbar';
+import { varBounce, MotionContainer } from 'src/components/animate';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 import { useAuthContext } from 'src/auth/hooks';
@@ -17,30 +20,35 @@ import { ExpenseNewEditForm } from '../expense-new-edit-form';
 // ----------------------------------------------------------------------
 
 export function ExpenseEditView({ expense }) {
-  const router = useRouter();
   const { user } = useAuthContext();
 
   const roleIdToName = { 1: 'regular', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
   const canEdit = normalizedRole === 'superAdmin';
-  const appRoles = user?.app_metadata?.roles || user?.roles || user?.user_metadata?.roles;
 
-  console.info('Expense edit role check', {
-    expected: 'superAdmin',
-    normalizedRole,
-    role: user?.role,
-    roleId: user?.roleId,
-    appRoles,
-  });
+  if (!canEdit) {
+    return (
+      <DashboardContent>
+        <Container component={MotionContainer} sx={{ textAlign: 'center' }}>
+          <m.div variants={varBounce('in')}>
+            <Typography variant="h3" sx={{ mb: 2 }}>
+              Permission denied
+            </Typography>
+          </m.div>
 
-  useEffect(() => {
-    if (!canEdit) {
-      toast.error('Only super admins can edit expenses');
-      router.replace(paths.dashboard.expense.root);
-    }
-  }, [canEdit, router]);
+          <m.div variants={varBounce('in')}>
+            <Typography sx={{ color: 'text.secondary' }}>
+              Only super admins can edit expenses.
+            </Typography>
+          </m.div>
 
-  if (!canEdit) return null;
+          <m.div variants={varBounce('in')}>
+            <ForbiddenIllustration sx={{ my: { xs: 5, sm: 10 } }} />
+          </m.div>
+        </Container>
+      </DashboardContent>
+    );
+  }
 
   return (
     <DashboardContent>

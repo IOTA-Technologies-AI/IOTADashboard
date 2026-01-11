@@ -133,7 +133,7 @@ export function useBoardDnd(board) {
         triggerFlashEffect(getAttr('dataTaskId'), sourceData.task.id);
       }
     },
-    [board.tasks]
+    [board.tasks, moveTask]
   );
 
   const handleColumnDrop = useCallback(
@@ -158,7 +158,7 @@ export function useBoardDnd(board) {
 
       moveColumn(reorderedColumns);
     },
-    [board.columns]
+    [board.columns, moveColumn]
   );
 
   useEffect(() => {
