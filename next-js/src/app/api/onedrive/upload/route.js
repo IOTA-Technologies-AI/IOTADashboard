@@ -22,9 +22,29 @@ export async function POST(request) {
       body: JSON.stringify(body),
     });
 
-    const data = await res.json();
+    // Get raw text first to handle empty responses
+    const text = await res.text();
 
-    return NextResponse.json(data, { status: res.status });
+    if (!text) {
+      if (res.ok) {
+        return NextResponse.json({ success: true }, { status: res.status });
+      }
+      return NextResponse.json(
+        { message: 'Empty response from OneDrive API' },
+        { status: res.status || 500 }
+      );
+    }
+
+    try {
+      const data = JSON.parse(text);
+      return NextResponse.json(data, { status: res.status });
+    } catch (parseError) {
+      console.error('[Proxy] Failed to parse upload response:', text.substring(0, 500));
+      return NextResponse.json(
+        { message: text || 'Invalid response from OneDrive API' },
+        { status: res.status || 500 }
+      );
+    }
   } catch (error) {
     console.error('[Proxy] /api/onedrive/upload POST failed:', error);
     return NextResponse.json(
