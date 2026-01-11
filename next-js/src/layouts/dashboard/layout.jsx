@@ -2,7 +2,7 @@
 
 import { merge } from 'es-toolkit';
 import { useBoolean } from 'minimal-shared/hooks';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
@@ -11,7 +11,7 @@ import { iconButtonClasses } from '@mui/material/IconButton';
 
 import { useRouter, usePathname } from 'src/routes/hooks';
 import { paths } from 'src/routes/paths';
-import { resolvePageAccess } from 'src/utils/pageAccess';
+import { resolvePageAccess, fetchNavPermissionsForRole } from 'src/utils/pageAccess';
 
 import { allLangs } from 'src/locales';
 import { _contacts, _notifications } from 'src/_mock';
@@ -62,7 +62,28 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
   };
 
   const normalizedRole = normalizeRole(user?.role, user?.roleId);
-  const allowedPaths = resolvePageAccess(user?.id, normalizedRole);
+
+  // State for dynamic allowed paths
+  const [allowedPaths, setAllowedPaths] = useState(() =>
+    resolvePageAccess(user?.id, normalizedRole)
+  );
+
+  // Fetch nav permissions from backend when role changes
+  useEffect(() => {
+    if (!normalizedRole || normalizedRole === 'superAdmin') return; // superAdmin has access to all
+
+    const cachedPaths = resolvePageAccess(user?.id, normalizedRole);
+    if (cachedPaths.length === 0) {
+      // No cached paths, fetch from backend
+      fetchNavPermissionsForRole(normalizedRole).then((paths) => {
+        if (paths.length > 0) {
+          setAllowedPaths(paths);
+        }
+      });
+    } else {
+      setAllowedPaths(cachedPaths);
+    }
+  }, [normalizedRole, user?.id]);
 
   const baseAlwaysAllowed = [
     paths.dashboard.root,

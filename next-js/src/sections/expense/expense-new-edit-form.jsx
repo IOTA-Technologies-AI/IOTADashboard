@@ -431,13 +431,18 @@ export function ExpenseNewEditForm({ currentExpense }) {
     }
   }, [currentExpense, defaultValues, reset]);
 
-  // ✅ Auto-fill approval fields when status changes to "approved"
+  // ✅ Auto-fill approval fields when status changes to "approved" or "rejected"
   useEffect(() => {
-    if (watchedApprovalStatus === 'approved' && isSuperAdmin) {
+    if (
+      (watchedApprovalStatus === 'approved' || watchedApprovalStatus === 'rejected') &&
+      isSuperAdmin
+    ) {
       // Get current user's display name
       const approverName = profile?.displayName || user?.displayName || user?.email || '';
       const currentApprovedBy = watch('expenseApprovedBy');
       const currentApprovedDate = watch('expenseApprovedDate');
+      const currentApprovedAmount = watch('expenseApprovedAmount');
+      const originalAmount = watch('originalExpenseAmount');
 
       // Only auto-fill if fields are empty
       if (!currentApprovedBy) {
@@ -445,6 +450,14 @@ export function ExpenseNewEditForm({ currentExpense }) {
       }
       if (!currentApprovedDate) {
         setValue('expenseApprovedDate', new Date().toISOString());
+      }
+      // Auto-fill approved amount from original amount when approving
+      if (
+        watchedApprovalStatus === 'approved' &&
+        (!currentApprovedAmount || currentApprovedAmount === 0) &&
+        originalAmount > 0
+      ) {
+        setValue('expenseApprovedAmount', originalAmount);
       }
     }
   }, [watchedApprovalStatus, isSuperAdmin, profile, user, setValue, watch]);

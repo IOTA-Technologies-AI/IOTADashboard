@@ -443,33 +443,48 @@ export async function updateTask(columnId, taskData, userInfo = {}) {
 
 export async function moveTask(updateTasks) {
   const normalizedTasks = {};
+  const movedTasks = new Set();
   const updates = [];
 
+  // Build normalized tasks and identify which tasks actually moved
   Object.entries(updateTasks).forEach(([stageId, tasks]) => {
     normalizedTasks[stageId] = (tasks || []).map((task) => {
       const nextTask = normalizeTask({ ...task, stageId }, stageId);
-      updates.push({ id: task.id, stageId });
+      // Only update tasks that changed stage
+      if (task.stageId !== stageId) {
+        updates.push({ id: task.id, stageId });
+        movedTasks.add(task.id);
+      }
       return nextTask;
     });
   });
 
-  startTransition(() => {
-    mutate(
-      TODO_ENDPOINT,
-      (currentData) => {
-        const { board } = currentData;
-
-        return { ...currentData, board: { ...board, tasks: normalizedTasks } };
-      },
-      false
-    );
-  });
-
-  await Promise.all(
-    updates.map((update) =>
-      axios.patch(`${endpoints.todo.tasks}/${update.id}`, { stageId: update.stageId })
-    )
+  // Immediately update the cache (optimistic update)
+  mutate(
+    TODO_ENDPOINT,
+    (currentData) => {
+      if (!currentData?.board) return currentData;
+      const { board } = currentData;
+      return { ...currentData, board: { ...board, tasks: normalizedTasks } };
+    },
+    false // Don't revalidate yet
   );
+
+  // Only call API for tasks that actually moved to a different column
+  if (updates.length > 0) {
+    try {
+      await Promise.all(
+        updates.map((update) =>
+          axios.patch(`${endpoints.todo.tasks}/${update.id}`, { stageId: update.stageId })
+        )
+      );
+    } catch (error) {
+      console.error('Failed to move task:', error);
+      // Revalidate to restore correct state on error
+      mutate(TODO_ENDPOINT);
+      throw error;
+    }
+  }
 }
 
 // ----------------------------------------------------------------------

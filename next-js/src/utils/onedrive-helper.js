@@ -1,9 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://staging-iotaapiserver-s572.encr.app';
-
+// Use proxy routes on client to avoid CORS, direct API on server
 const hasWindow = typeof window !== 'undefined';
+const API_BASE_URL = hasWindow
+  ? '/api' // Use Next.js API proxy routes on client
+  : process.env.NEXT_PUBLIC_API_BASE_URL || 'https://staging-iotaapiserver-s572.encr.app';
 
 // Token management
 const persistTokens = (accessToken, refreshToken) => {

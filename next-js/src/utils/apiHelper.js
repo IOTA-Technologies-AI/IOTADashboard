@@ -162,7 +162,10 @@ export async function getVendors() {
 
 export async function getCostCenters() {
   try {
-    const response = await axios.get(`${API_BASE_URL}costcenters`);
+    // Use proxy route on client side to avoid CORS
+    const isClient = typeof window !== 'undefined';
+    const url = isClient ? '/api/costcenters' : `${API_BASE_URL}costcenters`;
+    const response = await axios.get(url);
     const list = response.data?.costCenters || response.data?.data || response.data || [];
     return Array.isArray(list) ? list : [];
   } catch (error) {
