@@ -442,32 +442,36 @@ export async function updateTask(columnId, taskData, userInfo = {}) {
 // ----------------------------------------------------------------------
 
 export async function moveTask(updateTasks) {
-  const normalizedTasks = {};
-  const movedTasks = new Set();
   const updates = [];
 
-  // Build normalized tasks and identify which tasks actually moved
+  // Identify which tasks actually moved to a different column
   Object.entries(updateTasks).forEach(([stageId, tasks]) => {
-    normalizedTasks[stageId] = (tasks || []).map((task) => {
-      const nextTask = normalizeTask({ ...task, stageId }, stageId);
+    (tasks || []).forEach((task) => {
       // Only update tasks that changed stage
       if (task.stageId !== stageId) {
         updates.push({ id: task.id, stageId });
-        movedTasks.add(task.id);
       }
-      return nextTask;
     });
   });
 
-  // Immediately update the cache (optimistic update)
-  mutate(
+  // Immediately update the cache with the new task structure (optimistic update)
+  // Normalize tasks to ensure stageId is updated
+  const normalizedTasks = {};
+  Object.entries(updateTasks).forEach(([stageId, tasks]) => {
+    normalizedTasks[stageId] = (tasks || []).map((task) => ({
+      ...task,
+      stageId, // Ensure stageId is updated to match the new column
+    }));
+  });
+
+  await mutate(
     TODO_ENDPOINT,
     (currentData) => {
       if (!currentData?.board) return currentData;
       const { board } = currentData;
       return { ...currentData, board: { ...board, tasks: normalizedTasks } };
     },
-    false // Don't revalidate yet
+    { revalidate: false } // Use options object for SWR v2
   );
 
   // Only call API for tasks that actually moved to a different column

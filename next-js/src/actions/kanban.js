@@ -293,34 +293,53 @@ export async function updateTask(columnId, taskData) {
 // ----------------------------------------------------------------------
 
 export async function moveTask(updateTasks) {
-  const normalizedTasks = {};
   const updates = [];
 
+  // Identify which tasks actually moved to a different column
   Object.entries(updateTasks).forEach(([stageId, tasks]) => {
-    normalizedTasks[stageId] = (tasks || []).map((task) => {
-      const nextTask = normalizeDealToTask({ ...task, stageId });
-      updates.push({ id: task.id, stageId });
-      return nextTask;
+    (tasks || []).forEach((task) => {
+      // Only update tasks that changed stage
+      if (task.stageId !== stageId) {
+        updates.push({ id: task.id, stageId });
+      }
     });
   });
 
-  startTransition(() => {
-    mutate(
-      KANBAN_ENDPOINT,
-      (currentData) => {
-        const { board } = currentData;
-
-        return { ...currentData, board: { ...board, tasks: normalizedTasks } };
-      },
-      false
-    );
+  // Normalize tasks to ensure stageId is updated
+  const normalizedTasks = {};
+  Object.entries(updateTasks).forEach(([stageId, tasks]) => {
+    normalizedTasks[stageId] = (tasks || []).map((task) => ({
+      ...task,
+      stageId, // Ensure stageId is updated to match the new column
+    }));
   });
 
-  await Promise.all(
-    updates.map((update) =>
-      axios.patch(`${endpoints.sales.deals}/${update.id}`, { stageId: update.stageId })
-    )
+  // Immediately update the cache (optimistic update)
+  await mutate(
+    KANBAN_ENDPOINT,
+    (currentData) => {
+      if (!currentData?.board) return currentData;
+      const { board } = currentData;
+      return { ...currentData, board: { ...board, tasks: normalizedTasks } };
+    },
+    { revalidate: false }
   );
+
+  // Only call API for tasks that actually moved to a different column
+  if (updates.length > 0) {
+    try {
+      await Promise.all(
+        updates.map((update) =>
+          axios.patch(`${endpoints.sales.deals}/${update.id}`, { stageId: update.stageId })
+        )
+      );
+    } catch (error) {
+      console.error('Failed to move task:', error);
+      // Revalidate to restore correct state on error
+      mutate(KANBAN_ENDPOINT);
+      throw error;
+    }
+  }
 }
 
 // ----------------------------------------------------------------------
