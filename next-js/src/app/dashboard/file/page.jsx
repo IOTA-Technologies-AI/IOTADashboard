@@ -213,7 +213,21 @@ export default function FilePage() {
       }
     } catch (error) {
       console.error('Load files error:', error);
-      toast.error('Failed to load files');
+      const errorMessage = error?.message || '';
+
+      // Check if it's an authentication error that requires reconnection
+      if (
+        errorMessage.includes('session expired') ||
+        errorMessage.includes('re-authenticate') ||
+        errorMessage.includes('reconnect') ||
+        error?.response?.status === 401
+      ) {
+        clearOneDriveToken();
+        setAuthenticated(false);
+        toast.error('OneDrive session expired. Please reconnect your account.');
+      } else {
+        toast.error('Failed to load files');
+      }
     } finally {
       setLoading(false);
     }

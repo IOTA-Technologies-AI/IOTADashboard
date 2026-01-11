@@ -168,6 +168,11 @@ export async function listOneDriveFiles(folderId = null, options = {}) {
           );
           return Array.isArray(retryResponse.data?.value) ? retryResponse.data.value : [];
         }
+
+        // No new access token from refresh - token is likely expired
+        console.error('[OneDrive] Refresh did not return a new access token');
+        clearOneDriveToken();
+        throw new Error('OneDrive session expired. Please reconnect your OneDrive account.');
       } catch (refreshError) {
         console.error(
           '[OneDrive] Refresh failed:',
@@ -175,12 +180,7 @@ export async function listOneDriveFiles(folderId = null, options = {}) {
         );
         // Clear tokens if refresh failed - user needs to re-authenticate
         clearOneDriveToken();
-        const refreshErrorMsg =
-          refreshError?.response?.data?.message || refreshError?.message || '';
-        if (refreshErrorMsg.includes('re-authenticate') || refreshErrorMsg.includes('expired')) {
-          throw new Error('OneDrive session expired. Please reconnect your OneDrive account.');
-        }
-        throw refreshError;
+        throw new Error('OneDrive session expired. Please reconnect your OneDrive account.');
       }
     }
 
