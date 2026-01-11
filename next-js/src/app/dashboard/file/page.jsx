@@ -382,14 +382,16 @@ export default function FilePage() {
 
   // Filter files based on current tab and file type
   const getFilteredFiles = useCallback(() => {
-    let filtered = allFiles;
+    // Combine own files with shared files when at root
+    const combinedFiles = !currentFolderId ? [...allFiles, ...sharedFiles] : allFiles;
+    let filtered = combinedFiles;
 
     // Filter by tab
     if (currentTab === 'recent') {
-      filtered = allFiles.slice(0, 10);
+      filtered = combinedFiles.slice(0, 10);
     } else if (currentTab === 'type') {
       if (fileTypeFilter !== 'all') {
-        filtered = allFiles.filter((file) => {
+        filtered = combinedFiles.filter((file) => {
           if (fileTypeFilter === 'folder') return false;
           return file.type?.includes(fileTypeFilter);
         });
@@ -397,7 +399,7 @@ export default function FilePage() {
     }
 
     return filtered;
-  }, [allFiles, currentTab, fileTypeFilter]);
+  }, [allFiles, sharedFiles, currentFolderId, currentTab, fileTypeFilter]);
 
   const renderStorageOverview = () => {
     // Calculate the actual percentage and round it
@@ -602,10 +604,7 @@ export default function FilePage() {
             {/* Shared with Me Folders */}
             {!currentFolderId && sharedFolders.length > 0 && (
               <>
-                <FileManagerPanel
-                  title="Shared with Me"
-                  sx={{ mt: 3 }}
-                />
+                <FileManagerPanel title="Shared with Me" sx={{ mt: 3 }} />
                 <Scrollbar>
                   <Box sx={{ gap: 3, display: 'flex', flexWrap: 'wrap', mb: 3 }}>
                     {sharedFolders.map((folder) => (
