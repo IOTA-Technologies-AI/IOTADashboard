@@ -32,10 +32,7 @@ export async function POST(request) {
     body = await request.json();
   } catch (parseError) {
     console.error('[Proxy] Failed to parse request body:', parseError);
-    return NextResponse.json(
-      { message: 'Invalid request body' },
-      { status: 400 }
-    );
+    return NextResponse.json({ message: 'Invalid request body' }, { status: 400 });
   }
 
   try {
@@ -76,11 +73,6 @@ export async function POST(request) {
   } catch (error) {
     console.error('[Proxy] /api/onedrive/upload POST failed:', error.message || error);
     return NextResponse.json(
-      { message: error.message || 'Failed to upload to OneDrive' },
-      { status: 500 }
-    );
-  }
-}
       { message: error.message || 'Failed to upload to OneDrive' },
       { status: 500 }
     );
