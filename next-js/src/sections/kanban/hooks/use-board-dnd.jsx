@@ -29,10 +29,17 @@ const PANNING_STOP_EVENTS = [
 
 export function useBoardDnd(board) {
   const boardRef = useRef(null);
+  const boardDataRef = useRef(board);
   const { moveTask, moveColumn } = useKanbanActions();
+
+  // Always keep ref updated with latest board data to avoid stale closures
+  useEffect(() => {
+    boardDataRef.current = board;
+  }, [board]);
 
   const handleTaskDrop = useCallback(
     ({ source, location }) => {
+      const currentBoard = boardDataRef.current;
       const dropTarget = location.current.dropTargets[0];
       if (!dropTarget || !isTaskData(source.data)) return;
 
@@ -40,7 +47,7 @@ export function useBoardDnd(board) {
       const targetData = dropTarget.data;
       const sourceColumnId = sourceData.columnId;
 
-      const sourceTasks = board.tasks[sourceColumnId];
+      const sourceTasks = currentBoard.tasks[sourceColumnId];
       if (!sourceTasks) return;
 
       const sourceTaskIndex = sourceTasks.findIndex((task) => task.id === sourceData.task.id);
@@ -67,14 +74,14 @@ export function useBoardDnd(board) {
           const newIndex = reorderedTasks.findIndex((task) => task.id === sourceTaskId);
 
           if (sourceTaskIndex !== newIndex) {
-            moveTask({ ...board.tasks, [sourceColumnId]: reorderedTasks });
+            moveTask({ ...currentBoard.tasks, [sourceColumnId]: reorderedTasks });
             triggerFlashEffect(getAttr('dataTaskId'), sourceData.task.id);
           }
           return;
         }
 
         // ➤ Different column: move task to new position
-        const targetTasks = board.tasks[targetColumnId];
+        const targetTasks = currentBoard.tasks[targetColumnId];
         if (!targetTasks) return;
 
         const targetTaskIndex = targetTasks.findIndex((task) => task.id === targetData.task.id);
@@ -89,7 +96,7 @@ export function useBoardDnd(board) {
         updatedTargetTasks.splice(insertIndex, 0, sourceData.task);
 
         moveTask({
-          ...board.tasks,
+          ...currentBoard.tasks,
           [sourceColumnId]: updatedSourceTasks,
           [targetColumnId]: updatedTargetTasks,
         });
@@ -100,7 +107,7 @@ export function useBoardDnd(board) {
       // ➤ Task dropped onto column (append to end)
       if (isColumnData(targetData)) {
         const targetColumnId = targetData.column.id;
-        const targetTasks = board.tasks[targetColumnId];
+        const targetTasks = currentBoard.tasks[targetColumnId];
         if (!targetTasks) return;
 
         // ➤ Same column: move to end
@@ -114,7 +121,7 @@ export function useBoardDnd(board) {
               finishIndex: finalIndex,
             });
 
-            moveTask({ ...board.tasks, [sourceColumnId]: reorderedTasks });
+            moveTask({ ...currentBoard.tasks, [sourceColumnId]: reorderedTasks });
             triggerFlashEffect(getAttr('dataTaskId'), sourceData.task.id);
           }
           return;
@@ -126,18 +133,19 @@ export function useBoardDnd(board) {
         const updatedTargetTasks = [...targetTasks, sourceData.task];
 
         moveTask({
-          ...board.tasks,
+          ...currentBoard.tasks,
           [sourceColumnId]: updatedSourceTasks,
           [targetColumnId]: updatedTargetTasks,
         });
         triggerFlashEffect(getAttr('dataTaskId'), sourceData.task.id);
       }
     },
-    [board.tasks, moveTask]
+    [moveTask]
   );
 
   const handleColumnDrop = useCallback(
     ({ source, location }) => {
+      const currentBoard = boardDataRef.current;
       const dropTarget = location.current.dropTargets[0];
       if (!dropTarget) return;
 
@@ -145,20 +153,24 @@ export function useBoardDnd(board) {
       const targetData = dropTarget.data;
       if (!isColumnData(sourceData) || !isColumnData(targetData)) return;
 
-      const sourceIndex = board.columns.findIndex((column) => column.id === sourceData.column.id);
-      const targetIndex = board.columns.findIndex((column) => column.id === targetData.column.id);
+      const sourceIndex = currentBoard.columns.findIndex(
+        (column) => column.id === sourceData.column.id
+      );
+      const targetIndex = currentBoard.columns.findIndex(
+        (column) => column.id === targetData.column.id
+      );
 
       if (isInvalidOrSameIndex(sourceIndex, targetIndex)) return;
 
       const reorderedColumns = reorder({
-        list: board.columns,
+        list: currentBoard.columns,
         startIndex: sourceIndex,
         finishIndex: targetIndex,
       });
 
       moveColumn(reorderedColumns);
     },
-    [board.columns, moveColumn]
+    [moveColumn]
   );
 
   useEffect(() => {
@@ -212,7 +224,7 @@ export function useBoardDnd(board) {
     });
 
     return combine(taskMonitor, columnMonitor, scrollBoard, overflowBoardScroll);
-  }, [board.tasks, handleTaskDrop, handleColumnDrop]);
+  }, [handleTaskDrop, handleColumnDrop]);
 
   // Enable horizontal panning (click + drag to scroll the board)
   useHorizontalPanning(boardRef);

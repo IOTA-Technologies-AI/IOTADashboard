@@ -1,5 +1,5 @@
 import useSWR, { mutate } from 'swr';
-import { useMemo, startTransition } from 'react';
+import { useMemo, startTransition, useCallback } from 'react';
 
 import axios, { fetcher, endpoints } from 'src/lib/axios';
 
@@ -41,7 +41,13 @@ const normalizeDealToTask = (deal = {}) => {
 // ----------------------------------------------------------------------
 
 export function useGetBoard() {
-  const { data, isLoading, error, isValidating } = useSWR(KANBAN_ENDPOINT, fetcher, {
+  const {
+    data,
+    isLoading,
+    error,
+    isValidating,
+    mutate: boundMutate,
+  } = useSWR(KANBAN_ENDPOINT, fetcher, {
     ...swrOptions,
   });
 
@@ -68,8 +74,9 @@ export function useGetBoard() {
       boardError: error,
       boardValidating: isValidating,
       boardEmpty: !isLoading && !isValidating && !columns.length,
+      mutateBoardData: boundMutate,
     };
-  }, [data, error, isLoading, isValidating]);
+  }, [data, error, isLoading, isValidating, boundMutate]);
 
   return memoizedValue;
 }
@@ -139,7 +146,8 @@ export async function moveColumn(updateColumns) {
       (currentData) => {
         if (!currentData?.board) return currentData;
         const { board } = currentData;
-        return { ...currentData, board: { ...board, columns: updateColumns } };
+        // Spread to ensure new array reference
+        return { ...currentData, board: { ...board, columns: [...updateColumns] } };
       },
       { revalidate: false }
     );
@@ -315,15 +323,25 @@ export async function moveTask(updateTasks) {
   });
 
   // Immediately update the cache (optimistic update)
-  await mutate(
-    KANBAN_ENDPOINT,
-    (currentData) => {
-      if (!currentData?.board) return currentData;
-      const { board } = currentData;
-      return { ...currentData, board: { ...board, tasks: normalizedTasks } };
-    },
-    { revalidate: false }
-  );
+  // Use startTransition to ensure React processes the update synchronously
+  startTransition(() => {
+    mutate(
+      KANBAN_ENDPOINT,
+      (currentData) => {
+        if (!currentData?.board) return currentData;
+        const { board } = currentData;
+        // Create a completely new object structure to ensure React detects the change
+        return {
+          ...currentData,
+          board: {
+            ...board,
+            tasks: { ...normalizedTasks },
+          },
+        };
+      },
+      { revalidate: false }
+    );
+  });
 
   // Only call API for tasks that actually moved to a different column
   if (updates.length > 0) {
