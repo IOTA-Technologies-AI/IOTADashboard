@@ -246,12 +246,13 @@ export async function createColumn(columnData, pipelineIdOverride) {
   mutate(
     TODO_ENDPOINT,
     (currentData) => {
+      if (!currentData?.board) return currentData;
       const { board } = currentData;
       const columns = [...board.columns, stage];
       const tasks = { ...board.tasks, [stage.id]: [] };
       return { ...currentData, board: { ...board, columns, tasks, pipelineId } };
     },
-    false
+    { revalidate: false }
   );
 }
 
@@ -264,6 +265,7 @@ export async function updateColumn(columnId, columnName) {
     mutate(
       TODO_ENDPOINT,
       (currentData) => {
+        if (!currentData?.board) return currentData;
         const { board } = currentData;
 
         const columns = board.columns.map((column) =>
@@ -272,7 +274,7 @@ export async function updateColumn(columnId, columnName) {
 
         return { ...currentData, board: { ...board, columns } };
       },
-      false
+      { revalidate: false }
     );
   });
 }
@@ -286,10 +288,11 @@ export async function moveColumn(updateColumns) {
     mutate(
       TODO_ENDPOINT,
       (currentData) => {
+        if (!currentData?.board) return currentData;
         const { board } = currentData;
         return { ...currentData, board: { ...board, columns: updateColumns } };
       },
-      false
+      { revalidate: false }
     );
   });
 
@@ -306,6 +309,7 @@ export async function clearColumn(columnId) {
     mutate(
       TODO_ENDPOINT,
       (currentData) => {
+        if (!currentData?.board) return currentData;
         const { board } = currentData;
 
         const boardTasks = board.tasks || {};
@@ -315,7 +319,7 @@ export async function clearColumn(columnId) {
 
         return { ...currentData, board: { ...board, tasks } };
       },
-      false
+      { revalidate: false }
     );
   });
 
@@ -334,6 +338,7 @@ export async function deleteColumn(columnId) {
   mutate(
     TODO_ENDPOINT,
     (currentData) => {
+      if (!currentData?.board) return currentData;
       const { board } = currentData;
 
       const columns = board.columns.filter((column) => column.id !== columnId);
@@ -347,7 +352,7 @@ export async function deleteColumn(columnId) {
 
       return { ...currentData, board: { ...board, columns, tasks } };
     },
-    false
+    { revalidate: false }
   );
 }
 
@@ -381,6 +386,7 @@ export async function createTask(columnId, taskData, userInfo = {}) {
     mutate(
       TODO_ENDPOINT,
       (currentData) => {
+        if (!currentData?.board) return currentData;
         const { board } = currentData;
         const boardTasks = board.tasks || {};
         const columnTasks = boardTasks[columnId] || [];
@@ -388,7 +394,7 @@ export async function createTask(columnId, taskData, userInfo = {}) {
 
         return { ...currentData, board: { ...board, tasks } };
       },
-      false
+      { revalidate: false }
     );
   });
 }
@@ -417,6 +423,7 @@ export async function updateTask(columnId, taskData, userInfo = {}) {
     mutate(
       TODO_ENDPOINT,
       (currentData) => {
+        if (!currentData?.board) return currentData;
         const { board } = currentData;
         const boardTasks = board.tasks || {};
         const tasksInColumn = boardTasks[columnId] || [];
@@ -434,7 +441,7 @@ export async function updateTask(columnId, taskData, userInfo = {}) {
 
         return { ...currentData, board: { ...board, tasks } };
       },
-      false
+      { revalidate: false }
     );
   });
 }
@@ -499,6 +506,7 @@ export async function deleteTask(columnId, taskId) {
   mutate(
     TODO_ENDPOINT,
     (currentData) => {
+      if (!currentData?.board) return currentData;
       const { board } = currentData;
       const boardTasks = board.tasks || {};
       const columnTasks = boardTasks[columnId] || [];
@@ -510,6 +518,6 @@ export async function deleteTask(columnId, taskId) {
 
       return { ...currentData, board: { ...board, tasks } };
     },
-    false
+    { revalidate: false }
   );
 }
