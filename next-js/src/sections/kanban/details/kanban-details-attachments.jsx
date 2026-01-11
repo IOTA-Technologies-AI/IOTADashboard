@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
 
+import Box from '@mui/material/Box';
+
 import { UploadBox, MultiFilePreview } from 'src/components/upload';
 
 // ----------------------------------------------------------------------
@@ -21,6 +23,15 @@ export function KanbanDetailsAttachments({ attachments }) {
     },
     [files]
   );
+
+  // When no files, show full-width upload box
+  if (!files?.length) {
+    return (
+      <Box sx={{ flex: 1 }}>
+        <UploadBox onDrop={handleDrop} />
+      </Box>
+    );
+  }
 
   return (
     <MultiFilePreview
