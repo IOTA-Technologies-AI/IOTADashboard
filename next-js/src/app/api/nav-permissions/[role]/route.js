@@ -38,7 +38,7 @@ export async function PATCH(request, { params }) {
   try {
     const { role: id } = await params;
     const body = await request.json();
-    const res = await fetch(`${BASE_URL}/nav-permissions/${id}`, {
+    const res = await fetch(`${BASE_URL}/nav-permissions/update/${id}`, {
       method: 'PATCH',
       headers: defaultHeaders,
       body: JSON.stringify(body),
