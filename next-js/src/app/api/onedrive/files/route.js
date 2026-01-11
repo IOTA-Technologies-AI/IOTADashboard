@@ -17,12 +17,29 @@ export async function GET(request) {
       ? `${BASE_URL}/onedrive/files?${queryString}`
       : `${BASE_URL}/onedrive/files`;
 
-    console.log('[Proxy] OneDrive files request');
+    console.log('[Proxy] OneDrive files request to:', url);
 
     const res = await fetch(url, { method: 'GET' });
-    const data = await res.json();
 
-    return NextResponse.json(data, { status: res.status });
+    // Get raw text first to handle empty responses
+    const text = await res.text();
+    console.log('[Proxy] OneDrive files response status:', res.status);
+    console.log('[Proxy] OneDrive files response length:', text.length);
+
+    if (!text) {
+      return NextResponse.json({ value: [] }, { status: res.status });
+    }
+
+    try {
+      const data = JSON.parse(text);
+      return NextResponse.json(data, { status: res.status });
+    } catch (parseError) {
+      console.error('[Proxy] Failed to parse response:', text.substring(0, 200));
+      return NextResponse.json(
+        { message: 'Invalid JSON response from OneDrive API', value: [] },
+        { status: 500 }
+      );
+    }
   } catch (error) {
     console.error('[Proxy] /api/onedrive/files GET failed:', error);
     return NextResponse.json(
