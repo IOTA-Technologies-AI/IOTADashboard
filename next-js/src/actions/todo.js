@@ -66,7 +66,7 @@ export function useGetTodoBoard() {
   });
 
   const memoizedValue = useMemo(() => {
-    const tasks = data?.board.tasks ?? {};
+    const tasks = data?.board?.tasks ?? {};
     const normalizedTasks = {};
 
     Object.entries(tasks).forEach(([stageId, stageTasks]) => {
@@ -75,8 +75,8 @@ export function useGetTodoBoard() {
       );
     });
 
-    const columns = data?.board.columns ?? [];
-    const pipelineId = data?.board.pipelineId ?? null;
+    const columns = data?.board?.columns ?? [];
+    const pipelineId = data?.board?.pipelineId ?? null;
 
     if (pipelineId) {
       currentPipelineId = pipelineId;
@@ -89,14 +89,7 @@ export function useGetTodoBoard() {
       boardValidating: isValidating,
       boardEmpty: !isLoading && !isValidating && !columns.length,
     };
-  }, [
-    data?.board.columns,
-    data?.board.tasks,
-    data?.board.pipelineId,
-    error,
-    isLoading,
-    isValidating,
-  ]);
+  }, [data, error, isLoading, isValidating]);
 
   return memoizedValue;
 }
