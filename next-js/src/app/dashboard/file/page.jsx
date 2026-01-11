@@ -160,10 +160,6 @@ export default function FilePage() {
       setLoading(true);
       const items = await listOneDriveFiles(folderId, tokenHints);
 
-      console.log('Raw items from OneDrive:', items);
-      console.log('First item keys:', items[0] ? Object.keys(items[0]) : 'No items');
-      console.log('First item:', items[0]);
-
       // Separate folders and files - OneDrive has 'folder' property for folders, 'file' property for files
       const folderItems = items
         .filter((item) => item.folder !== undefined)
@@ -194,13 +190,6 @@ export default function FilePage() {
           tags: [],
           downloadUrl: item['@microsoft.graph.downloadUrl'],
         }));
-
-      console.log('Folders:', folderItems.length, folderItems);
-      console.log('Files:', fileItems.length, fileItems);
-      console.log(
-        'File types:',
-        fileItems.map((f) => ({ name: f.name, type: f.type }))
-      );
 
       setAllItems(items);
       setFolders(folderItems);

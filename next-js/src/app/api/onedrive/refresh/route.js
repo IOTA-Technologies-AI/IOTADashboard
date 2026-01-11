@@ -15,10 +15,6 @@ const defaultHeaders = {
 export async function POST(request) {
   try {
     const body = await request.json();
-    console.log('[Proxy] OneDrive refresh request:', {
-      hasRefreshToken: !!body.refreshToken,
-      hasRedirectUri: !!body.redirectUri,
-    });
 
     const res = await fetch(`${BASE_URL}/onedrive/refresh`, {
       method: 'POST',
@@ -27,8 +23,6 @@ export async function POST(request) {
     });
 
     const text = await res.text();
-    console.log('[Proxy] OneDrive refresh response status:', res.status);
-    console.log('[Proxy] OneDrive refresh response text:', text);
 
     let data;
     try {

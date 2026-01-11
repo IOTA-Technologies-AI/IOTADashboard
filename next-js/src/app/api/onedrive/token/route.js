@@ -15,10 +15,6 @@ const defaultHeaders = {
 export async function POST(request) {
   try {
     const body = await request.json();
-    console.log('[Proxy] OneDrive token exchange request:', {
-      hasCode: !!body.code,
-      hasRedirectUri: !!body.redirectUri,
-    });
 
     const res = await fetch(`${BASE_URL}/onedrive/token`, {
       method: 'POST',
@@ -27,7 +23,6 @@ export async function POST(request) {
     });
 
     const text = await res.text();
-    console.log('[Proxy] OneDrive token response status:', res.status);
 
     let data;
     try {

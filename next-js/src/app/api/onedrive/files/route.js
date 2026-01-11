@@ -17,14 +17,10 @@ export async function GET(request) {
       ? `${BASE_URL}/onedrive/files?${queryString}`
       : `${BASE_URL}/onedrive/files`;
 
-    console.log('[Proxy] OneDrive files request to:', url);
-
     const res = await fetch(url, { method: 'GET' });
 
     // Get raw text first to handle empty responses
     const text = await res.text();
-    console.log('[Proxy] OneDrive files response status:', res.status);
-    console.log('[Proxy] OneDrive files response length:', text.length);
 
     if (!text) {
       return NextResponse.json({ value: [] }, { status: res.status });

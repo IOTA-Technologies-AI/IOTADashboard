@@ -17,8 +17,6 @@ export async function GET(request) {
       ? `${BASE_URL}/onedrive/auth-url?${queryString}`
       : `${BASE_URL}/onedrive/auth-url`;
 
-    console.log('[Proxy] OneDrive auth-url request:', url);
-
     const res = await fetch(url, { method: 'GET' });
     const text = await res.text();
 
