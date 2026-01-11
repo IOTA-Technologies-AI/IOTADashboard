@@ -19,6 +19,7 @@ import {
   getOneDriveToken,
   setOneDriveToken,
   listOneDriveFiles,
+  listSharedWithMe,
   clearOneDriveToken,
   getMicrosoftAuthUrl,
   exchangeCodeForToken,
@@ -65,6 +66,8 @@ export default function FilePage() {
   const [allItems, setAllItems] = useState([]);
   const [folders, setFolders] = useState([]);
   const [allFiles, setAllFiles] = useState([]);
+  const [sharedFolders, setSharedFolders] = useState([]);
+  const [sharedFiles, setSharedFiles] = useState([]);
   const [storageUsed, setStorageUsed] = useState(0);
   const [folderName, setFolderName] = useState('');
   const [currentFolderId, setCurrentFolderId] = useState(null);
@@ -155,6 +158,64 @@ export default function FilePage() {
 
   // Note: We intentionally keep users signed in with their login token; no explicit sign-out control here.
 
+  const loadSharedFiles = async (tokenHints = {}) => {
+    try {
+      const sharedItems = await listSharedWithMe(tokenHints);
+
+      // For shared items, use remoteItem if available (contains actual item details)
+      const sharedFolderItems = sharedItems
+        .filter((item) => {
+          const actualItem = item.remoteItem || item;
+          return actualItem.folder !== undefined;
+        })
+        .map((item) => {
+          const actualItem = item.remoteItem || item;
+          return {
+            id: item.id,
+            name: item.name || actualItem.name,
+            size: item.size || 0,
+            totalFiles: actualItem.folder?.childCount || 0,
+            type: 'folder',
+            isFavorited: false,
+            shared: [],
+            tags: [],
+            url: item.webUrl || actualItem.webUrl || '#',
+            modifiedAt: item.lastModifiedDateTime,
+            isShared: true,
+            remoteItem: item.remoteItem,
+          };
+        });
+
+      const sharedFileItems = sharedItems
+        .filter((item) => {
+          const actualItem = item.remoteItem || item;
+          return actualItem.file !== undefined;
+        })
+        .map((item) => {
+          const actualItem = item.remoteItem || item;
+          return {
+            id: item.id,
+            name: item.name || actualItem.name,
+            size: item.size || 0,
+            type: actualItem.file?.mimeType || 'file',
+            url: item.webUrl || actualItem.webUrl || '#',
+            modifiedAt: item.lastModifiedDateTime,
+            isFavorited: false,
+            shared: [],
+            tags: [],
+            downloadUrl: item['@microsoft.graph.downloadUrl'],
+            isShared: true,
+          };
+        });
+
+      setSharedFolders(sharedFolderItems);
+      setSharedFiles(sharedFileItems);
+    } catch (error) {
+      console.error('Load shared files error:', error);
+      // Don't show error for shared files - it's optional
+    }
+  };
+
   const loadFiles = async (folderId, tokenHints = {}) => {
     try {
       setLoading(true);
@@ -195,10 +256,12 @@ export default function FilePage() {
       setFolders(folderItems);
       setAllFiles(fileItems);
 
-      // Calculate storage used (only for root folder)
+      // Calculate storage used and load shared files (only for root folder)
       if (!folderId) {
         const totalSize = items.reduce((sum, item) => sum + (item.size || 0), 0);
         setStorageUsed(totalSize);
+        // Also load shared files when at root
+        loadSharedFiles(tokenHints);
       }
     } catch (error) {
       console.error('Load files error:', error);
@@ -508,11 +571,7 @@ export default function FilePage() {
 
           {/* 2. Folders Section - Left Side */}
           <Grid size={{ xs: 12, md: 8 }}>
-            <FileManagerPanel
-              title="Folders"
-              link={paths.dashboard.fileManager}
-              onOpen={newFolderDialog.onTrue}
-            />
+            <FileManagerPanel title="My Folders" onOpen={newFolderDialog.onTrue} />
 
             {loading ? (
               <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
@@ -538,6 +597,38 @@ export default function FilePage() {
                   )}
                 </Box>
               </Scrollbar>
+            )}
+
+            {/* Shared with Me Folders */}
+            {!currentFolderId && sharedFolders.length > 0 && (
+              <>
+                <FileManagerPanel
+                  title="Shared with Me"
+                  sx={{ mt: 3 }}
+                />
+                <Scrollbar>
+                  <Box sx={{ gap: 3, display: 'flex', flexWrap: 'wrap', mb: 3 }}>
+                    {sharedFolders.map((folder) => (
+                      <FileManagerFolderItem
+                        key={folder.id}
+                        folder={folder}
+                        onDelete={() => {}}
+                        onClick={() => {
+                          if (folder.url && folder.url !== '#') {
+                            window.open(folder.url, '_blank');
+                          }
+                        }}
+                        sx={{
+                          cursor: 'pointer',
+                          width: 240,
+                          border: '1px dashed',
+                          borderColor: 'primary.light',
+                        }}
+                      />
+                    ))}
+                  </Box>
+                </Scrollbar>
+              </>
             )}
           </Grid>
 
@@ -636,7 +727,6 @@ export default function FilePage() {
                   ? 'Recent Files'
                   : `${FILE_TYPE_OPTIONS.find((o) => o.value === fileTypeFilter)?.label || 'Files'}`
               }
-              link={paths.dashboard.fileManager}
               onOpen={newFilesDialog.onTrue}
             />
 

@@ -218,6 +218,16 @@ export async function searchOneDrive(query) {
   return response.data.value;
 }
 
+export async function listSharedWithMe(options = {}) {
+  const tokens = ensureAccessToken(options.accessToken, options.refreshToken);
+  if (!tokens.accessToken) throw new Error('Not authenticated with OneDrive');
+
+  const response = await axios.get(
+    `${API_BASE_URL}/onedrive/shared?accessToken=${tokens.accessToken}`
+  );
+  return response.data.value || [];
+}
+
 const fileToBase64 = (file) =>
   new Promise((resolve, reject) => {
     const reader = new FileReader();

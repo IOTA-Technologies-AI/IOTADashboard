@@ -246,7 +246,8 @@ export const navData = [
           { title: 'Edit', path: paths.dashboard.tour.demo.edit },
         ],
       },
-      { title: 'File manager', path: paths.dashboard.fileManager, icon: ICONS.folder },
+      // File manager commented out - using OneDrive file page instead
+      // { title: 'File manager', path: paths.dashboard.fileManager, icon: ICONS.folder },
       {
         title: 'Mail',
         path: paths.dashboard.mail,
