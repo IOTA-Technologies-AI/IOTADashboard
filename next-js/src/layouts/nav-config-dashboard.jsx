@@ -259,8 +259,6 @@ export const navData = [
       },
       { title: 'Chat', path: paths.dashboard.chat, icon: ICONS.chat },
       { title: 'Calendar', path: paths.dashboard.calendar, icon: ICONS.calendar },
-      { title: 'Sales', path: paths.dashboard.sales, icon: ICONS.kanban },
-      { title: 'To Do', path: paths.dashboard.todo, icon: ICONS.kanban },
     ],
   },
   // ============================================================
