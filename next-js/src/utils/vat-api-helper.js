@@ -81,12 +81,8 @@ export async function getQuarterlyVATData(year, quarter) {
 
     // In getQuarterlyVATData function, update the processing:
     // Filter to only include PAID invoices for VAT calculation
-    const paidARInvoices = arInvoices.filter(
-      (invoice) => invoice.status?.toLowerCase() === 'paid'
-    );
-    const paidAPPayments = apPayments.filter(
-      (payment) => payment.status?.toLowerCase() === 'paid'
-    );
+    const paidARInvoices = arInvoices.filter((invoice) => invoice.status?.toLowerCase() === 'paid');
+    const paidAPPayments = apPayments.filter((payment) => payment.status?.toLowerCase() === 'paid');
 
     console.log('📋 Filtered PAID invoices:', {
       totalAR: arInvoices.length,

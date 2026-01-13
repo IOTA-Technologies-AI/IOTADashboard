@@ -544,6 +544,59 @@ export async function fetchAccountsPayableByDateRange(startDate, endDate) {
   }
 }
 
+// ============================================================================
+// VAT Transactions APIs
+// ============================================================================
+
+export async function fetchVATTransactions() {
+  try {
+    const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch VAT transactions');
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching VAT transactions:', error);
+    throw error;
+  }
+}
+
+export async function fetchVATTransactionsByDateRange(startDate, endDate) {
+  try {
+    const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions/daterange`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startDate, endDate }),
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch VAT transactions by date range');
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching VAT transactions by date:', error);
+    throw error;
+  }
+}
+
+export async function fetchVATTransactionsByTaxPeriod(taxPeriod) {
+  try {
+    const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions/period/${taxPeriod}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch VAT transactions by period');
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching VAT transactions by period:', error);
+    throw error;
+  }
+}
+
 // ===========================================================================
 // Invoice API Functions
 // ===========================================================================

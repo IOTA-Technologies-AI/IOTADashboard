@@ -221,6 +221,7 @@ export function processInvoiceVAT(invoice, type = 'AR') {
     country,
     baseAmount: vatCalculation.baseAmount,
     ...vatCalculation,
+    isVATApplicable: vatCalculation.vatRate > 0,
     zatcaCompliant: currency === 'SAR' && country === 'Saudi Arabia',
   };
 }
