@@ -5,6 +5,7 @@ import isBetween from 'dayjs/plugin/isBetween';
 import { fetchAccountsPayableByDateRange, fetchAccountsReceivableByDateRange } from './apiHelper';
 import {
   getQuarterDates,
+  getMonthDates,
   processInvoiceVAT,
   aggregateVATTotals,
   calculateZATCAPayable,
@@ -51,6 +52,139 @@ export async function fetchQuarterlyInvoices(year, quarter) {
     };
   } catch (error) {
     console.error('Failed to fetch quarterly invoices:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetch and filter invoices for a specific month
+ * @param {number} year - Year
+ * @param {number} month - Month (1-12)
+ * @returns {Promise<object>} - { arInvoices, apPayments }
+ */
+export async function fetchMonthlyInvoices(year, month) {
+  try {
+    const { startDate, endDate } = getMonthDates(year, month);
+    console.log('🗓️ Month date range:', {
+      year,
+      month,
+      startDate,
+      endDate,
+      startDateFormatted: dayjs(startDate).format('YYYY-MM-DD'),
+      endDateFormatted: dayjs(endDate).format('YYYY-MM-DD'),
+    });
+
+    const startDateStr = dayjs(startDate).format('YYYY-MM-DD');
+    const endDateStr = dayjs(endDate).format('YYYY-MM-DD');
+
+    const [arResponse, apResponse] = await Promise.all([
+      fetchAccountsReceivableByDateRange(startDateStr, endDateStr),
+      fetchAccountsPayableByDateRange(startDateStr, endDateStr),
+    ]);
+
+    return {
+      arInvoices: arResponse?.invoices || [],
+      apPayments: apResponse?.bills || [],
+      month: { year, month, startDate, endDate },
+    };
+  } catch (error) {
+    console.error('Failed to fetch monthly invoices:', error);
+    throw error;
+  }
+}
+
+/**
+ * Process monthly VAT data
+ * @param {number} year - Year
+ * @param {number} month - Month (1-12)
+ * @returns {Promise<object>} - Processed VAT data with calculations
+ */
+export async function getMonthlyVATData(year, month) {
+  try {
+    console.log('📅 Fetching monthly VAT data:', { year, month });
+
+    const { arInvoices, apPayments, month: monthInfo } = await fetchMonthlyInvoices(year, month);
+
+    console.log('📊 Raw data fetched:', {
+      arInvoicesCount: arInvoices?.length || 0,
+      apPaymentsCount: apPayments?.length || 0,
+      monthInfo,
+    });
+
+    // Filter to only include PAID invoices for VAT calculation
+    const paidARInvoices = arInvoices.filter((invoice) => invoice.status?.toLowerCase() === 'paid');
+    const paidAPPayments = apPayments.filter((payment) => payment.status?.toLowerCase() === 'paid');
+
+    console.log('📋 Filtered PAID invoices:', {
+      totalAR: arInvoices.length,
+      paidAR: paidARInvoices.length,
+      totalAP: apPayments.length,
+      paidAP: paidAPPayments.length,
+    });
+
+    const arRecords = paidARInvoices.map((invoice) =>
+      processInvoiceVAT(
+        {
+          invoice_id: invoice.id,
+          invoice_number: invoice.invoiceNumber,
+          date: invoice.invoiceDate,
+          customer_name: invoice.customerName,
+          country: invoice.country || 'Saudi Arabia',
+          currency: invoice.currencyCode || 'SAR',
+          total: invoice.totalAmount || 0,
+        },
+        'AR'
+      )
+    );
+
+    const apRecords = paidAPPayments.map((payment) =>
+      processInvoiceVAT(
+        {
+          payment_id: payment.id,
+          invoice_number: payment.billNumber,
+          date: payment.billDate,
+          customer_name: payment.vendorName,
+          country: payment.country || 'Saudi Arabia',
+          currency: payment.currencyCode || 'SAR',
+          total: payment.totalAmount || 0,
+        },
+        'AP'
+      )
+    );
+
+    const arTotals = aggregateVATTotals(arRecords);
+    const apTotals = aggregateVATTotals(apRecords);
+
+    const zatcaPayable = calculateZATCAPayable(arTotals.totalVAT, apTotals.totalVAT);
+
+    const allRecords = [...arRecords, ...apRecords].sort(
+      (a, b) => new Date(b.date) - new Date(a.date)
+    );
+
+    return {
+      monthInfo,
+      records: {
+        all: allRecords,
+        ar: arRecords,
+        ap: apRecords,
+      },
+      totals: {
+        ar: arTotals,
+        ap: apTotals,
+      },
+      zatcaPayable,
+      summary: {
+        totalInvoices: allRecords.length,
+        arCount: arRecords.length,
+        apCount: apRecords.length,
+        totalVATCollected: arTotals.totalVAT,
+        totalVATPaid: apTotals.totalVAT,
+        netVATPayable: zatcaPayable.netAmount,
+        zatcaStatus: zatcaPayable.status,
+      },
+    };
+  } catch (error) {
+    console.error('❌ Failed to get monthly VAT data:', error);
     throw error;
   }
 }

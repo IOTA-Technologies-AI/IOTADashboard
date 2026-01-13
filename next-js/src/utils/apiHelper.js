@@ -597,6 +597,68 @@ export async function fetchVATTransactionsByTaxPeriod(taxPeriod) {
   }
 }
 
+// Post VAT for a quarter - locks in VAT transactions for ZATCA filing
+export async function postQuarterlyVAT(year, quarter, postedBy) {
+  try {
+    console.log(`📤 Posting VAT for Q${quarter}-${year}`);
+    const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions/post`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year, quarter, postedBy }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to post quarterly VAT');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error posting quarterly VAT:', error);
+    throw error;
+  }
+}
+
+// Get VAT posting status for a quarter
+export async function getVATPostingStatus(year, quarter) {
+  try {
+    const response = await fetch(
+      `${ENCORE_API_BASE_URL}/vatTransactions/status/${year}/${quarter}`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+
+    if (!response.ok) throw new Error('Failed to get VAT posting status');
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting VAT posting status:', error);
+    throw error;
+  }
+}
+
+// Get VAT summary for a quarter (from posted VAT transactions)
+export async function getVATSummaryByQuarter(year, quarter) {
+  try {
+    const response = await fetch(
+      `${ENCORE_API_BASE_URL}/vatTransactions/summary/${year}/${quarter}`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+
+    if (!response.ok) throw new Error('Failed to get VAT summary');
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error getting VAT summary:', error);
+    throw error;
+  }
+}
+
 // ===========================================================================
 // Invoice API Functions
 // ===========================================================================

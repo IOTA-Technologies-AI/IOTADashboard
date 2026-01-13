@@ -7,6 +7,8 @@ import TextField from '@mui/material/TextField';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
 import InputAdornment from '@mui/material/InputAdornment';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -21,6 +23,21 @@ const QUARTERS = [
   { value: 4, label: 'Q4 (Oct-Dec)' },
 ];
 
+const MONTHS = [
+  { value: 1, label: 'January' },
+  { value: 2, label: 'February' },
+  { value: 3, label: 'March' },
+  { value: 4, label: 'April' },
+  { value: 5, label: 'May' },
+  { value: 6, label: 'June' },
+  { value: 7, label: 'July' },
+  { value: 8, label: 'August' },
+  { value: 9, label: 'September' },
+  { value: 10, label: 'October' },
+  { value: 11, label: 'November' },
+  { value: 12, label: 'December' },
+];
+
 const TYPES = [
   { value: 'all', label: 'All Types' },
   { value: 'AR', label: 'Accounts Receivable' },
@@ -32,7 +49,16 @@ const CURRENCIES = ['All', 'SAR', 'AED', 'USD', 'EUR', 'GBP'];
 // ----------------------------------------------------------------------
 
 export function VATTableToolbar({ filters, onFiltersChange }) {
-  const { year, quarter, type, currency, searchQuery } = filters;
+  const { year, quarter, month, periodType, type, currency, searchQuery } = filters;
+
+  const handlePeriodTypeChange = useCallback(
+    (event, newPeriodType) => {
+      if (newPeriodType !== null) {
+        onFiltersChange({ ...filters, periodType: newPeriodType });
+      }
+    },
+    [filters, onFiltersChange]
+  );
 
   const handleYearChange = useCallback(
     (event) => {
@@ -44,6 +70,13 @@ export function VATTableToolbar({ filters, onFiltersChange }) {
   const handleQuarterChange = useCallback(
     (event) => {
       onFiltersChange({ ...filters, quarter: event.target.value });
+    },
+    [filters, onFiltersChange]
+  );
+
+  const handleMonthChange = useCallback(
+    (event) => {
+      onFiltersChange({ ...filters, month: event.target.value });
     },
     [filters, onFiltersChange]
   );
@@ -79,6 +112,24 @@ export function VATTableToolbar({ filters, onFiltersChange }) {
         alignItems: 'center',
       }}
     >
+      {/* Period Type Toggle */}
+      <ToggleButtonGroup
+        value={periodType || 'quarterly'}
+        exclusive
+        onChange={handlePeriodTypeChange}
+        aria-label="period type"
+        size="small"
+      >
+        <ToggleButton value="quarterly" aria-label="quarterly">
+          <Iconify icon="solar:calendar-bold" sx={{ mr: 0.5 }} />
+          Quarterly
+        </ToggleButton>
+        <ToggleButton value="monthly" aria-label="monthly">
+          <Iconify icon="solar:calendar-date-bold" sx={{ mr: 0.5 }} />
+          Monthly
+        </ToggleButton>
+      </ToggleButtonGroup>
+
       {/* Year Filter */}
       <FormControl sx={{ minWidth: 120 }}>
         <InputLabel>Year</InputLabel>
@@ -91,17 +142,33 @@ export function VATTableToolbar({ filters, onFiltersChange }) {
         </Select>
       </FormControl>
 
-      {/* Quarter Filter */}
-      <FormControl sx={{ minWidth: 150 }}>
-        <InputLabel>Quarter</InputLabel>
-        <Select value={quarter} onChange={handleQuarterChange} label="Quarter">
-          {QUARTERS.map((q) => (
-            <MenuItem key={q.value} value={q.value}>
-              {q.label}
-            </MenuItem>
-          ))}
-        </Select>
-      </FormControl>
+      {/* Quarter Filter - shown when periodType is quarterly */}
+      {(periodType === 'quarterly' || !periodType) && (
+        <FormControl sx={{ minWidth: 150 }}>
+          <InputLabel>Quarter</InputLabel>
+          <Select value={quarter} onChange={handleQuarterChange} label="Quarter">
+            {QUARTERS.map((q) => (
+              <MenuItem key={q.value} value={q.value}>
+                {q.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      )}
+
+      {/* Month Filter - shown when periodType is monthly */}
+      {periodType === 'monthly' && (
+        <FormControl sx={{ minWidth: 150 }}>
+          <InputLabel>Month</InputLabel>
+          <Select value={month || 1} onChange={handleMonthChange} label="Month">
+            {MONTHS.map((m) => (
+              <MenuItem key={m.value} value={m.value}>
+                {m.label}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+      )}
 
       {/* Type Filter */}
       <FormControl sx={{ minWidth: 180 }}>

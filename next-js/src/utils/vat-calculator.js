@@ -70,6 +70,47 @@ export function calculateVAT(amount, currency, country) {
 // ----------------------------------------------------------------------
 
 /**
+ * Get start and end dates for a specific month
+ * @param {number} year - Year (e.g., 2025)
+ * @param {number} month - Month number (1-12)
+ * @returns {object} - { startDate, endDate, label }
+ */
+export function getMonthDates(year, month) {
+  const startDate = dayjs()
+    .year(year)
+    .month(month - 1)
+    .startOf('month');
+  const endDate = dayjs()
+    .year(year)
+    .month(month - 1)
+    .endOf('month');
+
+  return {
+    startDate: startDate.toDate(),
+    endDate: endDate.toDate(),
+    label: startDate.format('MMMM YYYY'),
+    monthStart: startDate.format('MMM DD, YYYY'),
+    monthEnd: endDate.format('MMM DD, YYYY'),
+  };
+}
+
+/**
+ * Get current month information
+ * @returns {object} - Current month details
+ */
+export function getCurrentMonth() {
+  const now = dayjs();
+  const year = now.year();
+  const month = now.month() + 1; // dayjs months are 0-indexed
+
+  return {
+    year,
+    month,
+    ...getMonthDates(year, month),
+  };
+}
+
+/**
  * Get start and end dates for a specific quarter
  * @param {number} year - Year (e.g., 2025)
  * @param {number} quarter - Quarter number (1-4)
