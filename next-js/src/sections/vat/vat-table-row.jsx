@@ -29,6 +29,7 @@ export function VATTableRow({ row }) {
     totalWithVAT,
     type,
     isVATApplicable,
+    vatTaxPeriod,
   } = row;
 
   // Handle different field names from AR/AP sources
@@ -137,6 +138,19 @@ export function VATTableRow({ row }) {
         <Label variant="soft" color={type === 'AR' ? 'info' : 'warning'}>
           {type}
         </Label>
+      </TableCell>
+
+      {/* ZATCA Status */}
+      <TableCell>
+        {vatTaxPeriod ? (
+          <Label variant="soft" color="success" title={`Posted in ${vatTaxPeriod}`}>
+            Posted
+          </Label>
+        ) : (
+          <Label variant="soft" color="default">
+            Pending
+          </Label>
+        )}
       </TableCell>
     </TableRow>
   );

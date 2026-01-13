@@ -132,6 +132,7 @@ export async function getMonthlyVATData(year, month) {
           country: invoice.country || 'Saudi Arabia',
           currency: invoice.currencyCode || 'SAR',
           total: invoice.totalAmount || 0,
+          vatTaxPeriod: invoice.vatTaxPeriod || null,
         },
         'AR'
       )
@@ -147,6 +148,7 @@ export async function getMonthlyVATData(year, month) {
           country: payment.country || 'Saudi Arabia',
           currency: payment.currencyCode || 'SAR',
           total: payment.totalAmount || 0,
+          vatTaxPeriod: payment.vatTaxPeriod || null,
         },
         'AP'
       )
@@ -234,6 +236,7 @@ export async function getQuarterlyVATData(year, quarter) {
           country: invoice.country || 'Saudi Arabia',
           currency: invoice.currencyCode || 'SAR', // Changed from currency_code
           total: invoice.totalAmount || 0, // Changed from total
+          vatTaxPeriod: invoice.vatTaxPeriod || null,
         },
         'AR'
       )
@@ -249,6 +252,7 @@ export async function getQuarterlyVATData(year, quarter) {
           country: payment.country || 'Saudi Arabia',
           currency: payment.currencyCode || 'SAR', // Changed from currency_code
           total: payment.totalAmount || 0, // Changed from amount
+          vatTaxPeriod: payment.vatTaxPeriod || null,
         },
         'AP'
       )

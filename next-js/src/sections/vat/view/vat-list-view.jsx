@@ -59,7 +59,8 @@ const TABLE_HEAD = [
   { id: 'vatRate', label: 'VAT Rate', width: 100, align: 'center' },
   { id: 'vatAmount', label: 'VAT Amount', width: 130, align: 'right' },
   { id: 'total', label: 'Total', width: 130, align: 'right' },
-  { id: 'type', label: 'Type', width: 120 },
+  { id: 'type', label: 'Type', width: 100 },
+  { id: 'vatPosted', label: 'ZATCA Status', width: 120 },
 ];
 
 // ----------------------------------------------------------------------
