@@ -660,6 +660,84 @@ export async function getVATSummaryByQuarter(year, quarter) {
 }
 
 // ===========================================================================
+// VAT Returns API Functions - Store VAT Return summaries
+// ===========================================================================
+
+// Save VAT Return summary to database
+export async function saveVATReturn(vatReturnData) {
+  try {
+    console.log('📤 Saving VAT Return:', vatReturnData.taxPeriod);
+    const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(vatReturnData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to save VAT Return');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error saving VAT Return:', error);
+    throw error;
+  }
+}
+
+// Get all VAT Returns
+export async function getVATReturns() {
+  try {
+    const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch VAT Returns');
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching VAT Returns:', error);
+    throw error;
+  }
+}
+
+// Get VAT Return by tax period
+export async function getVATReturnByPeriod(taxPeriod) {
+  try {
+    const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns/${taxPeriod}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch VAT Return');
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error fetching VAT Return:', error);
+    throw error;
+  }
+}
+
+// Update VAT Return status
+export async function updateVATReturnStatus(taxPeriod, status, zatcaReferenceNumber, updatedBy) {
+  try {
+    const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns/${taxPeriod}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taxPeriod, status, zatcaReferenceNumber, updatedBy }),
+    });
+
+    if (!response.ok) throw new Error('Failed to update VAT Return status');
+
+    return await response.json();
+  } catch (error) {
+    console.error('Error updating VAT Return status:', error);
+    throw error;
+  }
+}
+
+// ===========================================================================
 // Invoice API Functions
 // ===========================================================================
 

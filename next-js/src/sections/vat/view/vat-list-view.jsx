@@ -21,12 +21,13 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { paths } from 'src/routes/paths';
 
 import { getQuarterlyVATData, getMonthlyVATData } from 'src/utils/vat-api-helper';
-import { postQuarterlyVAT, getVATPostingStatus } from 'src/utils/apiHelper';
+import { postQuarterlyVAT, getVATPostingStatus, saveVATReturn } from 'src/utils/apiHelper';
 import {
   getCurrentQuarter,
   getCurrentMonth,
   aggregateVATTotals,
   calculateZATCAPayable,
+  getQuarterDates,
 } from 'src/utils/vat-calculator';
 
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -47,6 +48,7 @@ import { VATTableRow } from '../vat-table-row';
 import { VATSummaryCard } from '../vat-summary-card';
 import { VATTableToolbar } from '../vat-table-toolbar';
 import { exportVATToJSON, exportVATToExcel } from '../vat-excel-export';
+import { downloadVATReturnExcel, prepareVATReturnForStorage } from '../vat-return-export';
 
 // ----------------------------------------------------------------------
 
@@ -232,7 +234,34 @@ export function VATListView() {
     setPostResult(null);
 
     try {
+      // Step 1: Post VAT transactions to database
       const result = await postQuarterlyVAT(filters.year, filters.quarter);
+
+      if (result.success && vatData) {
+        // Step 2: Get quarter dates for the period
+        const quarterDates = getQuarterDates(filters.year, filters.quarter);
+        const periodInfo = {
+          year: filters.year,
+          quarter: filters.quarter,
+          startDate: quarterDates.startDate,
+          endDate: quarterDates.endDate,
+          label: `Q${filters.quarter}-${filters.year}`,
+        };
+
+        // Step 3: Generate and download VAT Return Excel (3 sheets)
+        try {
+          const { fileName, summary } = downloadVATReturnExcel(vatData, periodInfo);
+          console.log(`✅ Downloaded VAT Return Excel: ${fileName}`);
+
+          // Step 4: Save VAT Return summary to database
+          const vatReturnData = prepareVATReturnForStorage(vatData, periodInfo);
+          await saveVATReturn(vatReturnData);
+          console.log('✅ Saved VAT Return to database');
+        } catch (exportError) {
+          console.error('Warning: Failed to export/save VAT Return:', exportError);
+          // Don't fail the whole operation if export fails
+        }
+      }
 
       setPostResult({
         success: result.success,
@@ -251,7 +280,7 @@ export function VATListView() {
     } finally {
       setIsPosting(false);
     }
-  }, [filters.year, filters.quarter]);
+  }, [filters.year, filters.quarter, vatData]);
 
   // Get period label for display
   const getPeriodLabel = useCallback(() => {
