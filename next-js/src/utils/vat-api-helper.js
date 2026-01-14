@@ -149,6 +149,7 @@ export async function getMonthlyVATData(year, month) {
           currency: payment.currencyCode || 'SAR',
           total: payment.totalAmount || 0,
           vatTaxPeriod: payment.vatTaxPeriod || null,
+          isVATExempt: payment.isVATExempt || false,
         },
         'AP'
       )
@@ -253,6 +254,7 @@ export async function getQuarterlyVATData(year, quarter) {
           currency: payment.currencyCode || 'SAR', // Changed from currency_code
           total: payment.totalAmount || 0, // Changed from amount
           vatTaxPeriod: payment.vatTaxPeriod || null,
+          isVATExempt: payment.isVATExempt || false, // VAT exemption flag
         },
         'AP'
       )

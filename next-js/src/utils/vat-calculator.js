@@ -225,10 +225,20 @@ export function processInvoiceVAT(invoice, type = 'AR') {
     invoice.amount ||
     0;
   const hasBaseAmount = !!(invoice.baseAmount || invoice.base_amount);
+  const isVATExempt = invoice.isVATExempt || false;
 
   let vatCalculation;
 
-  if (hasBaseAmount) {
+  // If VAT exempt, set VAT to 0
+  if (isVATExempt) {
+    vatCalculation = {
+      vatRate: 0,
+      vatRatePercent: 0,
+      vatAmount: 0,
+      baseAmount: amount,
+      totalWithVAT: amount,
+    };
+  } else if (hasBaseAmount) {
     // New invoices: baseAmount exists, calculate VAT by adding
     vatCalculation = calculateVAT(amount, currency, country);
   } else {
@@ -262,7 +272,8 @@ export function processInvoiceVAT(invoice, type = 'AR') {
     country,
     baseAmount: vatCalculation.baseAmount,
     ...vatCalculation,
-    isVATApplicable: vatCalculation.vatRate > 0,
+    isVATExempt,
+    isVATApplicable: vatCalculation.vatRate > 0 && !isVATExempt,
     zatcaCompliant: currency === 'SAR' && country === 'Saudi Arabia',
   };
 }

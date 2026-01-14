@@ -76,6 +76,8 @@ const ExpenseSchema = zod.object({
   linkedInvoiceNumber: zod.string().optional(),
   linkedInvoiceId: zod.string().optional(),
   linkedInvoiceAmount: zod.number().optional(),
+  // ✅ VAT exemption
+  isVATExempt: zod.boolean().optional(),
 });
 
 // ----------------------------------------------------------------------
@@ -354,6 +356,8 @@ export function ExpenseNewEditForm({ currentExpense }) {
       linkedInvoiceNumber: currentExpense?.linkedInvoiceNumber || '',
       linkedInvoiceId: currentExpense?.linkedInvoiceId || '',
       linkedInvoiceAmount: currentExpense?.linkedInvoiceAmount || 0,
+      // ✅ VAT exemption default
+      isVATExempt: currentExpense?.isVATExempt || false,
     }),
     [currentExpense, isSuperAdmin]
   );
@@ -592,6 +596,9 @@ export function ExpenseNewEditForm({ currentExpense }) {
       // Cost center
       if (data.costcenterId) expenseData.costcenterId = Number(data.costcenterId);
 
+      // VAT exemption
+      expenseData.isVATExempt = data.isVATExempt || false;
+
       // Super admin only fields
       if (isSuperAdmin) {
         if (data.expenseApprovedBy) expenseData.expenseApprovedBy = data.expenseApprovedBy;
@@ -736,6 +743,13 @@ export function ExpenseNewEditForm({ currentExpense }) {
           name="externalTransactionId"
           label="External Transaction ID"
           placeholder="Optional"
+        />
+
+        {/* ✅ VAT Exemption Checkbox */}
+        <Field.Checkbox
+          name="isVATExempt"
+          label="VAT Exempt"
+          helperText="Check if this expense is VAT exempt (VAT will be calculated as 0)"
         />
       </Box>
     </Card>
