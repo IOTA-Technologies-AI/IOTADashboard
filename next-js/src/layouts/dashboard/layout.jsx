@@ -11,7 +11,11 @@ import { iconButtonClasses } from '@mui/material/IconButton';
 
 import { useRouter, usePathname } from 'src/routes/hooks';
 import { paths } from 'src/routes/paths';
-import { resolvePageAccess, fetchNavPermissionsForRole, fetchUserNavPermissions } from 'src/utils/pageAccess';
+import {
+  resolvePageAccess,
+  fetchNavPermissionsForRole,
+  fetchUserNavPermissions,
+} from 'src/utils/pageAccess';
 
 import { allLangs } from 'src/locales';
 import { _contacts, _notifications } from 'src/_mock';
@@ -81,7 +85,12 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
       if (userIdForPerms) {
         const userPaths = await fetchUserNavPermissions(userIdForPerms);
         if (userPaths && userPaths.length > 0) {
-          console.log('User-specific permissions loaded:', userPaths.length, 'paths for user:', userIdForPerms);
+          console.log(
+            'User-specific permissions loaded:',
+            userPaths.length,
+            'paths for user:',
+            userIdForPerms
+          );
           setAllowedPaths(userPaths);
           return;
         }
