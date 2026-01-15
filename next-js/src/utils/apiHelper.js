@@ -1053,6 +1053,51 @@ export async function fetchManagerUsers(managerId) {
   return response.data || [];
 }
 
+// ---------------------------------------------------------------------------
+// User Nav Permissions (Per-User Access Control)
+// ---------------------------------------------------------------------------
+
+export async function fetchNavPermissions() {
+  const response = await axios.get(`${API_BASE_URL}nav-permissions`);
+  return response.data?.permissions || [];
+}
+
+export async function fetchUserNavPermissions(userId) {
+  if (!userId) return [];
+  const response = await axios.get(
+    `${API_BASE_URL}user-nav-permissions/${encodeURIComponent(userId)}`
+  );
+  return response.data?.permissions || [];
+}
+
+export async function fetchUserEnabledPaths(userId) {
+  if (!userId) return [];
+  const response = await axios.get(
+    `${API_BASE_URL}user-nav-permissions/${encodeURIComponent(userId)}/paths`
+  );
+  return response.data?.paths || [];
+}
+
+export async function setUserNavPermissions({ userId, permissions, grantedBy }) {
+  if (!userId) throw new Error('userId is required');
+  const response = await axios.post(`${API_BASE_URL}user-nav-permissions/set`, {
+    userId,
+    permissions: permissions || [],
+    grantedBy,
+  });
+  return response.data;
+}
+
+export async function grantDefaultPermissions({ userId, role, grantedBy }) {
+  if (!userId || !role) throw new Error('userId and role are required');
+  const response = await axios.post(`${API_BASE_URL}user-nav-permissions/grant-defaults`, {
+    userId,
+    role,
+    grantedBy,
+  });
+  return response.data;
+}
+
 export const apiHelper = {
   fetchTotalIotaBilling,
   fetchTotalPartnerBilling,
@@ -1094,4 +1139,9 @@ export const apiHelper = {
   setUserRoleApi,
   assignManagerApi,
   fetchManagerUsers,
+  fetchNavPermissions,
+  fetchUserNavPermissions,
+  fetchUserEnabledPaths,
+  setUserNavPermissions,
+  grantDefaultPermissions,
 };

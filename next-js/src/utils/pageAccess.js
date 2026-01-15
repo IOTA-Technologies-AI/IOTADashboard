@@ -1,8 +1,12 @@
 import axios from 'axios';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000/';
+
 const STORAGE_KEY = 'pageAccessByUser';
 const ROLE_STORAGE_KEY = 'pageAccessByRole';
+const USER_PERM_STORAGE_KEY = 'userNavPermissions';
 const CACHE_TTL_KEY = 'pageAccessCacheTTL';
+const USER_CACHE_TTL_KEY = 'userNavPermissionsCacheTTL';
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
 
 const safeParse = (value) => {
@@ -26,12 +30,28 @@ const isCacheValid = (role) => {
   return expiry && Date.now() < expiry;
 };
 
+// Check if user permission cache is valid
+const isUserCacheValid = (userId) => {
+  if (!hasWindow()) return false;
+  const ttlMap = safeParse(window.localStorage.getItem(USER_CACHE_TTL_KEY));
+  const expiry = ttlMap[userId];
+  return expiry && Date.now() < expiry;
+};
+
 // Set cache TTL for a role
 const setCacheTTL = (role) => {
   if (!hasWindow()) return;
   const ttlMap = safeParse(window.localStorage.getItem(CACHE_TTL_KEY));
   ttlMap[role] = Date.now() + CACHE_TTL_MS;
   window.localStorage.setItem(CACHE_TTL_KEY, JSON.stringify(ttlMap));
+};
+
+// Set cache TTL for a user
+const setUserCacheTTL = (userId) => {
+  if (!hasWindow()) return;
+  const ttlMap = safeParse(window.localStorage.getItem(USER_CACHE_TTL_KEY));
+  ttlMap[userId] = Date.now() + CACHE_TTL_MS;
+  window.localStorage.setItem(USER_CACHE_TTL_KEY, JSON.stringify(ttlMap));
 };
 
 export const getPageAccessMap = () => {
@@ -119,7 +139,13 @@ export const clearPageAccessCache = (role) => {
 };
 
 export const resolvePageAccess = (userId, role) => {
-  // First check user-specific paths
+  // First check user-specific permissions from userNavPermissions cache
+  if (userId) {
+    const userPermPaths = getUserNavPermissionPaths(userId);
+    if (Array.isArray(userPermPaths) && userPermPaths.length > 0) return userPermPaths;
+  }
+
+  // Then check legacy user-specific paths
   const userPaths = getPageAccessForUser(userId);
   if (Array.isArray(userPaths) && userPaths.length > 0) return userPaths;
 
@@ -133,10 +159,19 @@ export const resolvePageAccess = (userId, role) => {
 
 // Async version that fetches from backend if cache is stale
 export const resolvePageAccessAsync = async (userId, role) => {
-  // First check user-specific paths
-  const userPaths = getPageAccessForUser(userId);
-  if (Array.isArray(userPaths) && userPaths.length > 0) return userPaths;
+  // First check user-specific permissions from userNavPermissions table
+  if (userId && isUserCacheValid(userId)) {
+    const userPaths = getUserNavPermissionPaths(userId);
+    if (Array.isArray(userPaths) && userPaths.length > 0) return userPaths;
+  }
 
+  // Try fetching user-specific permissions from backend
+  if (userId) {
+    const userPerms = await fetchUserNavPermissions(userId);
+    if (userPerms.length > 0) return userPerms;
+  }
+
+  // Fall back to role-based permissions
   // Check if we have valid cached role paths
   if (isCacheValid(role)) {
     const rolePaths = getPageAccessForRole(role);
@@ -150,4 +185,76 @@ export const resolvePageAccessAsync = async (userId, role) => {
   // Fallback to local cache even if stale
   const stalePaths = getPageAccessForRole(role);
   return Array.isArray(stalePaths) ? stalePaths : [];
+};
+
+// ============================================================================
+// User-specific Nav Permissions (from userNavPermissions table)
+// ============================================================================
+
+// Get cached user nav permission paths
+export const getUserNavPermissionPaths = (userId) => {
+  if (!userId || !hasWindow()) return [];
+  const map = safeParse(window.localStorage.getItem(USER_PERM_STORAGE_KEY));
+  const entry = map[userId];
+  return toSafeArray(entry);
+};
+
+// Save user nav permission paths to cache
+export const saveUserNavPermissionPaths = (userId, paths) => {
+  if (!userId || !hasWindow()) return;
+  const map = safeParse(window.localStorage.getItem(USER_PERM_STORAGE_KEY));
+  map[userId] = Array.from(new Set(toSafeArray(paths)));
+  window.localStorage.setItem(USER_PERM_STORAGE_KEY, JSON.stringify(map));
+};
+
+// Clear user nav permission cache
+export const clearUserNavPermissionCache = (userId) => {
+  if (!hasWindow()) return;
+  if (userId) {
+    const map = safeParse(window.localStorage.getItem(USER_PERM_STORAGE_KEY));
+    delete map[userId];
+    window.localStorage.setItem(USER_PERM_STORAGE_KEY, JSON.stringify(map));
+
+    const ttlMap = safeParse(window.localStorage.getItem(USER_CACHE_TTL_KEY));
+    delete ttlMap[userId];
+    window.localStorage.setItem(USER_CACHE_TTL_KEY, JSON.stringify(ttlMap));
+  } else {
+    window.localStorage.removeItem(USER_PERM_STORAGE_KEY);
+    window.localStorage.removeItem(USER_CACHE_TTL_KEY);
+  }
+};
+
+// Fetch user-specific nav permissions from backend
+export const fetchUserNavPermissions = async (userId) => {
+  if (!userId) return [];
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}user-nav-permissions/${encodeURIComponent(userId)}/paths`
+    );
+    const paths = response.data?.paths || [];
+    if (paths.length > 0) {
+      saveUserNavPermissionPaths(userId, paths);
+      setUserCacheTTL(userId);
+    }
+    return paths;
+  } catch (error) {
+    console.warn('Failed to fetch user nav permissions from backend:', error.message);
+    return [];
+  }
+};
+
+// Check if user has permission to access a specific path
+export const hasPathPermission = (allowedPaths, targetPath) => {
+  if (!targetPath || !Array.isArray(allowedPaths)) return false;
+
+  // Always allow dashboard root
+  if (targetPath === '/dashboard' || targetPath === '/dashboard/') return true;
+
+  return allowedPaths.some((allowedPath) => {
+    // Exact match
+    if (targetPath === allowedPath) return true;
+    // Prefix match (for sub-paths)
+    if (targetPath.startsWith(`${allowedPath}/`)) return true;
+    return false;
+  });
 };
