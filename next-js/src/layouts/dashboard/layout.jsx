@@ -71,6 +71,19 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
   // Fall back to Supabase user ID if Azure OID not available
   const userIdForPerms = user?.azureOid || user?.id;
 
+  // Debug: Log user IDs for troubleshooting
+  useEffect(() => {
+    if (user) {
+      console.log('[DashboardLayout] User IDs debug:', {
+        supabaseId: user?.id,
+        azureOid: user?.azureOid,
+        userIdForPerms,
+        role: normalizedRole,
+        email: user?.email,
+      });
+    }
+  }, [user, userIdForPerms, normalizedRole]);
+
   // Track if permissions have been loaded
   const [permissionsLoaded, setPermissionsLoaded] = useState(false);
 
@@ -82,20 +95,26 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
   // Fetch nav permissions from backend when role/user changes
   useEffect(() => {
     if (normalizedRole === 'superAdmin') {
+      console.log('[DashboardLayout] SuperAdmin detected, skipping permission fetch');
       setPermissionsLoaded(true);
       return; // superAdmin has access to all
     }
 
     const loadPermissions = async () => {
       setPermissionsLoaded(false);
+      console.log('[DashboardLayout] Loading permissions for:', { userIdForPerms, normalizedRole });
 
       // First, try to fetch user-specific permissions using Azure OID
       if (userIdForPerms) {
-        console.log('Fetching user-specific permissions for:', userIdForPerms);
+        console.log('[DashboardLayout] Fetching user-specific permissions for:', userIdForPerms);
         const userPaths = await fetchUserNavPermissions(userIdForPerms);
+        console.log('[DashboardLayout] User permissions result:', {
+          pathCount: userPaths?.length || 0,
+          paths: userPaths?.slice(0, 5),
+        });
         if (userPaths && userPaths.length > 0) {
           console.log(
-            'User-specific permissions loaded:',
+            '[DashboardLayout] User-specific permissions loaded:',
             userPaths.length,
             'paths for user:',
             userIdForPerms
@@ -104,7 +123,9 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
           setPermissionsLoaded(true);
           return;
         }
-        console.log('No user-specific permissions found, falling back to role-based');
+        console.log(
+          '[DashboardLayout] No user-specific permissions found, falling back to role-based'
+        );
       }
 
       // Fall back to role-based permissions
@@ -180,14 +201,15 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
       return blockedByRole;
     }
 
-    // Check if blocked by allowlist (user-specific or role-based permissions)
-    const blockedByAllowlist =
-      path &&
-      Array.isArray(allowedPaths) &&
-      allowedPaths.length > 0 &&
-      !allowedPaths.some((allowedPath) => path.startsWith(allowedPath));
+    // If user has specific permissions assigned, check against those
+    if (Array.isArray(allowedPaths) && allowedPaths.length > 0) {
+      const blockedByAllowlist =
+        path && !allowedPaths.some((allowedPath) => path.startsWith(allowedPath));
+      return blockedByRole || blockedByAllowlist;
+    }
 
-    return blockedByRole || blockedByAllowlist;
+    // If no specific permissions, fall back to role-based check only
+    return blockedByRole;
   };
 
   const renderHeader = () => {

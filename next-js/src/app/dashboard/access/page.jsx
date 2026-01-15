@@ -173,6 +173,11 @@ export default function AccessControlPage() {
   // Handle user selection
   const handleSelectUser = useCallback(
     (user) => {
+      console.log('[AccessControl] Selected user:', {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      });
       setSelectedUser(user);
       setSuccessMessage('');
       setError('');
@@ -222,6 +227,14 @@ export default function AccessControlPage() {
         navPermissionId: np.id,
         enabled: enabledPermIds.has(np.id),
       }));
+
+      console.log('[AccessControl] Saving permissions for user:', {
+        userId: selectedUser.id,
+        userName: selectedUser.name,
+        email: selectedUser.email,
+        enabledCount: permissions.filter((p) => p.enabled).length,
+        totalCount: permissions.length,
+      });
 
       await setUserNavPermissions({
         userId: selectedUser.id,
