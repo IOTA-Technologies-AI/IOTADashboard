@@ -228,17 +228,19 @@ export const clearUserNavPermissionCache = (userId) => {
 export const fetchUserNavPermissions = async (userId) => {
   if (!userId) return [];
   try {
+    console.log('[pageAccess] Fetching user nav permissions for userId:', userId);
     const response = await axios.get(
       `${API_BASE_URL}user-nav-permissions/${encodeURIComponent(userId)}/paths`
     );
     const paths = response.data?.paths || [];
+    console.log('[pageAccess] User nav permissions response:', paths.length, 'paths');
     if (paths.length > 0) {
       saveUserNavPermissionPaths(userId, paths);
       setUserCacheTTL(userId);
     }
     return paths;
   } catch (error) {
-    console.warn('Failed to fetch user nav permissions from backend:', error.message);
+    console.warn('[pageAccess] Failed to fetch user nav permissions:', error.message);
     return [];
   }
 };

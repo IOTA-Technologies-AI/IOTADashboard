@@ -71,6 +71,9 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
   // Fall back to Supabase user ID if Azure OID not available
   const userIdForPerms = user?.azureOid || user?.id;
 
+  // Track if permissions have been loaded
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false);
+
   // State for dynamic allowed paths
   const [allowedPaths, setAllowedPaths] = useState(() =>
     resolvePageAccess(userIdForPerms, normalizedRole)
@@ -78,11 +81,17 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
 
   // Fetch nav permissions from backend when role/user changes
   useEffect(() => {
-    if (normalizedRole === 'superAdmin') return; // superAdmin has access to all
+    if (normalizedRole === 'superAdmin') {
+      setPermissionsLoaded(true);
+      return; // superAdmin has access to all
+    }
 
     const loadPermissions = async () => {
+      setPermissionsLoaded(false);
+
       // First, try to fetch user-specific permissions using Azure OID
       if (userIdForPerms) {
+        console.log('Fetching user-specific permissions for:', userIdForPerms);
         const userPaths = await fetchUserNavPermissions(userIdForPerms);
         if (userPaths && userPaths.length > 0) {
           console.log(
@@ -92,8 +101,10 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
             userIdForPerms
           );
           setAllowedPaths(userPaths);
+          setPermissionsLoaded(true);
           return;
         }
+        console.log('No user-specific permissions found, falling back to role-based');
       }
 
       // Fall back to role-based permissions
@@ -101,12 +112,16 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
         const cachedPaths = resolvePageAccess(userIdForPerms, normalizedRole);
         if (cachedPaths.length > 0) {
           setAllowedPaths(cachedPaths);
+          setPermissionsLoaded(true);
         } else {
           const rolePaths = await fetchNavPermissionsForRole(normalizedRole);
           if (rolePaths.length > 0) {
             setAllowedPaths(rolePaths);
           }
+          setPermissionsLoaded(true);
         }
+      } else {
+        setPermissionsLoaded(true);
       }
     };
 
@@ -125,13 +140,15 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
 
   const isDashboardHome = baseAlwaysAllowed.some((p) => pathname?.startsWith(p));
 
+  // Block direct URL access only after permissions have loaded
   const isBlockedByPath =
+    permissionsLoaded &&
     !isDashboardHome &&
     normalizedRole !== 'superAdmin' &&
     pathname &&
-    (!Array.isArray(allowedPaths) ||
-      allowedPaths.length === 0 ||
-      !allowedPaths.some((allowedPath) => pathname.startsWith(allowedPath)));
+    Array.isArray(allowedPaths) &&
+    allowedPaths.length > 0 &&
+    !allowedPaths.some((allowedPath) => pathname.startsWith(allowedPath));
 
   useEffect(() => {
     if (isBlockedByPath) {
@@ -152,15 +169,23 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
   const isNavVertical = isNavMini || settings.state.navLayout === 'vertical';
 
   const canDisplayItemByRole = (allowedRoles, path) => {
+    // SuperAdmin can see everything
+    if (normalizedRole === 'superAdmin') return false;
+
+    // Check if blocked by role
     const blockedByRole = allowedRoles?.length && !allowedRoles.includes(normalizedRole);
 
+    // If permissions haven't loaded yet, don't block by allowlist (show all until loaded)
+    if (!permissionsLoaded) {
+      return blockedByRole;
+    }
+
+    // Check if blocked by allowlist (user-specific or role-based permissions)
     const blockedByAllowlist =
-      !isDashboardHome &&
-      normalizedRole !== 'superAdmin' &&
       path &&
-      (!Array.isArray(allowedPaths) ||
-        allowedPaths.length === 0 ||
-        !allowedPaths.some((allowedPath) => path.startsWith(allowedPath)));
+      Array.isArray(allowedPaths) &&
+      allowedPaths.length > 0 &&
+      !allowedPaths.some((allowedPath) => path.startsWith(allowedPath));
 
     return blockedByRole || blockedByAllowlist;
   };

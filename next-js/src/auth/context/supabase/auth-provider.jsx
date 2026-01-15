@@ -311,6 +311,13 @@ export function AuthProvider({ children }) {
       });
     }
 
+    // Debug: Log the Azure OID being used for permissions
+    if (state.user && oid) {
+      console.log('[Auth] Azure OID for permissions:', oid);
+    } else if (state.user && !oid) {
+      console.warn('[Auth] No Azure OID found, will fall back to Supabase ID:', state.user?.id);
+    }
+
     return {
       user: state.user
         ? {
