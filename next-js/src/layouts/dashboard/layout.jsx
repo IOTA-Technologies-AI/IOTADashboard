@@ -11,7 +11,7 @@ import { iconButtonClasses } from '@mui/material/IconButton';
 
 import { useRouter, usePathname } from 'src/routes/hooks';
 import { paths } from 'src/routes/paths';
-import { resolvePageAccess, fetchNavPermissionsForRole } from 'src/utils/pageAccess';
+import { resolvePageAccess, fetchNavPermissionsForRole, fetchUserNavPermissions } from 'src/utils/pageAccess';
 
 import { allLangs } from 'src/locales';
 import { _contacts, _notifications } from 'src/_mock';
@@ -63,27 +63,46 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
 
   const normalizedRole = normalizeRole(user?.role, user?.roleId);
 
+  // Use Azure OID for permission lookups (matches Microsoft 365 user IDs)
+  // Fall back to Supabase user ID if Azure OID not available
+  const userIdForPerms = user?.azureOid || user?.id;
+
   // State for dynamic allowed paths
   const [allowedPaths, setAllowedPaths] = useState(() =>
-    resolvePageAccess(user?.id, normalizedRole)
+    resolvePageAccess(userIdForPerms, normalizedRole)
   );
 
-  // Fetch nav permissions from backend when role changes
+  // Fetch nav permissions from backend when role/user changes
   useEffect(() => {
-    if (!normalizedRole || normalizedRole === 'superAdmin') return; // superAdmin has access to all
+    if (normalizedRole === 'superAdmin') return; // superAdmin has access to all
 
-    const cachedPaths = resolvePageAccess(user?.id, normalizedRole);
-    if (cachedPaths.length === 0) {
-      // No cached paths, fetch from backend
-      fetchNavPermissionsForRole(normalizedRole).then((paths) => {
-        if (paths.length > 0) {
-          setAllowedPaths(paths);
+    const loadPermissions = async () => {
+      // First, try to fetch user-specific permissions using Azure OID
+      if (userIdForPerms) {
+        const userPaths = await fetchUserNavPermissions(userIdForPerms);
+        if (userPaths && userPaths.length > 0) {
+          console.log('User-specific permissions loaded:', userPaths.length, 'paths for user:', userIdForPerms);
+          setAllowedPaths(userPaths);
+          return;
         }
-      });
-    } else {
-      setAllowedPaths(cachedPaths);
-    }
-  }, [normalizedRole, user?.id]);
+      }
+
+      // Fall back to role-based permissions
+      if (normalizedRole) {
+        const cachedPaths = resolvePageAccess(userIdForPerms, normalizedRole);
+        if (cachedPaths.length > 0) {
+          setAllowedPaths(cachedPaths);
+        } else {
+          const rolePaths = await fetchNavPermissionsForRole(normalizedRole);
+          if (rolePaths.length > 0) {
+            setAllowedPaths(rolePaths);
+          }
+        }
+      }
+    };
+
+    loadPermissions();
+  }, [normalizedRole, userIdForPerms]);
 
   const baseAlwaysAllowed = [
     paths.dashboard.root,

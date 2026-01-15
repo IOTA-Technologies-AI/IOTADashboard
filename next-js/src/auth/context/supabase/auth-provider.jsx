@@ -316,6 +316,8 @@ export function AuthProvider({ children }) {
         ? {
             ...state.user,
             id: state.user?.id,
+            // Microsoft 365 / Azure AD Object ID - use this for user permissions lookup
+            azureOid: oid,
             accessToken: state.user?.access_token,
             displayName: displayNameFromMetadata(state.user),
             role,
