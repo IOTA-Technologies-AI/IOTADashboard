@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:4000/';
+// Use same API base URL as apiHelper.js for consistency
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://staging-iotaapiserver-s572.encr.app/';
 
 const STORAGE_KEY = 'pageAccessByUser';
 const ROLE_STORAGE_KEY = 'pageAccessByRole';
