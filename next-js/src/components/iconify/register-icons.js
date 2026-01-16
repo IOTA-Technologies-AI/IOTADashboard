@@ -34,10 +34,33 @@ export function registerIcons() {
   }
 
   iconSets.forEach((iconSet) => {
+    // Handle different icon set dimensions
+    let width = 24;
+    let height = 24;
+
+    if (iconSet.prefix === 'carbon') {
+      width = 32;
+      height = 32;
+    } else if (iconSet.prefix === 'logos') {
+      width = 256;
+      height = 256;
+    }
+
+    // Check if individual icons have custom dimensions
+    const icons = {};
+    Object.entries(iconSet.icons).forEach(([name, icon]) => {
+      icons[name] = {
+        body: icon.body,
+        ...(icon.width && { width: icon.width }),
+        ...(icon.height && { height: icon.height }),
+      };
+    });
+
     const iconSetConfig = {
-      ...iconSet,
-      width: (iconSet.prefix === 'carbon' && 32) || 24,
-      height: (iconSet.prefix === 'carbon' && 32) || 24,
+      prefix: iconSet.prefix,
+      icons,
+      width,
+      height,
     };
 
     addCollection(iconSetConfig);
