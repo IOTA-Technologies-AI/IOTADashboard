@@ -133,6 +133,9 @@ export default function AccessControlPage() {
 
         const [rolesData, navData] = await Promise.all([fetchRoles(), fetchNavPermissions()]);
 
+        console.log('[AccessControl] Loaded nav permissions:', navData?.length, 'records');
+        console.log('[AccessControl] Nav permissions IDs:', navData?.map((p) => p.id).slice(-10));
+
         setRoles(rolesData);
         setNavPermissions(navData);
       } catch (err) {
