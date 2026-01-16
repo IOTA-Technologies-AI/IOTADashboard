@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Chip from '@mui/material/Chip';
 import List from '@mui/material/List';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
@@ -114,6 +115,7 @@ export default function AccessControlPage() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [userPermissions, setUserPermissions] = useState([]);
   const [userPermsLoading, setUserPermsLoading] = useState(false);
+  const [grantedRoleInfo, setGrantedRoleInfo] = useState(null); // { role, grantedBy, grantedAt }
 
   // Permission changes tracking
   const [enabledPermIds, setEnabledPermIds] = useState(new Set());
@@ -166,6 +168,18 @@ export default function AccessControlPage() {
         }
       });
       setEnabledPermIds(enabled);
+
+      // Extract granted role info from the first permission (they all have the same role info)
+      if (perms.length > 0) {
+        const firstPerm = perms[0];
+        setGrantedRoleInfo({
+          role: firstPerm.grantedRole || null,
+          grantedBy: firstPerm.grantedBy || null,
+          grantedAt: firstPerm.grantedAt || null,
+        });
+      } else {
+        setGrantedRoleInfo(null);
+      }
     } catch (err) {
       setError(err?.message || 'Failed to load user permissions');
     } finally {
@@ -507,15 +521,47 @@ export default function AccessControlPage() {
                   <Box sx={{ p: 2, borderBottom: 1, borderColor: 'divider' }}>
                     <Stack direction="row" alignItems="center" justifyContent="space-between">
                       <Box>
-                        <Typography variant="h6">{selectedUser.name}</Typography>
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Typography variant="h6">{selectedUser.name}</Typography>
+                          {grantedRoleInfo?.role && (
+                            <Chip
+                              size="small"
+                              label={
+                                grantedRoleInfo.role === 'custom'
+                                  ? 'Custom'
+                                  : grantedRoleInfo.role.charAt(0).toUpperCase() +
+                                    grantedRoleInfo.role.slice(1)
+                              }
+                              color={
+                                grantedRoleInfo.role === 'superAdmin'
+                                  ? 'error'
+                                  : grantedRoleInfo.role === 'admin'
+                                    ? 'warning'
+                                    : grantedRoleInfo.role === 'manager'
+                                      ? 'info'
+                                      : grantedRoleInfo.role === 'custom'
+                                        ? 'secondary'
+                                        : 'default'
+                              }
+                              variant="soft"
+                            />
+                          )}
+                        </Stack>
                         <Typography variant="body2" color="text.secondary">
                           {selectedUser.email}
                         </Typography>
+                        {grantedRoleInfo?.grantedBy && (
+                          <Typography variant="caption" color="text.disabled">
+                            Granted by {grantedRoleInfo.grantedBy}
+                            {grantedRoleInfo.grantedAt &&
+                              ` on ${new Date(grantedRoleInfo.grantedAt).toLocaleDateString()}`}
+                          </Typography>
+                        )}
                       </Box>
                       <Stack direction="row" spacing={1}>
                         <Button
                           size="small"
-                          variant="outlined"
+                          variant={grantedRoleInfo?.role === 'regular' ? 'contained' : 'outlined'}
                           onClick={() => handleGrantDefaults('regular')}
                           disabled={saving}
                         >
@@ -523,7 +569,7 @@ export default function AccessControlPage() {
                         </Button>
                         <Button
                           size="small"
-                          variant="outlined"
+                          variant={grantedRoleInfo?.role === 'manager' ? 'contained' : 'outlined'}
                           onClick={() => handleGrantDefaults('manager')}
                           disabled={saving}
                         >
@@ -531,7 +577,7 @@ export default function AccessControlPage() {
                         </Button>
                         <Button
                           size="small"
-                          variant="outlined"
+                          variant={grantedRoleInfo?.role === 'admin' ? 'contained' : 'outlined'}
                           onClick={() => handleGrantDefaults('admin')}
                           disabled={saving}
                         >
