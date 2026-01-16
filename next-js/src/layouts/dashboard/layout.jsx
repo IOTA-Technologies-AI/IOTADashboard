@@ -17,6 +17,7 @@ import {
   resolvePageAccess,
   fetchUserNavPermissions,
   fetchNavPermissionsForRole,
+  clearUserNavPermissionCache,
 } from 'src/utils/pageAccess';
 
 import { allLangs } from 'src/locales';
@@ -93,26 +94,31 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
       // Fetch user-specific permissions using email
       if (userEmailForPerms) {
         const userPaths = await fetchUserNavPermissions(userEmailForPerms);
+
+        // Clear the localStorage cache for this user to prevent stale data
+        clearUserNavPermissionCache(userEmailForPerms);
+
         if (userPaths && userPaths.length > 0) {
           setAllowedPaths(userPaths);
           setPermissionsLoaded(true);
           return;
         }
+        // If user has no permissions in DB, set empty array (don't fall back to role)
+        // This ensures admin can truly remove all permissions for a user
+        setAllowedPaths([]);
+        setPermissionsLoaded(true);
+        return;
       }
 
-      // Fall back to role-based permissions
+      // Fall back to role-based permissions (only if no user email to check)
       if (normalizedRole) {
-        const cachedPaths = resolvePageAccess(userEmailForPerms, normalizedRole);
-        if (cachedPaths.length > 0) {
-          setAllowedPaths(cachedPaths);
-          setPermissionsLoaded(true);
+        const rolePaths = await fetchNavPermissionsForRole(normalizedRole);
+        if (rolePaths.length > 0) {
+          setAllowedPaths(rolePaths);
         } else {
-          const rolePaths = await fetchNavPermissionsForRole(normalizedRole);
-          if (rolePaths.length > 0) {
-            setAllowedPaths(rolePaths);
-          }
-          setPermissionsLoaded(true);
+          setAllowedPaths([]);
         }
+        setPermissionsLoaded(true);
       } else {
         setPermissionsLoaded(true);
       }
@@ -190,6 +196,12 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
     // If permissions haven't loaded yet, don't block by allowlist (show all until loaded)
     if (!permissionsLoaded) {
       return blockedByRole;
+    }
+
+    // If permissions have loaded and allowedPaths is an empty array,
+    // it means the user has NO permissions - block ALL menu items
+    if (Array.isArray(allowedPaths) && allowedPaths.length === 0) {
+      return true; // Block this menu item
     }
 
     // If user has specific permissions assigned, check against those
