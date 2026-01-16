@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -14,26 +14,26 @@ import Collapse from '@mui/material/Collapse';
 import ListItem from '@mui/material/ListItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import InputAdornment from '@mui/material/InputAdornment';
 import ListItemText from '@mui/material/ListItemText';
 import ListItemIcon from '@mui/material/ListItemIcon';
+import InputAdornment from '@mui/material/InputAdornment';
 import ListItemButton from '@mui/material/ListItemButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
-import { RoleGuard } from 'src/auth/guard';
-import { useAuthContext } from 'src/auth/hooks';
-import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
-
-import { Iconify } from 'src/components/iconify';
-
 import {
   fetchRoles,
   fetchNavPermissions,
-  fetchUserNavPermissions,
   setUserNavPermissions,
+  fetchUserNavPermissions,
   grantDefaultPermissions,
 } from 'src/utils/apiHelper';
+
+import { Iconify } from 'src/components/iconify';
+
+import { RoleGuard } from 'src/auth/guard';
+import { useAuthContext } from 'src/auth/hooks';
+import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 
 // ----------------------------------------------------------------------
 
@@ -170,7 +170,7 @@ export default function AccessControlPage() {
     }
   }, []);
 
-  // Handle user selection
+  // Handle user selection - use email as the unique identifier
   const handleSelectUser = useCallback(
     (user) => {
       console.log('[AccessControl] Selected user:', {
@@ -181,7 +181,8 @@ export default function AccessControlPage() {
       setSelectedUser(user);
       setSuccessMessage('');
       setError('');
-      loadUserPermissions(user.id);
+      // Use email as the user identifier for permissions
+      loadUserPermissions(user.email);
     },
     [loadUserPermissions]
   );
@@ -229,21 +230,21 @@ export default function AccessControlPage() {
       }));
 
       console.log('[AccessControl] Saving permissions for user:', {
-        userId: selectedUser.id,
-        userName: selectedUser.name,
         email: selectedUser.email,
+        userName: selectedUser.name,
         enabledCount: permissions.filter((p) => p.enabled).length,
         totalCount: permissions.length,
       });
 
+      // Use email as the user identifier
       await setUserNavPermissions({
-        userId: selectedUser.id,
+        userId: selectedUser.email,
         permissions,
-        grantedBy: currentUser?.id || currentUser?.email,
+        grantedBy: currentUser?.email,
       });
 
       setSuccessMessage(`Permissions saved successfully for ${selectedUser.name}`);
-      await loadUserPermissions(selectedUser.id);
+      await loadUserPermissions(selectedUser.email);
     } catch (err) {
       setError(err?.message || 'Failed to save permissions');
     } finally {
@@ -261,14 +262,15 @@ export default function AccessControlPage() {
         setError('');
         setSuccessMessage('');
 
+        // Use email as the user identifier
         await grantDefaultPermissions({
-          userId: selectedUser.id,
+          userId: selectedUser.email,
           role,
-          grantedBy: currentUser?.id || currentUser?.email,
+          grantedBy: currentUser?.email,
         });
 
         setSuccessMessage(`Default ${role} permissions granted to ${selectedUser.name}`);
-        await loadUserPermissions(selectedUser.id);
+        await loadUserPermissions(selectedUser.email);
       } catch (err) {
         setError(err?.message || 'Failed to grant default permissions');
       } finally {

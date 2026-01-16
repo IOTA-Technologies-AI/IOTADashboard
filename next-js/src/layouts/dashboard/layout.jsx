@@ -1,20 +1,21 @@
 'use client';
 
 import { merge } from 'es-toolkit';
+import { useState, useEffect } from 'react';
 import { useBoolean } from 'minimal-shared/hooks';
-import { useEffect, useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import { useTheme } from '@mui/material/styles';
 import { iconButtonClasses } from '@mui/material/IconButton';
 
-import { useRouter, usePathname } from 'src/routes/hooks';
 import { paths } from 'src/routes/paths';
+import { useRouter, usePathname } from 'src/routes/hooks';
+
 import {
   resolvePageAccess,
-  fetchNavPermissionsForRole,
   fetchUserNavPermissions,
+  fetchNavPermissionsForRole,
 } from 'src/utils/pageAccess';
 
 import { allLangs } from 'src/locales';
@@ -67,29 +68,25 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
 
   const normalizedRole = normalizeRole(user?.role, user?.roleId);
 
-  // Use Azure OID for permission lookups (matches Microsoft 365 user IDs)
-  // Fall back to Supabase user ID if Azure OID not available
-  const userIdForPerms = user?.azureOid || user?.id;
+  // Use email for permission lookups (consistent across Microsoft Graph and login)
+  const userEmailForPerms = user?.email;
 
-  // Debug: Log user IDs for troubleshooting
+  // Debug: Log user info for troubleshooting
   useEffect(() => {
     if (user) {
-      console.log('[DashboardLayout] User IDs debug:', {
-        supabaseId: user?.id,
-        azureOid: user?.azureOid,
-        userIdForPerms,
-        role: normalizedRole,
+      console.log('[DashboardLayout] User info:', {
         email: user?.email,
+        role: normalizedRole,
       });
     }
-  }, [user, userIdForPerms, normalizedRole]);
+  }, [user, normalizedRole]);
 
   // Track if permissions have been loaded
   const [permissionsLoaded, setPermissionsLoaded] = useState(false);
 
   // State for dynamic allowed paths
   const [allowedPaths, setAllowedPaths] = useState(() =>
-    resolvePageAccess(userIdForPerms, normalizedRole)
+    resolvePageAccess(userEmailForPerms, normalizedRole)
   );
 
   // Fetch nav permissions from backend when role/user changes
@@ -102,35 +99,31 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
 
     const loadPermissions = async () => {
       setPermissionsLoaded(false);
-      console.log('[DashboardLayout] Loading permissions for:', { userIdForPerms, normalizedRole });
+      console.log('[DashboardLayout] Loading permissions for:', {
+        email: userEmailForPerms,
+        role: normalizedRole,
+      });
 
-      // First, try to fetch user-specific permissions using Azure OID
-      if (userIdForPerms) {
-        console.log('[DashboardLayout] Fetching user-specific permissions for:', userIdForPerms);
-        const userPaths = await fetchUserNavPermissions(userIdForPerms);
-        console.log('[DashboardLayout] User permissions result:', {
+      // Fetch user-specific permissions using email
+      if (userEmailForPerms) {
+        console.log('[DashboardLayout] Fetching permissions for email:', userEmailForPerms);
+        const userPaths = await fetchUserNavPermissions(userEmailForPerms);
+        console.log('[DashboardLayout] Permission result:', {
           pathCount: userPaths?.length || 0,
           paths: userPaths?.slice(0, 5),
         });
         if (userPaths && userPaths.length > 0) {
-          console.log(
-            '[DashboardLayout] User-specific permissions loaded:',
-            userPaths.length,
-            'paths for user:',
-            userIdForPerms
-          );
+          console.log('[DashboardLayout] User permissions loaded:', userPaths.length, 'paths');
           setAllowedPaths(userPaths);
           setPermissionsLoaded(true);
           return;
         }
-        console.log(
-          '[DashboardLayout] No user-specific permissions found, falling back to role-based'
-        );
+        console.log('[DashboardLayout] No user permissions found, falling back to role-based');
       }
 
       // Fall back to role-based permissions
       if (normalizedRole) {
-        const cachedPaths = resolvePageAccess(userIdForPerms, normalizedRole);
+        const cachedPaths = resolvePageAccess(userEmailForPerms, normalizedRole);
         if (cachedPaths.length > 0) {
           setAllowedPaths(cachedPaths);
           setPermissionsLoaded(true);
@@ -147,7 +140,7 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
     };
 
     loadPermissions();
-  }, [normalizedRole, userIdForPerms]);
+  }, [normalizedRole, userEmailForPerms]);
 
   const baseAlwaysAllowed = [
     paths.dashboard.root,
