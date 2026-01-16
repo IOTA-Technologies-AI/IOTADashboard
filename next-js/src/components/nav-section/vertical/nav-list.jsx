@@ -73,8 +73,8 @@ export function NavList({ data, depth, render, slotProps, checkPermissions, enab
       </NavCollapse>
     );
 
-  // Hidden item by role
-  if (checkPermissions && checkPermissions(data.allowedRoles, data.path)) {
+  // Hidden item by role - pass hasChildren to allow parent menus to show if they have allowed children
+  if (checkPermissions && checkPermissions(data.allowedRoles, data.path, !!data.children)) {
     return null;
   }
 

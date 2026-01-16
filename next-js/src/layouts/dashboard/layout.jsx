@@ -72,21 +72,6 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
   // Use email for permission lookups (consistent across Microsoft Graph and login)
   const userEmailForPerms = user?.email;
 
-  // Debug: Log user info for troubleshooting - log immediately and on changes
-  useEffect(() => {
-    console.log('[DashboardLayout] Component mounted/updated');
-    console.log('[DashboardLayout] User object:', user ? 'present' : 'null');
-    if (user) {
-      console.log('[DashboardLayout] User info:', {
-        email: user?.email,
-        id: user?.id,
-        azureOid: user?.azureOid,
-        role: normalizedRole,
-        rawRole: user?.role,
-      });
-    }
-  }, [user, normalizedRole]);
-
   // Track if permissions have been loaded
   const [permissionsLoaded, setPermissionsLoaded] = useState(false);
 
@@ -98,71 +83,43 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
   // Fetch nav permissions from backend when role/user changes
   useEffect(() => {
     if (normalizedRole === 'superAdmin') {
-      console.log('[DashboardLayout] SuperAdmin detected, skipping permission fetch');
       setPermissionsLoaded(true);
       return; // superAdmin has access to all
     }
 
     const loadPermissions = async () => {
       setPermissionsLoaded(false);
-      console.log('[DashboardLayout] Loading permissions for:', {
-        email: userEmailForPerms,
-        role: normalizedRole,
-      });
 
       // Fetch user-specific permissions using email
       if (userEmailForPerms) {
-        console.log('[DashboardLayout] Fetching permissions for email:', userEmailForPerms);
         const userPaths = await fetchUserNavPermissions(userEmailForPerms);
-        console.log('[DashboardLayout] Permission result:', {
-          pathCount: userPaths?.length || 0,
-          paths: userPaths?.slice(0, 5),
-        });
         if (userPaths && userPaths.length > 0) {
-          console.log('[DashboardLayout] User permissions loaded:', userPaths.length, 'paths');
           setAllowedPaths(userPaths);
           setPermissionsLoaded(true);
           return;
         }
-        console.log('[DashboardLayout] No user permissions found, falling back to role-based');
       }
 
       // Fall back to role-based permissions
       if (normalizedRole) {
         const cachedPaths = resolvePageAccess(userEmailForPerms, normalizedRole);
-        console.log('[DashboardLayout] Cached paths check:', cachedPaths.length, 'paths');
         if (cachedPaths.length > 0) {
           setAllowedPaths(cachedPaths);
           setPermissionsLoaded(true);
         } else {
-          console.log(
-            '[DashboardLayout] No cached paths, fetching role-based permissions for:',
-            normalizedRole
-          );
           const rolePaths = await fetchNavPermissionsForRole(normalizedRole);
-          console.log('[DashboardLayout] Role-based paths:', rolePaths.length, 'paths');
           if (rolePaths.length > 0) {
             setAllowedPaths(rolePaths);
           }
           setPermissionsLoaded(true);
         }
       } else {
-        console.log('[DashboardLayout] No role found, marking permissions as loaded');
         setPermissionsLoaded(true);
       }
     };
 
     loadPermissions();
   }, [normalizedRole, userEmailForPerms]);
-
-  // Log when allowedPaths changes
-  useEffect(() => {
-    console.log('[DashboardLayout] allowedPaths updated:', {
-      count: allowedPaths?.length || 0,
-      permissionsLoaded,
-      paths: allowedPaths?.slice(0, 5),
-    });
-  }, [allowedPaths, permissionsLoaded]);
 
   const baseAlwaysAllowed = [
     paths.dashboard.root,
@@ -221,7 +178,7 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
   const isNavHorizontal = settings.state.navLayout === 'horizontal';
   const isNavVertical = isNavMini || settings.state.navLayout === 'vertical';
 
-  const canDisplayItemByRole = (allowedRoles, path) => {
+  const canDisplayItemByRole = (allowedRoles, path, hasChildren = false) => {
     // SuperAdmin can see everything
     if (normalizedRole === 'superAdmin') return false;
 
@@ -241,19 +198,24 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
 
       // Check if path is allowed:
       // 1. Exact match with any allowed path
-      // 2. Path starts with any specific allowed path (for sub-paths)
-      const isAllowed =
-        allowedPaths.includes(path) ||
+      const isExactMatch = allowedPaths.includes(path);
+
+      // 2. Path starts with any specific allowed path (for accessing deeper sub-paths)
+      const isChildOfAllowed = specificAllowedPaths.some(
+        (allowedPath) => path && path.startsWith(allowedPath) && allowedPath !== path
+      );
+
+      // 3. Any allowed path starts with this path (this is a parent menu of an allowed child)
+      //    ONLY apply this check if the menu item actually has children
+      const isParentOfAllowed =
+        hasChildren &&
         specificAllowedPaths.some(
-          (allowedPath) => path && path.startsWith(allowedPath) && allowedPath !== path
+          (allowedPath) => path && allowedPath.startsWith(path) && allowedPath !== path
         );
 
-      const blockedByAllowlist = path && !isAllowed;
+      const isAllowed = isExactMatch || isChildOfAllowed || isParentOfAllowed;
 
-      // Debug: Log permission check for non-allowed paths
-      if (blockedByAllowlist && path) {
-        console.log('[DashboardLayout] Blocking path:', path, '- not in allowed list');
-      }
+      const blockedByAllowlist = path && !isAllowed;
 
       return blockedByRole || blockedByAllowlist;
     }
