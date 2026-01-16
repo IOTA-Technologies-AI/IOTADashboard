@@ -1,16 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { fDate } from 'src/utils/format-time';
@@ -28,6 +30,19 @@ import { useAuthContext } from 'src/auth/hooks';
 export function ExpenseApprovalDialog({ open, onClose, expense, onApprovalComplete }) {
   const { user } = useAuthContext();
   const [loading, setLoading] = useState(false);
+  const [approvedAmount, setApprovedAmount] = useState(0);
+  const [amountError, setAmountError] = useState('');
+
+  // Get the maximum allowed amount (SAR amount)
+  const maxAmount = expense?.expenseAmount || 0;
+
+  // Initialize approved amount when expense changes or dialog opens
+  useEffect(() => {
+    if (expense && open) {
+      setApprovedAmount(expense.expenseAmount || 0);
+      setAmountError('');
+    }
+  }, [expense, open]);
 
   if (!expense) return null;
 
@@ -36,7 +51,28 @@ export function ExpenseApprovalDialog({ open, onClose, expense, onApprovalComple
     expense.originalExpenseCurrency !== 'SAR' &&
     expense.originalExpenseAmount;
 
+  const handleAmountChange = (e) => {
+    const value = parseFloat(e.target.value) || 0;
+    setApprovedAmount(value);
+
+    if (value > maxAmount) {
+      setAmountError(
+        `Cannot exceed original amount (${fCurrency(maxAmount, { currency: 'SAR' })})`
+      );
+    } else if (value <= 0) {
+      setAmountError('Amount must be greater than 0');
+    } else {
+      setAmountError('');
+    }
+  };
+
   const handleApproval = async (approved) => {
+    // Validate amount before approving
+    if (approved && (approvedAmount <= 0 || approvedAmount > maxAmount)) {
+      toast.error('Please enter a valid approved amount');
+      return;
+    }
+
     setLoading(true);
     try {
       const now = new Date().toISOString();
@@ -46,9 +82,15 @@ export function ExpenseApprovalDialog({ open, onClose, expense, onApprovalComple
         expenseApprovalStatus: approved,
         expenseApprovedBy: approverName,
         expenseApprovedDate: now,
-        // Set approved amount to the SAR amount
-        expenseApprovedAmount: expense.expenseAmount,
+        // Use the user-entered approved amount
+        expenseApprovedAmount: approved ? approvedAmount : 0,
       };
+
+      console.log('🔵 [ExpenseApprovalDialog] Sending approval update:', {
+        referenceId: expense.referenceId,
+        approved,
+        updateData,
+      });
 
       await apiHelper.updateExpense(expense.referenceId, updateData);
 
@@ -174,6 +216,32 @@ export function ExpenseApprovalDialog({ open, onClose, expense, onApprovalComple
             </Box>
           )}
 
+          {/* Editable Approved Amount - only show for pending expenses */}
+          {isPending && (
+            <Box sx={{ mt: 2 }}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Approved Amount"
+                value={approvedAmount}
+                onChange={handleAmountChange}
+                error={!!amountError}
+                helperText={
+                  amountError ||
+                  `Max: ${fCurrency(maxAmount, { currency: 'SAR' })} - You can reduce but not exceed`
+                }
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">SAR</InputAdornment>,
+                }}
+                inputProps={{
+                  min: 0,
+                  max: maxAmount,
+                  step: 0.01,
+                }}
+              />
+            </Box>
+          )}
+
           <Divider />
 
           {/* Description */}
@@ -263,7 +331,7 @@ export function ExpenseApprovalDialog({ open, onClose, expense, onApprovalComple
                 )
               }
               onClick={() => handleApproval(true)}
-              disabled={loading}
+              disabled={loading || !!amountError || approvedAmount <= 0}
             >
               Approve
             </Button>
