@@ -8,6 +8,7 @@ import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import { useTheme } from '@mui/material/styles';
 import { iconButtonClasses } from '@mui/material/IconButton';
+import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
 import { useRouter, usePathname } from 'src/routes/hooks';
@@ -378,6 +379,26 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
     />
   );
 
+  // Show loading state while checking permissions (only for non-superAdmin)
+  if (!permissionsLoaded && normalizedRole !== 'superAdmin') {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          minHeight: '100vh',
+          flexDirection: 'column',
+          gap: 2,
+        }}
+      >
+        <CircularProgress />
+        <Box sx={{ color: 'text.secondary', typography: 'body2' }}>Loading permissions...</Box>
+      </Box>
+    );
+  }
+
+  // Block access if user doesn't have permission
   if (isBlockedByPath) {
     return null;
   }
