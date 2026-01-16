@@ -139,14 +139,16 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
   const isPathnameAllowed = () => {
     if (!pathname || !Array.isArray(allowedPaths) || allowedPaths.length === 0) return true;
 
-    // Filter out base dashboard paths
+    // Filter out base dashboard paths that shouldn't grant access to all sub-paths
     const basePathsToExclude = ['/dashboard', '/dashboard/'];
     const specificAllowedPaths = allowedPaths.filter((p) => !basePathsToExclude.includes(p));
 
-    // Check exact match or prefix match with specific paths
+    // Check if pathname is allowed:
+    // 1. Exact match with any allowed path
+    // 2. Pathname starts with an allowed path followed by '/' (for sub-pages like /dashboard/invoice/123)
     return (
       allowedPaths.includes(pathname) ||
-      specificAllowedPaths.some((allowedPath) => pathname.startsWith(allowedPath))
+      specificAllowedPaths.some((allowedPath) => pathname.startsWith(`${allowedPath}/`))
     );
   };
 
