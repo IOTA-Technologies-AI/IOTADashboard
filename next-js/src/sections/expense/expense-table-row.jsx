@@ -23,6 +23,8 @@ import { Iconify } from 'src/components/iconify';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 import { CustomPopover } from 'src/components/custom-popover';
 
+import { ExpenseApprovalDialog } from './expense-approval-dialog';
+
 // ----------------------------------------------------------------------
 
 export function ExpenseTableRow({
@@ -32,10 +34,12 @@ export function ExpenseTableRow({
   onViewRow,
   onSelectRow,
   onDeleteRow,
+  onRefresh,
   canEdit = true,
 }) {
   const confirm = useBoolean();
   const popover = usePopover();
+  const approvalDialog = useBoolean();
 
   const renderPrimary = (
     <TableRow hover selected={selected}>
@@ -129,6 +133,8 @@ export function ExpenseTableRow({
     </TableRow>
   );
 
+  const isPending = row.expenseApprovalStatus === null || row.expenseApprovalStatus === undefined;
+
   return (
     <>
       {renderPrimary}
@@ -150,6 +156,20 @@ export function ExpenseTableRow({
             View
           </MenuItem>
 
+          {/* Approve/Review action for pending expenses */}
+          {isPending && canEdit && (
+            <MenuItem
+              onClick={() => {
+                approvalDialog.onTrue();
+                popover.onClose();
+              }}
+              sx={{ color: 'success.main' }}
+            >
+              <Iconify icon="solar:check-circle-bold" />
+              Approve / Reject
+            </MenuItem>
+          )}
+
           {canEdit && (
             <MenuItem
               onClick={() => {
@@ -163,6 +183,14 @@ export function ExpenseTableRow({
           )}
         </MenuList>
       </CustomPopover>
+
+      {/* Expense Approval Dialog */}
+      <ExpenseApprovalDialog
+        open={approvalDialog.value}
+        onClose={approvalDialog.onFalse}
+        expense={row}
+        onApprovalComplete={onRefresh}
+      />
 
       <ConfirmDialog
         open={confirm.value}

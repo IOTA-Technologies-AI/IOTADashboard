@@ -389,6 +389,7 @@ export function ExpenseListView({ expenses: initialExpenses = [] }) {
                     canEdit={canEdit}
                     onEditRow={() => handleEditRow(row.referenceId)}
                     onViewRow={() => handleViewRow(row.referenceId)}
+                    onRefresh={() => router.refresh()}
                   />
                 ))}
 
