@@ -748,4 +748,22 @@ export default {
     width: 256,
     height: 165,
   },
+  /**
+   * @set Eva icons
+   */
+  'eva:download-outline': {
+    body: '<rect width="16" height="2" x="4" y="18" fill="currentColor" rx="1" ry="1"/><rect width="4" height="2" x="3" y="17" fill="currentColor" rx="1" ry="1" transform="rotate(-90 5 18)"/><rect width="4" height="2" x="17" y="17" fill="currentColor" rx="1" ry="1" transform="rotate(-90 19 18)"/><path fill="currentColor" d="M12 15a1 1 0 0 1-.58-.18l-4-2.82a1 1 0 0 1-.24-1.39a1 1 0 0 1 1.4-.24L12 12.76l3.4-2.56a1 1 0 0 1 1.2 1.6l-4 3a1 1 0 0 1-.6.2"/><path fill="currentColor" d="M12 13a1 1 0 0 1-1-1V4a1 1 0 0 1 2 0v8a1 1 0 0 1-1 1"/>',
+  },
+  'eva:clock-outline': {
+    body: '<path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2m0 18a8 8 0 1 1 8-8a8 8 0 0 1-8 8"/><path fill="currentColor" d="M16 11h-3V8a1 1 0 0 0-2 0v4a1 1 0 0 0 1 1h4a1 1 0 0 0 0-2"/>',
+  },
+  'eva:funnel-outline': {
+    body: '<path fill="currentColor" d="M13.9 22a1 1 0 0 1-.6-.2l-4-3.05a1 1 0 0 1-.39-.8v-3.27l-4.8-9.22A1 1 0 0 1 5 4h14a1 1 0 0 1 .86.49a1 1 0 0 1 0 1l-5 9.21V21a1 1 0 0 1-.55.9a1 1 0 0 1-.41.1m-3-4.54l2 1.53v-4.55A1 1 0 0 1 13 14l4.3-8H6.64l4.13 8a1 1 0 0 1 .11.46Z"/>',
+  },
+  /**
+   * @set Solar duotone icons
+   */
+  'solar:close-circle-bold-duotone': {
+    body: '<path fill="currentColor" d="M22 12c0 5.523-4.477 10-10 10S2 17.523 2 12S6.477 2 12 2s10 4.477 10 10" opacity=".5"/><path fill="currentColor" d="M8.97 8.97a.75.75 0 0 1 1.06 0L12 10.94l1.97-1.97a.75.75 0 1 1 1.06 1.06L13.06 12l1.97 1.97a.75.75 0 0 1-1.06 1.06L12 13.06l-1.97 1.97a.75.75 0 0 1-1.06-1.06L10.94 12l-1.97-1.97a.75.75 0 0 1 0-1.06"/>',
+  },
 };
