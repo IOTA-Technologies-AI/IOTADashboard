@@ -325,6 +325,14 @@ export function AuthProvider({ children }) {
             id: state.user?.id,
             // Microsoft 365 / Azure AD Object ID - use this for user permissions lookup
             azureOid: oid,
+            // Ensure email is always available - check multiple sources
+            email:
+              state.user?.email ||
+              state.user?.user_metadata?.email ||
+              identityData?.email ||
+              claims?.upn ||
+              claims?.preferred_username ||
+              state.user?.user_metadata?.preferred_username,
             accessToken: state.user?.access_token,
             displayName: displayNameFromMetadata(state.user),
             role,

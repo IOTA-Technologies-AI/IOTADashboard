@@ -200,20 +200,14 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
       // 1. Exact match with any allowed path
       const isExactMatch = allowedPaths.includes(path);
 
-      // 2. Path starts with any specific allowed path (for accessing deeper sub-paths)
-      const isChildOfAllowed = specificAllowedPaths.some(
-        (allowedPath) => path && path.startsWith(allowedPath) && allowedPath !== path
-      );
-
-      // 3. Any allowed path starts with this path (this is a parent menu of an allowed child)
+      // 2. Any allowed path starts with this path (this is a parent menu of an allowed child)
       //    ONLY apply this check if the menu item actually has children
+      //    e.g., if /dashboard/user/list is allowed, show "User" parent menu
       const isParentOfAllowed =
         hasChildren &&
-        specificAllowedPaths.some(
-          (allowedPath) => path && allowedPath.startsWith(path) && allowedPath !== path
-        );
+        specificAllowedPaths.some((allowedPath) => path && allowedPath.startsWith(`${path}/`));
 
-      const isAllowed = isExactMatch || isChildOfAllowed || isParentOfAllowed;
+      const isAllowed = isExactMatch || isParentOfAllowed;
 
       const blockedByAllowlist = path && !isAllowed;
 
