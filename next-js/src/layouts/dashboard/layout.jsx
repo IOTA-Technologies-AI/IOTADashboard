@@ -173,7 +173,24 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
     paths.dashboard.user.pageAccess,
   ];
 
-  const isDashboardHome = baseAlwaysAllowed.some((p) => pathname?.startsWith(p));
+  const isDashboardHome = baseAlwaysAllowed.some(
+    (p) => pathname === p || pathname?.startsWith(`${p}/`)
+  );
+
+  // Helper to check if pathname is allowed
+  const isPathnameAllowed = () => {
+    if (!pathname || !Array.isArray(allowedPaths) || allowedPaths.length === 0) return true;
+
+    // Filter out base dashboard paths
+    const basePathsToExclude = ['/dashboard', '/dashboard/'];
+    const specificAllowedPaths = allowedPaths.filter((p) => !basePathsToExclude.includes(p));
+
+    // Check exact match or prefix match with specific paths
+    return (
+      allowedPaths.includes(pathname) ||
+      specificAllowedPaths.some((allowedPath) => pathname.startsWith(allowedPath))
+    );
+  };
 
   // Block direct URL access only after permissions have loaded
   const isBlockedByPath =
@@ -183,7 +200,7 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
     pathname &&
     Array.isArray(allowedPaths) &&
     allowedPaths.length > 0 &&
-    !allowedPaths.some((allowedPath) => pathname.startsWith(allowedPath));
+    !isPathnameAllowed();
 
   useEffect(() => {
     if (isBlockedByPath) {
@@ -217,8 +234,20 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
 
     // If user has specific permissions assigned, check against those
     if (Array.isArray(allowedPaths) && allowedPaths.length > 0) {
-      const blockedByAllowlist =
-        path && !allowedPaths.some((allowedPath) => path.startsWith(allowedPath));
+      // Filter out base dashboard paths that shouldn't grant access to all sub-paths
+      const basePathsToExclude = ['/dashboard', '/dashboard/'];
+      const specificAllowedPaths = allowedPaths.filter((p) => !basePathsToExclude.includes(p));
+
+      // Check if path is allowed:
+      // 1. Exact match with any allowed path
+      // 2. Path starts with any specific allowed path (for sub-paths)
+      const isAllowed =
+        allowedPaths.includes(path) ||
+        specificAllowedPaths.some(
+          (allowedPath) => path && path.startsWith(allowedPath) && allowedPath !== path
+        );
+
+      const blockedByAllowlist = path && !isAllowed;
 
       // Debug: Log permission check for non-allowed paths
       if (blockedByAllowlist && path) {
