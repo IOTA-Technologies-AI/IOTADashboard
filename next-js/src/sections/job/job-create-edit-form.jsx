@@ -63,18 +63,35 @@ const JOB_SKILL_OPTIONS = [
 ];
 
 // Working schedule options
-const JOB_WORKING_SCHEDULE_OPTIONS = ['Monday to Friday', 'Flexible hours', 'Shift work'];
+const JOB_WORKING_SCHEDULE_OPTIONS = [
+  'Sunday to Thursday',
+  'Monday to Friday',
+  'Flexible hours',
+  'Shift work',
+  'Rotational shifts',
+];
 
-// Benefit options for job postings
+// Benefit options for job postings (Middle East focused)
 const JOB_BENEFIT_OPTIONS = [
   { label: 'Health Insurance', value: 'health-insurance' },
-  { label: 'Dental Insurance', value: 'dental-insurance' },
-  { label: '401(k) Matching', value: '401k' },
-  { label: 'Paid Time Off', value: 'pto' },
-  { label: 'Remote Work', value: 'remote-work' },
+  { label: 'Family Status', value: 'family-status' },
+  { label: 'Yearly Return Air Ticket', value: 'yearly-air-ticket' },
   { label: 'Professional Development', value: 'professional-development' },
-  { label: 'Stock Options', value: 'stock-options' },
-  { label: 'Gym Membership', value: 'gym-membership' },
+  { label: 'Remote Work', value: 'remote-work' },
+  { label: 'Paid Time Off / Vacation Salary', value: 'paid-time-off' },
+  { label: 'Housing Allowance', value: 'housing-allowance' },
+  { label: 'Transportation Allowance', value: 'transportation-allowance' },
+  { label: 'End of Service Benefits', value: 'end-of-service' },
+  { label: 'Annual Bonus', value: 'annual-bonus' },
+];
+
+// Salary currency options
+const SALARY_CURRENCY_OPTIONS = [
+  { label: 'SAR - Saudi Riyal', value: 'SAR' },
+  { label: 'AED - UAE Dirham', value: 'AED' },
+  { label: 'QAR - Qatari Riyal', value: 'QAR' },
+  { label: 'USD - US Dollar', value: 'USD' },
+  { label: 'INR - Indian Rupee', value: 'INR' },
 ];
 
 export const JobCreateSchema = z.object({
@@ -94,6 +111,7 @@ export const JobCreateSchema = z.object({
     }),
     // Not required
     type: z.string(),
+    currency: z.string(),
     negotiable: z.boolean(),
   }),
   benefits: z.string().array().min(1, { error: 'Choose at least one option!' }),
@@ -121,7 +139,7 @@ export function JobCreateEditForm({ currentJob }) {
     workingSchedule: [],
     locations: [],
     expiredDate: null,
-    salary: { type: 'Yearly', price: null, negotiable: false },
+    salary: { type: 'Yearly', currency: 'SAR', price: null, negotiable: false },
     benefits: [],
     remoteType: REMOTE_TYPE_OPTIONS[0]?.value || 'onsite',
     technologyArea: TECHNOLOGY_AREA_OPTIONS[0]?.value || 'fullstack',
@@ -142,12 +160,13 @@ export function JobCreateEditForm({ currentJob }) {
       expiredDate: currentJob.expiryDate ? new Date(currentJob.expiryDate) : null,
       salary: {
         type: currentJob.salaryPeriod || 'Yearly',
+        currency: currentJob.salaryCurrency || 'SAR',
         price: currentJob.salaryMax || null,
         negotiable: !currentJob.showSalary,
       },
       benefits: currentJob.benefits ? currentJob.benefits.split('\n').filter(Boolean) : [],
       remoteType: currentJob.remoteType || defaultValues.remoteType,
-      technologyArea: currentJob.technologyArea || defaultValues.technologyArea,
+      technologyArea: currentJob.technologyArea || currentJob.area || defaultValues.technologyArea,
     };
   };
 
@@ -178,10 +197,11 @@ export function JobCreateEditForm({ currentJob }) {
         remoteType: data.remoteType || 'onsite',
         salaryMin: Number(data.salary.price) || 0,
         salaryMax: Number(data.salary.price) || 0,
-        salaryCurrency: 'USD',
+        salaryCurrency: data.salary.currency || 'SAR',
         salaryPeriod: data.salary.type?.toLowerCase() || 'yearly',
         showSalary: !data.salary.negotiable,
         skills: data.skills,
+        workingSchedule: data.workingSchedule,
         benefits: data.benefits.join('\n'),
         technologyArea: data.technologyArea || 'fullstack',
         expiryDate: data.expiredDate
@@ -227,10 +247,11 @@ export function JobCreateEditForm({ currentJob }) {
         remoteType: data.remoteType || 'onsite',
         salaryMin: Number(data.salary.price) || 0,
         salaryMax: Number(data.salary.price) || 0,
-        salaryCurrency: 'USD',
+        salaryCurrency: data.salary.currency || 'SAR',
         salaryPeriod: data.salary.type?.toLowerCase() || 'yearly',
         showSalary: !data.salary.negotiable,
         skills: data.skills,
+        workingSchedule: data.workingSchedule,
         benefits: data.benefits.join('\n'),
         technologyArea: data.technologyArea || 'fullstack',
         expiryDate: data.expiredDate
@@ -349,10 +370,12 @@ export function JobCreateEditForm({ currentJob }) {
             <Field.Autocomplete
               name="technologyArea"
               autoHighlight
+              freeSolo
               options={TECHNOLOGY_AREA_OPTIONS.map((option) => option.value)}
               getOptionLabel={(option) =>
                 TECHNOLOGY_AREA_OPTIONS.find((o) => o.value === option)?.label || option
               }
+              helperText="Select from list or type a custom area"
             />
           </Stack>
 
@@ -360,14 +383,16 @@ export function JobCreateEditForm({ currentJob }) {
             <Typography variant="subtitle2">Skills</Typography>
             <Field.Autocomplete
               name="skills"
-              placeholder="+ Skills"
+              placeholder="+ Skills (type and press Enter to add)"
               multiple
+              freeSolo
               disableCloseOnSelect
               options={JOB_SKILL_OPTIONS.map((option) => option)}
               getOptionLabel={(option) => option}
               slotProps={{
                 chip: { color: 'info' },
               }}
+              helperText="Select from list or type custom skills"
             />
           </Stack>
 
@@ -450,22 +475,17 @@ export function JobCreateEditForm({ currentJob }) {
               )}
             />
 
-            <Field.Text
-              name="salary.price"
-              placeholder="0.00"
-              type="number"
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start" sx={{ mr: 0.75 }}>
-                      <Box component="span" sx={{ color: 'text.disabled' }}>
-                        $
-                      </Box>
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
+            <Stack direction="row" spacing={2}>
+              <Field.Select name="salary.currency" label="Currency" sx={{ minWidth: 140 }}>
+                {SALARY_CURRENCY_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.value}
+                  </option>
+                ))}
+              </Field.Select>
+
+              <Field.Text name="salary.price" placeholder="0.00" type="number" sx={{ flex: 1 }} />
+            </Stack>
 
             <Field.Switch name="salary.negotiable" label="Salary is negotiable" />
           </Stack>
