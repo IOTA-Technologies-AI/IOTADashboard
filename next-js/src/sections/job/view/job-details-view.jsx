@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { useTabs } from 'minimal-shared/hooks';
+import { useTabs, useBoolean } from 'minimal-shared/hooks';
 
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
@@ -18,6 +18,7 @@ import { Iconify } from 'src/components/iconify';
 
 import { syncJobToWebflow, updateJob } from 'src/actions/jobs';
 
+import { JobApplyDialog } from '../job-apply-dialog';
 import { JobDetailsToolbar } from '../job-details-toolbar';
 import { JobDetailsContent } from '../job-details-content';
 import { JobDetailsCandidates } from '../job-details-candidates';
@@ -36,6 +37,7 @@ const JOB_PUBLISH_OPTIONS = [
 
 export function JobDetailsView({ job: apiJob }) {
   const tabs = useTabs('content');
+  const applyDialog = useBoolean(false);
 
   // Transform API job to display format
   const job = apiJob
@@ -109,16 +111,27 @@ export function JobDetailsView({ job: apiJob }) {
         publishOptions={JOB_PUBLISH_OPTIONS}
       />
 
-      <Button
-        variant="contained"
-        color="primary"
-        startIcon={<Iconify icon="mdi:web" />}
-        onClick={handleSyncToWebflow}
-        loading={syncing}
-        disabled={!apiJob?.id}
-      >
-        Sync to Webflow
-      </Button>
+      <Stack direction="row" spacing={2}>
+        <Button
+          variant="outlined"
+          color="success"
+          startIcon={<Iconify icon="solar:document-add-bold" />}
+          onClick={applyDialog.onTrue}
+        >
+          Apply Now
+        </Button>
+
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<Iconify icon="mdi:web" />}
+          onClick={handleSyncToWebflow}
+          loading={syncing}
+          disabled={!apiJob?.id}
+        >
+          Sync to Webflow
+        </Button>
+      </Stack>
     </Stack>
   );
 
@@ -149,6 +162,8 @@ export function JobDetailsView({ job: apiJob }) {
       {renderTabs()}
       {tabs.value === 'content' && <JobDetailsContent job={job} />}
       {tabs.value === 'candidates' && <JobDetailsCandidates candidates={job?.candidates ?? []} />}
+
+      <JobApplyDialog open={applyDialog.value} onClose={applyDialog.onFalse} job={apiJob} />
     </DashboardContent>
   );
 }

@@ -115,6 +115,51 @@ export async function fetchJobsFromWebflow() {
 }
 
 // =============================================
+// Job Application Operations
+// =============================================
+
+export async function submitJobApplication(jobId, applicationData) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/apply`, {
+      jobId,
+      ...applicationData,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error submitting job application:', error);
+    throw error;
+  }
+}
+
+export async function getJobApplications(jobId, status) {
+  try {
+    const url = status
+      ? `${API_BASE_URL}/jobs/${jobId}/applications?status=${status}`
+      : `${API_BASE_URL}/jobs/${jobId}/applications`;
+    const response = await axios.get(url);
+    return response.data?.applications || [];
+  } catch (error) {
+    console.error('Error fetching job applications:', error);
+    return [];
+  }
+}
+
+export async function updateJobApplicationStatus(applicationId, status, notes, reviewedBy) {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}/applications/${applicationId}`, {
+      id: applicationId,
+      status,
+      notes,
+      reviewedBy,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating application status:', error);
+    throw error;
+  }
+}
+
+// =============================================
 // Integration Operations
 // =============================================
 
