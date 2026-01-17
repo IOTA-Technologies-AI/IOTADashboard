@@ -1098,6 +1098,144 @@ export async function grantDefaultPermissions({ userId, role, grantedBy }) {
   return response.data;
 }
 
+// =============================================
+// Job Management API Functions
+// =============================================
+
+export async function getJobs(params = {}) {
+  try {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page);
+    if (params.limit) queryParams.append('limit', params.limit);
+    if (params.status) queryParams.append('status', params.status);
+    if (params.jobType) queryParams.append('jobType', params.jobType);
+    if (params.department) queryParams.append('department', params.department);
+    if (params.isRemote !== undefined) queryParams.append('isRemote', params.isRemote);
+    if (params.isFeatured !== undefined) queryParams.append('isFeatured', params.isFeatured);
+
+    const url = `${API_BASE_URL}jobs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await axios.get(url);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch jobs:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function getJobById(id) {
+  if (!id) return null;
+  try {
+    const response = await axios.get(`${API_BASE_URL}jobs/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch job:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function createJob(jobData) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}jobs`, jobData, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to create job:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function updateJob(id, jobData) {
+  try {
+    const response = await axios.patch(
+      `${API_BASE_URL}jobs/${id}`,
+      { id, ...jobData },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Failed to update job:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function deleteJob(id) {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}jobs/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to delete job:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function syncJobToWebflow(jobId, publish = true) {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}jobs/${jobId}/sync-to-webflow`,
+      {
+        jobId,
+        publish,
+      },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Failed to sync job to Webflow:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function testWebflowConnection() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}webflow/test`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to test Webflow connection:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function publishToWebflow() {
+  try {
+    const response = await axios.post(`${API_BASE_URL}webflow/publish`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to publish to Webflow:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function getIntegration(integrationName, integrationType) {
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}integrations/${integrationName}/${integrationType}`
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch integration:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function updateIntegration(integrationName, integrationType, data) {
+  try {
+    const response = await axios.patch(
+      `${API_BASE_URL}integrations/${integrationName}/${integrationType}`,
+      { integrationName, integrationType, ...data },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Failed to update integration:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
 export const apiHelper = {
   fetchTotalIotaBilling,
   fetchTotalPartnerBilling,
@@ -1144,4 +1282,15 @@ export const apiHelper = {
   fetchUserEnabledPaths,
   setUserNavPermissions,
   grantDefaultPermissions,
+  // Job management
+  getJobs,
+  getJobById,
+  createJob,
+  updateJob,
+  deleteJob,
+  syncJobToWebflow,
+  testWebflowConnection,
+  publishToWebflow,
+  getIntegration,
+  updateIntegration,
 };

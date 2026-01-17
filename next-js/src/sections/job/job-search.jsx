@@ -13,21 +13,19 @@ import Autocomplete, { autocompleteClasses } from '@mui/material/Autocomplete';
 import { useRouter } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
-import { _jobs } from 'src/_mock';
-
 import { Iconify } from 'src/components/iconify';
 import { SearchNotFound } from 'src/components/search-not-found';
 
 // ----------------------------------------------------------------------
 
-export function JobSearch({ redirectPath, sx }) {
+export function JobSearch({ jobs = [], redirectPath, sx }) {
   const router = useRouter();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
 
   const debouncedQuery = useDebounce(searchQuery);
-  const { searchResults: options, searchLoading: loading } = useSearchData(debouncedQuery);
+  const { searchResults: options, searchLoading: loading } = useSearchData(debouncedQuery, jobs);
 
   const handleChange = useCallback(
     (item) => {
@@ -128,7 +126,7 @@ export function JobSearch({ redirectPath, sx }) {
 
 // ----------------------------------------------------------------------
 
-function useSearchData(searchQuery) {
+function useSearchData(searchQuery, jobs) {
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
 
@@ -136,9 +134,9 @@ function useSearchData(searchQuery) {
     setSearchLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
-      const results = _jobs.filter(({ title }) =>
+      const results = jobs.filter(({ title }) =>
         [title].some((field) => field?.toLowerCase().includes(searchQuery.toLowerCase()))
       );
 
@@ -148,7 +146,7 @@ function useSearchData(searchQuery) {
     } finally {
       setSearchLoading(false);
     }
-  }, [searchQuery]);
+  }, [searchQuery, jobs]);
 
   useEffect(() => {
     if (searchQuery) {

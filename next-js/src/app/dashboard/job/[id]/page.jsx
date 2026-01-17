@@ -1,5 +1,5 @@
-import { _jobs } from 'src/_mock/_job';
 import { CONFIG } from 'src/global-config';
+import { getJob } from 'src/actions/jobs';
 
 import { JobDetailsView } from 'src/sections/job/view';
 
@@ -10,7 +10,7 @@ export const metadata = { title: `Job details | Dashboard - ${CONFIG.appName}` }
 export default async function Page({ params }) {
   const { id } = params;
 
-  const currentJob = _jobs.find((job) => job.id === id);
+  const currentJob = await getJob(id);
 
   return <JobDetailsView job={currentJob} />;
 }

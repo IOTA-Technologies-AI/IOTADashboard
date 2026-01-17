@@ -1,25 +1,24 @@
 'use client';
 
 import { orderBy } from 'es-toolkit';
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useBoolean, useSetState } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
-  _jobs,
-  _roles,
-  JOB_SORT_OPTIONS,
-  JOB_BENEFIT_OPTIONS,
-  JOB_EXPERIENCE_OPTIONS,
-  JOB_EMPLOYMENT_TYPE_OPTIONS,
-} from 'src/_mock';
+  getJobs,
+  JOB_TYPE_OPTIONS,
+  DEPARTMENT_OPTIONS,
+  EXPERIENCE_LEVEL_OPTIONS,
+} from 'src/actions/jobs';
 
 import { Iconify } from 'src/components/iconify';
 import { EmptyContent } from 'src/components/empty-content';
@@ -33,9 +32,18 @@ import { JobFiltersResult } from '../job-filters-result';
 
 // ----------------------------------------------------------------------
 
+const JOB_SORT_OPTIONS = [
+  { label: 'Latest', value: 'latest' },
+  { label: 'Popular', value: 'popular' },
+  { label: 'Oldest', value: 'oldest' },
+];
+
+// ----------------------------------------------------------------------
+
 export function JobListView() {
   const openFilters = useBoolean();
-
+  const [loading, setLoading] = useState(true);
+  const [jobs, setJobs] = useState([]);
   const [sortBy, setSortBy] = useState('latest');
 
   const filters = useSetState({
@@ -47,8 +55,53 @@ export function JobListView() {
   });
   const { state: currentFilters } = filters;
 
+  // Fetch jobs from API
+  const fetchJobs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getJobs();
+      // Transform API data to match expected format
+      const transformedJobs = (data || []).map((job) => ({
+        ...job,
+        // Map fields to expected structure
+        role: job.department || 'General',
+        employmentTypes: job.jobType ? [job.jobType] : [],
+        locations: job.location ? [job.location] : [],
+        benefits: job.benefits ? job.benefits.split('\n').filter(Boolean) : [],
+        experience: job.experienceLevel || 'all',
+        createdAt: job.postedDate || job.createdAt,
+        totalViews: job.viewCount || 0,
+        publish: job.status === 'published' ? 'published' : 'draft',
+        company: {
+          name: job.companyName || 'IOTA Technologies',
+          logo: job.companyLogoUrl || '/logo/logo-single.svg',
+          phoneNumber: '',
+          fullAddress: job.location || '',
+        },
+        salary: {
+          type: job.salaryPeriod || 'yearly',
+          price: job.salaryMax || 0,
+          negotiable: !job.showSalary,
+        },
+        content: job.roleDescription || '',
+        candidates: [],
+        skills: job.skills || [],
+      }));
+      setJobs(transformedJobs);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+      setJobs([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchJobs();
+  }, [fetchJobs]);
+
   const dataFiltered = applyFilter({
-    inputData: _jobs,
+    inputData: jobs,
     filters: currentFilters,
     sortBy,
   });
@@ -66,46 +119,65 @@ export function JobListView() {
     setSortBy(newValue);
   }, []);
 
-  const renderFilters = () => (
-    <Box
-      sx={{
-        gap: 3,
-        display: 'flex',
-        justifyContent: 'space-between',
-        flexDirection: { xs: 'column', sm: 'row' },
-        alignItems: { xs: 'flex-end', sm: 'center' },
-      }}
-    >
-      <JobSearch redirectPath={(id) => paths.dashboard.job.details(id)} />
+  const renderFilters = () => {
+    // Extract unique values for filters from loaded jobs
+    const uniqueRoles = [...new Set(jobs.map((job) => job.role).filter(Boolean))];
+    const uniqueLocations = [...new Set(jobs.flatMap((job) => job.locations || []))];
+    const uniqueBenefits = [...new Set(jobs.flatMap((job) => job.benefits || []))];
 
-      <Box sx={{ gap: 1, flexShrink: 0, display: 'flex' }}>
-        <JobFilters
-          filters={filters}
-          canReset={canReset}
-          open={openFilters.value}
-          onOpen={openFilters.onTrue}
-          onClose={openFilters.onFalse}
-          options={{
-            roles: _roles,
-            benefits: JOB_BENEFIT_OPTIONS.map((option) => option.label),
-            employmentTypes: JOB_EMPLOYMENT_TYPE_OPTIONS.map((option) => option.label),
-            experiences: ['all', ...JOB_EXPERIENCE_OPTIONS.map((option) => option.label)],
-          }}
-        />
+    return (
+      <Box
+        sx={{
+          gap: 3,
+          display: 'flex',
+          justifyContent: 'space-between',
+          flexDirection: { xs: 'column', sm: 'row' },
+          alignItems: { xs: 'flex-end', sm: 'center' },
+        }}
+      >
+        <JobSearch jobs={jobs} redirectPath={(id) => paths.dashboard.job.details(id)} />
 
-        <JobSort sort={sortBy} onSort={handleSortBy} sortOptions={JOB_SORT_OPTIONS} />
+        <Box sx={{ gap: 1, flexShrink: 0, display: 'flex' }}>
+          <JobFilters
+            filters={filters}
+            canReset={canReset}
+            open={openFilters.value}
+            onOpen={openFilters.onTrue}
+            onClose={openFilters.onFalse}
+            options={{
+              roles: uniqueRoles.length > 0 ? uniqueRoles : DEPARTMENT_OPTIONS.map((o) => o.label),
+              benefits: uniqueBenefits.length > 0 ? uniqueBenefits : [],
+              employmentTypes: JOB_TYPE_OPTIONS.map((option) => option.label),
+              experiences: ['all', ...EXPERIENCE_LEVEL_OPTIONS.map((option) => option.label)],
+            }}
+          />
+
+          <JobSort sort={sortBy} onSort={handleSortBy} sortOptions={JOB_SORT_OPTIONS} />
+        </Box>
       </Box>
-    </Box>
-  );
+    );
+  };
 
   const renderResults = () => (
     <JobFiltersResult filters={filters} totalResults={dataFiltered.length} />
   );
 
+  if (loading) {
+    return (
+      <DashboardContent>
+        <Box
+          sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}
+        >
+          <CircularProgress />
+        </Box>
+      </DashboardContent>
+    );
+  }
+
   return (
     <DashboardContent>
       <CustomBreadcrumbs
-        heading="List"
+        heading="Jobs"
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
           { name: 'Job', href: paths.dashboard.job.root },
@@ -131,7 +203,16 @@ export function JobListView() {
 
       {notFound && <EmptyContent filled sx={{ py: 10 }} />}
 
-      <JobList jobs={dataFiltered} />
+      {!notFound && jobs.length === 0 && (
+        <EmptyContent
+          filled
+          title="No Jobs Found"
+          description="Start by creating your first job posting"
+          sx={{ py: 10 }}
+        />
+      )}
+
+      {jobs.length > 0 && <JobList jobs={dataFiltered} />}
     </DashboardContent>
   );
 }
@@ -157,7 +238,7 @@ function applyFilter({ inputData, filters, sortBy }) {
   // Filters
   if (employmentTypes.length) {
     inputData = inputData.filter((job) =>
-      job.employmentTypes.some((item) => employmentTypes.includes(item))
+      job.employmentTypes?.some((item) => employmentTypes.includes(item))
     );
   }
 
@@ -170,11 +251,11 @@ function applyFilter({ inputData, filters, sortBy }) {
   }
 
   if (locations.length) {
-    inputData = inputData.filter((job) => job.locations.some((item) => locations.includes(item)));
+    inputData = inputData.filter((job) => job.locations?.some((item) => locations.includes(item)));
   }
 
   if (benefits.length) {
-    inputData = inputData.filter((job) => job.benefits.some((item) => benefits.includes(item)));
+    inputData = inputData.filter((job) => job.benefits?.some((item) => benefits.includes(item)));
   }
 
   return inputData;

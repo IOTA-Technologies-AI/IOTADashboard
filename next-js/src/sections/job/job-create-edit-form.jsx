@@ -22,19 +22,60 @@ import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
 import {
-  _roles,
-  JOB_SKILL_OPTIONS,
-  JOB_BENEFIT_OPTIONS,
-  JOB_EXPERIENCE_OPTIONS,
-  JOB_EMPLOYMENT_TYPE_OPTIONS,
-  JOB_WORKING_SCHEDULE_OPTIONS,
-} from 'src/_mock';
+  createJob,
+  updateJob,
+  syncJobToWebflow,
+  JOB_TYPE_OPTIONS,
+  DEPARTMENT_OPTIONS,
+  EXPERIENCE_LEVEL_OPTIONS,
+  REMOTE_TYPE_OPTIONS,
+  TECHNOLOGY_AREA_OPTIONS,
+} from 'src/actions/jobs';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { Form, Field, schemaUtils } from 'src/components/hook-form';
 
 // ----------------------------------------------------------------------
+
+// Skill options for job postings
+const JOB_SKILL_OPTIONS = [
+  'JavaScript',
+  'TypeScript',
+  'React',
+  'Next.js',
+  'Node.js',
+  'Python',
+  'Java',
+  'Go',
+  'Rust',
+  'AWS',
+  'Azure',
+  'GCP',
+  'Docker',
+  'Kubernetes',
+  'PostgreSQL',
+  'MongoDB',
+  'Redis',
+  'GraphQL',
+  'REST APIs',
+  'Git',
+];
+
+// Working schedule options
+const JOB_WORKING_SCHEDULE_OPTIONS = ['Monday to Friday', 'Flexible hours', 'Shift work'];
+
+// Benefit options for job postings
+const JOB_BENEFIT_OPTIONS = [
+  { label: 'Health Insurance', value: 'health-insurance' },
+  { label: 'Dental Insurance', value: 'dental-insurance' },
+  { label: '401(k) Matching', value: '401k' },
+  { label: 'Paid Time Off', value: 'pto' },
+  { label: 'Remote Work', value: 'remote-work' },
+  { label: 'Professional Development', value: 'professional-development' },
+  { label: 'Stock Options', value: 'stock-options' },
+  { label: 'Gym Membership', value: 'gym-membership' },
+];
 
 export const JobCreateSchema = z.object({
   title: z.string().min(1, { error: 'Title is required!' }),
@@ -58,6 +99,8 @@ export const JobCreateSchema = z.object({
   benefits: z.string().array().min(1, { error: 'Choose at least one option!' }),
   // Not required
   experience: z.string(),
+  remoteType: z.string().optional(),
+  technologyArea: z.string().optional(),
 });
 
 // ----------------------------------------------------------------------
@@ -72,21 +115,47 @@ export function JobCreateEditForm({ currentJob }) {
     title: '',
     content: '',
     employmentTypes: [],
-    experience: '1 year exp',
-    role: _roles[1],
+    experience: EXPERIENCE_LEVEL_OPTIONS[0]?.label || '1 year exp',
+    role: DEPARTMENT_OPTIONS[0]?.label || 'Engineering',
     skills: [],
     workingSchedule: [],
     locations: [],
     expiredDate: null,
-    salary: { type: 'Hourly', price: null, negotiable: false },
+    salary: { type: 'Yearly', price: null, negotiable: false },
     benefits: [],
+    remoteType: REMOTE_TYPE_OPTIONS[0]?.value || 'onsite',
+    technologyArea: TECHNOLOGY_AREA_OPTIONS[0]?.value || 'fullstack',
+  };
+
+  // Transform currentJob to form values if editing
+  const getFormValues = () => {
+    if (!currentJob) return defaultValues;
+    return {
+      title: currentJob.title || '',
+      content: currentJob.roleDescription || currentJob.content || '',
+      employmentTypes: currentJob.jobType ? [currentJob.jobType] : [],
+      experience: currentJob.experienceLevel || defaultValues.experience,
+      role: currentJob.department || defaultValues.role,
+      skills: currentJob.skills || [],
+      workingSchedule: currentJob.workingSchedule || [],
+      locations: currentJob.location ? [currentJob.location] : [],
+      expiredDate: currentJob.expiryDate ? new Date(currentJob.expiryDate) : null,
+      salary: {
+        type: currentJob.salaryPeriod || 'Yearly',
+        price: currentJob.salaryMax || null,
+        negotiable: !currentJob.showSalary,
+      },
+      benefits: currentJob.benefits ? currentJob.benefits.split('\n').filter(Boolean) : [],
+      remoteType: currentJob.remoteType || defaultValues.remoteType,
+      technologyArea: currentJob.technologyArea || defaultValues.technologyArea,
+    };
   };
 
   const methods = useForm({
     mode: 'all',
     resolver: zodResolver(JobCreateSchema),
     defaultValues,
-    values: currentJob,
+    values: currentJob ? getFormValues() : defaultValues,
   });
 
   const {
@@ -98,15 +167,91 @@ export function JobCreateEditForm({ currentJob }) {
 
   const onSubmit = handleSubmit(async (data) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      // Transform form data to API format
+      const jobData = {
+        title: data.title,
+        roleDescription: data.content,
+        department: data.role,
+        jobType: data.employmentTypes[0] || 'full-time',
+        experienceLevel: data.experience,
+        location: data.locations[0] || '',
+        remoteType: data.remoteType || 'onsite',
+        salaryMin: null,
+        salaryMax: data.salary.price,
+        salaryCurrency: 'USD',
+        salaryPeriod: data.salary.type?.toLowerCase() || 'yearly',
+        showSalary: !data.salary.negotiable,
+        skills: data.skills,
+        benefits: data.benefits.join('\n'),
+        technologyArea: data.technologyArea || 'fullstack',
+        expiryDate: data.expiredDate ? data.expiredDate.toISOString() : null,
+        status: 'draft',
+        companyName: 'IOTA Technologies',
+      };
+
+      if (currentJob?.id) {
+        await updateJob(currentJob.id, jobData);
+        toast.success('Job updated successfully!');
+      } else {
+        await createJob(jobData);
+        toast.success('Job created successfully!');
+      }
+
       reset();
-      toast.success(currentJob ? 'Update success!' : 'Create success!');
       router.push(paths.dashboard.job.root);
-      console.info('DATA', data);
     } catch (error) {
       console.error(error);
+      toast.error(error.message || 'Failed to save job');
     }
   });
+
+  const handleSaveAndPublish = async () => {
+    const data = methods.getValues();
+    const isValid = await methods.trigger();
+    if (!isValid) return;
+
+    try {
+      // Transform form data to API format
+      const jobData = {
+        title: data.title,
+        roleDescription: data.content,
+        department: data.role,
+        jobType: data.employmentTypes[0] || 'full-time',
+        experienceLevel: data.experience,
+        location: data.locations[0] || '',
+        remoteType: data.remoteType || 'onsite',
+        salaryMin: null,
+        salaryMax: data.salary.price,
+        salaryCurrency: 'USD',
+        salaryPeriod: data.salary.type?.toLowerCase() || 'yearly',
+        showSalary: !data.salary.negotiable,
+        skills: data.skills,
+        benefits: data.benefits.join('\n'),
+        technologyArea: data.technologyArea || 'fullstack',
+        expiryDate: data.expiredDate ? data.expiredDate.toISOString() : null,
+        status: 'published',
+        companyName: 'IOTA Technologies',
+      };
+
+      let jobId = currentJob?.id;
+      if (jobId) {
+        await updateJob(jobId, jobData);
+      } else {
+        const result = await createJob(jobData);
+        jobId = result.id;
+      }
+
+      // Sync to Webflow
+      await syncJobToWebflow(jobId, true);
+      toast.success('Job published to Webflow successfully!');
+
+      reset();
+      router.push(paths.dashboard.job.root);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.message || 'Failed to publish job');
+    }
+  };
 
   const renderCollapseButton = (value, onToggle) => (
     <IconButton onClick={onToggle}>
@@ -159,7 +304,7 @@ export function JobCreateEditForm({ currentJob }) {
             <Field.MultiCheckbox
               row
               name="employmentTypes"
-              options={JOB_EMPLOYMENT_TYPE_OPTIONS}
+              options={JOB_TYPE_OPTIONS}
               sx={{ gap: 4 }}
             />
           </Stack>
@@ -169,18 +314,35 @@ export function JobCreateEditForm({ currentJob }) {
             <Field.RadioGroup
               row
               name="experience"
-              options={JOB_EXPERIENCE_OPTIONS}
+              options={EXPERIENCE_LEVEL_OPTIONS}
               sx={{ gap: 4 }}
             />
           </Stack>
 
           <Stack spacing={1.5}>
-            <Typography variant="subtitle2">Role</Typography>
+            <Typography variant="subtitle2">Department</Typography>
             <Field.Autocomplete
               name="role"
               autoHighlight
-              options={_roles.map((option) => option)}
+              options={DEPARTMENT_OPTIONS.map((option) => option.label)}
               getOptionLabel={(option) => option}
+            />
+          </Stack>
+
+          <Stack spacing={1.5}>
+            <Typography variant="subtitle2">Remote Type</Typography>
+            <Field.RadioGroup row name="remoteType" options={REMOTE_TYPE_OPTIONS} sx={{ gap: 4 }} />
+          </Stack>
+
+          <Stack spacing={1.5}>
+            <Typography variant="subtitle2">Technology Area</Typography>
+            <Field.Autocomplete
+              name="technologyArea"
+              autoHighlight
+              options={TECHNOLOGY_AREA_OPTIONS.map((option) => option.value)}
+              getOptionLabel={(option) =>
+                TECHNOLOGY_AREA_OPTIONS.find((o) => o.value === option)?.label || option
+              }
             />
           </Stack>
 
@@ -239,11 +401,15 @@ export function JobCreateEditForm({ currentJob }) {
               name="salary.type"
               control={control}
               render={({ field }) => (
-                <Box sx={{ gap: 2, display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)' }}>
+                <Box sx={{ gap: 2, display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)' }}>
                   {[
                     {
                       label: 'Hourly',
                       icon: <Iconify icon="solar:clock-circle-bold" width={32} sx={{ mb: 2 }} />,
+                    },
+                    {
+                      label: 'Yearly',
+                      icon: <Iconify icon="solar:calendar-bold" width={32} sx={{ mb: 2 }} />,
                     },
                     {
                       label: 'Custom',
@@ -308,15 +474,21 @@ export function JobCreateEditForm({ currentJob }) {
   );
 
   const renderActions = () => (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center' }}>
-      <FormControlLabel
-        label="Publish"
-        control={<Switch defaultChecked slotProps={{ input: { id: 'publish-switch' } }} />}
-        sx={{ flexGrow: 1, pl: 3 }}
-      />
+    <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2 }}>
+      <Box sx={{ flexGrow: 1 }} />
 
-      <Button type="submit" variant="contained" size="large" loading={isSubmitting} sx={{ ml: 2 }}>
-        {!currentJob ? 'Create job' : 'Save changes'}
+      <Button type="submit" variant="outlined" size="large" loading={isSubmitting}>
+        {!currentJob ? 'Save as draft' : 'Save changes'}
+      </Button>
+
+      <Button
+        type="button"
+        variant="contained"
+        size="large"
+        onClick={handleSaveAndPublish}
+        startIcon={<Iconify icon="mdi:web" />}
+      >
+        Save & Publish to Webflow
       </Button>
     </Box>
   );
