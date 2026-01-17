@@ -3,6 +3,7 @@ import { usePopover } from 'minimal-shared/hooks';
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
 import Card from '@mui/material/Card';
+import Chip from '@mui/material/Chip';
 import Avatar from '@mui/material/Avatar';
 import Divider from '@mui/material/Divider';
 import MenuList from '@mui/material/MenuList';
@@ -16,13 +17,23 @@ import { RouterLink } from 'src/routes/components';
 import { fDate } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
 
+import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { CustomPopover } from 'src/components/custom-popover';
 
 // ----------------------------------------------------------------------
 
-export function JobItem({ job, editHref, detailsHref, onDelete, sx, ...other }) {
+const STATUS_CONFIG = {
+  published: { label: 'Published', color: 'success' },
+  pending_approval: { label: 'Pending Approval', color: 'warning' },
+  draft: { label: 'Draft', color: 'default' },
+  rejected: { label: 'Rejected', color: 'error' },
+};
+
+export function JobItem({ job, editHref, detailsHref, onDelete, onApprove, onReject, isAdmin, sx, ...other }) {
   const menuActions = usePopover();
+
+  const statusConfig = STATUS_CONFIG[job.status] || STATUS_CONFIG.draft;
 
   const renderMenuActions = () => (
     <CustomPopover
@@ -46,6 +57,33 @@ export function JobItem({ job, editHref, detailsHref, onDelete, sx, ...other }) 
           </MenuItem>
         </li>
 
+        {/* Admin approval actions - only show for pending jobs */}
+        {isAdmin && job.status === 'pending_approval' && (
+          <>
+            <MenuItem
+              onClick={() => {
+                menuActions.onClose();
+                onApprove();
+              }}
+              sx={{ color: 'success.main' }}
+            >
+              <Iconify icon="mdi:check-circle" />
+              Approve & Publish
+            </MenuItem>
+
+            <MenuItem
+              onClick={() => {
+                menuActions.onClose();
+                onReject();
+              }}
+              sx={{ color: 'warning.main' }}
+            >
+              <Iconify icon="mdi:close-circle" />
+              Reject
+            </MenuItem>
+          </>
+        )}
+
         <MenuItem
           onClick={() => {
             menuActions.onClose();
@@ -63,6 +101,14 @@ export function JobItem({ job, editHref, detailsHref, onDelete, sx, ...other }) 
   return (
     <>
       <Card sx={sx} {...other}>
+        {/* Status Badge */}
+        <Label
+          color={statusConfig.color}
+          sx={{ position: 'absolute', top: 8, left: 8, textTransform: 'capitalize' }}
+        >
+          {statusConfig.label}
+        </Label>
+
         <IconButton onClick={menuActions.onOpen} sx={{ position: 'absolute', top: 8, right: 8 }}>
           <Iconify icon="eva:more-vertical-fill" />
         </IconButton>

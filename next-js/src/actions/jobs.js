@@ -115,6 +115,50 @@ export async function fetchJobsFromWebflow() {
 }
 
 // =============================================
+// Job Approval Operations
+// =============================================
+
+export async function approveJob(jobId, approvedBy) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/approve`, {
+      id: jobId,
+      approvedBy,
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error approving job ${jobId}:`, error);
+    throw error;
+  }
+}
+
+export async function rejectJob(jobId, rejectedBy, rejectionReason) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/reject`, {
+      id: jobId,
+      rejectedBy,
+      rejectionReason,
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error rejecting job ${jobId}:`, error);
+    throw error;
+  }
+}
+
+export async function resubmitJobForApproval(jobId, resubmittedBy) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/resubmit`, {
+      id: jobId,
+      resubmittedBy,
+    });
+    return response.data;
+  } catch (error) {
+    console.error(`Error resubmitting job ${jobId}:`, error);
+    throw error;
+  }
+}
+
+// =============================================
 // Job Application Operations
 // =============================================
 

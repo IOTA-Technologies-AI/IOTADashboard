@@ -21,6 +21,8 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
+import { useAuthContext } from 'src/auth/hooks';
+
 import {
   createJob,
   updateJob,
@@ -125,6 +127,7 @@ export const JobCreateSchema = z.object({
 
 export function JobCreateEditForm({ currentJob }) {
   const router = useRouter();
+  const { user } = useAuthContext();
 
   const openDetails = useBoolean(true);
   const openProperties = useBoolean(true);
@@ -212,6 +215,8 @@ export function JobCreateEditForm({ currentJob }) {
           : null,
         status: 'draft',
         companyName: 'IOTA Technologies',
+        createdBy: user?.displayName || user?.email || 'Unknown',
+        createdByEmail: user?.email || '',
       };
 
       if (currentJob?.id) {
@@ -260,8 +265,10 @@ export function JobCreateEditForm({ currentJob }) {
               : new Date(data.expiredDate)
             ).toISOString()
           : null,
-        status: 'published',
+        status: 'pending_approval',
         companyName: 'IOTA Technologies',
+        createdBy: user?.displayName || user?.email || 'Unknown',
+        createdByEmail: user?.email || '',
       };
 
       let jobId = currentJob?.id;
@@ -272,9 +279,8 @@ export function JobCreateEditForm({ currentJob }) {
         jobId = result.id;
       }
 
-      // Sync to Webflow
-      await syncJobToWebflow(jobId, true);
-      toast.success('Job published to Webflow successfully!');
+      // Job is now pending approval - admins will be notified via email
+      toast.success('Job submitted for approval! Admins have been notified.');
 
       reset();
       router.push(paths.dashboard.job.root);
@@ -515,10 +521,11 @@ export function JobCreateEditForm({ currentJob }) {
         type="button"
         variant="contained"
         size="large"
+        color="primary"
         onClick={handleSaveAndPublish}
-        startIcon={<Iconify icon="mdi:web" />}
+        startIcon={<Iconify icon="mdi:send" />}
       >
-        Save & Publish to Webflow
+        Submit for Approval
       </Button>
     </Box>
   );
