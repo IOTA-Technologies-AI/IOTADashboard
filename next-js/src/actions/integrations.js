@@ -1,6 +1,6 @@
 'use server';
 
-import api from '../utils/apiHelper';
+import { apiHelper } from '../utils/apiHelper';
 
 import { AVAILABLE_INTEGRATIONS } from '../sections/integration/integration-constants';
 
@@ -13,7 +13,7 @@ import { AVAILABLE_INTEGRATIONS } from '../sections/integration/integration-cons
  */
 export async function getIntegrations(params = {}) {
   try {
-    const response = await api.getIntegrations(params);
+    const response = await apiHelper.getIntegrations(params);
     return response || [];
   } catch (error) {
     console.error('Error fetching integrations:', error);
@@ -26,7 +26,7 @@ export async function getIntegrations(params = {}) {
  */
 export async function getIntegration(name, type) {
   try {
-    const response = await api.getIntegration(name, type);
+    const response = await apiHelper.getIntegration(name, type);
     return response;
   } catch (error) {
     console.error('Error fetching integration:', error);
@@ -39,7 +39,7 @@ export async function getIntegration(name, type) {
  */
 export async function createIntegration(data) {
   try {
-    const response = await api.createIntegration(data);
+    const response = await apiHelper.createIntegration(data);
     return response;
   } catch (error) {
     console.error('Error creating integration:', error);
@@ -52,7 +52,7 @@ export async function createIntegration(data) {
  */
 export async function updateIntegration(name, type, data) {
   try {
-    const response = await api.updateIntegration(name, type, data);
+    const response = await apiHelper.updateIntegration(name, type, data);
     return response;
   } catch (error) {
     console.error('Error updating integration:', error);
@@ -65,7 +65,7 @@ export async function updateIntegration(name, type, data) {
  */
 export async function deleteIntegration(name, type) {
   try {
-    await api.deleteIntegration(name, type);
+    await apiHelper.deleteIntegration(name, type);
     return { success: true };
   } catch (error) {
     console.error('Error deleting integration:', error);
@@ -78,7 +78,7 @@ export async function deleteIntegration(name, type) {
  */
 export async function testIntegrationConnection(name, type) {
   try {
-    const response = await api.testIntegrationConnection(name, type);
+    const response = await apiHelper.testIntegrationConnection(name, type);
     return response;
   } catch (error) {
     console.error('Error testing integration:', error);

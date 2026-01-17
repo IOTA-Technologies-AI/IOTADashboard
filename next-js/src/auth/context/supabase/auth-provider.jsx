@@ -245,7 +245,6 @@ export function AuthProvider({ children }) {
 
         if (inlineRoles.length) {
           setApiAppRoles(inlineRoles);
-          console.info('Auth role fetch from identity claims (no API call)', { inlineRoles });
           return;
         }
 
@@ -275,18 +274,7 @@ export function AuthProvider({ children }) {
     const identityData = azureIdentityData(state.user);
     const inlineRoles = identityRoles(state.user);
     const oid = resolveAzureUserId(state.user, claims);
-    if (state.user) {
-      console.info('Auth token claims (sanitized)', {
-        oid,
-        sub: claims?.sub,
-        roles: claims?.roles,
-        wids: claims?.wids,
-        tid: claims?.tid,
-        aud: claims?.aud,
-        identityOid: identityData?.oid,
-        identitySub: identityData?.sub,
-      });
-    }
+
     const tokenRoles = inlineRoles.length ? inlineRoles : claims?.roles || claims?.wids || [];
 
     const role = state.user
@@ -299,24 +287,7 @@ export function AuthProvider({ children }) {
         )
       : null;
 
-    if (state.user) {
-      console.info('Auth login role map', {
-        expectedSuperAdminId: '69a563e8-d75e-47bd-b720-eaf301c91738',
-        userRoles: appRoles,
-        apiAppRoles,
-        userRole: state.user?.role,
-        userRoleId: state.user?.roleId,
-        normalizedRole: role,
-        tokenRoles,
-      });
-    }
-
     // Debug: Log the Azure OID being used for permissions
-    if (state.user && oid) {
-      console.log('[Auth] Azure OID for permissions:', oid);
-    } else if (state.user && !oid) {
-      console.warn('[Auth] No Azure OID found, will fall back to Supabase ID:', state.user?.id);
-    }
 
     return {
       user: state.user
