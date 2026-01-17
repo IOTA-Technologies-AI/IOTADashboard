@@ -4,6 +4,7 @@ import HandshakeIcon from '@mui/icons-material/Handshake';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import LeaderboardIcon from '@mui/icons-material/Leaderboard';
 import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
+import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
 
 import { paths } from 'src/routes/paths';
 
@@ -235,14 +236,12 @@ export const navData = [
         ],
       },
       {
-        title: 'Tour',
-        path: paths.dashboard.tour.root,
-        icon: ICONS.tour,
+        title: 'Integrations',
+        path: paths.dashboard.integration.root,
+        icon: <IntegrationInstructionsIcon style={{ width: 24, height: 24 }} />,
         children: [
-          { title: 'List', path: paths.dashboard.tour.root },
-          { title: 'Details', path: paths.dashboard.tour.demo.details },
-          { title: 'Create', path: paths.dashboard.tour.new },
-          { title: 'Edit', path: paths.dashboard.tour.demo.edit },
+          { title: 'All Integrations', path: paths.dashboard.integration.root },
+          { title: 'Add New', path: paths.dashboard.integration.new },
         ],
       },
       // File manager commented out - using OneDrive file page instead

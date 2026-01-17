@@ -266,5 +266,10 @@ export const paths = {
         edit: `${ROOTS.DASHBOARD}/tour/${MOCK_ID}/edit`,
       },
     },
+    integration: {
+      root: `${ROOTS.DASHBOARD}/integration`,
+      new: `${ROOTS.DASHBOARD}/integration/new`,
+      details: (name, type) => `${ROOTS.DASHBOARD}/integration/${name}/${type}`,
+    },
   },
 };

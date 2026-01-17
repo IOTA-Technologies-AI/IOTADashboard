@@ -1236,6 +1236,50 @@ export async function updateIntegration(integrationName, integrationType, data) 
   }
 }
 
+export async function getIntegrations(params = {}) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}integrations`, { params });
+    return response.data?.integrations || response.data || [];
+  } catch (error) {
+    console.error('Failed to fetch integrations:', error.response?.data || error.message);
+    return [];
+  }
+}
+
+export async function createIntegration(data) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}integrations`, data, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to create integration:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function deleteIntegration(integrationName, integrationType) {
+  try {
+    await axios.delete(`${API_BASE_URL}integrations/${integrationName}/${integrationType}`);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to delete integration:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function testIntegrationConnection(integrationName, integrationType) {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}integrations/${integrationName}/${integrationType}/test`
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Failed to test integration:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
 export const apiHelper = {
   fetchTotalIotaBilling,
   fetchTotalPartnerBilling,
@@ -1291,6 +1335,11 @@ export const apiHelper = {
   syncJobToWebflow,
   testWebflowConnection,
   publishToWebflow,
+  // Integration management
+  getIntegrations,
   getIntegration,
+  createIntegration,
   updateIntegration,
+  deleteIntegration,
+  testIntegrationConnection,
 };
