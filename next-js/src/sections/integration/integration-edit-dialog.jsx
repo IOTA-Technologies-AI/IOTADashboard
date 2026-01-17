@@ -139,12 +139,30 @@ export function IntegrationEditDialog({ open, onClose, integration, onSaveSucces
 
     setLoading(true);
     try {
+      // Helper to check if a value is a masked placeholder
+      const isMaskedValue = (value) => {
+        if (!value) return true;
+        // Check if it starts with mask characters or contains only mask characters
+        return value.startsWith('*') || value.startsWith('•') || /^[*•]+/.test(value);
+      };
+
+      // Build payload, excluding masked/placeholder values for secrets
       const payload = {
         integrationName: integration.name,
         integrationType: integration.type,
         displayName: integration.displayName,
         description: integration.description,
-        ...formData,
+        // Only include secrets if they're not masked placeholders
+        ...(isMaskedValue(formData.apiKey) ? {} : { apiKey: formData.apiKey }),
+        ...(isMaskedValue(formData.apiSecret) ? {} : { apiSecret: formData.apiSecret }),
+        ...(isMaskedValue(formData.accessToken) ? {} : { accessToken: formData.accessToken }),
+        ...(isMaskedValue(formData.refreshToken) ? {} : { refreshToken: formData.refreshToken }),
+        // Non-secret fields always included
+        siteId: formData.siteId,
+        collectionId: formData.collectionId,
+        baseUrl: formData.baseUrl,
+        webhookUrl: formData.webhookUrl,
+        isActive: formData.isActive,
       };
 
       if (integration.isConfigured) {
