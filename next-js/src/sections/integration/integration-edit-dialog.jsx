@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
@@ -20,6 +20,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
 import {
+  getIntegration,
   createIntegration,
   deleteIntegration,
   updateIntegration,
@@ -33,6 +34,7 @@ import { Iconify } from 'src/components/iconify';
 
 export function IntegrationEditDialog({ open, onClose, integration, onSaveSuccess }) {
   const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(false);
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState(null);
   const [showSecrets, setShowSecrets] = useState({});
@@ -48,35 +50,54 @@ export function IntegrationEditDialog({ open, onClose, integration, onSaveSucces
     isActive: true,
   });
 
-  // Reset form when integration changes
-  useState(() => {
-    if (integration?.configuredData) {
-      setFormData({
-        apiKey: integration.configuredData.apiKey || '',
-        apiSecret: integration.configuredData.apiSecret || '',
-        accessToken: integration.configuredData.accessToken || '',
-        refreshToken: integration.configuredData.refreshToken || '',
-        siteId: integration.configuredData.siteId || '',
-        collectionId: integration.configuredData.collectionId || '',
-        baseUrl: integration.configuredData.baseUrl || '',
-        webhookUrl: integration.configuredData.webhookUrl || '',
-        isActive: integration.configuredData.isActive ?? true,
-      });
-    } else {
-      setFormData({
-        apiKey: '',
-        apiSecret: '',
-        accessToken: '',
-        refreshToken: '',
-        siteId: '',
-        collectionId: '',
-        baseUrl: '',
-        webhookUrl: '',
-        isActive: true,
-      });
-    }
-    setTestResult(null);
-  }, [integration]);
+  // Fetch integration details when dialog opens
+  useEffect(() => {
+    const fetchIntegrationDetails = async () => {
+      if (!open || !integration?.name || !integration?.type) return;
+
+      // If already configured, fetch the full details
+      if (integration.isConfigured) {
+        setFetching(true);
+        try {
+          const result = await getIntegration(integration.name, integration.type);
+          if (result && result.integration) {
+            const data = result.integration;
+            setFormData({
+              apiKey: data.hasApiKey ? data.apiKey || '••••••••' : '',
+              apiSecret: data.hasApiSecret ? data.apiSecret || '••••••••' : '',
+              accessToken: data.hasAccessToken ? data.accessToken || '••••••••' : '',
+              refreshToken: data.hasRefreshToken ? data.refreshToken || '••••••••' : '',
+              siteId: data.siteId || '',
+              collectionId: data.collectionId || '',
+              baseUrl: data.baseUrl || '',
+              webhookUrl: data.webhookUrl || '',
+              isActive: data.isActive ?? true,
+            });
+          }
+        } catch (error) {
+          console.error('Failed to fetch integration details:', error);
+        } finally {
+          setFetching(false);
+        }
+      } else {
+        // Reset form for new integration
+        setFormData({
+          apiKey: '',
+          apiSecret: '',
+          accessToken: '',
+          refreshToken: '',
+          siteId: '',
+          collectionId: '',
+          baseUrl: '',
+          webhookUrl: '',
+          isActive: true,
+        });
+      }
+      setTestResult(null);
+    };
+
+    fetchIntegrationDetails();
+  }, [open, integration?.name, integration?.type, integration?.isConfigured]);
 
   const handleChange = useCallback((field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -222,60 +243,66 @@ export function IntegrationEditDialog({ open, onClose, integration, onSaveSucces
       </DialogTitle>
 
       <DialogContent dividers>
-        <Stack spacing={3} sx={{ pt: 1 }}>
-          {/* Status Toggle */}
-          <FormControlLabel
-            control={
-              <Switch
-                checked={formData.isActive}
-                onChange={(e) => handleChange('isActive', e.target.checked)}
-              />
-            }
-            label={
-              <Box>
-                <Typography variant="subtitle2">Active</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Enable or disable this integration
-                </Typography>
-              </Box>
-            }
-          />
+        {fetching ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', py: 6 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <Stack spacing={3} sx={{ pt: 1 }}>
+            {/* Status Toggle */}
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={formData.isActive}
+                  onChange={(e) => handleChange('isActive', e.target.checked)}
+                />
+              }
+              label={
+                <Box>
+                  <Typography variant="subtitle2">Active</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Enable or disable this integration
+                  </Typography>
+                </Box>
+              }
+            />
 
-          <Divider />
+            <Divider />
 
-          {/* Dynamic Fields based on integration type */}
-          {integration.requiredFields?.includes('apiKey') &&
-            renderSecretField('apiKey', 'API Key', 'Enter your API key', true)}
+            {/* Dynamic Fields based on integration type */}
+            {integration.requiredFields?.includes('apiKey') &&
+              renderSecretField('apiKey', 'API Key', 'Enter your API key', true)}
 
-          {integration.requiredFields?.includes('apiSecret') &&
-            renderSecretField('apiSecret', 'API Secret', 'Enter your API secret', true)}
+            {integration.requiredFields?.includes('apiSecret') &&
+              renderSecretField('apiSecret', 'API Secret', 'Enter your API secret', true)}
 
-          {integration.requiredFields?.includes('accessToken') &&
-            renderSecretField('accessToken', 'Access Token', 'Enter access token', true)}
+            {integration.requiredFields?.includes('accessToken') &&
+              renderSecretField('accessToken', 'Access Token', 'Enter access token', true)}
 
-          {integration.requiredFields?.includes('refreshToken') &&
-            renderSecretField('refreshToken', 'Refresh Token', 'Enter refresh token', true)}
+            {integration.requiredFields?.includes('refreshToken') &&
+              renderSecretField('refreshToken', 'Refresh Token', 'Enter refresh token', true)}
 
-          {integration.requiredFields?.includes('siteId') &&
-            renderField('siteId', 'Site ID', 'Enter site ID', true)}
+            {integration.requiredFields?.includes('siteId') &&
+              renderField('siteId', 'Site ID', 'Enter site ID', true)}
 
-          {integration.requiredFields?.includes('collectionId') &&
-            renderField('collectionId', 'Collection ID', 'Enter collection ID', true)}
+            {integration.requiredFields?.includes('collectionId') &&
+              renderField('collectionId', 'Collection ID', 'Enter collection ID', true)}
 
-          {integration.requiredFields?.includes('baseUrl') &&
-            renderField('baseUrl', 'Base URL', 'https://api.example.com', true)}
+            {integration.requiredFields?.includes('baseUrl') &&
+              renderField('baseUrl', 'Base URL', 'https://api.example.com', true)}
 
-          {/* Optional Fields */}
-          {integration.optionalFields?.includes('webhookUrl') &&
-            renderField('webhookUrl', 'Webhook URL (Optional)', 'https://your-webhook-url.com')}
+            {/* Optional Fields */}
+            {integration.optionalFields?.includes('webhookUrl') &&
+              renderField('webhookUrl', 'Webhook URL (Optional)', 'https://your-webhook-url.com')}
 
-          {/* Test Result */}
-          {testResult && (
-            <Alert severity={testResult.success ? 'success' : 'error'} sx={{ mt: 2 }}>
-              {testResult.message}
-            </Alert>
-          )}
-        </Stack>
+            {/* Test Result */}
+            {testResult && (
+              <Alert severity={testResult.success ? 'success' : 'error'} sx={{ mt: 2 }}>
+                {testResult.message}
+              </Alert>
+            )}
+          </Stack>
+        )}
       </DialogContent>
 
       <DialogActions sx={{ px: 3, py: 2 }}>
