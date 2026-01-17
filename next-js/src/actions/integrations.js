@@ -236,6 +236,6 @@ export async function testIntegrationConnection(name, type) {
 /**
  * Get integration details with available config
  */
-export function getIntegrationConfig(name) {
+export async function getIntegrationConfig(name) {
   return AVAILABLE_INTEGRATIONS.find((i) => i.name === name) || null;
 }
