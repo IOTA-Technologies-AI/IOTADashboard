@@ -20,11 +20,13 @@ import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { createIntegration, AVAILABLE_INTEGRATIONS } from 'src/actions/integrations';
+import { createIntegration } from 'src/actions/integrations';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+
+import { AVAILABLE_INTEGRATIONS } from '../integration-constants';
 
 // ----------------------------------------------------------------------
 

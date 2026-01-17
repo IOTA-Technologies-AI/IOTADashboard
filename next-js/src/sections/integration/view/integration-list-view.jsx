@@ -18,11 +18,7 @@ import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import {
-  getIntegrations,
-  INTEGRATION_TYPES,
-  AVAILABLE_INTEGRATIONS,
-} from 'src/actions/integrations';
+import { getIntegrations } from 'src/actions/integrations';
 
 import { Iconify } from 'src/components/iconify';
 import { EmptyContent } from 'src/components/empty-content';
@@ -30,6 +26,7 @@ import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 import { IntegrationList } from '../integration-list';
 import { IntegrationEditDialog } from '../integration-edit-dialog';
+import { INTEGRATION_TYPES, AVAILABLE_INTEGRATIONS } from '../integration-constants';
 
 // ----------------------------------------------------------------------
 

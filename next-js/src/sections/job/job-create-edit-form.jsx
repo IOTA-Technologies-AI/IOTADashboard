@@ -184,7 +184,12 @@ export function JobCreateEditForm({ currentJob }) {
         skills: data.skills,
         benefits: data.benefits.join('\n'),
         technologyArea: data.technologyArea || 'fullstack',
-        expiryDate: data.expiredDate ? data.expiredDate.toISOString() : null,
+        expiryDate: data.expiredDate
+          ? (data.expiredDate instanceof Date
+              ? data.expiredDate
+              : new Date(data.expiredDate)
+            ).toISOString()
+          : null,
         status: 'draft',
         companyName: 'IOTA Technologies',
       };
@@ -228,7 +233,12 @@ export function JobCreateEditForm({ currentJob }) {
         skills: data.skills,
         benefits: data.benefits.join('\n'),
         technologyArea: data.technologyArea || 'fullstack',
-        expiryDate: data.expiredDate ? data.expiredDate.toISOString() : null,
+        expiryDate: data.expiredDate
+          ? (data.expiredDate instanceof Date
+              ? data.expiredDate
+              : new Date(data.expiredDate)
+            ).toISOString()
+          : null,
         status: 'published',
         companyName: 'IOTA Technologies',
       };

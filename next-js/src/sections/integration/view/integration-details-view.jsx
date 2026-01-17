@@ -19,7 +19,6 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import {
   getIntegration,
   deleteIntegration,
-  AVAILABLE_INTEGRATIONS,
   testIntegrationConnection,
 } from 'src/actions/integrations';
 
@@ -27,6 +26,8 @@ import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+
+import { AVAILABLE_INTEGRATIONS } from '../integration-constants';
 
 // ----------------------------------------------------------------------
 
