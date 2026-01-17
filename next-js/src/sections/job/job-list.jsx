@@ -33,7 +33,7 @@ export function JobList({ jobs: initialJobs }) {
   const [rejectionReason, setRejectionReason] = useState('');
 
   const { user } = useAuthContext();
-  
+
   // Check if user is admin or superAdmin (roleId 3 or 4)
   const isAdmin = useMemo(() => {
     const roleId = user?.roleId;
@@ -68,10 +68,8 @@ export function JobList({ jobs: initialJobs }) {
   const handleConfirmApprove = useCallback(async () => {
     try {
       await approveJob(approveId, user?.email || user?.displayName);
-      setJobs((prev) => 
-        prev.map((job) => 
-          job.id === approveId ? { ...job, status: 'published' } : job
-        )
+      setJobs((prev) =>
+        prev.map((job) => (job.id === approveId ? { ...job, status: 'published' } : job))
       );
       toast.success('Job approved and published to Webflow!');
     } catch (error) {
@@ -96,10 +94,8 @@ export function JobList({ jobs: initialJobs }) {
     }
     try {
       await rejectJob(rejectId, user?.email || user?.displayName, rejectionReason);
-      setJobs((prev) => 
-        prev.map((job) => 
-          job.id === rejectId ? { ...job, status: 'rejected' } : job
-        )
+      setJobs((prev) =>
+        prev.map((job) => (job.id === rejectId ? { ...job, status: 'rejected' } : job))
       );
       toast.success('Job rejected');
     } catch (error) {
@@ -172,7 +168,12 @@ export function JobList({ jobs: initialJobs }) {
       />
 
       {/* Reject Dialog with Reason Input */}
-      <Dialog open={rejectDialogOpen} onClose={() => setRejectDialogOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={rejectDialogOpen}
+        onClose={() => setRejectDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Reject Job</DialogTitle>
         <DialogContent>
           <TextField

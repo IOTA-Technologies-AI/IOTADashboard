@@ -30,7 +30,17 @@ const STATUS_CONFIG = {
   rejected: { label: 'Rejected', color: 'error' },
 };
 
-export function JobItem({ job, editHref, detailsHref, onDelete, onApprove, onReject, isAdmin, sx, ...other }) {
+export function JobItem({
+  job,
+  editHref,
+  detailsHref,
+  onDelete,
+  onApprove,
+  onReject,
+  isAdmin,
+  sx,
+  ...other
+}) {
   const menuActions = usePopover();
 
   const statusConfig = STATUS_CONFIG[job.status] || STATUS_CONFIG.draft;
