@@ -482,15 +482,24 @@ export function JobCreateEditForm({ currentJob }) {
             />
 
             <Stack direction="row" spacing={2}>
-              <Field.Select name="salary.currency" label="Currency" sx={{ minWidth: 140 }}>
-                {SALARY_CURRENCY_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.value}
-                  </option>
-                ))}
-              </Field.Select>
+              <Field.Autocomplete
+                name="salary.currency"
+                label="Currency"
+                options={SALARY_CURRENCY_OPTIONS.map((option) => option.value)}
+                getOptionLabel={(option) => {
+                  const found = SALARY_CURRENCY_OPTIONS.find((o) => o.value === option);
+                  return found ? found.label : option;
+                }}
+                sx={{ flex: 1 }}
+              />
 
-              <Field.Text name="salary.price" placeholder="0.00" type="number" sx={{ flex: 1 }} />
+              <Field.Text
+                name="salary.price"
+                label="Amount"
+                placeholder="0.00"
+                type="number"
+                sx={{ flex: 1 }}
+              />
             </Stack>
 
             <Field.Switch name="salary.negotiable" label="Salary is negotiable" />
