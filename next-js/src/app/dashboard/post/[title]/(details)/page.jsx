@@ -8,7 +8,7 @@ import { PostDetailsView } from 'src/sections/blog/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Post details | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Post details` };
 
 export default async function Page({ params }) {
   const { title } = await params;

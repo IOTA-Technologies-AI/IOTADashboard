@@ -4,7 +4,7 @@ import { CenteredSignInView } from 'src/auth/view/auth-demo/centered';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Sign in | Layout centered - ${CONFIG.appName}` };
+export const metadata = { title: `Sign in | Layout centered` };
 
 export default function Page() {
   return <CenteredSignInView />;

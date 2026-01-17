@@ -5,7 +5,7 @@ import { getDeal } from 'src/actions/deals';
 
 import { DealEditView } from 'src/sections/deals/view/deal-edit-view';
 
-export const metadata = { title: `Edit deal | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Edit deal` };
 
 export default async function Page({ params }) {
   const { id } = params;

@@ -4,7 +4,7 @@ import { OverviewBookingView } from 'src/sections/overview/booking/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Booking | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Booking` };
 
 export default function Page() {
   return <OverviewBookingView />;

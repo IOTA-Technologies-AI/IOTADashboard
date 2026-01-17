@@ -4,7 +4,7 @@ import { MaintenanceView } from 'src/sections/maintenance/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Maintenance - ${CONFIG.appName}` };
+export const metadata = { title: `Maintenance` };
 
 export default function Page() {
   return <MaintenanceView />;

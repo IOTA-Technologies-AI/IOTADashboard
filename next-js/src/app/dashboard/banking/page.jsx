@@ -4,7 +4,7 @@ import { OverviewBankingView } from 'src/sections/overview/banking/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Banking | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Banking` };
 
 export default function Page() {
   return <OverviewBankingView />;

@@ -4,7 +4,7 @@ import { IntegrationDetailsView } from 'src/sections/integration/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Integration Details | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Integration Details` };
 
 export default async function Page({ params }) {
   const { name, type } = await params;

@@ -6,7 +6,7 @@ import { ProductDetailsView } from 'src/sections/product/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Product details | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Product details` };
 
 export default async function Page({ params }) {
   const { id } = await params;

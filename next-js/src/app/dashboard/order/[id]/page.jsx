@@ -5,7 +5,7 @@ import { OrderDetailsView } from 'src/sections/order/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Order details | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Order details` };
 
 export default async function Page({ params }) {
   const { id } = params;

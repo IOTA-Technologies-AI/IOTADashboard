@@ -8,7 +8,7 @@ import { PostEditView } from 'src/sections/blog/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Post edit | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Post edit` };
 
 export default async function Page({ params }) {
   const { title } = await params;

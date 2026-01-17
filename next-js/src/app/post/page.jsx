@@ -5,7 +5,7 @@ import { PostListHomeView } from 'src/sections/blog/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Post list - ${CONFIG.appName}` };
+export const metadata = { title: `Post list` };
 
 export default async function Page() {
   const { posts } = await getPosts();

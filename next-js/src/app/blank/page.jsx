@@ -5,7 +5,7 @@ import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Blank - ${CONFIG.appName}` };
+export const metadata = { title: `Blank` };
 
 export default function Page() {
   return (

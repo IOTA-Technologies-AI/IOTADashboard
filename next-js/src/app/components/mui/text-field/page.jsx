@@ -4,7 +4,7 @@ import { TextFieldView } from 'src/sections/_examples/mui/text-field-view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Text field | MUI - ${CONFIG.appName}` };
+export const metadata = { title: `Text field | MUI` };
 
 export default function Page() {
   return <TextFieldView />;

@@ -6,7 +6,7 @@ import { ExpenseListView } from 'src/sections/expense/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Expense list | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Expense list` };
 
 export default async function Page() {
   let expenses = [];

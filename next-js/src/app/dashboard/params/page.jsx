@@ -5,7 +5,7 @@ import { BlankView } from 'src/sections/blank/view';
 // ----------------------------------------------------------------------
 
 export const metadata = {
-  title: `Item match params | Dashboard - ${CONFIG.appName}`,
+  title: `Item match params``,
 };
 
 export default function Page() {

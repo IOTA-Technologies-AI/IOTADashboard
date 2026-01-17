@@ -4,7 +4,7 @@ import { VATListView } from 'src/sections/vat/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `VAT Management | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `VAT Management` };
 
 export default function Page() {
   return <VATListView />;

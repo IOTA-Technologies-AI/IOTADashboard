@@ -8,7 +8,7 @@ import { PostDetailsHomeView } from 'src/sections/blog/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Post details - ${CONFIG.appName}` };
+export const metadata = { title: `Post details` };
 
 export default async function Page({ params }) {
   const { title } = await params;

@@ -4,7 +4,7 @@ import { TodoView } from 'src/sections/todo/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `To Do | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `To Do` };
 
 export default function Page() {
   return <TodoView />;

@@ -4,7 +4,7 @@ import { JobListView } from 'src/sections/job/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Job list | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Jobs` };
 
 export default function Page() {
   return <JobListView />;

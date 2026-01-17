@@ -6,7 +6,7 @@ import { VendorListView } from 'src/sections/vendor/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Vendor list | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Vendor list` };
 
 export default async function Page() {
   let vendors = [];

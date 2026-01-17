@@ -10,7 +10,7 @@ import { VendorEditView } from 'src/sections/vendor/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Vendor edit | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Vendor edit` };
 
 export default async function Page({ params }) {
   const { id } = await params;

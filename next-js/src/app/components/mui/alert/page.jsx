@@ -4,7 +4,7 @@ import { AlertView } from 'src/sections/_examples/mui/alert-view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Alert | MUI - ${CONFIG.appName}` };
+export const metadata = { title: `Alert | MUI` };
 
 export default function Page() {
   return <AlertView />;

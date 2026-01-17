@@ -6,7 +6,7 @@ import { VendorDetailsView } from 'src/sections/vendor/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Vendor details | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Vendor details` };
 
 export default async function Page({ params }) {
   const { id } = params;

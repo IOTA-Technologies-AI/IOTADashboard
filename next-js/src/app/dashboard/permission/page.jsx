@@ -4,7 +4,7 @@ import { PermissionDeniedView } from 'src/sections/permission/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Permission | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Permission` };
 
 export default function Page() {
   return <PermissionDeniedView />;

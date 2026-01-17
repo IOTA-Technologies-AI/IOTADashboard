@@ -4,7 +4,7 @@ import { CenteredResetPasswordView } from 'src/auth/view/auth-demo/centered';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Reset password | Layout centered - ${CONFIG.appName}` };
+export const metadata = { title: `Reset password | Layout centered` };
 
 export default function Page() {
   return <CenteredResetPasswordView />;

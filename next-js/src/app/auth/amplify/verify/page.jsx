@@ -4,7 +4,7 @@ import { AmplifyVerifyView } from 'src/auth/view/amplify';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Verify | Amplify - ${CONFIG.appName}` };
+export const metadata = { title: `Verify | Amplify` };
 
 export default function Page() {
   return <AmplifyVerifyView />;

@@ -4,7 +4,7 @@ import { UserEditView } from 'src/sections/user/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `User edit | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `User edit` };
 
 export default async function Page({ params }) {
   const { id } = await params;

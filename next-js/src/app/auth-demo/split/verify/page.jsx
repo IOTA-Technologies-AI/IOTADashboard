@@ -4,7 +4,7 @@ import { SplitVerifyView } from 'src/auth/view/auth-demo/split';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Verify | Layout split - ${CONFIG.appName}` };
+export const metadata = { title: `Verify | Layout split` };
 
 export default function Page() {
   return <SplitVerifyView />;

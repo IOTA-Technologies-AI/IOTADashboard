@@ -5,7 +5,7 @@ import { TourEditView } from 'src/sections/tour/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Tour edit | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Tour edit` };
 
 export default async function Page({ params }) {
   const { id } = await params;

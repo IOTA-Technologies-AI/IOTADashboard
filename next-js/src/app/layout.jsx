@@ -39,6 +39,11 @@ export const viewport = {
 };
 
 export const metadata = {
+  title: {
+    default: CONFIG.appName,
+    template: `${CONFIG.appName} | %s`,
+  },
+  description: 'IOTA Technologies - AI-Powered Enterprise Dashboard',
   icons: [
     {
       rel: 'icon',

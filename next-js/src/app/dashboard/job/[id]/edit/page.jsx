@@ -5,7 +5,7 @@ import { JobEditView } from 'src/sections/job/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Job edit | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Job edit` };
 
 export default async function Page({ params }) {
   const { id } = await params;

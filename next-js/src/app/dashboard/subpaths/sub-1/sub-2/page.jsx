@@ -4,7 +4,7 @@ import { BlankView } from 'src/sections/blank/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Item with subpaths - ${CONFIG.appName}` };
+export const metadata = { title: `Item with subpaths` };
 
 export default function Page() {
   return (

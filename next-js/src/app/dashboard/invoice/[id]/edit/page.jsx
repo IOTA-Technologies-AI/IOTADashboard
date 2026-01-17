@@ -5,7 +5,7 @@ import { InvoiceEditView } from 'src/sections/invoice/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Invoice edit | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Invoice edit` };
 
 export default async function Page({ params }) {
   const { id } = await params;

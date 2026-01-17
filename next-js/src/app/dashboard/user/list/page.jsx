@@ -4,7 +4,7 @@ import { UserListView } from 'src/sections/user/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `User list | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `User list` };
 
 export default function Page() {
   return <UserListView />;

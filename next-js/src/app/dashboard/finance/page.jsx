@@ -6,7 +6,7 @@ import { OverviewFinanceView } from 'src/sections/overview/finance/view/overview
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Finance - ${CONFIG.appName}` };
+export const metadata = { title: `Finance` };
 
 export default function Page() {
   return <OverviewFinanceView />;

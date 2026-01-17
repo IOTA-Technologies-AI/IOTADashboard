@@ -4,7 +4,7 @@ import { IntegrationListView } from 'src/sections/integration/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Integrations | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Integrations` };
 
 export default function Page() {
   return <IntegrationListView />;

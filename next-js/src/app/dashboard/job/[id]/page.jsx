@@ -5,7 +5,7 @@ import { JobDetailsView } from 'src/sections/job/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Job details | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Job details` };
 
 export default async function Page({ params }) {
   const { id } = params;

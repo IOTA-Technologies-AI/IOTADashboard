@@ -4,7 +4,7 @@ import { DatePickersView } from 'src/sections/_examples/mui/date-pickers-view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Date pickers | MUI - ${CONFIG.appName}` };
+export const metadata = { title: `Date pickers | MUI` };
 
 export default function Page() {
   return <DatePickersView />;

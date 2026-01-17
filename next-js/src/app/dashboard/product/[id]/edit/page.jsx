@@ -6,7 +6,7 @@ import { ProductEditView } from 'src/sections/product/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Product edit | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Product edit` };
 
 export default async function Page({ params }) {
   const { id } = await params;

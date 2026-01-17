@@ -4,7 +4,7 @@ import { FirebaseVerifyView } from 'src/auth/view/firebase';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Verify | Firebase - ${CONFIG.appName}` };
+export const metadata = { title: `Verify | Firebase` };
 
 export default function Page() {
   return <FirebaseVerifyView />;

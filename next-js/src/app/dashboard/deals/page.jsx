@@ -5,7 +5,7 @@ import { DealListView } from 'src/sections/deals/view/deal-list-view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Deals | Dashboard - ${CONFIG.appName}` };
+export const metadata = { title: `Deals` };
 
 export default async function Page() {
   const deals = await getDeals();
