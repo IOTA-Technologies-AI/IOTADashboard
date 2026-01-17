@@ -6,7 +6,7 @@ import { getDeal } from 'src/actions/deals';
 import { DealDetailsView } from 'src/sections/deals/view/deal-details-view';
 
 export const metadata = {
-  title: `Deal Details``,
+  title: `Deal Details`,
 };
 
 export default async function Page({ params }) {

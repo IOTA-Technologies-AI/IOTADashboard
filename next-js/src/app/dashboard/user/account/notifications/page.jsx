@@ -5,7 +5,7 @@ import { AccountNotificationsView } from 'src/sections/account/view';
 // ----------------------------------------------------------------------
 
 export const metadata = {
-  title: `Account notifications settings``,
+  title: `Account notifications settings`,
 };
 
 export default function Page() {
