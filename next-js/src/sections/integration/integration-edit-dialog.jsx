@@ -95,8 +95,13 @@ export function IntegrationEditDialog({ open, onClose, integration, onSaveSucces
 
     try {
       const result = await testIntegrationConnection(integration.name, integration.type);
-      setTestResult({ success: true, message: result.message || 'Connection successful!' });
-      toast.success('Connection test passed!');
+      if (result.success) {
+        setTestResult({ success: true, message: result.message || 'Connection successful!' });
+        toast.success('Connection test passed!');
+      } else {
+        setTestResult({ success: false, message: result.message || 'Connection failed.' });
+        toast.error(result.message || 'Connection test failed');
+      }
     } catch (error) {
       setTestResult({
         success: false,
