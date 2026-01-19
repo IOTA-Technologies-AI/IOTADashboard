@@ -77,12 +77,6 @@ export function PermissionGuard({ children }) {
         return;
       }
 
-      // Always-allowed paths don't need permission check
-      if (isAlwaysAllowed) {
-        setPermissionsLoading(false);
-        return;
-      }
-
       setPermissionsLoading(true);
 
       try {
@@ -104,7 +98,7 @@ export function PermissionGuard({ children }) {
     };
 
     loadPermissions();
-  }, [role, userEmail, user?.id, isAlwaysAllowed]);
+  }, [role, userEmail, user?.id]);
 
   // Show loading screen while auth or permissions are loading
   if (authLoading || permissionsLoading) {
@@ -124,11 +118,17 @@ export function PermissionGuard({ children }) {
   // Check if user has permission for current path
   const hasPermission = hasPathPermission(allowedPaths, pathname);
 
-  // If no permission, redirect to 403 and don't render
+  // If no permission, redirect to 403 and BLOCK RENDERING
+  useEffect(() => {
+    if (!hasPermission && !authLoading && !permissionsLoading) {
+      console.warn('[PermissionGuard] Access denied to:', pathname);
+      router.replace(`${paths.page403}?returnTo=${encodeURIComponent(pathname)}`);
+    }
+  }, [hasPermission, pathname, router, authLoading, permissionsLoading]);
+
+  // NEVER render children if no permission - always show splash screen
   if (!hasPermission) {
-    console.warn('[PermissionGuard] Access denied to:', pathname);
-    router.replace(`${paths.page403}?returnTo=${encodeURIComponent(pathname)}`);
-    return <SplashScreen />; // Show loading while redirecting
+    return <SplashScreen />; // Keep showing loading until redirect completes
   }
 
   // User has permission - render the page
