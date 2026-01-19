@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import axios from 'axios';
+import { useMemo, useState, useEffect } from 'react';
 
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
@@ -17,11 +18,10 @@ import Autocomplete from '@mui/material/Autocomplete';
 
 import { paths } from 'src/routes/paths';
 
-import axios from 'axios';
 import {
   getPageAccessForUser,
-  removePageAccessForUser,
   savePageAccessForUser,
+  removePageAccessForUser,
   clearUserNavPermissionCache,
 } from 'src/utils/pageAccess';
 
@@ -30,6 +30,7 @@ import { supabase } from 'src/lib/supabase';
 import { navData as dashboardNavData } from 'src/layouts/nav-config-dashboard';
 
 import { RoleGuard } from 'src/auth/guard';
+import { useAuthContext } from 'src/auth/hooks';
 
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'https://staging-iotaapiserver-s572.encr.app/';
@@ -125,6 +126,8 @@ export default function UserPageAccess() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [selectedUserId, setSelectedUserId] = useState('');
+
+  const { user: currentUser } = useAuthContext();
 
   const navPages = useMemo(() => flattenNav(dashboardNavData), []);
   const routePages = useMemo(() => flattenRoutes(paths.dashboard), []);
@@ -283,27 +286,37 @@ export default function UserPageAccess() {
 
       if (dbError) throw dbError;
 
-      // 2. Save to userNavPermissions table via backend API
-      try {
-        await axios.post(`${API_BASE_URL}user-nav-permissions/set`, {
-          userId: user.id,
-          paths: user.paths,
-        });
-        console.log('[PageAccess] Successfully saved to userNavPermissions table');
-      } catch (apiError) {
-        console.warn('[PageAccess] Failed to save to userNavPermissions table:', apiError);
-        // Continue anyway - at least we saved to users table
+      // 2. Save to userNavPermissions table via backend API (NEW ENDPOINT)
+      const apiResponse = await axios.post(`${API_BASE_URL}user-nav-permissions/set-by-paths`, {
+        userId: user.id,
+        paths: user.paths,
+        grantedBy: currentUser?.email || 'unknown',
+      });
+
+      console.log('[PageAccess] API Response:', apiResponse.data);
+
+      // Check if backend operation actually succeeded
+      if (!apiResponse.data?.success) {
+        const errorMsg = apiResponse.data?.message || 'Backend operation failed';
+        throw new Error(errorMsg);
       }
+
+      console.log(
+        `[PageAccess] Successfully saved ${apiResponse.data.count} permissions to userNavPermissions table`
+      );
 
       // 3. Save to local storage cache and clear old cache
       savePageAccessForUser(user.id, user.paths);
       clearUserNavPermissionCache(user.id);
 
-      setMessage('Access updated successfully.');
+      setMessage(
+        apiResponse.data.message ||
+          `Access updated successfully. Saved ${apiResponse.data.count} permissions.`
+      );
     } catch (err) {
       console.error('Failed to save user access', err);
-      setError('Unable to save to Supabase. Changes are saved locally only.');
-      savePageAccessForUser(user.id, user.paths);
+      setError(err.message || 'Unable to save permissions. Please try again or contact support.');
+      // Don't save to local cache if backend failed
     } finally {
       setLoading(false);
     }
