@@ -27,6 +27,7 @@ import { Logo } from 'src/components/logo';
 import { useSettingsContext } from 'src/components/settings';
 
 import { useAuthContext } from 'src/auth/hooks';
+import { PermissionGuard } from 'src/auth/guard';
 
 import { NavMobile } from './nav-mobile';
 import { VerticalDivider } from './content';
@@ -158,21 +159,8 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
     );
   };
 
-  // Block direct URL access only after permissions have loaded
-  const isBlockedByPath =
-    permissionsLoaded &&
-    !isDashboardHome &&
-    normalizedRole !== 'superAdmin' &&
-    pathname &&
-    Array.isArray(allowedPaths) &&
-    allowedPaths.length > 0 &&
-    !isPathnameAllowed();
-
-  useEffect(() => {
-    if (isBlockedByPath) {
-      router.replace(paths.page403);
-    }
-  }, [isBlockedByPath, router]);
+  // Note: Permission blocking is now handled by PermissionGuard component
+  // which wraps the page content and prevents rendering before permission check
 
   const settings = useSettingsContext();
 
@@ -369,13 +357,13 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
   }
 
   // Block access if user doesn't have permission
-  if (isBlockedByPath) {
-    return null;
-  }
-
   const renderFooter = () => null;
 
-  const renderMain = () => <MainSection {...slotProps?.main}>{children}</MainSection>;
+  const renderMain = () => (
+    <MainSection {...slotProps?.main}>
+      <PermissionGuard>{children}</PermissionGuard>
+    </MainSection>
+  );
 
   return (
     <LayoutSection

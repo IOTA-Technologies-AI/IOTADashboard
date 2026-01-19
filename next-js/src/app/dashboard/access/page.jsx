@@ -254,15 +254,27 @@ export default function AccessControlPage() {
       });
 
       // Use email as the user identifier
-      await setUserNavPermissions({
+      const response = await setUserNavPermissions({
         userId: selectedUser.email,
         permissions,
         grantedBy: currentUser?.email,
       });
 
-      setSuccessMessage(`Permissions saved successfully for ${selectedUser.name}`);
+      console.log('[AccessControl] API Response:', response);
+
+      // Check if the operation actually succeeded
+      if (!response.success) {
+        const errorMsg = response.message || 'Failed to save permissions';
+        throw new Error(errorMsg);
+      }
+
+      setSuccessMessage(
+        response.message ||
+          `Permissions saved successfully for ${selectedUser.name}. Saved ${response.count} permissions.`
+      );
       await loadUserPermissions(selectedUser.email);
     } catch (err) {
+      console.error('[AccessControl] Save error:', err);
       setError(err?.message || 'Failed to save permissions');
     } finally {
       setSaving(false);
