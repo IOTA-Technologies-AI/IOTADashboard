@@ -17,10 +17,12 @@ import Autocomplete from '@mui/material/Autocomplete';
 
 import { paths } from 'src/routes/paths';
 
+import axios from 'axios';
 import {
   getPageAccessForUser,
   removePageAccessForUser,
   savePageAccessForUser,
+  clearUserNavPermissionCache,
 } from 'src/utils/pageAccess';
 
 import { _userList } from 'src/_mock';
@@ -28,6 +30,9 @@ import { supabase } from 'src/lib/supabase';
 import { navData as dashboardNavData } from 'src/layouts/nav-config-dashboard';
 
 import { RoleGuard } from 'src/auth/guard';
+
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL || 'https://staging-iotaapiserver-s572.encr.app/';
 
 const baseFromPath = (pathname) => {
   const parts = (pathname || '').split('/').filter(Boolean);
@@ -165,25 +170,49 @@ export default function UserPageAccess() {
 
         if (dbError) throw dbError;
 
-        const mapped = (data || []).map((user) => {
-          const role = normalizeRole(user.role, user.role_id);
-          const storedPaths = getPageAccessForUser(user.id);
-          const dbPaths = Array.isArray(user.allowed_paths) ? user.allowed_paths : [];
-          const userPaths = storedPaths?.length
-            ? storedPaths
-            : dbPaths.length
-              ? dbPaths
-              : computeRoleDefaults(role, allPages);
+        const mapped = await Promise.all(
+          (data || []).map(async (user) => {
+            const role = normalizeRole(user.role, user.role_id);
 
-          return {
-            id: user.id,
-            name: user.full_name || user.email || 'User',
-            email: user.email,
-            role,
-            roleId: user.role_id,
-            paths: userPaths,
-          };
-        });
+            // Try to fetch from userNavPermissions table first
+            let userPaths = [];
+            try {
+              const response = await axios.get(
+                `${API_BASE_URL}user-nav-permissions/${encodeURIComponent(user.id)}/paths`
+              );
+              userPaths = response.data?.paths || [];
+              console.log(
+                `[PageAccess] Loaded ${userPaths.length} paths for user ${user.id} from API`
+              );
+            } catch (apiError) {
+              console.warn(
+                `[PageAccess] Failed to fetch paths from API for user ${user.id}:`,
+                apiError.message
+              );
+            }
+
+            // Fallback chain
+            const storedPaths = getPageAccessForUser(user.id);
+            const dbPaths = Array.isArray(user.allowed_paths) ? user.allowed_paths : [];
+
+            const finalPaths = userPaths.length
+              ? userPaths
+              : storedPaths?.length
+                ? storedPaths
+                : dbPaths.length
+                  ? dbPaths
+                  : computeRoleDefaults(role, allPages);
+
+            return {
+              id: user.id,
+              name: user.full_name || user.email || 'User',
+              email: user.email,
+              role,
+              roleId: user.role_id,
+              paths: finalPaths,
+            };
+          })
+        );
 
         if (!mapped.length) {
           setRows(buildMockRows(allPages));
@@ -201,7 +230,7 @@ export default function UserPageAccess() {
     };
 
     loadUsers();
-  }, []);
+  }, [allPages]);
 
   useEffect(() => {
     if (!selectedUserId && rows.length) {
@@ -242,6 +271,7 @@ export default function UserPageAccess() {
     setError('');
 
     try {
+      // 1. Update users table with role and allowed_paths
       const { error: dbError } = await supabase
         .from('users')
         .update({
@@ -253,7 +283,22 @@ export default function UserPageAccess() {
 
       if (dbError) throw dbError;
 
+      // 2. Save to userNavPermissions table via backend API
+      try {
+        await axios.post(`${API_BASE_URL}user-nav-permissions/set`, {
+          userId: user.id,
+          paths: user.paths,
+        });
+        console.log('[PageAccess] Successfully saved to userNavPermissions table');
+      } catch (apiError) {
+        console.warn('[PageAccess] Failed to save to userNavPermissions table:', apiError);
+        // Continue anyway - at least we saved to users table
+      }
+
+      // 3. Save to local storage cache and clear old cache
       savePageAccessForUser(user.id, user.paths);
+      clearUserNavPermissionCache(user.id);
+
       setMessage('Access updated successfully.');
     } catch (err) {
       console.error('Failed to save user access', err);
