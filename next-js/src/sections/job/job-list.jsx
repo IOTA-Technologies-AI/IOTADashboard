@@ -14,6 +14,7 @@ import { paths } from 'src/routes/paths';
 import { useAuthContext } from 'src/auth/hooks';
 
 import { deleteJob, approveJob, rejectJob } from 'src/actions/jobs';
+import { publishToWebflow } from 'src/actions/webflow';
 
 import { toast } from 'src/components/snackbar';
 import { ConfirmDialog } from 'src/components/custom-dialog';
@@ -31,6 +32,7 @@ export function JobList({ jobs: initialJobs }) {
   const [rejectId, setRejectId] = useState(null);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
+  const [publishLoading, setPublishLoading] = useState(false);
 
   const { user } = useAuthContext();
 
@@ -107,8 +109,35 @@ export function JobList({ jobs: initialJobs }) {
       setRejectionReason('');
     }
   }, [rejectId, rejectionReason, user?.email, user?.displayName]);
+const handlePublishToWebflow = useCallback(async () => {
+    setPublishLoading(true);
+    try {
+      await publishToWebflow();
+      toast.success('All staged items published to Webflow successfully!');
+    } catch (error) {
+      console.error('Failed to publish to Webflow:', error);
+      toast.error(error.message || 'Failed to publish to Webflow');
+    } finally {
+      setPublishLoading(false);
+    }
+  }, []);
 
   return (
+    <>
+      {isAdmin && (
+        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handlePublishToWebflow}
+            disabled={publishLoading}
+            sx={{ minWidth: 200 }}
+          >
+            {publishLoading ? 'Publishing...' : 'Publish All to Webflow'}
+          </Button>
+        </Box>
+      )}
+rn (
     <>
       <Box
         sx={{
