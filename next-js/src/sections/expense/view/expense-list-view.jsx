@@ -26,13 +26,11 @@ import { EXPENSE_TYPES } from 'src/utils/constants/enums';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
-import { useAuthContext } from 'src/auth/hooks';
-
+import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { CustomPopover } from 'src/components/custom-popover';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
-import { toast } from 'src/components/snackbar';
 import {
   useTable,
   emptyRows,
@@ -42,6 +40,8 @@ import {
   TableHeadCustom,
   TablePaginationCustom,
 } from 'src/components/table';
+
+import { useAuthContext } from 'src/auth/hooks';
 
 import { ExpenseAnalytic } from '../expense-analytic';
 import { ExpenseTableRow } from '../expense-table-row';
@@ -79,13 +79,50 @@ export function ExpenseListView({ expenses: initialExpenses = [] }) {
 
   const table = useTable({ defaultRowsPerPage: 25 });
   const router = useRouter();
-  const [expenses] = useState(() =>
+  const [expenses, setExpenses] = useState(() =>
     initialExpenses.map((expense) => ({
       ...expense,
       expenseTypeDesc:
         EXPENSE_TYPES.find((type) => type.id === expense.expenseType)?.label ||
         `Type ${expense.expenseType}`,
     }))
+  );
+
+  // Function to refresh a specific expense from the backend
+  const handleRefreshExpense = useCallback(
+    async (referenceId) => {
+      try {
+        // Fetch the updated expense from backend
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL}/supabase/expenses/${referenceId}`
+        );
+
+        if (response.ok) {
+          const updatedExpense = await response.json();
+
+          // Update the expense in local state
+          setExpenses((prevExpenses) =>
+            prevExpenses.map((exp) =>
+              exp.referenceId === referenceId
+                ? {
+                    ...updatedExpense,
+                    expenseTypeDesc:
+                      EXPENSE_TYPES.find((type) => type.id === updatedExpense.expenseType)?.label ||
+                      `Type ${updatedExpense.expenseType}`,
+                  }
+                : exp
+            )
+          );
+
+          console.log('[ExpenseList] Expense refreshed:', referenceId);
+        }
+      } catch (error) {
+        console.error('[ExpenseList] Failed to refresh expense:', error);
+        // Fallback to full page refresh if individual refresh fails
+        router.refresh();
+      }
+    },
+    [router]
   );
   const filters = useSetState({
     name: '',
@@ -389,7 +426,7 @@ export function ExpenseListView({ expenses: initialExpenses = [] }) {
                     canEdit={canEdit}
                     onEditRow={() => handleEditRow(row.referenceId)}
                     onViewRow={() => handleViewRow(row.referenceId)}
-                    onRefresh={() => router.refresh()}
+                    onRefresh={() => handleRefreshExpense(row.referenceId)}
                   />
                 ))}
 

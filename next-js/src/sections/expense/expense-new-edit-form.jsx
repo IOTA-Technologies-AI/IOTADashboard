@@ -62,7 +62,11 @@ const ExpenseSchema = zod.object({
   expenseDate: zod.string().min(1, { message: 'Expense date is required!' }),
   originalExpenseAmount: zod.number().min(0.01, { message: 'Amount must be greater than 0!' }),
   expenseBy: zod.string().min(1, { message: 'Expense by is required!' }),
-  costcenterId: zod.union([zod.string(), zod.number()]).optional().nullable(),
+  costcenterId: zod
+    .union([zod.string(), zod.number()])
+    .refine((val) => val !== '' && val !== null && val !== undefined, {
+      message: 'Cost Center is required!',
+    }),
   expenseSettlementNotes: zod.string().optional(),
   originalExpenseCurrency: zod.string().min(1, { message: 'Currency is required!' }),
   externalTransactionId: zod.string().optional(),
@@ -708,6 +712,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
           label="Cost Center"
           InputLabelProps={{ shrink: true }}
           displayEmpty
+          required
         >
           <MenuItem value="">
             <em>Select cost center</em>
