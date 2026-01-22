@@ -21,6 +21,7 @@ import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
+import { apiHelper } from 'src/utils/apiHelper';
 import { fDate, fIsAfter } from 'src/utils/format-time';
 import { EXPENSE_TYPES } from 'src/utils/constants/enums';
 
@@ -92,14 +93,11 @@ export function ExpenseListView({ expenses: initialExpenses = [] }) {
   const handleRefreshExpense = useCallback(
     async (referenceId) => {
       try {
-        // Fetch the updated expense from backend
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_BASE_URL}/supabase/expenses/${referenceId}`
-        );
+        console.log('[ExpenseList] Refreshing expense:', referenceId);
+        // Fetch the updated expense from backend using apiHelper
+        const updatedExpense = await apiHelper.getExpense(referenceId);
 
-        if (response.ok) {
-          const updatedExpense = await response.json();
-
+        if (updatedExpense) {
           // Update the expense in local state
           setExpenses((prevExpenses) =>
             prevExpenses.map((exp) =>
@@ -114,7 +112,11 @@ export function ExpenseListView({ expenses: initialExpenses = [] }) {
             )
           );
 
-          console.log('[ExpenseList] Expense refreshed:', referenceId);
+          console.log('[ExpenseList] Expense refreshed successfully:', referenceId, updatedExpense);
+        } else {
+          console.warn('[ExpenseList] No expense data returned for:', referenceId);
+          // Fallback to full page refresh
+          router.refresh();
         }
       } catch (error) {
         console.error('[ExpenseList] Failed to refresh expense:', error);

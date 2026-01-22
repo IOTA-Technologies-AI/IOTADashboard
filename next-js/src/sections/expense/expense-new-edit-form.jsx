@@ -62,11 +62,16 @@ const ExpenseSchema = zod.object({
   expenseDate: zod.string().min(1, { message: 'Expense date is required!' }),
   originalExpenseAmount: zod.number().min(0.01, { message: 'Amount must be greater than 0!' }),
   expenseBy: zod.string().min(1, { message: 'Expense by is required!' }),
-  costcenterId: zod
-    .union([zod.string(), zod.number()])
-    .refine((val) => val !== '' && val !== null && val !== undefined, {
+  costcenterId: zod.union([zod.string(), zod.number()]).refine(
+    (val) => {
+      // Convert to string and check if it's a valid non-empty value
+      const strVal = String(val).trim();
+      return strVal !== '' && strVal !== 'null' && strVal !== 'undefined';
+    },
+    {
       message: 'Cost Center is required!',
-    }),
+    }
+  ),
   expenseSettlementNotes: zod.string().optional(),
   originalExpenseCurrency: zod.string().min(1, { message: 'Currency is required!' }),
   externalTransactionId: zod.string().optional(),
@@ -898,16 +903,24 @@ export function ExpenseNewEditForm({ currentExpense }) {
         Cancel
       </LoadingButton>
 
-      <LoadingButton
-        fullWidth
-        type="submit"
-        size="large"
-        variant="contained"
-        loading={isSubmitting}
-        disabled={uploadingAttachment || (currentExpense ? !isSuperAdmin : false)}
-      >
-        {currentExpense ? 'Approve Expense' : 'Create Expense'}
-      </LoadingButton>
+      {/* Only show submit button if:
+          1. Creating new expense (no currentExpense), OR
+          2. Editing and user is superAdmin AND expense is pending approval */}
+      {(!currentExpense ||
+        (isSuperAdmin &&
+          (currentExpense?.expenseApprovalStatus === null ||
+            currentExpense?.expenseApprovalStatus === undefined))) && (
+        <LoadingButton
+          fullWidth
+          type="submit"
+          size="large"
+          variant="contained"
+          loading={isSubmitting}
+          disabled={uploadingAttachment}
+        >
+          {currentExpense ? 'Approve Expense' : 'Create Expense'}
+        </LoadingButton>
+      )}
     </Box>
   );
 
