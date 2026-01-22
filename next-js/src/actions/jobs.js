@@ -124,6 +124,14 @@ export async function approveJob(jobId, approvedBy) {
       id: jobId,
       approvedBy,
     });
+
+    // Check if the backend operation actually succeeded
+    if (!response.data?.success) {
+      const errorMessage = response.data?.message || 'Job approval failed';
+      console.error(`Job approval failed:`, errorMessage);
+      throw new Error(errorMessage);
+    }
+
     return response.data;
   } catch (error) {
     console.error(`Error approving job ${jobId}:`, error);
@@ -138,6 +146,14 @@ export async function rejectJob(jobId, rejectedBy, rejectionReason) {
       rejectedBy,
       rejectionReason,
     });
+
+    // Check if the backend operation actually succeeded
+    if (!response.data?.success) {
+      const errorMessage = response.data?.message || 'Job rejection failed';
+      console.error(`Job rejection failed:`, errorMessage);
+      throw new Error(errorMessage);
+    }
+
     return response.data;
   } catch (error) {
     console.error(`Error rejecting job ${jobId}:`, error);
