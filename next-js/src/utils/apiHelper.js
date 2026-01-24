@@ -1,10 +1,6 @@
 const axios = require('axios');
 
 const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app/';
-const API_KEY =
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2c2ZrcXB2dXRmYm15cWVoc3dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU2NzM2OTMsImV4cCI6MjA1MTI0OTY5M30.DeNT5NU3w_ayehNfJEZysbKS0SkDq19z5kDRniPyh7o';
-const AUTH_TOKEN =
-  'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR2c2ZrcXB2dXRmYm15cWVoc3dqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzU2NzM2OTMsImV4cCI6MjA1MTI0OTY5M30.DeNT5NU3w_ayehNfJEZysbKS0SkDq19z5kDRniPyh7o';
 
 const PARTER_API_BASE_URL = 'https://staging-iwtapiserver-6x92.encr.app/getTotalInvoiceAmounts';
 const PARTER_AUTH_TOKEN = 'Bearer dGVzdEB0ZXN0LmNvbTpwYXN29yZDEyMyE=';
@@ -59,6 +55,40 @@ export async function getExpenseByExpenseId(id) {
     return response.data?.expense || response.data || null;
   } catch (error) {
     console.error('Failed to fetch expense', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// Get single expense by referenceId with permission check
+export async function getExpense(referenceId) {
+  if (!referenceId) return null;
+
+  try {
+    console.log(`📤 Fetching expense ${referenceId} with permission check`);
+    const userContext = getUserContext();
+
+    const config = {
+      method: 'get',
+      maxBodyLength: Infinity,
+      url: `${API_BASE_URL}expenses/${referenceId}`,
+      headers: {},
+      params: userContext || {}, // Include user context for permission check
+    };
+
+    return axios
+      .request(config)
+      .then((response) => response.data?.expense || null)
+      .catch((error) => {
+        console.error('❌ Get expense API error:', error.response?.data || error.message);
+        if (error.response?.status === 403) {
+          throw new Error('PERMISSION_DENIED: You do not have permission to view this expense');
+        }
+        throw new Error(
+          error.response?.data?.message || error.message || 'Failed to fetch expense'
+        );
+      });
+  } catch (error) {
+    console.error('❌ Failed to fetch expense:', error);
     throw error;
   }
 }
@@ -355,7 +385,9 @@ export async function getExpenses() {
           throw new Error('PERMISSION_DENIED: You do not have permission to view expenses');
         }
         // For other errors, also throw instead of returning empty array
-        throw new Error(error.response?.data?.message || error.message || 'Failed to fetch expenses');
+        throw new Error(
+          error.response?.data?.message || error.message || 'Failed to fetch expenses'
+        );
       });
   } catch (error) {
     console.error('❌ Failed to fetch expense:', error);
