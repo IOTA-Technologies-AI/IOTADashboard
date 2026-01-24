@@ -109,7 +109,7 @@ export function JobList({ jobs: initialJobs }) {
       setRejectionReason('');
     }
   }, [rejectId, rejectionReason, user?.email, user?.displayName]);
-const handlePublishToWebflow = useCallback(async () => {
+  const handlePublishToWebflow = useCallback(async () => {
     setPublishLoading(true);
     try {
       await publishToWebflow();
@@ -137,8 +137,7 @@ const handlePublishToWebflow = useCallback(async () => {
           </Button>
         </Box>
       )}
-rn (
-    <>
+
       <Box
         sx={{
           gap: 3,

@@ -9,6 +9,38 @@ const AUTH_TOKEN =
 const PARTER_API_BASE_URL = 'https://staging-iwtapiserver-6x92.encr.app/getTotalInvoiceAmounts';
 const PARTER_AUTH_TOKEN = 'Bearer dGVzdEB0ZXN0LmNvbTpwYXN29yZDEyMyE=';
 
+/**
+ * Get user context from localStorage (set by auth provider)
+ * Returns user email, role, and roleId for permission checks
+ */
+function getUserContext() {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    // Get user data from localStorage (adjust key based on your auth implementation)
+    const userStr = localStorage.getItem('user');
+    if (!userStr) return null;
+
+    const user = JSON.parse(userStr);
+    return {
+      userEmail: user?.email,
+      role:
+        user?.role ||
+        (user?.roleId === 4
+          ? 'superAdmin'
+          : user?.roleId === 3
+            ? 'admin'
+            : user?.roleId === 2
+              ? 'manager'
+              : 'regular'),
+      roleId: user?.roleId || 1,
+    };
+  } catch (error) {
+    console.warn('[apiHelper] Failed to get user context:', error);
+    return null;
+  }
+}
+
 export async function getExpenseById(id) {
   if (!id) return null;
   try {
@@ -299,11 +331,14 @@ export async function createVendor(vendorData) {
 
 export async function getExpenses() {
   try {
+    const userContext = getUserContext();
+
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
       url: `${API_BASE_URL}expenses`,
       headers: {},
+      params: userContext || {}, // Include user context for permission check
     };
 
     return axios
@@ -314,21 +349,29 @@ export async function getExpenses() {
       })
       .catch((error) => {
         console.error('❌ Expenses API error:', error.response?.data || error.message);
+        // Check if it's a permission error
+        if (error.response?.status === 403) {
+          console.error('🔒 Permission denied: User does not have access to expenses');
+          throw new Error('You do not have permission to view expenses');
+        }
         return [];
       });
   } catch (error) {
     console.error('❌ Failed to fetch expenses:', error);
-    return [];
+    throw error;
   }
 }
 
 export async function getExpense(referenceId) {
   try {
+    const userContext = getUserContext();
+
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
       url: `${API_BASE_URL}expenses/${referenceId}`,
       headers: {},
+      params: userContext || {}, // Include user context for permission check
     };
 
     return axios
@@ -336,11 +379,14 @@ export async function getExpense(referenceId) {
       .then((response) => response.data.expense)
       .catch((error) => {
         console.error('❌ Expense API error:', error.response?.data || error.message);
+        if (error.response?.status === 403) {
+          throw new Error('You do not have permission to view this expense');
+        }
         return null;
       });
   } catch (error) {
     console.error('❌ Failed to fetch expense:', error);
-    return null;
+    throw error;
   }
 }
 
@@ -377,6 +423,9 @@ export async function createExpense(expenseData) {
   try {
     console.log('📤 Creating expense:', expenseData);
 
+    const userContext = getUserContext();
+    const dataWithContext = { ...expenseData, ...userContext };
+
     let config = {
       method: 'post',
       maxBodyLength: Infinity,
@@ -384,7 +433,7 @@ export async function createExpense(expenseData) {
       headers: {
         'Content-Type': 'application/json',
       },
-      data: JSON.stringify(expenseData),
+      data: JSON.stringify(dataWithContext),
     };
 
     return axios
@@ -395,6 +444,9 @@ export async function createExpense(expenseData) {
       })
       .catch((error) => {
         console.error('❌ Create expense error:', error.response?.data || error.message);
+        if (error.response?.status === 403) {
+          throw new Error('You do not have permission to create expenses');
+        }
         throw error;
       });
   } catch (error) {
@@ -411,7 +463,9 @@ export async function updateExpense(referenceId, expenseData) {
       typeOf: typeof expenseData.expenseApprovalStatus,
     });
 
-    const jsonString = JSON.stringify(expenseData);
+    const userContext = getUserContext();
+    const dataWithContext = { ...expenseData, ...userContext, referenceId };
+    const jsonString = JSON.stringify(dataWithContext);
     console.log('📤 JSON string being sent:', jsonString);
 
     let config = {
@@ -432,6 +486,9 @@ export async function updateExpense(referenceId, expenseData) {
       })
       .catch((error) => {
         console.error('❌ Update expense error:', error.response?.data || error.message);
+        if (error.response?.status === 403) {
+          throw new Error('You do not have permission to update expenses');
+        }
         throw error;
       });
   } catch (error) {
