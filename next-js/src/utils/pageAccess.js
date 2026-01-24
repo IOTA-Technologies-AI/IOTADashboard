@@ -250,12 +250,7 @@ export const fetchUserNavPermissions = async (userId, forceRefresh = false) => {
 
     console.log('[pageAccess] Fetching fresh user nav permissions for userId:', userId);
     const response = await axios.get(
-      `${API_BASE_URL}user-nav-permissions/${encodeURIComponent(userId)}/paths`,
-      {
-        headers: {
-          'Cache-Control': 'no-cache', // Prevent HTTP caching
-        },
-      }
+      `${API_BASE_URL}user-nav-permissions/${encodeURIComponent(userId)}/paths`
     );
 
     const paths = response.data?.paths || [];
