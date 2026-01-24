@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useRef, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Link from '@mui/material/Link';
@@ -58,7 +58,15 @@ export function SupabaseSignInView() {
     try {
       // Preserve the returnTo parameter to redirect back after login
       const nextPath = returnTo || paths.dashboard.root;
-      const redirectTo = `https://dashboard.iotatechnologies.io/auth/v1/callback?next=${encodeURIComponent(nextPath)}`;
+      // Use current origin to support all environments (localhost, staging, production)
+      const baseUrl =
+        typeof window !== 'undefined'
+          ? window.location.origin
+          : 'https://dashboard.iotatechnologies.io';
+      const redirectTo = `${baseUrl}/auth/v1/callback?next=${encodeURIComponent(nextPath)}`;
+
+      console.log('[Auth] OAuth redirect URL:', redirectTo);
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'azure',
         options: {
