@@ -9,7 +9,7 @@ const ROLE_STORAGE_KEY = 'pageAccessByRole';
 const USER_PERM_STORAGE_KEY = 'userNavPermissions';
 const CACHE_TTL_KEY = 'pageAccessCacheTTL';
 const USER_CACHE_TTL_KEY = 'userNavPermissionsCacheTTL';
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
+const CACHE_TTL_MS = 30 * 1000; // 30 seconds cache - short TTL to ensure permissions refresh quickly
 
 const safeParse = (value) => {
   try {
@@ -227,22 +227,48 @@ export const clearUserNavPermissionCache = (userId) => {
 };
 
 // Fetch user-specific nav permissions from backend
-export const fetchUserNavPermissions = async (userId) => {
-  if (!userId) return [];
+export const fetchUserNavPermissions = async (userId, forceRefresh = false) => {
+  if (!userId) {
+    console.warn('[pageAccess] No userId provided to fetchUserNavPermissions');
+    return [];
+  }
+
   try {
-    console.log('[pageAccess] Fetching user nav permissions for userId:', userId);
-    const response = await axios.get(
-      `${API_BASE_URL}user-nav-permissions/${encodeURIComponent(userId)}/paths`
-    );
-    const paths = response.data?.paths || [];
-    console.log('[pageAccess] User nav permissions response:', paths.length, 'paths');
-    if (paths.length > 0) {
-      saveUserNavPermissionPaths(userId, paths);
-      setUserCacheTTL(userId);
+    // Check cache first unless force refresh
+    if (!forceRefresh && isUserCacheValid(userId)) {
+      const cached = getUserNavPermissionPaths(userId);
+      if (cached && cached.length > 0) {
+        console.log(
+          '[pageAccess] Using cached permissions for:',
+          userId,
+          '- paths:',
+          cached.length
+        );
+        return cached;
+      }
     }
+
+    console.log('[pageAccess] Fetching fresh user nav permissions for userId:', userId);
+    const response = await axios.get(
+      `${API_BASE_URL}user-nav-permissions/${encodeURIComponent(userId)}/paths`,
+      {
+        headers: {
+          'Cache-Control': 'no-cache', // Prevent HTTP caching
+        },
+      }
+    );
+
+    const paths = response.data?.paths || [];
+    console.log('[pageAccess] Fetched', paths.length, 'permission paths:', paths);
+
+    // Always save to cache, even if empty (to know user has no permissions)
+    saveUserNavPermissionPaths(userId, paths);
+    setUserCacheTTL(userId);
+
     return paths;
   } catch (error) {
-    console.warn('[pageAccess] Failed to fetch user nav permissions:', error.message);
+    console.error('[pageAccess] Failed to fetch user nav permissions:', error.message);
+    // On error, return empty array to be safe (block access)
     return [];
   }
 };

@@ -44,9 +44,19 @@ export function PermissionGuard({ children }) {
 
   const [permissionsLoading, setPermissionsLoading] = useState(true);
   const [allowedPaths, setAllowedPaths] = useState([]);
+  const [permissionCheckComplete, setPermissionCheckComplete] = useState(false);
 
   const role = useMemo(() => normalizeRole(user?.role, user?.roleId), [user?.role, user?.roleId]);
   const userEmail = user?.email;
+
+  console.log('[PermissionGuard] Current state:', {
+    pathname,
+    userEmail,
+    role,
+    authLoading,
+    permissionsLoading,
+    allowedPathsCount: allowedPaths.length,
+  });
 
   // Always allowed paths - dashboard home and access control
   const baseAlwaysAllowed = useMemo(
@@ -70,67 +80,95 @@ export function PermissionGuard({ children }) {
   // Fetch permissions on mount and when user changes
   useEffect(() => {
     const loadPermissions = async () => {
+      console.log('[PermissionGuard] Loading permissions for:', { userEmail, role });
+
       // SuperAdmin always has access
       if (role === 'superAdmin') {
+        console.log('[PermissionGuard] User is superAdmin - granting full access');
         setAllowedPaths(['*']); // Special marker for all access
         setPermissionsLoading(false);
+        setPermissionCheckComplete(true);
         return;
       }
 
       setPermissionsLoading(true);
+      setPermissionCheckComplete(false);
 
       try {
-        // Fetch user-specific permissions
+        // ALWAYS fetch user-specific permissions using email
         if (userEmail) {
+          console.log('[PermissionGuard] Fetching permissions for email:', userEmail);
           const userPaths = await fetchUserNavPermissions(userEmail);
+          console.log('[PermissionGuard] Fetched paths:', userPaths);
           setAllowedPaths(userPaths || []);
+
+          // If no permissions found, explicitly set empty array to BLOCK access
+          if (!userPaths || userPaths.length === 0) {
+            console.warn('[PermissionGuard] No permissions found for user:', userEmail);
+            setAllowedPaths([]);
+          }
         } else {
-          // Fallback to cached role-based permissions
-          const cachedPaths = resolvePageAccess(user?.id, role);
-          setAllowedPaths(cachedPaths || []);
+          console.warn('[PermissionGuard] No user email available');
+          setAllowedPaths([]);
         }
       } catch (error) {
         console.error('[PermissionGuard] Failed to load permissions:', error);
         setAllowedPaths([]);
       } finally {
         setPermissionsLoading(false);
+        setPermissionCheckComplete(true);
       }
     };
 
-    loadPermissions();
-  }, [role, userEmail, user?.id]);
+    // Only load if we have a user
+    if (user && !authLoading) {
+      loadPermissions();
+    }
+  }, [role, userEmail, user, authLoading]);
 
   // Show loading screen while auth or permissions are loading
-  if (authLoading || permissionsLoading) {
+  if (authLoading || permissionsLoading || !permissionCheckComplete) {
+    console.log('[PermissionGuard] Loading...');
     return <SplashScreen />;
   }
 
   // SuperAdmin has access to everything
   if (role === 'superAdmin') {
+    console.log('[PermissionGuard] SuperAdmin access granted');
     return <>{children}</>;
   }
 
   // Always-allowed paths don't need permission check
   if (isAlwaysAllowed) {
+    console.log('[PermissionGuard] Always-allowed path:', pathname);
     return <>{children}</>;
   }
 
   // Check if user has permission for current path
   const hasPermission = hasPathPermission(allowedPaths, pathname);
 
+  console.log('[PermissionGuard] Permission check result:', {
+    pathname,
+    hasPermission,
+    allowedPaths,
+  });
+
   // If no permission, redirect to 403 and BLOCK RENDERING
   useEffect(() => {
-    if (!hasPermission && !authLoading && !permissionsLoading) {
-      console.warn('[PermissionGuard] Access denied to:', pathname);
+    if (!hasPermission && permissionCheckComplete && !authLoading && !permissionsLoading) {
+      console.error('[PermissionGuard] ACCESS DENIED to:', pathname);
+      console.error('[PermissionGuard] User has no permission. Redirecting to 403.');
       router.replace(`${paths.page403}?returnTo=${encodeURIComponent(pathname)}`);
     }
-  }, [hasPermission, pathname, router, authLoading, permissionsLoading]);
+  }, [hasPermission, pathname, router, authLoading, permissionsLoading, permissionCheckComplete]);
 
   // NEVER render children if no permission - always show splash screen
   if (!hasPermission) {
+    console.warn('[PermissionGuard] Blocking render - no permission for:', pathname);
     return <SplashScreen />; // Keep showing loading until redirect completes
   }
 
   // User has permission - render the page
+  console.log('[PermissionGuard] Access granted to:', pathname);
   return <>{children}</>;
 }
