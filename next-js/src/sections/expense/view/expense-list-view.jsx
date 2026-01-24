@@ -2,7 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { sumBy } from 'es-toolkit';
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { usePopover, useSetState } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
@@ -67,7 +67,7 @@ const TABLE_HEAD = [
 
 // ----------------------------------------------------------------------
 
-export function ExpenseListView({ expenses: initialExpenses = [] }) {
+export function ExpenseListView({ expenses: initialExpenses = [], permissionError = null }) {
   const { user } = useAuthContext();
   const roleIdToName = {
     1: 'regular',
@@ -77,6 +77,16 @@ export function ExpenseListView({ expenses: initialExpenses = [] }) {
   };
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
   const canEdit = normalizedRole === 'superAdmin';
+
+  const [permissionDenied, setPermissionDenied] = useState(!!permissionError);
+
+  // Update permission denied state when prop changes
+  useEffect(() => {
+    if (permissionError) {
+      console.log('🔒 Permission denied state set:', permissionError);
+      setPermissionDenied(true);
+    }
+  }, [permissionError]);
 
   const table = useTable({ defaultRowsPerPage: 25 });
   const router = useRouter();
@@ -437,7 +447,18 @@ export function ExpenseListView({ expenses: initialExpenses = [] }) {
                   emptyRows={emptyRows(table.page, table.rowsPerPage, dataFiltered.length)}
                 />
 
-                <TableNoData notFound={notFound} />
+                {permissionDenied ? (
+                  <TableNoData
+                    notFound
+                    title="Permission Denied"
+                    subTitle="You don't have permission to view expenses. Please contact your administrator."
+                    sx={{
+                      '& .MuiTypography-h6': { color: 'error.main' },
+                    }}
+                  />
+                ) : (
+                  <TableNoData notFound={notFound} />
+                )}
               </TableBody>
             </Table>
           </Scrollbar>

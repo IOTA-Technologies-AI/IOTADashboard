@@ -352,37 +352,10 @@ export async function getExpenses() {
         // Check if it's a permission error
         if (error.response?.status === 403) {
           console.error('🔒 Permission denied: User does not have access to expenses');
-          throw new Error('You do not have permission to view expenses');
+          throw new Error('PERMISSION_DENIED: You do not have permission to view expenses');
         }
-        return [];
-      });
-  } catch (error) {
-    console.error('❌ Failed to fetch expenses:', error);
-    throw error;
-  }
-}
-
-export async function getExpense(referenceId) {
-  try {
-    const userContext = getUserContext();
-
-    let config = {
-      method: 'get',
-      maxBodyLength: Infinity,
-      url: `${API_BASE_URL}expenses/${referenceId}`,
-      headers: {},
-      params: userContext || {}, // Include user context for permission check
-    };
-
-    return axios
-      .request(config)
-      .then((response) => response.data.expense)
-      .catch((error) => {
-        console.error('❌ Expense API error:', error.response?.data || error.message);
-        if (error.response?.status === 403) {
-          throw new Error('You do not have permission to view this expense');
-        }
-        return null;
+        // For other errors, also throw instead of returning empty array
+        throw new Error(error.response?.data?.message || error.message || 'Failed to fetch expenses');
       });
   } catch (error) {
     console.error('❌ Failed to fetch expense:', error);

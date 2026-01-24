@@ -1,7 +1,5 @@
 import { apiHelper } from 'src/utils/apiHelper';
 
-import { CONFIG } from 'src/global-config';
-
 import { ExpenseListView } from 'src/sections/expense/view';
 
 // ----------------------------------------------------------------------
@@ -10,6 +8,7 @@ export const metadata = { title: `Expense list` };
 
 export default async function Page() {
   let expenses = [];
+  let permissionError = null;
 
   try {
     console.log('📄 Fetching expenses from API...');
@@ -17,8 +16,18 @@ export default async function Page() {
     console.log('📄 Fetched expenses:', expenses?.length || 0);
   } catch (error) {
     console.error('📄 Error fetching expenses:', error);
-    expenses = [];
+
+    // Check if it's a permission error
+    if (error.message && error.message.includes('PERMISSION_DENIED')) {
+      console.error('🔒 Permission denied - user cannot view expenses');
+      permissionError = 'You do not have permission to view expenses';
+      expenses = [];
+    } else {
+      // For other errors, return empty array
+      console.error('❌ Failed to fetch expenses:', error.message);
+      expenses = [];
+    }
   }
 
-  return <ExpenseListView expenses={expenses} />;
+  return <ExpenseListView expenses={expenses} permissionError={permissionError} />;
 }
