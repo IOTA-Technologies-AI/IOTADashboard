@@ -30,6 +30,13 @@ import {
 } from 'src/utils/constants/enums';
 
 import { toast } from 'src/components/snackbar';
+import {
+  saveFormData,
+  loadFormData,
+  clearFormData,
+  useFormAutosave,
+} from 'src/hooks/use-form-autosave';
+
 import { Iconify } from 'src/components/iconify';
 import { Form, Field } from 'src/components/hook-form';
 import { UploadBox } from 'src/components/upload/box/upload-box';
@@ -623,6 +630,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
         // Backend handles approval email notifications via Resend
         await apiHelper.createExpense(expenseData);
         toast.success('Expense created successfully!');
+        clearAutoSavedForm();
       }
 
       router.push(paths.dashboard.expense.root);
