@@ -1,11 +1,11 @@
 import { CONFIG } from 'src/global-config';
 
-import { OverviewBankingView } from 'src/sections/overview/banking/view';
+import BankingListWrapper from './list-wrapper';
 
 // ----------------------------------------------------------------------
 
 export const metadata = { title: `Banking` };
 
 export default function Page() {
-  return <OverviewBankingView />;
+  return <BankingListWrapper />;
 }

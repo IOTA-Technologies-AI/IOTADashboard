@@ -1,13 +1,7 @@
 'use client';
 
-import Container from '@mui/material/Container';
-
-import OverviewAccountsView from 'src/sections/overview/accounts/view/overview-accounts-view';
+import AccountsListWrapper from './list-wrapper';
 
 export default function AccountsPage() {
-  return (
-    <Container maxWidth="xl" sx={{ mt: 3 }}>
-      <OverviewAccountsView />
-    </Container>
-  );
+  return <AccountsListWrapper />;
 }

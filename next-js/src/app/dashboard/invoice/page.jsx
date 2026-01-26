@@ -1,11 +1,9 @@
-import { CONFIG } from 'src/global-config';
-
-import { InvoiceListView } from 'src/sections/invoice/view';
+import InvoiceListWrapper from './list-wrapper';
 
 // ----------------------------------------------------------------------
 
 export const metadata = { title: `Invoice list` };
 
 export default function Page() {
-  return <InvoiceListView />;
+  return <InvoiceListWrapper />;
 }

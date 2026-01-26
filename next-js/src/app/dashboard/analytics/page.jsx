@@ -1,11 +1,11 @@
 import { CONFIG } from 'src/global-config';
 
-import { OverviewAnalyticsView } from 'src/sections/overview/analytics/view';
+import AnalyticsListWrapper from './list-wrapper';
 
 // ----------------------------------------------------------------------
 
 export const metadata = { title: `Analytics` };
 
 export default function Page() {
-  return <OverviewAnalyticsView />;
+  return <AnalyticsListWrapper />;
 }

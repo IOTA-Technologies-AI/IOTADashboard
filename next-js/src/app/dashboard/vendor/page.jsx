@@ -2,7 +2,7 @@ import { apiHelper } from 'src/utils/apiHelper';
 
 import { CONFIG } from 'src/global-config';
 
-import { VendorListView } from 'src/sections/vendor/view';
+import VendorListWrapper from './list-wrapper';
 
 // ----------------------------------------------------------------------
 
@@ -20,5 +20,5 @@ export default async function Page() {
     vendors = [];
   }
 
-  return <VendorListView vendors={vendors} />;
+  return <VendorListWrapper vendors={vendors} />;
 }

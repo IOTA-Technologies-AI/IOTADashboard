@@ -1,6 +1,6 @@
 import { apiHelper } from 'src/utils/apiHelper';
 
-import { ExpenseListView } from 'src/sections/expense/view';
+import ExpenseListWrapper from './list-wrapper';
 
 // ----------------------------------------------------------------------
 
@@ -29,5 +29,5 @@ export default async function Page() {
     }
   }
 
-  return <ExpenseListView expenses={expenses} permissionError={permissionError} />;
+  return <ExpenseListWrapper expenses={expenses} permissionError={permissionError} />;
 }

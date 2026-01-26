@@ -19,6 +19,7 @@ import {
   fetchNavPermissionsForRole,
   clearUserNavPermissionCache,
 } from 'src/utils/pageAccess';
+import { filterNavByPermissions } from 'src/utils/filterNavByPermissions';
 
 import { allLangs } from 'src/locales';
 import { _contacts, _notifications } from 'src/_mock';
@@ -170,6 +171,10 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
 
   const navData = slotProps?.nav?.data ?? dashboardNavData;
 
+  // Filter nav items based on user permissions
+  const filteredNavData =
+    normalizedRole === 'superAdmin' ? navData : filterNavByPermissions(navData, allowedPaths);
+
   const isNavMini = settings.state.navLayout === 'mini';
   const isNavHorizontal = settings.state.navLayout === 'horizontal';
   const isNavVertical = isNavMini || settings.state.navLayout === 'vertical';
@@ -243,7 +248,7 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
       ),
       bottomArea: isNavHorizontal ? (
         <NavHorizontal
-          data={navData}
+          data={filteredNavData}
           layoutQuery={layoutQuery}
           cssVars={navVars.section}
           checkPermissions={canDisplayItemByRole}
@@ -257,7 +262,7 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
             sx={{ mr: 1, ml: -1, [theme.breakpoints.up(layoutQuery)]: { display: 'none' } }}
           />
           <NavMobile
-            data={navData}
+            data={filteredNavData}
             open={open}
             onClose={onClose}
             cssVars={navVars.section}
@@ -289,7 +294,7 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
       rightArea: (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0, sm: 0.75 } }}>
           {/** @slot Searchbar */}
-          <Searchbar data={navData} />
+          <Searchbar data={filteredNavData} />
 
           {/** @slot Language popover */}
           <LanguagePopover data={allLangs} />
@@ -323,7 +328,7 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
 
   const renderSidebar = () => (
     <NavVertical
-      data={navData}
+      data={filteredNavData}
       isNavMini={isNavMini}
       layoutQuery={layoutQuery}
       cssVars={navVars.section}

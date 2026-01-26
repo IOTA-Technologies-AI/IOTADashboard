@@ -275,11 +275,17 @@ export const hasPathPermission = (allowedPaths, targetPath) => {
   // Always allow dashboard root
   if (targetPath === '/dashboard' || targetPath === '/dashboard/') return true;
 
+  // Normalize target path by removing trailing slash
+  const normalizedTarget =
+    targetPath.endsWith('/') && targetPath !== '/' ? targetPath.slice(0, -1) : targetPath;
+
   return allowedPaths.some((allowedPath) => {
-    // Exact match
-    if (targetPath === allowedPath) return true;
-    // Prefix match (for sub-paths)
-    if (targetPath.startsWith(`${allowedPath}/`)) return true;
-    return false;
+    // Normalize allowed path
+    const normalizedAllowed =
+      allowedPath.endsWith('/') && allowedPath !== '/' ? allowedPath.slice(0, -1) : allowedPath;
+
+    // Exact match only - no prefix matching
+    // Users need explicit permission for each page
+    return normalizedTarget === normalizedAllowed;
   });
 };

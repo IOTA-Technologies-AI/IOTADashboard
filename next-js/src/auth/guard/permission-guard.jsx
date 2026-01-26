@@ -54,23 +54,21 @@ export function PermissionGuard({ children }) {
     allowedPathsCount: allowedPaths.length,
   });
 
-  // Always allowed paths - dashboard home and access control
-  const baseAlwaysAllowed = useMemo(
-    () => [
-      paths.dashboard.root,
-      `${paths.dashboard.root}/`,
-      paths.dashboard.general.app,
-      `${paths.dashboard.general.app}/`,
-      paths.dashboard.access.root,
-      paths.dashboard.user.pageAccess,
-    ],
-    []
-  );
+  // Always allowed paths - only specific pages, not all subpaths
+  const baseAlwaysAllowed = useMemo(() => [paths.dashboard.root, paths.dashboard.general.app], []);
 
-  // Check if current path is in always-allowed list
+  // Check if current path is in always-allowed list (EXACT MATCH ONLY)
   const isAlwaysAllowed = useMemo(() => {
     if (!pathname) return false;
-    return baseAlwaysAllowed.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+
+    // Normalize paths by removing trailing slash
+    const normalizedPathname =
+      pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
+
+    return baseAlwaysAllowed.some((p) => {
+      const normalizedAllowed = p.endsWith('/') && p !== '/' ? p.slice(0, -1) : p;
+      return normalizedPathname === normalizedAllowed;
+    });
   }, [pathname, baseAlwaysAllowed]);
 
   // Fetch permissions on mount and when user changes
