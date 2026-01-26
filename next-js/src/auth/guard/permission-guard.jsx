@@ -122,24 +122,6 @@ export function PermissionGuard({ children }) {
     }
   }, [role, userEmail, user, authLoading]);
 
-  // Show loading screen while auth or permissions are loading
-  if (authLoading || permissionsLoading || !permissionCheckComplete) {
-    console.log('[PermissionGuard] Loading...');
-    return <SplashScreen />;
-  }
-
-  // SuperAdmin has access to everything
-  if (role === 'superAdmin') {
-    console.log('[PermissionGuard] SuperAdmin access granted');
-    return <>{children}</>;
-  }
-
-  // Always-allowed paths don't need permission check
-  if (isAlwaysAllowed) {
-    console.log('[PermissionGuard] Always-allowed path:', pathname);
-    return <>{children}</>;
-  }
-
   // Check if user has permission for current path
   const hasPermission = hasPathPermission(allowedPaths, pathname);
 
@@ -157,6 +139,24 @@ export function PermissionGuard({ children }) {
       router.replace(`${paths.page403}?returnTo=${encodeURIComponent(pathname)}`);
     }
   }, [hasPermission, pathname, router, authLoading, permissionsLoading, permissionCheckComplete]);
+
+  // Show loading screen while auth or permissions are loading
+  if (authLoading || permissionsLoading || !permissionCheckComplete) {
+    console.log('[PermissionGuard] Loading...');
+    return <SplashScreen />;
+  }
+
+  // SuperAdmin has access to everything
+  if (role === 'superAdmin') {
+    console.log('[PermissionGuard] SuperAdmin access granted');
+    return <>{children}</>;
+  }
+
+  // Always-allowed paths don't need permission check
+  if (isAlwaysAllowed) {
+    console.log('[PermissionGuard] Always-allowed path:', pathname);
+    return <>{children}</>;
+  }
 
   // NEVER render children if no permission - always show splash screen
   if (!hasPermission) {
