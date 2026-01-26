@@ -429,6 +429,14 @@ export async function createExpense(expenseData) {
     console.log('📤 Creating expense:', expenseData);
 
     const userContext = getUserContext();
+
+    if (!userContext || !userContext.userEmail) {
+      console.error('❌ No user context available. User may not be logged in.');
+      console.log('localStorage.user:', localStorage.getItem('user'));
+      throw new Error('User authentication context is missing. Please log in again.');
+    }
+
+    console.log('📤 User context:', userContext);
     const dataWithContext = { ...expenseData, ...userContext };
 
     let config = {

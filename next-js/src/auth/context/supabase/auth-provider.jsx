@@ -1,10 +1,11 @@
 'use client';
 
 import { useSetState } from 'minimal-shared/hooks';
-import { useMemo, useEffect, useCallback, useState } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+
+import { seedOneDriveToken } from 'src/utils/onedrive-helper';
 
 import axios from 'src/lib/axios';
-import { seedOneDriveToken } from 'src/utils/onedrive-helper';
 import { supabase } from 'src/lib/supabase';
 
 import { AuthContext } from '../auth-context';
@@ -287,28 +288,55 @@ export function AuthProvider({ children }) {
         )
       : null;
 
+    // Compute roleId from role name
+    const roleNameToId = {
+      regular: 1,
+      manager: 2,
+      admin: 3,
+      superAdmin: 4,
+    };
+    const roleId = role ? roleNameToId[role] || 1 : 1;
+
     // Debug: Log the Azure OID being used for permissions
 
+    const userObj = state.user
+      ? {
+          ...state.user,
+          id: state.user?.id,
+          // Microsoft 365 / Azure AD Object ID - use this for user permissions lookup
+          azureOid: oid,
+          // Ensure email is always available - check multiple sources
+          email:
+            state.user?.email ||
+            state.user?.user_metadata?.email ||
+            identityData?.email ||
+            claims?.upn ||
+            claims?.preferred_username ||
+            state.user?.user_metadata?.preferred_username,
+          accessToken: state.user?.access_token,
+          displayName: displayNameFromMetadata(state.user),
+          role,
+          roleId,
+        }
+      : null;
+
+    // Save user context to localStorage for apiHelper
+    if (typeof window !== 'undefined') {
+      if (userObj) {
+        const userContextForStorage = {
+          email: userObj.email,
+          role: userObj.role,
+          roleId: userObj.roleId,
+          azureOid: userObj.azureOid,
+        };
+        localStorage.setItem('user', JSON.stringify(userContextForStorage));
+      } else {
+        localStorage.removeItem('user');
+      }
+    }
+
     return {
-      user: state.user
-        ? {
-            ...state.user,
-            id: state.user?.id,
-            // Microsoft 365 / Azure AD Object ID - use this for user permissions lookup
-            azureOid: oid,
-            // Ensure email is always available - check multiple sources
-            email:
-              state.user?.email ||
-              state.user?.user_metadata?.email ||
-              identityData?.email ||
-              claims?.upn ||
-              claims?.preferred_username ||
-              state.user?.user_metadata?.preferred_username,
-            accessToken: state.user?.access_token,
-            displayName: displayNameFromMetadata(state.user),
-            role,
-          }
-        : null,
+      user: userObj,
       checkUserSession,
       loading: status === 'loading',
       authenticated: status === 'authenticated',

@@ -5,11 +5,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { paths } from 'src/routes/paths';
 import { useRouter, usePathname } from 'src/routes/hooks';
 
-import {
-  resolvePageAccess,
-  hasPathPermission,
-  fetchUserNavPermissions,
-} from 'src/utils/pageAccess';
+import { hasPathPermission, fetchUserNavPermissions } from 'src/utils/pageAccess';
 
 import { SplashScreen } from 'src/components/loading-screen';
 
@@ -66,15 +62,32 @@ export function PermissionGuard({ children }) {
       paths.dashboard.general.app,
       `${paths.dashboard.general.app}/`,
       paths.dashboard.access.root,
+      `${paths.dashboard.access.root}/`,
       paths.dashboard.user.pageAccess,
     ],
     []
   );
 
-  // Check if current path is in always-allowed list
+  // Check if current path is in always-allowed list (EXACT MATCH ONLY)
   const isAlwaysAllowed = useMemo(() => {
     if (!pathname) return false;
-    return baseAlwaysAllowed.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+    // Normalize paths by removing trailing slash for comparison
+    const normalizedPathname =
+      pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
+
+    return baseAlwaysAllowed.some((p) => {
+      const normalizedAllowed = p.endsWith('/') && p !== '/' ? p.slice(0, -1) : p;
+
+      // Only allow exact matches or specific access control subpaths
+      if (normalizedPathname === normalizedAllowed) return true;
+
+      // Allow subpaths ONLY for access control pages
+      if (normalizedAllowed.includes('/access')) {
+        return normalizedPathname.startsWith(`${normalizedAllowed}/`);
+      }
+
+      return false;
+    });
   }, [pathname, baseAlwaysAllowed]);
 
   // Fetch permissions on mount and when user changes
