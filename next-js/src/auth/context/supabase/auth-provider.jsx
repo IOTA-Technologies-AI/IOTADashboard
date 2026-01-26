@@ -320,21 +320,6 @@ export function AuthProvider({ children }) {
         }
       : null;
 
-    // Save user context to localStorage for apiHelper
-    if (typeof window !== 'undefined') {
-      if (userObj) {
-        const userContextForStorage = {
-          email: userObj.email,
-          role: userObj.role,
-          roleId: userObj.roleId,
-          azureOid: userObj.azureOid,
-        };
-        localStorage.setItem('user', JSON.stringify(userContextForStorage));
-      } else {
-        localStorage.removeItem('user');
-      }
-    }
-
     return {
       user: userObj,
       checkUserSession,

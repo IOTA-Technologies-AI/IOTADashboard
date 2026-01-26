@@ -62,32 +62,15 @@ export function PermissionGuard({ children }) {
       paths.dashboard.general.app,
       `${paths.dashboard.general.app}/`,
       paths.dashboard.access.root,
-      `${paths.dashboard.access.root}/`,
       paths.dashboard.user.pageAccess,
     ],
     []
   );
 
-  // Check if current path is in always-allowed list (EXACT MATCH ONLY)
+  // Check if current path is in always-allowed list
   const isAlwaysAllowed = useMemo(() => {
     if (!pathname) return false;
-    // Normalize paths by removing trailing slash for comparison
-    const normalizedPathname =
-      pathname.endsWith('/') && pathname !== '/' ? pathname.slice(0, -1) : pathname;
-
-    return baseAlwaysAllowed.some((p) => {
-      const normalizedAllowed = p.endsWith('/') && p !== '/' ? p.slice(0, -1) : p;
-
-      // Only allow exact matches or specific access control subpaths
-      if (normalizedPathname === normalizedAllowed) return true;
-
-      // Allow subpaths ONLY for access control pages
-      if (normalizedAllowed.includes('/access')) {
-        return normalizedPathname.startsWith(`${normalizedAllowed}/`);
-      }
-
-      return false;
-    });
+    return baseAlwaysAllowed.some((p) => pathname === p || pathname.startsWith(`${p}/`));
   }, [pathname, baseAlwaysAllowed]);
 
   // Fetch permissions on mount and when user changes

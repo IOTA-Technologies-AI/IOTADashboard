@@ -361,14 +361,11 @@ export async function createVendor(vendorData) {
 
 export async function getExpenses() {
   try {
-    const userContext = getUserContext();
-
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
       url: `${API_BASE_URL}expenses`,
       headers: {},
-      params: userContext || {}, // Include user context for permission check
     };
 
     return axios
