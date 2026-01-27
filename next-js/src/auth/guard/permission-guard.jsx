@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, useRef } from 'react';
 
 import { paths } from 'src/routes/paths';
 import { useRouter, usePathname } from 'src/routes/hooks';
@@ -42,6 +42,9 @@ export function PermissionGuard({ children }) {
   const [allowedPaths, setAllowedPaths] = useState([]);
   const [permissionCheckComplete, setPermissionCheckComplete] = useState(false);
 
+  // Cache to track which user's permissions we've already loaded
+  const loadedUserRef = useRef(null);
+
   const role = useMemo(() => normalizeRole(user?.role, user?.roleId), [user?.role, user?.roleId]);
   const userEmail = user?.email;
 
@@ -74,27 +77,39 @@ export function PermissionGuard({ children }) {
   // Fetch permissions on mount and when user changes
   useEffect(() => {
     const loadPermissions = async () => {
+      // Skip if no user or still loading auth
+      if (!user || authLoading) return;
+
       console.log('[PermissionGuard] Loading permissions for:', { userEmail, role });
 
       // SuperAdmin always has access
       if (role === 'superAdmin') {
         console.log('[PermissionGuard] User is superAdmin - granting full access');
         setAllowedPaths(['*']); // Special marker for all access
+        loadedUserRef.current = userEmail;
+        setPermissionsLoading(false);
+        setPermissionCheckComplete(true);
+        return;
+      }
+
+      // Check if we already loaded permissions for this user (prevent re-fetch loop)
+      if (loadedUserRef.current === userEmail && allowedPaths.length > 0) {
+        console.log('[PermissionGuard] ✅ Using already-loaded permissions for:', userEmail);
         setPermissionsLoading(false);
         setPermissionCheckComplete(true);
         return;
       }
 
       setPermissionsLoading(true);
-      setPermissionCheckComplete(false);
 
       try {
-        // ALWAYS fetch user-specific permissions using email
+        // Fetch user-specific permissions using email
         if (userEmail) {
-          console.log('[PermissionGuard] Fetching permissions for email:', userEmail);
+          console.log('[PermissionGuard] 🔄 Fetching permissions for email:', userEmail);
           const userPaths = await fetchUserNavPermissions(userEmail);
           console.log('[PermissionGuard] Fetched paths:', userPaths);
           setAllowedPaths(userPaths || []);
+          loadedUserRef.current = userEmail; // Mark as loaded
 
           // If no permissions found, explicitly set empty array to BLOCK access
           if (!userPaths || userPaths.length === 0) {
@@ -114,11 +129,8 @@ export function PermissionGuard({ children }) {
       }
     };
 
-    // Only load if we have a user
-    if (user && !authLoading) {
-      loadPermissions();
-    }
-  }, [role, userEmail, user, authLoading]);
+    loadPermissions();
+  }, [userEmail, authLoading, role, allowedPaths.length]); // Stable dependencies
 
   // Check if user has permission for current path
   const hasPermission = hasPathPermission(allowedPaths, pathname);
