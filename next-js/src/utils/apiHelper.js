@@ -1,5 +1,5 @@
 const axios = require('axios');
-import { extractJWTFromSession } from './jwt-auth';
+import { extractJWTFromSession, decodeJWT } from './jwt-auth';
 
 const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app/';
 
@@ -22,18 +22,36 @@ function getAuthHeaders() {
 }
 
 /**
- * Get user context from localStorage (set by auth provider)
+ * Get user context from JWT token (Supabase OAuth) or localStorage fallback
  * Returns user email, role, and roleId for permission checks
  */
 function getUserContext() {
   if (typeof window === 'undefined') return null;
 
   try {
-    // Get user data from localStorage (adjust key based on your auth implementation)
+    // First try to get user data from JWT token (Supabase OAuth)
+    const token = extractJWTFromSession();
+    if (token) {
+      const decoded = decodeJWT(token);
+      if (decoded) {
+        console.log('[apiHelper] Got user context from JWT:', { email: decoded.email });
+        return {
+          userEmail: decoded.email,
+          role: decoded.user_role || 'regular', // Backend sets this in JWT
+          roleId: decoded.role_id || 1,
+        };
+      }
+    }
+
+    // Fallback: Get user data from localStorage (legacy auth)
     const userStr = localStorage.getItem('user');
-    if (!userStr) return null;
+    if (!userStr) {
+      console.warn('[apiHelper] No user context available (no JWT or localStorage.user)');
+      return null;
+    }
 
     const user = JSON.parse(userStr);
+    console.log('[apiHelper] Got user context from localStorage:', { email: user?.email });
     return {
       userEmail: user?.email,
       role:
@@ -459,9 +477,12 @@ export async function createExpense(expenseData) {
     const userContext = getUserContext();
 
     if (!userContext || !userContext.userEmail) {
-      console.error('❌ No user context available. User may not be logged in.');
+      console.error('❌ No user context available.');
+      console.log('JWT token available:', extractJWTFromSession() ? 'Yes' : 'No');
       console.log('localStorage.user:', localStorage.getItem('user'));
-      throw new Error('User authentication context is missing. Please log in again.');
+      throw new Error(
+        'User authentication required. Please refresh the page or sign in again.'
+      );
     }
 
     console.log('📤 User context:', userContext);
