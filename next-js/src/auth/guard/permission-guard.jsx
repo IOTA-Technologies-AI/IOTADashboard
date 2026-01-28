@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect, useRef } from 'react';
+import { useRef, useMemo, useState, useEffect } from 'react';
 
 import { paths } from 'src/routes/paths';
 import { useRouter, usePathname } from 'src/routes/hooks';
@@ -130,7 +130,7 @@ export function PermissionGuard({ children }) {
     };
 
     loadPermissions();
-  }, [userEmail, authLoading, role, allowedPaths.length]); // Stable dependencies
+  }, [userEmail, authLoading, role]); // Only depend on auth state and role, not allowedPaths
 
   // Check if user has permission for current path
   const hasPermission = hasPathPermission(allowedPaths, pathname);

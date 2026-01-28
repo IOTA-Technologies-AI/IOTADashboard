@@ -1,5 +1,6 @@
 const axios = require('axios');
-import { extractJWTFromSession, decodeJWT } from './jwt-auth';
+
+import { decodeJWT, extractJWTFromSession } from './jwt-auth';
 
 const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app/';
 
@@ -24,6 +25,7 @@ function getAuthHeaders() {
 /**
  * Get user context from JWT token (Supabase OAuth) or localStorage fallback
  * Returns user email, role, and roleId for permission checks
+ * Note: JWT may not have role info - that comes from auth context
  */
 function getUserContext() {
   if (typeof window === 'undefined') return null;
@@ -33,12 +35,13 @@ function getUserContext() {
     const token = extractJWTFromSession();
     if (token) {
       const decoded = decodeJWT(token);
-      if (decoded) {
-        console.log('[apiHelper] Got user context from JWT:', { email: decoded.email });
+      if (decoded && decoded.email) {
+        console.log('[apiHelper] Got user email from JWT:', { email: decoded.email });
+        // Only return email - role comes from auth context
         return {
           userEmail: decoded.email,
-          role: decoded.user_role || 'regular', // Backend sets this in JWT
-          roleId: decoded.role_id || 1,
+          role: 'regular', // Default - auth context provides actual role
+          roleId: 1,
         };
       }
     }
