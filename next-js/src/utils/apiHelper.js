@@ -1,9 +1,25 @@
 const axios = require('axios');
+import { extractJWTFromSession } from './jwt-auth';
 
 const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app/';
 
 const PARTER_API_BASE_URL = 'https://staging-iwtapiserver-6x92.encr.app/getTotalInvoiceAmounts';
 const PARTER_AUTH_TOKEN = 'Bearer dGVzdEB0ZXN0LmNvbTpwYXN29yZDEyMyE=';
+
+/**
+ * Get Authorization header with JWT token
+ * Backend expects: Authorization: Bearer {jwt_token}
+ */
+function getAuthHeaders() {
+  const token = extractJWTFromSession();
+  if (!token) {
+    console.warn('[apiHelper] No JWT token available');
+    return {};
+  }
+  return {
+    Authorization: `Bearer ${token}`,
+  };
+}
 
 /**
  * Get user context from localStorage (set by auth provider)
@@ -40,7 +56,10 @@ function getUserContext() {
 export async function getExpenseById(id) {
   if (!id) return null;
   try {
-    const response = await axios.get(`${API_BASE_URL}expenses/${id}`);
+    const authHeaders = getAuthHeaders();
+    const response = await axios.get(`${API_BASE_URL}expenses/${id}`, {
+      headers: authHeaders,
+    });
     return response.data?.expense || response.data || null;
   } catch (error) {
     console.error('Failed to fetch expense', error.response?.data || error.message);
@@ -51,7 +70,10 @@ export async function getExpenseById(id) {
 export async function getExpenseByExpenseId(id) {
   if (!id) return null;
   try {
-    const response = await axios.get(`${API_BASE_URL}getExpenseById/${id}`);
+    const authHeaders = getAuthHeaders();
+    const response = await axios.get(`${API_BASE_URL}getExpenseById/${id}`, {
+      headers: authHeaders,
+    });
     return response.data?.expense || response.data || null;
   } catch (error) {
     console.error('Failed to fetch expense', error.response?.data || error.message);
@@ -66,12 +88,15 @@ export async function getExpense(referenceId) {
   try {
     console.log(`📤 Fetching expense ${referenceId} with permission check`);
     const userContext = getUserContext();
+    const authHeaders = getAuthHeaders();
 
     const config = {
       method: 'get',
       maxBodyLength: Infinity,
       url: `${API_BASE_URL}expenses/${referenceId}`,
-      headers: {},
+      headers: {
+        ...authHeaders,
+      },
       params: userContext || {}, // Include user context for permission check
     };
 
@@ -361,11 +386,15 @@ export async function createVendor(vendorData) {
 
 export async function getExpenses() {
   try {
+    const authHeaders = getAuthHeaders();
+
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
       url: `${API_BASE_URL}expenses`,
-      headers: {},
+      headers: {
+        ...authHeaders,
+      },
     };
 
     return axios
@@ -395,6 +424,8 @@ export async function getExpenses() {
 // Get expenses with linked invoices (expenseType 18) - for deals
 export async function getExpensesWithLinkedInvoices() {
   try {
+    const authHeaders = getAuthHeaders();
+
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
@@ -436,12 +467,16 @@ export async function createExpense(expenseData) {
     console.log('📤 User context:', userContext);
     const dataWithContext = { ...expenseData, ...userContext };
 
+    const authHeaders = getAuthHeaders();
+    console.log('📤 Auth headers:', authHeaders ? '✅ JWT token present' : '❌ No JWT token');
+
     let config = {
       method: 'post',
       maxBodyLength: Infinity,
       url: `${API_BASE_URL}expenses`,
       headers: {
         'Content-Type': 'application/json',
+        ...authHeaders,
       },
       data: JSON.stringify(dataWithContext),
     };
@@ -478,12 +513,16 @@ export async function updateExpense(referenceId, expenseData) {
     const jsonString = JSON.stringify(dataWithContext);
     console.log('📤 JSON string being sent:', jsonString);
 
+    const authHeaders = getAuthHeaders();
+    console.log('📤 Auth headers:', authHeaders ? '✅ JWT token present' : '❌ No JWT token');
+
     let config = {
       method: 'patch',
       maxBodyLength: Infinity,
       url: `${API_BASE_URL}expenses/${referenceId}`,
       headers: {
         'Content-Type': 'application/json',
+        ...authHeaders,
       },
       data: jsonString,
     };
