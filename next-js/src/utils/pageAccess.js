@@ -272,6 +272,15 @@ export const fetchUserNavPermissions = async (userId, forceRefresh = false) => {
 export const hasPathPermission = (allowedPaths, targetPath) => {
   if (!targetPath || !Array.isArray(allowedPaths)) return false;
 
+  // SuperAdmin wildcard - grants access to everything
+  if (allowedPaths.includes('*')) {
+    console.log(
+      '[hasPathPermission] SuperAdmin wildcard detected - granting access to:',
+      targetPath
+    );
+    return true;
+  }
+
   // Always allow dashboard root
   if (targetPath === '/dashboard' || targetPath === '/dashboard/') return true;
 
