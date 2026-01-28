@@ -480,9 +480,7 @@ export async function createExpense(expenseData) {
       console.error('❌ No user context available.');
       console.log('JWT token available:', extractJWTFromSession() ? 'Yes' : 'No');
       console.log('localStorage.user:', localStorage.getItem('user'));
-      throw new Error(
-        'User authentication required. Please refresh the page or sign in again.'
-      );
+      throw new Error('User authentication required. Please refresh the page or sign in again.');
     }
 
     console.log('📤 User context:', userContext);
