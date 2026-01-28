@@ -320,6 +320,24 @@ export function AuthProvider({ children }) {
         }
       : null;
 
+    // Store user context in localStorage for API calls
+    // This allows apiHelper.js to access role/roleId for backend permission checks
+    if (typeof window !== 'undefined') {
+      if (userObj) {
+        localStorage.setItem(
+          'user',
+          JSON.stringify({
+            email: userObj.email,
+            role: userObj.role,
+            roleId: userObj.roleId,
+            displayName: userObj.displayName,
+          })
+        );
+      } else {
+        localStorage.removeItem('user');
+      }
+    }
+
     return {
       user: userObj,
       checkUserSession,

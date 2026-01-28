@@ -23,51 +23,50 @@ function getAuthHeaders() {
 }
 
 /**
- * Get user context from JWT token (Supabase OAuth) or localStorage fallback
+ * Get user context from localStorage (set by auth provider) or JWT fallback
  * Returns user email, role, and roleId for permission checks
- * Note: JWT may not have role info - that comes from auth context
+ * Auth provider stores user context in localStorage with correct role/roleId
  */
 function getUserContext() {
   if (typeof window === 'undefined') return null;
 
   try {
-    // First try to get user data from JWT token (Supabase OAuth)
+    // First try localStorage (auth provider stores this with correct role/roleId)
+    const userStr = localStorage.getItem('user');
+    if (userStr) {
+      const user = JSON.parse(userStr);
+      if (user.email) {
+        console.log('[apiHelper] Got user context from localStorage:', {
+          email: user.email,
+          role: user.role,
+          roleId: user.roleId,
+        });
+        return {
+          userEmail: user.email,
+          role: user.role || 'regular',
+          roleId: user.roleId || 1,
+        };
+      }
+    }
+
+    // Fallback: Try to get email from JWT (but role will be default)
     const token = extractJWTFromSession();
     if (token) {
       const decoded = decodeJWT(token);
       if (decoded && decoded.email) {
-        console.log('[apiHelper] Got user email from JWT:', { email: decoded.email });
-        // Only return email - role comes from auth context
+        console.warn(
+          '[apiHelper] Got email from JWT but no role - using default. User should refresh or sign in again.'
+        );
         return {
           userEmail: decoded.email,
-          role: 'regular', // Default - auth context provides actual role
+          role: 'regular', // Default - auth provider should set this
           roleId: 1,
         };
       }
     }
 
-    // Fallback: Get user data from localStorage (legacy auth)
-    const userStr = localStorage.getItem('user');
-    if (!userStr) {
-      console.warn('[apiHelper] No user context available (no JWT or localStorage.user)');
-      return null;
-    }
-
-    const user = JSON.parse(userStr);
-    console.log('[apiHelper] Got user context from localStorage:', { email: user?.email });
-    return {
-      userEmail: user?.email,
-      role:
-        user?.role ||
-        (user?.roleId === 4
-          ? 'superAdmin'
-          : user?.roleId === 3
-            ? 'admin'
-            : user?.roleId === 2
-              ? 'manager'
-              : 'regular'),
-      roleId: user?.roleId || 1,
-    };
+    console.warn('[apiHelper] No user context available (no localStorage.user or JWT)');
+    return null;
   } catch (error) {
     console.warn('[apiHelper] Failed to get user context:', error);
     return null;
