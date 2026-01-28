@@ -487,6 +487,7 @@ export async function createExpense(expenseData) {
 
     console.log('📤 User context:', userContext);
     const dataWithContext = { ...expenseData, ...userContext };
+    console.log('📤 Full data being sent to backend:', JSON.stringify(dataWithContext, null, 2));
 
     const authHeaders = getAuthHeaders();
     console.log('📤 Auth headers:', authHeaders ? '✅ JWT token present' : '❌ No JWT token');
