@@ -5,7 +5,7 @@ import { useRef, useMemo, useState, useEffect } from 'react';
 import { paths } from 'src/routes/paths';
 import { useRouter, usePathname } from 'src/routes/hooks';
 
-import { hasPathPermission, fetchUserNavPermissions } from 'src/utils/pageAccess';
+import { hasPathPermission, fetchRoleBasedNavPermissions } from 'src/utils/pageAccess';
 
 import { SplashScreen } from 'src/components/loading-screen';
 
@@ -92,7 +92,7 @@ export function PermissionGuard({ children }) {
         return;
       }
 
-      // Check if we already loaded permissions for this user (prevent re-fetch loop)
+      // Check if we already loaded permissions for this user's role (prevent re-fetch loop)
       if (loadedUserRef.current === userEmail && allowedPaths.length > 0) {
         console.log('[PermissionGuard] ✅ Using already-loaded permissions for:', userEmail);
         setPermissionsLoading(false);
@@ -103,21 +103,16 @@ export function PermissionGuard({ children }) {
       setPermissionsLoading(true);
 
       try {
-        // Fetch user-specific permissions using email
-        if (userEmail) {
-          console.log('[PermissionGuard] 🔄 Fetching permissions for email:', userEmail);
-          const userPaths = await fetchUserNavPermissions(userEmail);
-          console.log('[PermissionGuard] Fetched paths:', userPaths);
-          setAllowedPaths(userPaths || []);
-          loadedUserRef.current = userEmail; // Mark as loaded
+        // Fetch role-based permissions (NEW SIMPLIFIED SYSTEM)
+        console.log('[PermissionGuard] 🔄 Fetching role-based permissions for:', role);
+        const rolePaths = await fetchRoleBasedNavPermissions(role);
+        console.log('[PermissionGuard] Fetched paths for role', role, ':', rolePaths);
+        setAllowedPaths(rolePaths || []);
+        loadedUserRef.current = userEmail; // Mark as loaded
 
-          // If no permissions found, explicitly set empty array to BLOCK access
-          if (!userPaths || userPaths.length === 0) {
-            console.warn('[PermissionGuard] No permissions found for user:', userEmail);
-            setAllowedPaths([]);
-          }
-        } else {
-          console.warn('[PermissionGuard] No user email available');
+        // If no permissions found, explicitly set empty array to BLOCK access
+        if (!rolePaths || rolePaths.length === 0) {
+          console.warn('[PermissionGuard] No permissions found for role:', role);
           setAllowedPaths([]);
         }
       } catch (error) {

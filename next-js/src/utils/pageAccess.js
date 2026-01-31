@@ -226,7 +226,56 @@ export const clearUserNavPermissionCache = (userId) => {
   }
 };
 
-// Fetch user-specific nav permissions from backend
+// Fetch role-based nav permissions from backend (NEW SIMPLIFIED SYSTEM)
+export const fetchRoleBasedNavPermissions = async (role, forceRefresh = false) => {
+  if (!role) {
+    console.warn('[pageAccess] No role provided to fetchRoleBasedNavPermissions');
+    return [];
+  }
+
+  try {
+    // Check cache first unless force refresh
+    if (!forceRefresh && isCacheValid(role)) {
+      const cached = getPageAccessForRole(role);
+      if (cached && cached.length > 0) {
+        console.log(
+          '[pageAccess] Using cached permissions for role:',
+          role,
+          '- paths:',
+          cached.length
+        );
+        return cached;
+      }
+    }
+
+    console.log('[pageAccess] Fetching role-based nav permissions for role:', role);
+    const response = await axios.get(
+      `${API_BASE_URL}nav-permissions/role/${encodeURIComponent(role)}`
+    );
+
+    const paths = response.data?.paths || [];
+    console.log(
+      '[pageAccess] Fetched',
+      paths.length,
+      'permission paths for role',
+      role,
+      ':',
+      paths
+    );
+
+    // Save to cache
+    savePageAccessForRole(role, paths);
+    setCacheTTL(role);
+
+    return paths;
+  } catch (error) {
+    console.error('[pageAccess] Failed to fetch role-based nav permissions:', error.message);
+    // On error, return empty array to be safe (block access)
+    return [];
+  }
+};
+
+// Fetch user-specific nav permissions from backend (LEGACY - FOR USER-SPECIFIC OVERRIDES)
 export const fetchUserNavPermissions = async (userId, forceRefresh = false) => {
   if (!userId) {
     console.warn('[pageAccess] No userId provided to fetchUserNavPermissions');
