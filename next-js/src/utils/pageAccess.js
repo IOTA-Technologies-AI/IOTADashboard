@@ -80,11 +80,13 @@ export const getPageAccessForRole = (role) => {
   return toSafeArray(entry);
 };
 
-// Fetch permissions from backend API
+// Fetch role-based permissions from backend API
 export const fetchNavPermissionsForRole = async (role) => {
   if (!role) return [];
   try {
-    const response = await axios.get(`/api/nav-permissions/${role}`);
+    const response = await axios.get(
+      `${API_BASE_URL}nav-permissions/role/${encodeURIComponent(role)}`
+    );
     const paths = response.data?.paths || [];
     if (paths.length > 0) {
       savePageAccessForRole(role, paths);
@@ -92,10 +94,13 @@ export const fetchNavPermissionsForRole = async (role) => {
     }
     return paths;
   } catch (error) {
-    console.warn('Failed to fetch nav permissions from backend:', error.message);
+    console.warn('Failed to fetch role-based permissions from backend:', error.message);
     return [];
   }
 };
+
+// Preferred API for role-based permissions (alias)
+export const fetchRoleBasedNavPermissions = fetchNavPermissionsForRole;
 
 export const savePageAccessForUser = (userId, paths) => {
   if (!userId || !hasWindow()) return;
