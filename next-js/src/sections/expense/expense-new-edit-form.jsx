@@ -1,5 +1,6 @@
 'use client';
 
+import dayjs from 'dayjs';
 import { z as zod } from 'zod';
 import { useForm } from 'react-hook-form';
 import { useMemo, useState, useEffect } from 'react'; // ✅ Added useState
@@ -689,12 +690,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
           </Field.Select>
         )}
 
-        <Field.DatePicker
-          name="expenseDate"
-          label="Expense Date"
-          maxDate={new Date()}
-          disableFuture
-        />
+        <Field.DatePicker name="expenseDate" label="Expense Date" maxDate={dayjs()} disableFuture />
 
         <Field.Text
           name="originalExpenseAmount"
