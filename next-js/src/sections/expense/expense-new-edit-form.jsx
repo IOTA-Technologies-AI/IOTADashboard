@@ -689,7 +689,12 @@ export function ExpenseNewEditForm({ currentExpense }) {
           </Field.Select>
         )}
 
-        <Field.DatePicker name="expenseDate" label="Expense Date" />
+        <Field.DatePicker
+          name="expenseDate"
+          label="Expense Date"
+          maxDate={new Date()}
+          disableFuture
+        />
 
         <Field.Text
           name="originalExpenseAmount"
