@@ -318,16 +318,16 @@ export const pathToMenuKey = (pathname) => {
 };
 
 /**
- * Check if user has permission for a specific path based on menu keys
- * @param {string[]} allowedMenuKeys - Array of allowed menu keys from database
+ * Check if user has permission for a specific path
+ * @param {string[]} allowedPaths - Array of allowed paths from database (e.g., ['/dashboard/expense/new'])
  * @param {string} pathname - The path to check (e.g., /dashboard/expense/new)
  * @returns {boolean} true if user has permission
  */
-export const hasPathPermission = (allowedMenuKeys, pathname) => {
-  if (!pathname || !Array.isArray(allowedMenuKeys)) return false;
+export const hasPathPermission = (allowedPaths, pathname) => {
+  if (!pathname || !Array.isArray(allowedPaths)) return false;
 
   // SuperAdmin wildcard - grants access to everything
-  if (allowedMenuKeys.includes('*')) {
+  if (allowedPaths.includes('*')) {
     console.log('[hasPathPermission] SuperAdmin wildcard detected - granting access to:', pathname);
     return true;
   }
@@ -335,22 +335,23 @@ export const hasPathPermission = (allowedMenuKeys, pathname) => {
   // Always allow dashboard root
   if (pathname === '/dashboard' || pathname === '/dashboard/') return true;
 
-  // Get the menu key for this path
-  const requiredMenuKey = pathToMenuKey(pathname);
-  console.log('[hasPathPermission] Checking:', { pathname, requiredMenuKey, allowedMenuKeys });
+  // Normalize paths: remove trailing slashes for comparison
+  const normalizedPathname = pathname.replace(/\/$/, '');
+  console.log('[hasPathPermission] Checking:', { pathname: normalizedPathname, allowedPaths });
 
-  // Check if user has the required permission
-  const hasPermission = allowedMenuKeys.includes(requiredMenuKey);
+  // Check exact match or if pathname starts with an allowed path
+  const hasPermission = allowedPaths.some((allowedPath) => {
+    const normalizedAllowed = allowedPath.replace(/\/$/, '');
+    return (
+      normalizedPathname === normalizedAllowed ||
+      normalizedPathname.startsWith(normalizedAllowed + '/')
+    );
+  });
 
   if (hasPermission) {
-    console.log('[hasPathPermission] ✅ Permission granted for:', pathname, 'via', requiredMenuKey);
+    console.log('[hasPathPermission] ✅ Permission granted for:', normalizedPathname);
   } else {
-    console.log(
-      '[hasPathPermission] ❌ Permission denied for:',
-      pathname,
-      '(requires:',
-      requiredMenuKey + ')'
-    );
+    console.log('[hasPathPermission] ❌ Permission denied for:', normalizedPathname);
   }
 
   return hasPermission;
