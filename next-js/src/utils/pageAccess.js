@@ -87,12 +87,12 @@ export const fetchNavPermissionsForRole = async (role) => {
     const response = await axios.get(
       `${API_BASE_URL}nav-permissions/role/${encodeURIComponent(role)}`
     );
-    const paths = response.data?.paths || [];
-    if (paths.length > 0) {
-      savePageAccessForRole(role, paths);
+    const menuKeys = response.data?.menuKeys || [];
+    if (menuKeys.length > 0) {
+      savePageAccessForRole(role, menuKeys);
       setCacheTTL(role);
     }
-    return paths;
+    return menuKeys;
   } catch (error) {
     console.warn('Failed to fetch role-based permissions from backend:', error.message);
     return [];
@@ -274,32 +274,84 @@ export const fetchUserNavPermissions = async (userId, forceRefresh = false) => {
 };
 
 // Check if user has permission to access a specific path
-export const hasPathPermission = (allowedPaths, targetPath) => {
-  if (!targetPath || !Array.isArray(allowedPaths)) return false;
+/**
+ * Maps a full path to its menu key
+ * /dashboard/expense -> expense
+ * /dashboard/expense/new -> expense:create (requires expense:create permission)
+ * /dashboard/expense/edit/:id -> expense:edit (requires expense:edit permission)
+ * /dashboard/hr/employee -> hr:employee
+ */
+export const pathToMenuKey = (pathname) => {
+  if (!pathname) return null;
+
+  // Remove /dashboard prefix and trailing slashes
+  let path = pathname.replace(/^\/dashboard\/?/, '').replace(/\/$/, '');
+
+  if (!path) return 'dashboard'; // /dashboard maps to 'dashboard'
+
+  // Extract action from path
+  const parts = path.split('/');
+  const menuPart = parts[0]; // e.g., "expense", "invoice", "hr"
+  const actionPart = parts[1]; // e.g., "new", "edit", details
+
+  // Map common actions to permission keys
+  let action = '';
+  if (actionPart === 'new') {
+    action = ':create';
+  } else if (
+    actionPart === 'edit' ||
+    actionPart?.match(/edit\/.*/) ||
+    actionPart?.match(/^[^/]+\/edit$/)
+  ) {
+    action = ':edit';
+  } else if (
+    actionPart === 'delete' ||
+    actionPart?.match(/delete\/.*/) ||
+    actionPart?.match(/^[^/]+\/delete$/)
+  ) {
+    action = ':delete';
+  }
+
+  // Construct menu key
+  const baseKey = parts.slice(0, 2).join(':'); // e.g., "hr:employee"
+  return action ? baseKey + action : baseKey;
+};
+
+/**
+ * Check if user has permission for a specific path based on menu keys
+ * @param {string[]} allowedMenuKeys - Array of allowed menu keys from database
+ * @param {string} pathname - The path to check (e.g., /dashboard/expense/new)
+ * @returns {boolean} true if user has permission
+ */
+export const hasPathPermission = (allowedMenuKeys, pathname) => {
+  if (!pathname || !Array.isArray(allowedMenuKeys)) return false;
 
   // SuperAdmin wildcard - grants access to everything
-  if (allowedPaths.includes('*')) {
-    console.log(
-      '[hasPathPermission] SuperAdmin wildcard detected - granting access to:',
-      targetPath
-    );
+  if (allowedMenuKeys.includes('*')) {
+    console.log('[hasPathPermission] SuperAdmin wildcard detected - granting access to:', pathname);
     return true;
   }
 
   // Always allow dashboard root
-  if (targetPath === '/dashboard' || targetPath === '/dashboard/') return true;
+  if (pathname === '/dashboard' || pathname === '/dashboard/') return true;
 
-  // Normalize target path by removing trailing slash
-  const normalizedTarget =
-    targetPath.endsWith('/') && targetPath !== '/' ? targetPath.slice(0, -1) : targetPath;
+  // Get the menu key for this path
+  const requiredMenuKey = pathToMenuKey(pathname);
+  console.log('[hasPathPermission] Checking:', { pathname, requiredMenuKey, allowedMenuKeys });
 
-  return allowedPaths.some((allowedPath) => {
-    // Normalize allowed path
-    const normalizedAllowed =
-      allowedPath.endsWith('/') && allowedPath !== '/' ? allowedPath.slice(0, -1) : allowedPath;
+  // Check if user has the required permission
+  const hasPermission = allowedMenuKeys.includes(requiredMenuKey);
 
-    // Exact match only - no prefix matching
-    // Users need explicit permission for each page
-    return normalizedTarget === normalizedAllowed;
-  });
+  if (hasPermission) {
+    console.log('[hasPathPermission] ✅ Permission granted for:', pathname, 'via', requiredMenuKey);
+  } else {
+    console.log(
+      '[hasPathPermission] ❌ Permission denied for:',
+      pathname,
+      '(requires:',
+      requiredMenuKey + ')'
+    );
+  }
+
+  return hasPermission;
 };
