@@ -364,11 +364,7 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
   // Block access if user doesn't have permission
   const renderFooter = () => null;
 
-  const renderMain = () => (
-    <MainSection {...slotProps?.main}>
-      <PermissionGuard>{children}</PermissionGuard>
-    </MainSection>
-  );
+  const renderMain = () => <MainSection {...slotProps?.main}>{children}</MainSection>;
 
   return (
     <LayoutSection
