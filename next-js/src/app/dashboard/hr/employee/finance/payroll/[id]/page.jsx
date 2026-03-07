@@ -11,13 +11,20 @@ import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import Divider from '@mui/material/Divider';
 import TableRow from '@mui/material/TableRow';
 import TableHead from '@mui/material/TableHead';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import CardContent from '@mui/material/CardContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
 import TableContainer from '@mui/material/TableContainer';
+import InputAdornment from '@mui/material/InputAdornment';
 
 import { paths } from 'src/routes/paths';
 
@@ -27,6 +34,7 @@ import {
   fetchPayrollRun,
   approvePayrollRun,
   postPayrollToBank,
+  updatePayrollLineItemDeductions,
 } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -46,6 +54,12 @@ export default function PayrollDetailPage({ params }) {
   const [approving, setApproving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [processing, setProcessing] = useState(false);
+
+  // Adjust-deduction dialog state
+  const [adjustTarget, setAdjustTarget] = useState(null);
+  const [adjustAmount, setAdjustAmount] = useState('');
+  const [adjustRemarks, setAdjustRemarks] = useState('');
+  const [adjusting, setAdjusting] = useState(false);
 
   const formatStatus = (status) => {
     if (!status) return '-';
@@ -209,6 +223,97 @@ export default function PayrollDetailPage({ params }) {
     }
   }, [payroll, payrollId]);
 
+  // ── Adjust deductions ──────────────────────────────────────────────────
+  const handleOpenAdjust = useCallback((item) => {
+    setAdjustTarget(item);
+    setAdjustAmount(String(item.manualDeductionAmount || ''));
+    setAdjustRemarks(item.manualDeductionRemarks || '');
+  }, []);
+
+  const handleCloseAdjust = useCallback(() => {
+    setAdjustTarget(null);
+    setAdjustAmount('');
+    setAdjustRemarks('');
+  }, []);
+
+  const handleSaveAdjust = useCallback(async () => {
+    if (!adjustTarget) return;
+    const amount = Number(adjustAmount) || 0;
+    setAdjusting(true);
+    try {
+      const response = await updatePayrollLineItemDeductions(adjustTarget.id, {
+        manualDeductionAmount: amount,
+        manualDeductionRemarks: adjustRemarks || undefined,
+      });
+      // Update local line items state with the saved values
+      const saved = response?.lineItem;
+      if (saved) {
+        setLineItems((prev) => prev.map((li) => (li.id === saved.id ? saved : li)));
+      } else {
+        // Fallback: recompute locally
+        setLineItems((prev) =>
+          prev.map((li) =>
+            li.id === adjustTarget.id
+              ? {
+                  ...li,
+                  manualDeductionAmount: amount,
+                  manualDeductionRemarks: adjustRemarks || null,
+                  deductions: amount,
+                  netSalary: (li.grossSalary || 0) - amount,
+                }
+              : li
+          )
+        );
+      }
+      toast.success('Deduction updated successfully');
+      handleCloseAdjust();
+    } catch (error) {
+      console.error('Failed to update deduction', error);
+      toast.error('Failed to update deduction');
+    } finally {
+      setAdjusting(false);
+    }
+  }, [adjustTarget, adjustAmount, adjustRemarks, handleCloseAdjust]);
+
+  // ── Payslip download ───────────────────────────────────────────────────
+  const handleDownloadPayslip = useCallback(
+    async (item) => {
+      if (!payroll) return;
+      try {
+        const [{ pdf }, { PayslipDocument }] = await Promise.all([
+          import('@react-pdf/renderer'),
+          import('src/sections/hr/payroll/payslip-document'),
+        ]);
+        const { createElement } = await import('react');
+        const blob = await pdf(
+          createElement(PayslipDocument, { lineItem: item, payroll })
+        ).toBlob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        const monthName = new Date(payroll.periodYear, payroll.periodMonth - 1).toLocaleString(
+          'default',
+          { month: 'short' }
+        );
+        link.download = `Payslip_${(item.employeeName || 'employee').replace(/\s+/g, '_')}_${monthName}_${payroll.periodYear}.pdf`;
+        link.click();
+        URL.revokeObjectURL(blobUrl);
+      } catch (error) {
+        console.error('Failed to generate payslip', error);
+        toast.error('Failed to generate payslip PDF');
+      }
+    },
+    [payroll]
+  );
+
+  const handleDownloadAllPayslips = useCallback(async () => {
+    if (!payroll || !lineItems.length) return;
+    for (const item of lineItems) {
+      // eslint-disable-next-line no-await-in-loop
+      await handleDownloadPayslip(item);
+    }
+  }, [handleDownloadPayslip, lineItems, payroll]);
+
   return (
     <DashboardContent>
       <CustomBreadcrumbs
@@ -231,6 +336,15 @@ export default function PayrollDetailPage({ params }) {
             >
               {exporting ? 'Exporting…' : 'Export Excel'}
             </Button>
+            {lineItems.length > 0 && (
+              <Button
+                variant="outlined"
+                startIcon={<Iconify icon="mdi:file-document-outline" />}
+                onClick={handleDownloadAllPayslips}
+              >
+                Download All Payslips
+              </Button>
+            )}
             {payroll?.status === 'pending_approval' && (
               <>
                 <Button
@@ -417,15 +531,36 @@ export default function PayrollDetailPage({ params }) {
                       <TableHead>
                         <TableRow>
                           <TableCell>Employee</TableCell>
+                          <TableCell>Designation / Dept</TableCell>
                           <TableCell align="right">Gross</TableCell>
-                          <TableCell align="right">Deductions</TableCell>
-                          <TableCell align="right">Net</TableCell>
+                          <TableCell align="right">LOP</TableCell>
+                          <TableCell align="right" sx={{ color: 'error.main' }}>
+                            Extra Deductions
+                          </TableCell>
+                          <TableCell>Deduction Reason</TableCell>
+                          <TableCell align="right" sx={{ color: 'success.main' }}>
+                            Net Pay
+                          </TableCell>
+                          <TableCell align="center">Actions</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {lineItems.map((item) => (
                           <TableRow key={item.id} hover>
-                            <TableCell>{item.employeeName}</TableCell>
+                            <TableCell>
+                              <Typography variant="body2" fontWeight="600">
+                                {item.employeeName}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {item.employeeId}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2">{item.designation || '—'}</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {item.department || ''}
+                              </Typography>
+                            </TableCell>
                             <TableCell align="right">
                               {fCurrency(item.grossSalary || 0, {
                                 currency: 'SAR',
@@ -433,19 +568,67 @@ export default function PayrollDetailPage({ params }) {
                                 maximumFractionDigits: 2,
                               })}
                             </TableCell>
-                            <TableCell align="right">
-                              {fCurrency(item.deductions || 0, {
-                                currency: 'SAR',
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}
+                            <TableCell
+                              align="right"
+                              sx={{ color: item.lopDays > 0 ? 'warning.main' : 'text.secondary' }}
+                            >
+                              {item.lopDays > 0
+                                ? `${item.lopDays}d / SAR ${Number(item.lopAmount || 0).toFixed(2)}`
+                                : '—'}
+                            </TableCell>
+                            <TableCell
+                              align="right"
+                              sx={{
+                                color:
+                                  (item.manualDeductionAmount || 0) > 0
+                                    ? 'error.main'
+                                    : 'text.secondary',
+                              }}
+                            >
+                              {(item.manualDeductionAmount || 0) > 0
+                                ? fCurrency(item.manualDeductionAmount, {
+                                    currency: 'SAR',
+                                    minimumFractionDigits: 2,
+                                    maximumFractionDigits: 2,
+                                  })
+                                : '—'}
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="caption" color="text.secondary">
+                                {item.manualDeductionRemarks || '—'}
+                              </Typography>
                             </TableCell>
                             <TableCell align="right">
-                              {fCurrency(item.netSalary || 0, {
-                                currency: 'SAR',
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}
+                              <Typography variant="subtitle2" sx={{ color: 'success.main' }}>
+                                {fCurrency(item.netSalary || 0, {
+                                  currency: 'SAR',
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Stack direction="row" spacing={0.5} justifyContent="center">
+                                {payroll?.status === 'pending_approval' && (
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
+                                    color="warning"
+                                    startIcon={<Iconify icon="mdi:pencil-minus-outline" />}
+                                    onClick={() => handleOpenAdjust(item)}
+                                  >
+                                    Adjust
+                                  </Button>
+                                )}
+                                <Button
+                                  size="small"
+                                  variant="outlined"
+                                  startIcon={<Iconify icon="mdi:file-document-outline" />}
+                                  onClick={() => handleDownloadPayslip(item)}
+                                >
+                                  Payslip
+                                </Button>
+                              </Stack>
                             </TableCell>
                           </TableRow>
                         ))}
@@ -458,6 +641,19 @@ export default function PayrollDetailPage({ params }) {
           </Stack>
         </Card>
       )}
+
+      {/* Adjust-deduction dialog */}
+      <AdjustDeductionDialog
+        open={Boolean(adjustTarget)}
+        item={adjustTarget}
+        amount={adjustAmount}
+        remarks={adjustRemarks}
+        saving={adjusting}
+        onAmountChange={setAdjustAmount}
+        onRemarksChange={setAdjustRemarks}
+        onSave={handleSaveAdjust}
+        onClose={handleCloseAdjust}
+      />
     </DashboardContent>
   );
 }
@@ -465,3 +661,96 @@ export default function PayrollDetailPage({ params }) {
 PayrollDetailPage.propTypes = {
   params: PropTypes.shape({ id: PropTypes.string }),
 };
+
+// ---------------------------------------------------------------------------
+// Adjust-Deductions Dialog (separate to keep render tree clean)
+// ---------------------------------------------------------------------------
+
+function AdjustDeductionDialog({
+  open,
+  item,
+  amount,
+  remarks,
+  saving,
+  onAmountChange,
+  onRemarksChange,
+  onSave,
+  onClose,
+}) {
+  if (!item) return null;
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogTitle>Adjust Deduction — {item.employeeName}</DialogTitle>
+      <Divider />
+      <DialogContent sx={{ pt: 2.5 }}>
+        <Stack spacing={2.5}>
+          <Typography variant="body2" color="text.secondary">
+            Gross salary: <strong>SAR {Number(item.grossSalary || 0).toFixed(2)}</strong>. Enter an
+            extra deduction amount to subtract from the gross. The net pay will be updated
+            accordingly.
+          </Typography>
+          <TextField
+            label="Deduction Amount (SAR)"
+            type="number"
+            value={amount}
+            onChange={(e) => onAmountChange(e.target.value)}
+            InputProps={{
+              startAdornment: <InputAdornment position="start">SAR</InputAdornment>,
+              inputProps: { min: 0 },
+            }}
+            fullWidth
+          />
+          <TextField
+            label="Reason"
+            placeholder="e.g. Advance repayment, loan deduction…"
+            value={remarks}
+            onChange={(e) => onRemarksChange(e.target.value)}
+            fullWidth
+            multiline
+            minRows={2}
+          />
+          {amount > 0 && (
+            <Paper
+              variant="outlined"
+              sx={{ p: 1.5, borderRadius: 1.5, bgcolor: 'background.neutral' }}
+            >
+              <Stack direction="row" justifyContent="space-between">
+                <Typography variant="body2" color="text.secondary">
+                  Gross
+                </Typography>
+                <Typography variant="body2">
+                  SAR {Number(item.grossSalary || 0).toFixed(2)}
+                </Typography>
+              </Stack>
+              <Stack direction="row" justifyContent="space-between">
+                <Typography variant="body2" color="error">
+                  Deduction
+                </Typography>
+                <Typography variant="body2" color="error">
+                  − SAR {Number(amount || 0).toFixed(2)}
+                </Typography>
+              </Stack>
+              <Divider sx={{ my: 0.75 }} />
+              <Stack direction="row" justifyContent="space-between">
+                <Typography variant="subtitle2" color="success.main">
+                  Net Pay
+                </Typography>
+                <Typography variant="subtitle2" color="success.main">
+                  SAR {Math.max(0, Number(item.grossSalary || 0) - Number(amount || 0)).toFixed(2)}
+                </Typography>
+              </Stack>
+            </Paper>
+          )}
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={onClose} disabled={saving}>
+          Cancel
+        </Button>
+        <Button variant="contained" onClick={onSave} disabled={saving}>
+          {saving ? 'Saving…' : 'Save Deduction'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}

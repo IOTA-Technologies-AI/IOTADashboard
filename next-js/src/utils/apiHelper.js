@@ -317,6 +317,16 @@ export async function approvePayrollRun({ id, approvedBy, status, notes }) {
   return response.data;
 }
 
+// Update manual deductions on a single payroll line item
+export async function updatePayrollLineItemDeductions(
+  id,
+  { manualDeductionAmount, manualDeductionRemarks }
+) {
+  const url = `${API_BASE_URL}/payroll/line-items/${id}`;
+  const response = await axios.patch(url, { manualDeductionAmount, manualDeductionRemarks });
+  return response.data;
+}
+
 export async function updateVendor(id, vendorData) {
   try {
     // Encore expects id and body fields in one object

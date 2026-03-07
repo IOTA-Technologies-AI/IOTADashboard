@@ -21,7 +21,12 @@ import CardContent from '@mui/material/CardContent';
 
 import { paths } from 'src/routes/paths';
 
-import { getEmployees, getLeaveRequests, createPayrollRun, fetchPayrollRuns } from 'src/utils/apiHelper';
+import {
+  getEmployees,
+  getLeaveRequests,
+  createPayrollRun,
+  fetchPayrollRuns,
+} from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -233,11 +238,7 @@ export default function GeneratePayrollPage() {
   const getRowId = useCallback((item) => {
     if (!item) return '';
     const raw =
-      item.__rowId ??
-      item.id ??
-      item.employeeId ??
-      item.employeeID ??
-      item.payrollLineItemId;
+      item.__rowId ?? item.id ?? item.employeeId ?? item.employeeID ?? item.payrollLineItemId;
     return raw != null ? String(raw) : '';
   }, []);
 
@@ -340,6 +341,8 @@ export default function GeneratePayrollPage() {
             grossSalary: proRata.grossSalary,
             deductions: proRata.deductions,
             netSalary: proRata.netSalary,
+            manualDeductionAmount: 0,
+            manualDeductionRemarks: '',
           };
         })
         .filter(Boolean);
@@ -356,36 +359,54 @@ export default function GeneratePayrollPage() {
   };
 
   const handleGeneratePayroll = async () => {
-  try {
-    setGenerating(true);
-    // Prevent duplicate payroll runs for the same month/year
-    const existing = await fetchPayrollRuns();
-    const alreadyExists = Array.isArray(existing)
-      ? existing.some((run) => run.periodMonth === month && run.periodYear === year)
-      : false;
-    if (alreadyExists) {
-      toast.error('A payroll run already exists for this period. Please edit the existing run.');
-      return;
-    }
-    // Filter to only selected employees from the calculated payroll data
-    const selectedPayrollData = payrollData.filter((row) => selectedIdsArray.includes(row.id));
-    const selectedEmployeeDbIds = selectedPayrollData.map((row) => {
-      const emp = employees.find((e) => getRowId(e) === row.id);
-      return emp?.id;
-    }).filter(Boolean);
+    try {
+      setGenerating(true);
+      // Prevent duplicate payroll runs for the same month/year
+      const existing = await fetchPayrollRuns();
+      const alreadyExists = Array.isArray(existing)
+        ? existing.some((run) => run.periodMonth === month && run.periodYear === year)
+        : false;
+      if (alreadyExists) {
+        toast.error('A payroll run already exists for this period. Please edit the existing run.');
+        return;
+      }
+      // Filter to only selected employees from the calculated payroll data
+      const selectedPayrollData = payrollData.filter((row) => selectedIdsArray.includes(row.id));
+      const selectedEmployeeDbIds = selectedPayrollData
+        .map((row) => {
+          const emp = employees.find((e) => getRowId(e) === row.id);
+          return emp?.id;
+        })
+        .filter(Boolean);
 
-    const response = await createPayrollRun({
-      periodMonth: month,
-      periodYear: year,
-      generatedBy: 'system',
-      notes: undefined,
-      employeeIds: selectedEmployeeDbIds,
-    });
+      // Build per-employee manual deduction overrides (keyed by DB id)
+      const lineItemOverrides = {};
+      selectedPayrollData.forEach((row) => {
+        const emp = employees.find((e) => getRowId(e) === row.id);
+        if (emp?.id && (row.manualDeductionAmount > 0 || row.manualDeductionRemarks)) {
+          lineItemOverrides[emp.id] = {
+            manualDeductionAmount: row.manualDeductionAmount || 0,
+            ...(row.manualDeductionRemarks
+              ? { manualDeductionRemarks: row.manualDeductionRemarks }
+              : {}),
+          };
+        }
+      });
+
+      const response = await createPayrollRun({
+        periodMonth: month,
+        periodYear: year,
+        generatedBy: 'system',
+        notes: undefined,
+        employeeIds: selectedEmployeeDbIds,
+        ...(Object.keys(lineItemOverrides).length > 0 ? { lineItemOverrides } : {}),
+      });
 
       if (response?.lineItems) {
         setPayrollData(
           response.lineItems.map((li) => {
-            const normalizedId = getRowId(li) || `${li.employeeName || 'emp'}-${li.employeeId || ''}`;
+            const normalizedId =
+              getRowId(li) || `${li.employeeName || 'emp'}-${li.employeeId || ''}`;
             return { ...li, id: normalizedId };
           })
         );
@@ -397,7 +418,9 @@ export default function GeneratePayrollPage() {
       toast.success('Payroll generated successfully');
 
       if (response?.payrollRun?.id) {
-        router.push(`${paths.dashboard.hr.employee.root}/finance/payroll/${response.payrollRun.id}`);
+        router.push(
+          `${paths.dashboard.hr.employee.root}/finance/payroll/${response.payrollRun.id}`
+        );
       }
     } catch (error) {
       console.error('Error generating payroll:', error);
@@ -511,6 +534,32 @@ export default function GeneratePayrollPage() {
       valueFormatter: (value) => `SAR ${value?.toFixed(2) || 0}`,
     },
     {
+      field: 'manualDeductionAmount',
+      headerName: 'Extra Deductions',
+      flex: 1,
+      minWidth: 140,
+      editable: true,
+      type: 'number',
+      valueFormatter: (value) => (value > 0 ? `SAR ${Number(value || 0).toFixed(2)}` : '—'),
+      renderHeader: () => (
+        <span title="Enter any additional deduction to apply on top of LOP (e.g. advance, loan repayment). Editable.">
+          Extra Deductions ✎
+        </span>
+      ),
+    },
+    {
+      field: 'manualDeductionRemarks',
+      headerName: 'Deduction Reason',
+      flex: 1.4,
+      minWidth: 170,
+      editable: true,
+      renderHeader: () => (
+        <span title="Describe the reason for the extra deduction (e.g. Advance repayment). Editable.">
+          Deduction Reason ✎
+        </span>
+      ),
+    },
+    {
       field: 'netSalary',
       headerName: 'Net Salary',
       flex: 1.2,
@@ -524,8 +573,10 @@ export default function GeneratePayrollPage() {
     },
   ];
 
-  const totalGross = runMeta?.totalGross ?? payrollData.reduce((sum, row) => sum + (row.grossSalary || 0), 0);
-  const totalNet = runMeta?.totalNet ?? payrollData.reduce((sum, row) => sum + (row.netSalary || 0), 0);
+  const totalGross =
+    runMeta?.totalGross ?? payrollData.reduce((sum, row) => sum + (row.grossSalary || 0), 0);
+  const totalNet =
+    runMeta?.totalNet ?? payrollData.reduce((sum, row) => sum + (row.netSalary || 0), 0);
 
   const employeeTableHead = [
     { id: 'employeeId', label: 'Employee ID', width: 140 },
@@ -608,17 +659,19 @@ export default function GeneratePayrollPage() {
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
                 <Button
                   variant="outlined"
-                  onClick={() => table.onSelectAllRows(true, employees.map((e) => getRowId(e)).filter(Boolean))}
+                  onClick={() =>
+                    table.onSelectAllRows(true, employees.map((e) => getRowId(e)).filter(Boolean))
+                  }
                   disabled={employees.length === 0}
                 >
                   Select All
                 </Button>
                 <Button
                   variant="outlined"
-                        onClick={() => {
-                          selectionInitialized.current = true; // prevent re-init on clear
-                          table.onSelectAllRows(false, []);
-                        }}
+                  onClick={() => {
+                    selectionInitialized.current = true; // prevent re-init on clear
+                    table.onSelectAllRows(false, []);
+                  }}
                   disabled={selectedIdsArray.length === 0}
                 >
                   Clear Selection
@@ -640,7 +693,10 @@ export default function GeneratePayrollPage() {
               numSelected={selectedIdsArray.length}
               rowCount={employees.length}
               onSelectAllRows={(checked) =>
-                table.onSelectAllRows(checked, employees.map((row) => getRowId(row)).filter(Boolean))
+                table.onSelectAllRows(
+                  checked,
+                  employees.map((row) => getRowId(row)).filter(Boolean)
+                )
               }
               action={
                 <Button size="small" color="error" onClick={() => table.setSelected([])}>
@@ -659,7 +715,10 @@ export default function GeneratePayrollPage() {
                   numSelected={selectedIdsArray.length}
                   onSort={table.onSort}
                   onSelectAllRows={(checked) =>
-                    table.onSelectAllRows(checked, employees.map((row) => getRowId(row)).filter(Boolean))
+                    table.onSelectAllRows(
+                      checked,
+                      employees.map((row) => getRowId(row)).filter(Boolean)
+                    )
                   }
                 />
 
@@ -679,7 +738,9 @@ export default function GeneratePayrollPage() {
                           />
                         </TableCell>
                         <TableCell>{row.employeeId || '-'}</TableCell>
-                        <TableCell>{`${row.firstName || ''} ${row.lastName || ''}`.trim() || '-'}</TableCell>
+                        <TableCell>
+                          {`${row.firstName || ''} ${row.lastName || ''}`.trim() || '-'}
+                        </TableCell>
                         <TableCell>{row.department || '-'}</TableCell>
                         <TableCell>{row.designation || '-'}</TableCell>
                         <TableCell>
@@ -724,7 +785,9 @@ export default function GeneratePayrollPage() {
             <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
               <Card sx={{ flex: 1 }}>
                 <CardContent>
-                  <Typography variant="h4">{runMeta?.totalEmployees ?? payrollData.length}</Typography>
+                  <Typography variant="h4">
+                    {runMeta?.totalEmployees ?? payrollData.length}
+                  </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Total Employees
                   </Typography>
@@ -761,7 +824,9 @@ export default function GeneratePayrollPage() {
                     variant="contained"
                     color="primary"
                     onClick={handleGeneratePayroll}
-                    disabled={generating || payrollData.length === 0 || selectedIdsArray.length === 0}
+                    disabled={
+                      generating || payrollData.length === 0 || selectedIdsArray.length === 0
+                    }
                   >
                     {generating ? 'Generating…' : 'Generate & Send for Approval'}
                   </Button>
@@ -779,12 +844,19 @@ export default function GeneratePayrollPage() {
                     },
                   }}
                   processRowUpdate={(newRow) => {
-                    // Recalculate when leaves are edited
+                    const manualDeductionAmount =
+                      typeof newRow.manualDeductionAmount === 'number'
+                        ? newRow.manualDeductionAmount
+                        : Number(newRow.manualDeductionAmount) || 0;
+                    const manualDeductionRemarks = newRow.manualDeductionRemarks || '';
+
+                    // Recalculate LOP-based values from leave data
                     const updated = calculateProRataSalary(
                       newRow,
                       newRow.totalWorkingDays || workingDays,
                       newRow.eligibleWorkingDays || newRow.workingDays || workingDays
                     );
+
                     const recalculated = {
                       ...newRow,
                       actualDaysWorked: updated.actualDaysWorked,
@@ -795,8 +867,12 @@ export default function GeneratePayrollPage() {
                       transportAllowance: updated.transportAllowance,
                       otherAllowances: updated.otherAllowances,
                       grossSalary: updated.grossSalary,
-                      deductions: updated.deductions,
-                      netSalary: updated.netSalary,
+                      // deductions = LOP deduction + manual deduction for display
+                      deductions: updated.deductions + manualDeductionAmount,
+                      // net = pro-rata net (already LOP-adjusted) minus any manual deduction
+                      netSalary: updated.netSalary - manualDeductionAmount,
+                      manualDeductionAmount,
+                      manualDeductionRemarks,
                     };
 
                     setPayrollData((prev) =>
