@@ -14,6 +14,7 @@ import { CONFIG } from 'src/global-config';
 import { _bankingContacts } from 'src/_mock';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { fetchBankAccounts, fetchBankTransactions } from 'src/actions/banking';
+import { runAutoReconciliation } from 'src/actions/reconciliation';
 
 import { Iconify } from 'src/components/iconify/iconify';
 
@@ -184,15 +185,39 @@ export function OverviewBankingView() {
 
   // Handle statement upload completion
   const handleUploadComplete = useCallback(
-    (result) => {
-      setSnackbar({
-        open: true,
-        message: `Successfully imported ${result.summary?.newTransactions || 0} transactions`,
-        severity: 'success',
-      });
-      // Refresh data
+    async (result) => {
+      // Refresh data first
       loadAccounts();
       loadTransactions();
+
+      // Attempt auto-reconciliation for this statement
+      if (result?.statementId) {
+        try {
+          const reconcileResult = await runAutoReconciliation({ statementId: result.statementId });
+          const autoMatched = reconcileResult?.autoMatched ?? 0;
+          const pendingManual = reconcileResult?.pendingManual ?? 0;
+          const newTxns = result.summary?.newTransactions ?? 0;
+          setSnackbar({
+            open: true,
+            message: `Imported ${newTxns} transactions. Auto-reconciled ${autoMatched}${
+              pendingManual > 0 ? `, ${pendingManual} need manual review` : ''
+            }.`,
+            severity: 'success',
+          });
+        } catch (_err) {
+          setSnackbar({
+            open: true,
+            message: `Imported ${result.summary?.newTransactions || 0} transactions. Auto-reconciliation could not run.`,
+            severity: 'warning',
+          });
+        }
+      } else {
+        setSnackbar({
+          open: true,
+          message: `Successfully imported ${result?.summary?.newTransactions || 0} transactions`,
+          severity: 'success',
+        });
+      }
     },
     [loadAccounts, loadTransactions]
   );
@@ -288,7 +313,7 @@ export function OverviewBankingView() {
               currency="SAR"
             />
 
-                        <BankingBalanceStatistics
+            <BankingBalanceStatistics
               title="Balance statistics (SAR)"
               subheader={`Statistics on balance over time${currentTab !== 'all' ? ` - ${currentTab}` : ''}`}
               chart={{
@@ -298,24 +323,88 @@ export function OverviewBankingView() {
                     name: 'Weekly',
                     categories: ['Week 1', 'Week 2', 'Week 3', 'Week 4', 'Week 5'],
                     data: [
-                      { name: 'Income', data: [Math.round(income * 0.1), Math.round(income * 0.15), Math.round(income * 0.12), Math.round(income * 0.3), Math.round(income * 0.2)] },
-                      { name: 'Expenses', data: [Math.round(expenses * 0.15), Math.round(expenses * 0.2), Math.round(expenses * 0.25), Math.round(expenses * 0.22), Math.round(expenses * 0.18)] },
+                      {
+                        name: 'Income',
+                        data: [
+                          Math.round(income * 0.1),
+                          Math.round(income * 0.15),
+                          Math.round(income * 0.12),
+                          Math.round(income * 0.3),
+                          Math.round(income * 0.2),
+                        ],
+                      },
+                      {
+                        name: 'Expenses',
+                        data: [
+                          Math.round(expenses * 0.15),
+                          Math.round(expenses * 0.2),
+                          Math.round(expenses * 0.25),
+                          Math.round(expenses * 0.22),
+                          Math.round(expenses * 0.18),
+                        ],
+                      },
                     ],
                   },
                   {
                     name: 'Monthly',
                     categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep'],
                     data: [
-                      { name: 'Income', data: [Math.round(income * 0.08), Math.round(income * 0.09), Math.round(income * 0.1), Math.round(income * 0.11), Math.round(income * 0.12), Math.round(income * 0.11), Math.round(income * 0.13), Math.round(income * 0.14), Math.round(income * 0.12)] },
-                      { name: 'Expenses', data: [Math.round(expenses * 0.08), Math.round(expenses * 0.09), Math.round(expenses * 0.1), Math.round(expenses * 0.11), Math.round(expenses * 0.12), Math.round(expenses * 0.11), Math.round(expenses * 0.13), Math.round(expenses * 0.14), Math.round(expenses * 0.12)] },
+                      {
+                        name: 'Income',
+                        data: [
+                          Math.round(income * 0.08),
+                          Math.round(income * 0.09),
+                          Math.round(income * 0.1),
+                          Math.round(income * 0.11),
+                          Math.round(income * 0.12),
+                          Math.round(income * 0.11),
+                          Math.round(income * 0.13),
+                          Math.round(income * 0.14),
+                          Math.round(income * 0.12),
+                        ],
+                      },
+                      {
+                        name: 'Expenses',
+                        data: [
+                          Math.round(expenses * 0.08),
+                          Math.round(expenses * 0.09),
+                          Math.round(expenses * 0.1),
+                          Math.round(expenses * 0.11),
+                          Math.round(expenses * 0.12),
+                          Math.round(expenses * 0.11),
+                          Math.round(expenses * 0.13),
+                          Math.round(expenses * 0.14),
+                          Math.round(expenses * 0.12),
+                        ],
+                      },
                     ],
                   },
                   {
                     name: 'Yearly',
                     categories: ['2020', '2021', '2022', '2023', '2024', '2025'],
                     data: [
-                      { name: 'Income', data: [Math.round(income * 0.5), Math.round(income * 0.6), Math.round(income * 0.7), Math.round(income * 0.8), Math.round(income * 0.9), Math.round(income)] },
-                      { name: 'Expenses', data: [Math.round(expenses * 0.5), Math.round(expenses * 0.6), Math.round(expenses * 0.7), Math.round(expenses * 0.8), Math.round(expenses * 0.9), Math.round(expenses)] },
+                      {
+                        name: 'Income',
+                        data: [
+                          Math.round(income * 0.5),
+                          Math.round(income * 0.6),
+                          Math.round(income * 0.7),
+                          Math.round(income * 0.8),
+                          Math.round(income * 0.9),
+                          Math.round(income),
+                        ],
+                      },
+                      {
+                        name: 'Expenses',
+                        data: [
+                          Math.round(expenses * 0.5),
+                          Math.round(expenses * 0.6),
+                          Math.round(expenses * 0.7),
+                          Math.round(expenses * 0.8),
+                          Math.round(expenses * 0.9),
+                          Math.round(expenses),
+                        ],
+                      },
                     ],
                   },
                 ],
