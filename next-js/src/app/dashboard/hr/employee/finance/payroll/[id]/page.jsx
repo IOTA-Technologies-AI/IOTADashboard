@@ -226,8 +226,8 @@ export default function PayrollDetailPage({ params }) {
   // ── Adjust deductions ──────────────────────────────────────────────────
   const handleOpenAdjust = useCallback((item) => {
     setAdjustTarget(item);
-    setAdjustAmount(String(item.manualDeductionAmount || ''));
-    setAdjustRemarks(item.manualDeductionRemarks || '');
+    setAdjustAmount(String(item.manualDeductionAmount ?? item.deductions ?? ''));
+    setAdjustRemarks(item.manualDeductionRemarks || item.remarks || '');
   }, []);
 
   const handleCloseAdjust = useCallback(() => {
@@ -245,26 +245,23 @@ export default function PayrollDetailPage({ params }) {
         manualDeductionAmount: amount,
         manualDeductionRemarks: adjustRemarks || undefined,
       });
-      // Update local line items state with the saved values
+      // The API returns the full updated line item including manualDeductionAmount
+      // and manualDeductionRemarks now that the DB columns exist.
       const saved = response?.lineItem;
-      if (saved) {
-        setLineItems((prev) => prev.map((li) => (li.id === saved.id ? saved : li)));
-      } else {
-        // Fallback: recompute locally
-        setLineItems((prev) =>
-          prev.map((li) =>
-            li.id === adjustTarget.id
-              ? {
-                  ...li,
-                  manualDeductionAmount: amount,
-                  manualDeductionRemarks: adjustRemarks || null,
-                  deductions: amount,
-                  netSalary: (li.grossSalary || 0) - amount,
-                }
-              : li
-          )
-        );
-      }
+      setLineItems((prev) =>
+        prev.map((li) => {
+          if (li.id !== adjustTarget.id) return li;
+          if (saved) return saved;
+          // Fallback: compute locally if API didn't return the item
+          return {
+            ...li,
+            manualDeductionAmount: amount,
+            manualDeductionRemarks: adjustRemarks || null,
+            deductions: amount,
+            netSalary: (li.grossSalary || 0) - amount,
+          };
+        })
+      );
       toast.success('Deduction updated successfully');
       handleCloseAdjust();
     } catch (error) {
@@ -309,7 +306,6 @@ export default function PayrollDetailPage({ params }) {
   const handleDownloadAllPayslips = useCallback(async () => {
     if (!payroll || !lineItems.length) return;
     for (const item of lineItems) {
-      // eslint-disable-next-line no-await-in-loop
       await handleDownloadPayslip(item);
     }
   }, [handleDownloadPayslip, lineItems, payroll]);
@@ -580,13 +576,13 @@ export default function PayrollDetailPage({ params }) {
                               align="right"
                               sx={{
                                 color:
-                                  (item.manualDeductionAmount || 0) > 0
+                                  (item.manualDeductionAmount ?? item.deductions ?? 0) > 0
                                     ? 'error.main'
                                     : 'text.secondary',
                               }}
                             >
-                              {(item.manualDeductionAmount || 0) > 0
-                                ? fCurrency(item.manualDeductionAmount, {
+                              {(item.manualDeductionAmount ?? item.deductions ?? 0) > 0
+                                ? fCurrency(item.manualDeductionAmount ?? item.deductions, {
                                     currency: 'SAR',
                                     minimumFractionDigits: 2,
                                     maximumFractionDigits: 2,
@@ -595,7 +591,7 @@ export default function PayrollDetailPage({ params }) {
                             </TableCell>
                             <TableCell>
                               <Typography variant="caption" color="text.secondary">
-                                {item.manualDeductionRemarks || '—'}
+                                {item.manualDeductionRemarks || item.remarks || '—'}
                               </Typography>
                             </TableCell>
                             <TableCell align="right">

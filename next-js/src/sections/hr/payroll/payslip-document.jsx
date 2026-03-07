@@ -233,10 +233,13 @@ export function PayslipDocument({ lineItem, payroll, companyName = 'IOTA' }) {
   const other = Number(lineItem.otherAllowances || 0);
   const gross = Number(lineItem.grossSalary || basic + housing + transport + other);
 
-  // Deductions
+  // Deductions — manualDeductionAmount/Remarks are in-memory only until DB columns exist;
+  // fall back to the persisted deductions + remarks fields for DB-loaded items.
   const lopDays = Number(lineItem.lopDays || 0);
   const lopAmount = Number(lineItem.lopAmount || 0);
-  const manualDeduction = Number(lineItem.manualDeductionAmount || 0);
+  const manualDeduction = Number(lineItem.manualDeductionAmount ?? (lineItem.deductions || 0));
+  const manualDeductionLabel =
+    lineItem.manualDeductionRemarks || lineItem.remarks || 'Additional Deduction';
   const totalDeductions = Number(lineItem.deductions || lopAmount + manualDeduction);
   const net = Number(lineItem.netSalary || gross - totalDeductions);
 
@@ -353,9 +356,7 @@ export function PayslipDocument({ lineItem, payroll, companyName = 'IOTA' }) {
                 ) : null}
                 {manualDeduction > 0 ? (
                   <View style={[styles.tableRow, styles.tableRowAlt]}>
-                    <Text style={styles.colDescription}>
-                      {lineItem.manualDeductionRemarks || 'Additional Deduction'}
-                    </Text>
+                    <Text style={styles.colDescription}>{manualDeductionLabel}</Text>
                     <Text style={styles.colAmount}>{fmt(manualDeduction, currency)}</Text>
                   </View>
                 ) : null}
