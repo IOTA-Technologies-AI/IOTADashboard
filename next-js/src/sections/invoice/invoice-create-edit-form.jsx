@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useBoolean } from 'minimal-shared/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 
+import CircularProgress from '@mui/material/CircularProgress';
+
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Alert from '@mui/material/Alert';
@@ -19,6 +21,7 @@ import { createInvoice, updateInvoice, getCostCenters } from 'src/utils/apiHelpe
 import { toast } from 'src/components/snackbar';
 import { Field, Form, schemaUtils } from 'src/components/hook-form';
 import { useAuthContext } from 'src/auth/hooks';
+import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 
 import { InvoiceCreateEditStatusDate } from './invoice-create-edit-status-date';
 import { defaultItem, InvoiceCreateEditDetails } from './invoice-create-edit-details';
@@ -54,6 +57,10 @@ export const InvoiceCreateSchema = z
     invoiceNumber: z.string(),
     invoiceFrom: z.custom().nullable(),
     costcenterId: z.union([z.string(), z.number()]).optional().nullable(),
+    // Employee-related invoice fields
+    isEmployeeRelated: z.boolean().optional(),
+    employeeId: z.string().optional(),
+    employeeName: z.string().optional(),
   })
   .refine((val) => !fIsAfter(val.createDate, val.dueDate), {
     error: 'Due date cannot be earlier than create date!',
@@ -65,6 +72,7 @@ export const InvoiceCreateSchema = z
 export function InvoiceCreateEditForm({ currentInvoice }) {
   const router = useRouter();
   const { user } = useAuthContext();
+  const { users: microsoftUsers, loading: loadingUsers } = useMicrosoftUsers();
 
   const loadingSave = useBoolean();
   const loadingSend = useBoolean();
@@ -97,6 +105,9 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
     invoiceFrom: IOTA_OFFICES[0],
     invoiceTo: null,
     costcenterId: '',
+    isEmployeeRelated: false,
+    employeeId: '',
+    employeeName: '',
     subtotal: 0,
     total: 0,
     items: [defaultItem],
@@ -113,9 +124,13 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
 
   const {
     reset,
+    watch,
+    setValue,
     handleSubmit,
     formState: { isSubmitting },
   } = methods;
+
+  const isEmployeeRelated = watch('isEmployeeRelated');
 
   // ✅ Save as Draft - Only for draft/pending invoices
   useEffect(() => {
@@ -164,6 +179,10 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         vatAmount: parseFloat((data.vatAmount || 0).toFixed(2)),
         vatRate: parseFloat((data.vatRate || 0).toFixed(2)),
         shippingCharge: parseFloat((data.shipping || 0).toFixed(2)),
+        // Employee-related fields
+        isEmployeeRelated: data.isEmployeeRelated || false,
+        ...(data.isEmployeeRelated && data.employeeId && { employeeId: data.employeeId }),
+        ...(data.isEmployeeRelated && data.employeeName && { employeeName: data.employeeName }),
         ...(!isEdit && {
           createdAt: new Date().toISOString(),
         }),
@@ -226,6 +245,10 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         currencySymbol: data.invoiceTo?.currency === 'SAR' ? 'ر.س' : '$',
         exchangeRate: 1,
         costcenterId: data.costcenterId ? Number(data.costcenterId) : null,
+        // Employee-related fields
+        isEmployeeRelated: data.isEmployeeRelated || false,
+        ...(data.isEmployeeRelated && data.employeeId && { employeeId: data.employeeId }),
+        ...(data.isEmployeeRelated && data.employeeName && { employeeName: data.employeeName }),
         ...(!isEdit && {
           createdAt: new Date().toISOString(),
         }),
@@ -280,7 +303,15 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
 
       <Card>
         <InvoiceCreateEditAddress />
-        <Box sx={{ p: 3, pt: 0 }}>
+        <Box
+          sx={{
+            p: 3,
+            pt: 0,
+            gap: 2,
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+          }}
+        >
           <Field.Select
             name="costcenterId"
             label="Cost center"
@@ -297,6 +328,53 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
               </MenuItem>
             ))}
           </Field.Select>
+
+          {/* ✅ Employee-related toggle */}
+          <Field.Checkbox
+            name="isEmployeeRelated"
+            label="Employee-related invoice"
+            helperText="Enable to attribute this invoice income to a specific employee"
+            onChange={(e) => {
+              setValue('isEmployeeRelated', e.target.checked);
+              if (!e.target.checked) {
+                setValue('employeeId', '');
+                setValue('employeeName', '');
+              }
+            }}
+          />
+
+          {/* ✅ Employee picker - only shown when isEmployeeRelated is checked */}
+          {isEmployeeRelated && (
+            <Field.Select
+              name="employeeId"
+              label="Linked Employee"
+              fullWidth
+              displayEmpty
+              InputLabelProps={{ shrink: true }}
+              helperText="Select the employee whose P&L this invoice income belongs to"
+              onChange={(e) => {
+                const selectedId = e.target.value;
+                const selectedUser = microsoftUsers.find((u) => u.id === selectedId);
+                setValue('employeeId', selectedId);
+                setValue('employeeName', selectedUser?.name || '');
+              }}
+            >
+              <MenuItem value="">
+                <em>{loadingUsers ? 'Loading...' : 'Select employee'}</em>
+              </MenuItem>
+              {loadingUsers ? (
+                <MenuItem disabled>
+                  <CircularProgress size={20} sx={{ mr: 1 }} /> Loading users...
+                </MenuItem>
+              ) : (
+                microsoftUsers.map((msUser) => (
+                  <MenuItem key={msUser.id} value={msUser.id}>
+                    {msUser.name} {msUser.email ? `(${msUser.email})` : ''}
+                  </MenuItem>
+                ))
+              )}
+            </Field.Select>
+          )}
         </Box>
         <InvoiceCreateEditStatusDate />
         <InvoiceCreateEditDetails />
