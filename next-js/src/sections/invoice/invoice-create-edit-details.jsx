@@ -14,8 +14,6 @@ import { inputBaseClasses } from '@mui/material/InputBase';
 // VAT calculator import
 import { calculateVAT } from 'src/utils/vat-calculator';
 
-import { INVOICE_SERVICE_OPTIONS } from 'src/_mock';
-
 import { Field } from 'src/components/hook-form';
 import { Iconify } from 'src/components/iconify';
 
@@ -26,7 +24,7 @@ import { InvoiceTotalSummary } from './invoice-total-summary';
 export const defaultItem = {
   title: '',
   description: '',
-  service: INVOICE_SERVICE_OPTIONS[0].name,
+  service: '',
   price: 0.0,
   quantity: 1,
   total: 0,
@@ -41,7 +39,7 @@ const getFieldNames = (index) => ({
   total: `items[${index}].total`,
 });
 
-export function InvoiceCreateEditDetails() {
+export function InvoiceCreateEditDetails({ serviceOptions = [] }) {
   const { control, setValue, watch } = useFormContext();
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
@@ -95,7 +93,8 @@ export function InvoiceCreateEditDetails() {
             key={item.id}
             fieldNames={getFieldNames(index)}
             onRemoveItem={() => remove(index)}
-            currency={currency} // ✅ ADD THIS
+            currency={currency}
+            serviceOptions={serviceOptions}
           />
         ))}
       </Stack>
@@ -166,7 +165,7 @@ export function InvoiceCreateEditDetails() {
 
 // ----------------------------------------------------------------------
 
-export function InvoiceItem({ onRemoveItem, fieldNames, currency }) {
+export function InvoiceItem({ onRemoveItem, fieldNames, currency, serviceOptions = [] }) {
   const { watch } = useFormContext();
   const quantity = watch(fieldNames.quantity);
   const price = watch(fieldNames.price);
@@ -182,9 +181,12 @@ export function InvoiceItem({ onRemoveItem, fieldNames, currency }) {
           InputLabelProps={{ shrink: true }}
           sx={{ maxWidth: { md: 160 } }}
         >
-          {INVOICE_SERVICE_OPTIONS.map((service) => (
-            <MenuItem key={service.name} value={service.name}>
-              {service.name}
+          <MenuItem value="">
+            <em>Select service</em>
+          </MenuItem>
+          {serviceOptions.map((type) => (
+            <MenuItem key={type.id} value={type.invoiceTypeDesc}>
+              {type.invoiceTypeDesc}
             </MenuItem>
           ))}
         </Field.Select>

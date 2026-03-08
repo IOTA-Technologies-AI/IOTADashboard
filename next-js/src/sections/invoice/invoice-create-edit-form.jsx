@@ -16,7 +16,7 @@ import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
 import { today, fIsAfter } from 'src/utils/format-time';
-import { createInvoice, updateInvoice, getCostCenters } from 'src/utils/apiHelper';
+import { createInvoice, updateInvoice, getCostCenters, getInvoiceTypes } from 'src/utils/apiHelper';
 
 import { toast } from 'src/components/snackbar';
 import { Field, Form, schemaUtils } from 'src/components/hook-form';
@@ -57,6 +57,9 @@ export const InvoiceCreateSchema = z
     invoiceNumber: z.string(),
     invoiceFrom: z.custom().nullable(),
     costcenterId: z.union([z.string(), z.number()]).optional().nullable(),
+    // Invoice type (replaces isEmployeeRelated checkbox)
+    invoiceTypeId: z.union([z.string(), z.number()]).optional().nullable(),
+    invoiceTypeName: z.string().optional(),
     // Employee-related invoice fields
     isEmployeeRelated: z.boolean().optional(),
     employeeId: z.string().optional(),
@@ -77,6 +80,7 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
   const loadingSave = useBoolean();
   const loadingSend = useBoolean();
   const [costCenters, setCostCenters] = useState([]);
+  const [invoiceTypes, setInvoiceTypes] = useState([]);
 
   const roleIdToName = {
     1: 'regular',
@@ -105,6 +109,8 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
     invoiceFrom: IOTA_OFFICES[0],
     invoiceTo: null,
     costcenterId: '',
+    invoiceTypeId: '',
+    invoiceTypeName: '',
     isEmployeeRelated: false,
     employeeId: '',
     employeeName: '',
@@ -130,15 +136,19 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
     formState: { isSubmitting },
   } = methods;
 
-  const isEmployeeRelated = watch('isEmployeeRelated');
+  const watchedInvoiceTypeId = watch('invoiceTypeId');
+  // Derive isEmployeeRelated from the selected invoice type
+  const selectedInvoiceType = invoiceTypes.find((t) => t.id === Number(watchedInvoiceTypeId));
+  const isEmployeeRelated = selectedInvoiceType?.isEmployeeRelated ?? false;
 
   // ✅ Save as Draft - Only for draft/pending invoices
   useEffect(() => {
     let active = true;
     (async () => {
-      const list = await getCostCenters();
+      const [centers, types] = await Promise.all([getCostCenters(), getInvoiceTypes()]);
       if (active) {
-        setCostCenters(list || []);
+        setCostCenters(centers || []);
+        setInvoiceTypes(types || []);
       }
     })();
     return () => {
@@ -179,10 +189,13 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         vatAmount: parseFloat((data.vatAmount || 0).toFixed(2)),
         vatRate: parseFloat((data.vatRate || 0).toFixed(2)),
         shippingCharge: parseFloat((data.shipping || 0).toFixed(2)),
-        // Employee-related fields
-        isEmployeeRelated: data.isEmployeeRelated || false,
-        ...(data.isEmployeeRelated && data.employeeId && { employeeId: data.employeeId }),
-        ...(data.isEmployeeRelated && data.employeeName && { employeeName: data.employeeName }),
+        // Invoice type fields
+        invoiceTypeId: data.invoiceTypeId ? Number(data.invoiceTypeId) : null,
+        invoiceTypeName: data.invoiceTypeName || selectedInvoiceType?.invoiceTypeDesc || null,
+        // Employee-related fields (derived from invoice type)
+        isEmployeeRelated: isEmployeeRelated,
+        ...(isEmployeeRelated && data.employeeId && { employeeId: data.employeeId }),
+        ...(isEmployeeRelated && data.employeeName && { employeeName: data.employeeName }),
         ...(!isEdit && {
           createdAt: new Date().toISOString(),
         }),
@@ -245,10 +258,13 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         currencySymbol: data.invoiceTo?.currency === 'SAR' ? 'ر.س' : '$',
         exchangeRate: 1,
         costcenterId: data.costcenterId ? Number(data.costcenterId) : null,
-        // Employee-related fields
-        isEmployeeRelated: data.isEmployeeRelated || false,
-        ...(data.isEmployeeRelated && data.employeeId && { employeeId: data.employeeId }),
-        ...(data.isEmployeeRelated && data.employeeName && { employeeName: data.employeeName }),
+        // Invoice type fields
+        invoiceTypeId: data.invoiceTypeId ? Number(data.invoiceTypeId) : null,
+        invoiceTypeName: data.invoiceTypeName || selectedInvoiceType?.invoiceTypeDesc || null,
+        // Employee-related fields (derived from invoice type)
+        isEmployeeRelated: isEmployeeRelated,
+        ...(isEmployeeRelated && data.employeeId && { employeeId: data.employeeId }),
+        ...(isEmployeeRelated && data.employeeName && { employeeName: data.employeeName }),
         ...(!isEdit && {
           createdAt: new Date().toISOString(),
         }),
@@ -329,21 +345,36 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
             ))}
           </Field.Select>
 
-          {/* ✅ Employee-related toggle */}
-          <Field.Checkbox
-            name="isEmployeeRelated"
-            label="Employee-related invoice"
-            helperText="Enable to attribute this invoice income to a specific employee"
+          <Field.Select
+            name="invoiceTypeId"
+            label="Invoice type"
+            fullWidth
+            displayEmpty
+            InputLabelProps={{ shrink: true }}
+            helperText="Select the type of invoice"
             onChange={(e) => {
-              setValue('isEmployeeRelated', e.target.checked);
-              if (!e.target.checked) {
+              const selectedId = e.target.value;
+              const matched = invoiceTypes.find((t) => t.id === Number(selectedId));
+              setValue('invoiceTypeId', selectedId);
+              setValue('invoiceTypeName', matched?.invoiceTypeDesc || '');
+              // clear employee fields if the new type is not employee-related
+              if (!matched?.isEmployeeRelated) {
                 setValue('employeeId', '');
                 setValue('employeeName', '');
               }
             }}
-          />
+          >
+            <MenuItem value="">
+              <em>Select invoice type</em>
+            </MenuItem>
+            {invoiceTypes.map((t) => (
+              <MenuItem key={t.id} value={t.id}>
+                {t.invoiceTypeDesc}
+              </MenuItem>
+            ))}
+          </Field.Select>
 
-          {/* ✅ Employee picker - only shown when isEmployeeRelated is checked */}
+          {/* ✅ Employee picker - only shown when selected type has isEmployeeRelated = true */}
           {isEmployeeRelated && (
             <Field.Select
               name="employeeId"
@@ -377,7 +408,7 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
           )}
         </Box>
         <InvoiceCreateEditStatusDate />
-        <InvoiceCreateEditDetails />
+        <InvoiceCreateEditDetails serviceOptions={invoiceTypes} />
       </Card>
 
       <Box
