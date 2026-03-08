@@ -90,6 +90,9 @@ const ExpenseSchema = zod.object({
   linkedInvoiceAmount: zod.number().optional(),
   // ✅ VAT exemption
   isVATExempt: zod.boolean().optional(),
+  // ✅ Employee-related fields
+  employeeId: zod.string().optional(),
+  employeeName: zod.string().optional(),
 });
 
 // ----------------------------------------------------------------------
@@ -370,6 +373,9 @@ export function ExpenseNewEditForm({ currentExpense }) {
       linkedInvoiceAmount: currentExpense?.linkedInvoiceAmount || 0,
       // ✅ VAT exemption default
       isVATExempt: currentExpense?.isVATExempt || false,
+      // ✅ Employee-related defaults
+      employeeId: currentExpense?.employeeId || '',
+      employeeName: currentExpense?.employeeName || '',
     }),
     [currentExpense, isSuperAdmin]
   );
@@ -399,6 +405,8 @@ export function ExpenseNewEditForm({ currentExpense }) {
   const watchedExpenseType = watch('expenseType');
   const watchedApprovalStatus = watch('expenseApprovalStatus');
   const showInvoiceDropdown = Number(watchedExpenseType) === INVOICE_AGAINST_INVOICE_TYPE;
+  const isEmployeeRelatedType =
+    EXPENSE_TYPES.find((t) => t.id === Number(watchedExpenseType))?.isEmployeeRelated ?? false;
 
   // ✅ Fetch AR invoices on mount
   useEffect(() => {
@@ -438,6 +446,15 @@ export function ExpenseNewEditForm({ currentExpense }) {
       setValue('linkedInvoiceNumber', '');
       setValue('linkedInvoiceId', '');
       setValue('linkedInvoiceAmount', 0);
+    }
+  }, [watchedExpenseType, setValue]);
+
+  // ✅ Clear employee fields when switching to a non-employee-related expense type
+  useEffect(() => {
+    const matched = EXPENSE_TYPES.find((t) => t.id === Number(watchedExpenseType));
+    if (!matched?.isEmployeeRelated) {
+      setValue('employeeId', '');
+      setValue('employeeName', '');
     }
   }, [watchedExpenseType, setValue]);
 
@@ -611,6 +628,13 @@ export function ExpenseNewEditForm({ currentExpense }) {
       // VAT exemption
       expenseData.isVATExempt = data.isVATExempt || false;
 
+      // Employee-related fields — only include when the selected type is employee-related
+      const selectedType = EXPENSE_TYPES.find((t) => t.id === Number(data.expenseType));
+      if (selectedType?.isEmployeeRelated) {
+        if (data.employeeId) expenseData.employeeId = data.employeeId;
+        if (data.employeeName) expenseData.employeeName = data.employeeName;
+      }
+
       // Super admin only fields
       if (isSuperAdmin) {
         if (data.expenseApprovedBy) expenseData.expenseApprovedBy = data.expenseApprovedBy;
@@ -687,6 +711,31 @@ export function ExpenseNewEditForm({ currentExpense }) {
                 </MenuItem>
               ))
             )}
+          </Field.Select>
+        )}
+
+        {/* ✅ Employee picker - only shown when the expense type is employee-related */}
+        {isEmployeeRelatedType && (
+          <Field.Select
+            name="employeeId"
+            label="Linked Employee"
+            InputLabelProps={{ shrink: true }}
+            helperText="Select the employee this expense is attributed to"
+            onChange={(e) => {
+              const selectedId = e.target.value;
+              const selectedUser = microsoftUsers.find((u) => u.id === selectedId);
+              setValue('employeeId', selectedId);
+              setValue('employeeName', selectedUser?.name || '');
+            }}
+          >
+            <MenuItem value="">
+              <em>{loadingUsers ? 'Loading users...' : 'Select employee'}</em>
+            </MenuItem>
+            {microsoftUsers.map((msUser) => (
+              <MenuItem key={msUser.id} value={msUser.id}>
+                {msUser.name} {msUser.email ? `(${msUser.email})` : ''}
+              </MenuItem>
+            ))}
           </Field.Select>
         )}
 
