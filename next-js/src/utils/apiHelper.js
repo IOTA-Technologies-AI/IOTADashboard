@@ -281,6 +281,19 @@ export async function getCostCenters() {
   }
 }
 
+export async function getExpenseTypes() {
+  try {
+    const isClient = typeof window !== 'undefined';
+    const url = isClient ? '/api/expensetypes' : `${API_BASE_URL}expensetypes`;
+    const response = await axios.get(url);
+    const list = response.data?.expenseTypes || response.data?.data || response.data || [];
+    return Array.isArray(list) ? list : [];
+  } catch (error) {
+    console.warn('⚠️ Expense types fetch failed:', error.response?.status, error.message);
+    return [];
+  }
+}
+
 // Payroll APIs
 export async function fetchPayrollRuns() {
   const url = `${API_BASE_URL}/payroll/runs`;
@@ -1424,6 +1437,7 @@ export const apiHelper = {
   fetchZohoInvoices,
   getVendors,
   getCostCenters,
+  getExpenseTypes,
   updateVendor,
   fetchCustomerPayments,
   createVendor,

@@ -24,13 +24,9 @@ import { useRouter } from 'src/routes/hooks';
 import { clearFormData } from 'src/hooks/use-form-autosave';
 
 import { fCurrency } from 'src/utils/format-number'; // ✅ Added for formatting
-import { apiHelper, getCostCenters } from 'src/utils/apiHelper';
+import { apiHelper, getCostCenters, getExpenseTypes } from 'src/utils/apiHelper';
 import { getOneDriveToken, seedOneDriveToken, refreshAccessToken } from 'src/utils/onedrive-helper';
-import {
-  EXPENSE_TYPES,
-  EXPENSE_CURRENCIES,
-  EXPENSE_APPROVAL_STATUS_OPTIONS,
-} from 'src/utils/constants/enums';
+import { EXPENSE_CURRENCIES, EXPENSE_APPROVAL_STATUS_OPTIONS } from 'src/utils/constants/enums';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -117,6 +113,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
   const [arInvoices, setArInvoices] = useState([]);
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [costCenters, setCostCenters] = useState([]);
+  const [expenseTypes, setExpenseTypes] = useState([]);
   const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [attachmentName, setAttachmentName] = useState('');
   const [attachmentError, setAttachmentError] = useState('');
@@ -406,7 +403,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
   const watchedApprovalStatus = watch('expenseApprovalStatus');
   const showInvoiceDropdown = Number(watchedExpenseType) === INVOICE_AGAINST_INVOICE_TYPE;
   const isEmployeeRelatedType =
-    EXPENSE_TYPES.find((t) => t.id === Number(watchedExpenseType))?.isEmployeeRelated ?? false;
+    expenseTypes.find((t) => t.id === Number(watchedExpenseType))?.isEmployeeRelated ?? false;
 
   // ✅ Fetch AR invoices on mount
   useEffect(() => {
@@ -440,6 +437,19 @@ export function ExpenseNewEditForm({ currentExpense }) {
     };
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const list = await getExpenseTypes();
+      if (active && list && list.length > 0) {
+        setExpenseTypes(list);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
   // ✅ Clear linked invoice fields when expense type changes away from "Invoice Against Invoice"
   useEffect(() => {
     if (Number(watchedExpenseType) !== INVOICE_AGAINST_INVOICE_TYPE) {
@@ -451,7 +461,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
 
   // ✅ Clear employee fields when switching to a non-employee-related expense type
   useEffect(() => {
-    const matched = EXPENSE_TYPES.find((t) => t.id === Number(watchedExpenseType));
+    const matched = expenseTypes.find((t) => t.id === Number(watchedExpenseType));
     if (!matched?.isEmployeeRelated) {
       setValue('employeeId', '');
       setValue('employeeName', '');
@@ -629,7 +639,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
       expenseData.isVATExempt = data.isVATExempt || false;
 
       // Employee-related fields — only include when the selected type is employee-related
-      const selectedType = EXPENSE_TYPES.find((t) => t.id === Number(data.expenseType));
+      const selectedType = expenseTypes.find((t) => t.id === Number(data.expenseType));
       if (selectedType?.isEmployeeRelated) {
         if (data.employeeId) expenseData.employeeId = data.employeeId;
         if (data.employeeName) expenseData.employeeName = data.employeeName;
@@ -675,11 +685,17 @@ export function ExpenseNewEditForm({ currentExpense }) {
         </Typography>
 
         <Field.Select name="expenseType" label="Expense Type" InputLabelProps={{ shrink: true }}>
-          {EXPENSE_TYPES.map((type) => (
-            <MenuItem key={type.id} value={type.id}>
-              {type.label}
+          {expenseTypes.length === 0 ? (
+            <MenuItem disabled>
+              <CircularProgress size={16} sx={{ mr: 1 }} /> Loading types...
             </MenuItem>
-          ))}
+          ) : (
+            expenseTypes.map((type) => (
+              <MenuItem key={type.id} value={type.id}>
+                {type.expenseTypeDesc}
+              </MenuItem>
+            ))
+          )}
         </Field.Select>
 
         {/* ✅ Invoice dropdown - only shown when "Invoice Against Invoice" is selected */}
