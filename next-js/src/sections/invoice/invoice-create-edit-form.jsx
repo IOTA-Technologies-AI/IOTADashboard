@@ -11,6 +11,8 @@ import Card from '@mui/material/Card';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import Autocomplete from '@mui/material/Autocomplete';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
@@ -146,6 +148,7 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
   } = methods;
 
   const watchedInvoiceTypeId = watch('invoiceTypeId');
+  const watchedEmployeeId = watch('employeeId');
   // Derive isEmployeeRelated from the selected invoice type
   const selectedInvoiceType = invoiceTypes.find((t) => t.id === Number(watchedInvoiceTypeId));
   const isEmployeeRelated = selectedInvoiceType?.isEmployeeRelated ?? false;
@@ -397,39 +400,43 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
             ))}
           </Field.Select>
 
-          {/* ✅ Employee picker - only shown when selected type has isEmployeeRelated = true */}
+          {/* ✅ Employee picker - searchable autocomplete, shown when isEmployeeRelated = true */}
           {isEmployeeRelated && (
-            <Field.Select
-              name="employeeId"
-              label="Linked Employee"
-              fullWidth
-              displayEmpty
-              InputLabelProps={{ shrink: true }}
-              helperText="Select the employee whose P&L this invoice income belongs to"
-              onChange={(e) => {
-                const selectedId = e.target.value;
-                const selectedUser = microsoftUsers.find((u) => u.id === selectedId);
-                setValue('employeeId', selectedId);
-                setValue('employeeName', selectedUser?.name || '');
+            <Autocomplete
+              options={microsoftUsers}
+              getOptionLabel={(option) =>
+                option.name ? `${option.name}${option.email ? ` (${option.email})` : ''}` : ''
+              }
+              value={microsoftUsers.find((u) => u.id === watchedEmployeeId) || null}
+              loading={loadingUsers}
+              onChange={(_, newValue) => {
+                setValue('employeeId', newValue?.id || '');
+                setValue('employeeName', newValue?.name || '');
               }}
-            >
-              <MenuItem value="">
-                <em>{loadingUsers ? 'Loading...' : 'Select employee'}</em>
-              </MenuItem>
-              {loadingUsers ? (
-                <MenuItem disabled>
-                  <CircularProgress size={20} sx={{ mr: 1 }} /> Loading users...
-                </MenuItem>
-              ) : microsoftUsers.length === 0 ? (
-                <MenuItem disabled>No users found — connect Microsoft to load employees</MenuItem>
-              ) : (
-                microsoftUsers.map((msUser) => (
-                  <MenuItem key={msUser.id} value={msUser.id}>
-                    {msUser.name} {msUser.email ? `(${msUser.email})` : ''}
-                  </MenuItem>
-                ))
+              filterOptions={(options, { inputValue }) => {
+                const lower = inputValue.toLowerCase();
+                return options.filter(
+                  (o) =>
+                    o.name?.toLowerCase().includes(lower) || o.email?.toLowerCase().includes(lower)
+                );
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Linked Employee"
+                  helperText="Type a name or email to search — select the employee whose P&L this invoice income belongs to"
+                  InputProps={{
+                    ...params.InputProps,
+                    endAdornment: (
+                      <>
+                        {loadingUsers ? <CircularProgress size={18} /> : null}
+                        {params.InputProps.endAdornment}
+                      </>
+                    ),
+                  }}
+                />
               )}
-            </Field.Select>
+            />
           )}
         </Box>
         <InvoiceCreateEditStatusDate />

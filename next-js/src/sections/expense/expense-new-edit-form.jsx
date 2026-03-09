@@ -13,6 +13,8 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import Autocomplete from '@mui/material/Autocomplete';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import LinearProgress from '@mui/material/LinearProgress';
@@ -401,6 +403,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
   // ✅ Watch expense type to show/hide invoice dropdown
   const watchedExpenseType = watch('expenseType');
   const watchedApprovalStatus = watch('expenseApprovalStatus');
+  const watchedEmployeeId = watch('employeeId');
   const showInvoiceDropdown = Number(watchedExpenseType) === INVOICE_AGAINST_INVOICE_TYPE;
   const isEmployeeRelatedType =
     expenseTypes.find((t) => t.id === Number(watchedExpenseType))?.isEmployeeRelated ?? false;
@@ -730,37 +733,43 @@ export function ExpenseNewEditForm({ currentExpense }) {
           </Field.Select>
         )}
 
-        {/* ✅ Employee picker - only shown when the expense type is employee-related */}
+        {/* ✅ Employee picker - searchable autocomplete, shown when expense type is employee-related */}
         {isEmployeeRelatedType && (
-          <Field.Select
-            name="employeeId"
-            label="Linked Employee"
-            InputLabelProps={{ shrink: true }}
-            helperText="Select the employee this expense is attributed to"
-            onChange={(e) => {
-              const selectedId = e.target.value;
-              const selectedUser = microsoftUsers.find((u) => u.id === selectedId);
-              setValue('employeeId', selectedId);
-              setValue('employeeName', selectedUser?.name || '');
+          <Autocomplete
+            options={microsoftUsers}
+            getOptionLabel={(option) =>
+              option.name ? `${option.name}${option.email ? ` (${option.email})` : ''}` : ''
+            }
+            value={microsoftUsers.find((u) => u.id === watchedEmployeeId) || null}
+            loading={loadingUsers}
+            onChange={(_, newValue) => {
+              setValue('employeeId', newValue?.id || '');
+              setValue('employeeName', newValue?.name || '');
             }}
-          >
-            <MenuItem value="">
-              <em>{loadingUsers ? 'Loading users...' : 'Select employee'}</em>
-            </MenuItem>
-            {loadingUsers ? (
-              <MenuItem disabled>
-                <CircularProgress size={20} sx={{ mr: 1 }} /> Loading...
-              </MenuItem>
-            ) : microsoftUsers.length === 0 ? (
-              <MenuItem disabled>No users found — connect Microsoft to load employees</MenuItem>
-            ) : (
-              microsoftUsers.map((msUser) => (
-                <MenuItem key={msUser.id} value={msUser.id}>
-                  {msUser.name} {msUser.email ? `(${msUser.email})` : ''}
-                </MenuItem>
-              ))
+            filterOptions={(options, { inputValue }) => {
+              const lower = inputValue.toLowerCase();
+              return options.filter(
+                (o) =>
+                  o.name?.toLowerCase().includes(lower) || o.email?.toLowerCase().includes(lower)
+              );
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Linked Employee"
+                helperText="Type a name or email to search — select the employee this expense is attributed to"
+                InputProps={{
+                  ...params.InputProps,
+                  endAdornment: (
+                    <>
+                      {loadingUsers ? <CircularProgress size={18} /> : null}
+                      {params.InputProps.endAdornment}
+                    </>
+                  ),
+                }}
+              />
             )}
-          </Field.Select>
+          />
         )}
 
         <Field.DatePicker name="expenseDate" label="Expense Date" maxDate={dayjs()} disableFuture />
