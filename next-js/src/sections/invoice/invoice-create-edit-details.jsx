@@ -6,7 +6,6 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
-import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
 import { inputBaseClasses } from '@mui/material/InputBase';
@@ -39,7 +38,7 @@ const getFieldNames = (index) => ({
   total: `items[${index}].total`,
 });
 
-export function InvoiceCreateEditDetails({ serviceOptions = [] }) {
+export function InvoiceCreateEditDetails() {
   const { control, setValue, watch } = useFormContext();
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
@@ -48,7 +47,8 @@ export function InvoiceCreateEditDetails({ serviceOptions = [] }) {
   const items = watch('items');
   const discount = watch('discount') || 0;
   const shipping = watch('shipping') || 0;
-  const invoiceTo = watch('invoiceTo'); // ✅ ADD THIS
+  const invoiceTo = watch('invoiceTo');
+  const invoiceTypeName = watch('invoiceTypeName') || '';
 
   // ✅ Get currency and country from selected customer
   const currency = invoiceTo?.currency || 'SAR';
@@ -81,6 +81,15 @@ export function InvoiceCreateEditDetails({ serviceOptions = [] }) {
     setValue('totalAmount', parseFloat(totalAmount.toFixed(2)));
   }, [setValue, baseAmountValue, vatAmountValue, vatRatePercentValue, totalAmount]);
 
+  // Auto-fill service field on all existing line items when invoice type changes
+  useEffect(() => {
+    if (!invoiceTypeName) return;
+    (items || []).forEach((_, idx) => {
+      setValue(`items[${idx}].service`, invoiceTypeName);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoiceTypeName]);
+
   return (
     <Box sx={{ p: 3 }}>
       <Typography variant="h6" sx={{ color: 'text.disabled', mb: 3 }}>
@@ -94,7 +103,6 @@ export function InvoiceCreateEditDetails({ serviceOptions = [] }) {
             fieldNames={getFieldNames(index)}
             onRemoveItem={() => remove(index)}
             currency={currency}
-            serviceOptions={serviceOptions}
           />
         ))}
       </Stack>
@@ -113,7 +121,7 @@ export function InvoiceCreateEditDetails({ serviceOptions = [] }) {
           size="small"
           color="primary"
           startIcon={<Iconify icon="mingcute:add-line" />}
-          onClick={() => append(defaultItem)}
+          onClick={() => append({ ...defaultItem, service: invoiceTypeName })}
           sx={{ flexShrink: 0 }}
         >
           Add item
@@ -165,7 +173,7 @@ export function InvoiceCreateEditDetails({ serviceOptions = [] }) {
 
 // ----------------------------------------------------------------------
 
-export function InvoiceItem({ onRemoveItem, fieldNames, currency, serviceOptions = [] }) {
+export function InvoiceItem({ onRemoveItem, fieldNames, currency }) {
   const { watch } = useFormContext();
   const quantity = watch(fieldNames.quantity);
   const price = watch(fieldNames.price);
@@ -174,22 +182,6 @@ export function InvoiceItem({ onRemoveItem, fieldNames, currency, serviceOptions
     <Stack spacing={3}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ width: 1 }}>
         <Field.Text name={fieldNames.title} label="Title" InputLabelProps={{ shrink: true }} />
-
-        <Field.Select
-          name={fieldNames.service}
-          label="Service type"
-          InputLabelProps={{ shrink: true }}
-          sx={{ maxWidth: { md: 160 } }}
-        >
-          <MenuItem value="">
-            <em>Select service</em>
-          </MenuItem>
-          {serviceOptions.map((type) => (
-            <MenuItem key={type.id} value={type.invoiceTypeDesc}>
-              {type.invoiceTypeDesc}
-            </MenuItem>
-          ))}
-        </Field.Select>
 
         <Field.Text
           name={fieldNames.quantity}

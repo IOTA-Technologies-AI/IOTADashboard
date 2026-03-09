@@ -39,7 +39,7 @@ export const InvoiceCreateSchema = z
     items: z.array(
       z.object({
         title: z.string().min(1, { error: 'Title is required!' }),
-        service: z.string().min(1, { error: 'Service is required!' }),
+        service: z.string().optional(),
         quantity: z.number().int().positive().min(1, { error: 'Quantity must be more than 0' }),
         price: z.number(),
         total: z.number(),
@@ -408,7 +408,7 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
           )}
         </Box>
         <InvoiceCreateEditStatusDate />
-        <InvoiceCreateEditDetails serviceOptions={invoiceTypes} />
+        <InvoiceCreateEditDetails />
       </Card>
 
       <Box
