@@ -747,11 +747,19 @@ export function ExpenseNewEditForm({ currentExpense }) {
             <MenuItem value="">
               <em>{loadingUsers ? 'Loading users...' : 'Select employee'}</em>
             </MenuItem>
-            {microsoftUsers.map((msUser) => (
-              <MenuItem key={msUser.id} value={msUser.id}>
-                {msUser.name} {msUser.email ? `(${msUser.email})` : ''}
+            {loadingUsers ? (
+              <MenuItem disabled>
+                <CircularProgress size={20} sx={{ mr: 1 }} /> Loading...
               </MenuItem>
-            ))}
+            ) : microsoftUsers.length === 0 ? (
+              <MenuItem disabled>No users found — connect Microsoft to load employees</MenuItem>
+            ) : (
+              microsoftUsers.map((msUser) => (
+                <MenuItem key={msUser.id} value={msUser.id}>
+                  {msUser.name} {msUser.email ? `(${msUser.email})` : ''}
+                </MenuItem>
+              ))
+            )}
           </Field.Select>
         )}
 
@@ -774,11 +782,19 @@ export function ExpenseNewEditForm({ currentExpense }) {
           <MenuItem value="">
             <em>{loadingUsers ? 'Loading users...' : 'Select user'}</em>
           </MenuItem>
-          {microsoftUsers.map((msUser) => (
-            <MenuItem key={msUser.id} value={msUser.name}>
-              {msUser.name} {msUser.email ? `(${msUser.email})` : ''}
+          {loadingUsers ? (
+            <MenuItem disabled>
+              <CircularProgress size={20} sx={{ mr: 1 }} /> Loading...
             </MenuItem>
-          ))}
+          ) : microsoftUsers.length === 0 ? (
+            <MenuItem disabled>No users found — connect Microsoft to load users</MenuItem>
+          ) : (
+            microsoftUsers.map((msUser) => (
+              <MenuItem key={msUser.id} value={msUser.name}>
+                {msUser.name} {msUser.email ? `(${msUser.email})` : ''}
+              </MenuItem>
+            ))
+          )}
         </Field.Select>
 
         <Field.Select

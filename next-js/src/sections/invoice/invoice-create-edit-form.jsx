@@ -68,6 +68,15 @@ export const InvoiceCreateSchema = z
   .refine((val) => !fIsAfter(val.createDate, val.dueDate), {
     error: 'Due date cannot be earlier than create date!',
     path: ['dueDate'],
+  })
+  .superRefine((val, ctx) => {
+    if (val.isEmployeeRelated && !val.employeeId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Linked employee is required for this invoice type.',
+        path: ['employeeId'],
+      });
+    }
   });
 
 // ----------------------------------------------------------------------
@@ -167,6 +176,12 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
       return;
     }
 
+    // Guard: employee required when type is employee-related
+    if (isEmployeeRelated && !data.employeeId) {
+      toast.error('Please select a linked employee for this invoice type.');
+      return;
+    }
+
     loadingSave.onTrue();
 
     try {
@@ -232,6 +247,12 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
 
     if (!canSubmitChanges) {
       toast.error('Cannot edit paid or approved invoices');
+      return;
+    }
+
+    // Guard: employee required when type is employee-related
+    if (isEmployeeRelated && !data.employeeId) {
+      toast.error('Please select a linked employee for this invoice type.');
       return;
     }
 
@@ -357,6 +378,8 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
               const matched = invoiceTypes.find((t) => t.id === Number(selectedId));
               setValue('invoiceTypeId', selectedId);
               setValue('invoiceTypeName', matched?.invoiceTypeDesc || '');
+              // keep isEmployeeRelated in sync so schema superRefine can validate
+              setValue('isEmployeeRelated', matched?.isEmployeeRelated ?? false);
               // clear employee fields if the new type is not employee-related
               if (!matched?.isEmployeeRelated) {
                 setValue('employeeId', '');
@@ -397,6 +420,8 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
                 <MenuItem disabled>
                   <CircularProgress size={20} sx={{ mr: 1 }} /> Loading users...
                 </MenuItem>
+              ) : microsoftUsers.length === 0 ? (
+                <MenuItem disabled>No users found — connect Microsoft to load employees</MenuItem>
               ) : (
                 microsoftUsers.map((msUser) => (
                   <MenuItem key={msUser.id} value={msUser.id}>
