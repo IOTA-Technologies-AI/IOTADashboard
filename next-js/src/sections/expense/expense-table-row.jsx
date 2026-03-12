@@ -15,7 +15,6 @@ import IconButton from '@mui/material/IconButton';
 import ListItemText from '@mui/material/ListItemText';
 
 import { fDate } from 'src/utils/format-time';
-import { EXPENSE_TYPES } from 'src/utils/constants/enums';
 
 // Add to imports at top of file (around line 1-10)
 import { Label } from 'src/components/label';
@@ -71,10 +70,7 @@ export function ExpenseTableRow({
 
       <TableCell>
         <ListItemText
-          primary={
-            EXPENSE_TYPES.find((type) => type.id === row.expenseType)?.label ||
-            `Type ${row.expenseType}`
-          }
+          primary={row.expenseTypeDesc || `Type ${row.expenseType}`}
           primaryTypographyProps={{ typography: 'body2' }}
         />
       </TableCell>

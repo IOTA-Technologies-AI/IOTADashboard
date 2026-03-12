@@ -23,7 +23,6 @@ import { RouterLink } from 'src/routes/components';
 
 import { apiHelper } from 'src/utils/apiHelper';
 import { fDate, fIsAfter } from 'src/utils/format-time';
-import { EXPENSE_TYPES } from 'src/utils/constants/enums';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -90,14 +89,7 @@ export function ExpenseListView({ expenses: initialExpenses = [], permissionErro
 
   const table = useTable({ defaultRowsPerPage: 25 });
   const router = useRouter();
-  const [expenses, setExpenses] = useState(() =>
-    initialExpenses.map((expense) => ({
-      ...expense,
-      expenseTypeDesc:
-        EXPENSE_TYPES.find((type) => type.id === expense.expenseType)?.label ||
-        `Type ${expense.expenseType}`,
-    }))
-  );
+  const [expenses, setExpenses] = useState(() => initialExpenses);
 
   // Function to refresh a specific expense from the backend
   const handleRefreshExpense = useCallback(
@@ -111,14 +103,7 @@ export function ExpenseListView({ expenses: initialExpenses = [], permissionErro
           // Update the expense in local state
           setExpenses((prevExpenses) =>
             prevExpenses.map((exp) =>
-              exp.referenceId === referenceId
-                ? {
-                    ...updatedExpense,
-                    expenseTypeDesc:
-                      EXPENSE_TYPES.find((type) => type.id === updatedExpense.expenseType)?.label ||
-                      `Type ${updatedExpense.expenseType}`,
-                  }
-                : exp
+              exp.referenceId === referenceId ? { ...updatedExpense } : exp
             )
           );
 
