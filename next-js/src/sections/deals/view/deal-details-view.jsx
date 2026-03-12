@@ -36,6 +36,7 @@ const STATUS_OPTIONS = {
   draft: { label: 'Draft', color: 'default' },
   active: { label: 'Active', color: 'info' },
   completed: { label: 'Completed', color: 'success' },
+  partially_paid: { label: 'Partially Paid', color: 'warning' },
   cancelled: { label: 'Cancelled', color: 'error' },
 };
 

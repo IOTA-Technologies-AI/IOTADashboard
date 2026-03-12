@@ -48,10 +48,13 @@ export function fCurrency(inputValue, options = {}) {
   const number = processInput(inputValue);
   if (number === null) return '';
 
-  const { currencyCode, ...intlOptions } = options;
+  // Accept both 'currencyCode' (preferred) and 'currency' (legacy alias) as the
+  // IOTA custom-symbol key. Any remaining keys are forwarded to Intl.NumberFormat.
+  const { currencyCode, currency: currencyAlias, ...intlOptions } = options;
+  const effectiveCurrencyCode = currencyCode || currencyAlias;
 
-  // If currency code is provided, format with custom symbol
-  if (currencyCode) {
+  // If a currency code is provided, format with IOTA custom symbol (safe path)
+  if (effectiveCurrencyCode) {
     const formatted = new Intl.NumberFormat('en-US', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
@@ -59,16 +62,18 @@ export function fCurrency(inputValue, options = {}) {
     }).format(number);
 
     // Use ﷼ (U+FDFC) for SAR, otherwise use currency code as prefix
-    const symbol = currencyCode === 'SAR' ? '\uFDFC' : currencyCode;
+    const symbol = effectiveCurrencyCode === 'SAR' ? '\uFDFC' : effectiveCurrencyCode;
     return `${symbol} ${formatted}`;
   }
 
-  // Default behavior - use locale settings
+  // Default behavior - use locale settings with safe fallbacks
   const locale = formatNumberLocale() || DEFAULT_LOCALE;
+  const safeCurrency = locale.currency || DEFAULT_LOCALE.currency;
+  const safeCode = locale.code || DEFAULT_LOCALE.code;
 
-  const fm = new Intl.NumberFormat(locale.code, {
+  const fm = new Intl.NumberFormat(safeCode, {
     style: 'currency',
-    currency: locale.currency,
+    currency: safeCurrency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
     ...intlOptions,

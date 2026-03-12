@@ -33,6 +33,7 @@ export function DealTableRow({ row, selected, onSelectRow, onViewRow, onEditRow,
       draft: 'default',
       active: 'info',
       completed: 'success',
+      partially_paid: 'warning',
       cancelled: 'error',
     };
     return colors[status] || 'default';
