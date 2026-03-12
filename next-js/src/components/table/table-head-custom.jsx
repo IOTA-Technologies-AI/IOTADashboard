@@ -60,7 +60,7 @@ export function TableHeadCustom({
               ...(Array.isArray(headCell.sx) ? headCell.sx : [headCell.sx]),
             ]}
           >
-            {onSort ? (
+            {onSort && headCell.sortable !== false && headCell.id ? (
               <TableSortLabel
                 hideSortIcon
                 active={orderBy === headCell.id}

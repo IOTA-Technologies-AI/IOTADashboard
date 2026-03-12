@@ -55,12 +55,12 @@ const ExpensePDFDownload = dynamic(
 );
 
 const TABLE_HEAD = [
-  { id: 'id', label: 'ID', width: 80 }, // ✅ ADD THIS LINE FIRST
-  { id: 'expenseDate', label: 'Date', width: 100 },
-  { id: 'expenseTypeDesc', label: 'Type', width: 100 },
-  { id: 'description', label: 'Description', width: 380 },
-  { id: 'expenseAmount', label: 'Amount (SAR)', width: 140 },
-  { id: 'expenseApprovalStatus', label: 'Status', width: 80 },
+  { id: 'id', label: 'ID', width: 80, sortable: true },
+  { id: 'expenseDate', label: 'Date', width: 100, sortable: true },
+  { id: 'expenseTypeDesc', label: 'Type', width: 100, sortable: false },
+  { id: 'description', label: 'Description', width: 380, sortable: false },
+  { id: 'expenseAmount', label: 'Amount (SAR)', width: 140, sortable: false },
+  { id: 'expenseApprovalStatus', label: 'Status', width: 80, sortable: false },
   { id: '', width: 88 },
 ];
 
@@ -524,15 +524,6 @@ function applyFilter({ inputData, comparator, filters, dateError }) {
       end.setHours(23, 59, 59, 999); // Include entire end date
 
       return expenseDate >= start && expenseDate <= end;
-    });
-  }
-
-  // Sort by date
-  if (sortOrder) {
-    inputData = inputData.sort((a, b) => {
-      const dateA = new Date(a.expenseDate);
-      const dateB = new Date(b.expenseDate);
-      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
     });
   }
 
