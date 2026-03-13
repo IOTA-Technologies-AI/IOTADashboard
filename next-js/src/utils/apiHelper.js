@@ -1444,6 +1444,99 @@ export async function testIntegrationConnection(integrationName, integrationType
   }
 }
 
+// ============================================================================
+// OFFER MANAGEMENT API FUNCTIONS
+// ============================================================================
+
+export async function getOffers() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/offers`);
+    return response.data.offers;
+  } catch (error) {
+    console.error('Error fetching offers:', error);
+    throw error;
+  }
+}
+
+export async function getOffer(id) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/offers/${id}`);
+    return response.data.offer;
+  } catch (error) {
+    console.error('Error fetching offer:', error);
+    throw error;
+  }
+}
+
+export async function createOffer(offerData) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/offers`, offerData);
+    return response.data.offer;
+  } catch (error) {
+    console.error('Error creating offer:', error);
+    throw error;
+  }
+}
+
+export async function updateOffer(id, offerData) {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}/offers/${id}`, offerData);
+    return response.data.offer;
+  } catch (error) {
+    console.error('Error updating offer:', error);
+    throw error;
+  }
+}
+
+export async function approveOffer(id, approvedBy, approvalComments) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/offers/${id}/approve`, {
+      approvedBy,
+      approvalComments: approvalComments || '',
+    });
+    return response.data.offer;
+  } catch (error) {
+    console.error('Error approving offer:', error);
+    throw error;
+  }
+}
+
+export async function rejectOffer(id, rejectedBy, rejectionReason) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/offers/${id}/reject`, {
+      rejectedBy,
+      rejectionReason,
+    });
+    return response.data.offer;
+  } catch (error) {
+    console.error('Error rejecting offer:', error);
+    throw error;
+  }
+}
+
+export async function commentOnOffer(id, commentedBy, comments) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/offers/${id}/comment`, {
+      commentedBy,
+      comments,
+    });
+    return response.data.offer;
+  } catch (error) {
+    console.error('Error commenting on offer:', error);
+    throw error;
+  }
+}
+
+export async function deleteOffer(id) {
+  try {
+    const response = await axios.delete(`${API_BASE_URL}/offers/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting offer:', error);
+    throw error;
+  }
+}
+
 export const apiHelper = {
   fetchTotalIotaBilling,
   fetchTotalPartnerBilling,
@@ -1508,4 +1601,13 @@ export const apiHelper = {
   updateIntegration,
   deleteIntegration,
   testIntegrationConnection,
+  // Offer management
+  getOffers,
+  getOffer,
+  createOffer,
+  updateOffer,
+  approveOffer,
+  rejectOffer,
+  commentOnOffer,
+  deleteOffer,
 };

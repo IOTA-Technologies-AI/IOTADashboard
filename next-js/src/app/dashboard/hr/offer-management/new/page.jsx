@@ -25,6 +25,7 @@ import { useRouter } from 'src/routes/hooks';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { toast } from 'src/components/snackbar';
+import { createOffer } from 'src/utils/apiHelper';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { OfferLetterPDF, OfferLetterHTML } from 'src/components/offer-letter';
@@ -61,6 +62,7 @@ export default function OfferManagementNewPage() {
     defaultValues: {
       // Employee Information
       employeeName: '',
+      candidateEmail: '',
       passportNumber: '',
       dateOfBirth: '',
       nationality: '',
@@ -98,19 +100,32 @@ export default function OfferManagementNewPage() {
     try {
       setLoading(true);
 
-      const offerData = {
-        ...data,
+      const offerPayload = {
+        candidateName: data.employeeName,
+        candidateEmail: data.candidateEmail,
+        passportNumber: data.passportNumber,
+        dateOfBirth: data.dateOfBirth,
+        nationality: data.nationality,
+        position: data.position,
+        department: data.department,
+        contractNumber: data.contractNumber,
+        contractType: data.contractType,
+        startDate: data.startDate,
+        contractDuration: data.contractDuration ? Number(data.contractDuration) : undefined,
+        probationPeriod: data.probationPeriod ? Number(data.probationPeriod) : undefined,
+        basicSalary: Number(data.basicSalary) || 0,
+        housingAllowance: Number(data.housingAllowance) || 0,
+        transportationAllowance: Number(data.transportationAllowance) || 0,
+        otherAllowances: Number(data.otherAllowances) || 0,
         totalSalary,
-        status: 'Draft',
-        createdAt: new Date().toISOString(),
+        workingHours: data.workingHours ? Number(data.workingHours) : undefined,
+        annualLeaveDays: data.annualLeaveDays ? Number(data.annualLeaveDays) : undefined,
+        noticePeriod: data.noticePeriod ? Number(data.noticePeriod) : undefined,
       };
 
-      console.log('Offer Data:', offerData);
+      await createOffer(offerPayload);
 
-      // TODO: Save to backend
-      // await createOffer(offerData);
-
-      toast.success('Offer created successfully!');
+      toast.success('Offer created! Admins have been notified for approval.');
       router.push(paths.dashboard.hr.offerManagement.root);
     } catch (error) {
       console.error('Error creating offer:', error);
@@ -170,6 +185,19 @@ export default function OfferManagementNewPage() {
                       {...register('employeeName', { required: 'Name is required' })}
                       error={!!errors.employeeName}
                       helperText={errors.employeeName?.message}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      fullWidth
+                      type="email"
+                      label="Candidate Email"
+                      {...register('candidateEmail', {
+                        required: 'Email is required',
+                        pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Invalid email' },
+                      })}
+                      error={!!errors.candidateEmail}
+                      helperText={errors.candidateEmail?.message}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, md: 6 }}>
@@ -501,7 +529,7 @@ export default function OfferManagementNewPage() {
           <Button onClick={handleClosePreview}>Close</Button>
         </DialogActions>
       </Dialog>
-    
+
       {/* HTML Preview Dialog */}
       <Dialog open={htmlPreviewOpen} onClose={handleCloseHTMLPreview} maxWidth="lg" fullWidth>
         <DialogTitle>

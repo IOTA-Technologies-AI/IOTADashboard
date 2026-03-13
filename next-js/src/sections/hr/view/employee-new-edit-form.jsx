@@ -2,13 +2,15 @@
 
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
-import { useMemo, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
+import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
@@ -60,6 +62,21 @@ const EmployeeSchema = z.object({
 
 export function EmployeeNewEditForm({ currentEmployee }) {
   const router = useRouter();
+  const [promoteLoading, setPromoteLoading] = useState(false);
+
+  const handlePromoteToPermanent = async () => {
+    try {
+      setPromoteLoading(true);
+      await updateEmployee(currentEmployee.id, { employeeType: 'Permanent' });
+      toast.success('Employee promoted to Permanent!');
+      router.push(paths.dashboard.hr.employee.root);
+    } catch (err) {
+      console.error('Failed to promote employee:', err);
+      toast.error('Failed to promote employee');
+    } finally {
+      setPromoteLoading(false);
+    }
+  };
 
   const defaultValues = useMemo(
     () => ({
@@ -189,7 +206,7 @@ export function EmployeeNewEditForm({ currentEmployee }) {
                 }}
               >
                 <Field.Text name="employeeId" label="Employee ID" required />
-                    <Field.Text name="nationalId" label="National ID" required />
+                <Field.Text name="nationalId" label="National ID" required />
                 <Field.Select name="employeeType" label="Employee Type" required>
                   <MenuItem value="Permanent">Permanent</MenuItem>
                   <MenuItem value="Temporary">Temporary</MenuItem>
@@ -289,13 +306,29 @@ export function EmployeeNewEditForm({ currentEmployee }) {
                 >
                   {currentEmployee ? 'Update Employee' : 'Create Employee'}
                 </LoadingButton>
-                <LoadingButton
+
+                {currentEmployee?.employeeType === 'Temporary' && (
+                  <>
+                    <Divider />
+                    <LoadingButton
+                      variant="contained"
+                      color="info"
+                      size="large"
+                      loading={promoteLoading}
+                      onClick={handlePromoteToPermanent}
+                    >
+                      Promote to Permanent
+                    </LoadingButton>
+                  </>
+                )}
+
+                <Button
                   variant="outlined"
                   size="large"
                   onClick={() => router.push(paths.dashboard.hr.employee.root)}
                 >
                   Cancel
-                </LoadingButton>
+                </Button>
               </Stack>
             </Card>
           </Stack>

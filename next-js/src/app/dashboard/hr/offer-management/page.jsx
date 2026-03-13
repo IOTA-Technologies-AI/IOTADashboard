@@ -1,9 +1,10 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
+import Chip from '@mui/material/Chip';
 import Button from '@mui/material/Button';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 
@@ -11,15 +12,44 @@ import { paths } from 'src/routes/paths';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
+import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
-// ----------------------------------------------------------------------
+import { getOffers } from 'src/utils/apiHelper';
+
+// ── Status colour map ──────────────────────────────────────────────────────
+
+const STATUS_COLOR = {
+  draft: 'default',
+  pending_approval: 'warning',
+  approved: 'success',
+  rejected: 'error',
+};
+
+// ── Component ────────────────────────────────────────────────────────────────
 
 export default function OfferManagementPage() {
   const router = useRouter();
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // Fetch offers on mount
+  useEffect(() => {
+    const fetchOffers = async () => {
+      try {
+        setLoading(true);
+        const data = await getOffers();
+        setOffers(data || []);
+      } catch (error) {
+        console.error('Error fetching offers:', error);
+        toast.error('Failed to load offers');
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchOffers();
+  }, []);
 
   const handleViewRow = useCallback(
     (id) => {
@@ -55,10 +85,11 @@ export default function OfferManagementPage() {
       minWidth: 130,
     },
     {
-      field: 'salary',
-      headerName: 'Salary',
+      field: 'totalSalary',
+      headerName: 'Total Salary',
       flex: 1,
-      minWidth: 120,
+      minWidth: 130,
+      valueFormatter: (value) => (value ? `SAR ${Number(value).toLocaleString()}` : '—'),
     },
     {
       field: 'startDate',
@@ -69,8 +100,17 @@ export default function OfferManagementPage() {
     {
       field: 'status',
       headerName: 'Status',
-      flex: 0.8,
-      minWidth: 120,
+      flex: 0.9,
+      minWidth: 140,
+      renderCell: (params) => (
+        <Chip
+          size="small"
+          label={(params.value || 'draft')
+            .replace('_', ' ')
+            .replace(/\b\w/g, (c) => c.toUpperCase())}
+          color={STATUS_COLOR[params.value] || 'default'}
+        />
+      ),
     },
     {
       field: 'actions',
