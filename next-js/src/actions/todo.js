@@ -464,15 +464,19 @@ export async function moveTask(updateTasks) {
     }));
   });
 
-  await mutate(
-    TODO_ENDPOINT,
-    (currentData) => {
-      if (!currentData?.board) return currentData;
-      const { board } = currentData;
-      return { ...currentData, board: { ...board, tasks: normalizedTasks } };
-    },
-    { revalidate: false } // Use options object for SWR v2
-  );
+  // Use startTransition to ensure React processes this as an immediate state update
+  startTransition(() => {
+    mutate(
+      TODO_ENDPOINT,
+      (currentData) => {
+        if (!currentData?.board) return currentData;
+        const { board } = currentData;
+        // Spread normalizedTasks to guarantee a new object reference for React diffing
+        return { ...currentData, board: { ...board, tasks: { ...normalizedTasks } } };
+      },
+      { revalidate: false }
+    );
+  });
 
   // Only call API for tasks that actually moved to a different column
   if (updates.length > 0) {
