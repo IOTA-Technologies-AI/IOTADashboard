@@ -234,7 +234,7 @@ export function DealDetailsView({ deal }) {
   const renderKpiStrip = (
     <Grid container spacing={2.5} sx={{ mb: 3 }}>
       {kpiItems.map((item) => (
-        <Grid xs={12} sm={6} md={3} key={item.label}>
+        <Grid size={{ xs: 12, sm: 6, md: 3 }} key={item.label}>
           <Card sx={{ display: 'flex', alignItems: 'center', p: 3, gap: 2 }}>
             <Box
               sx={{
@@ -276,7 +276,7 @@ export function DealDetailsView({ deal }) {
       </Stack>
       <Divider sx={{ borderStyle: 'dashed', mx: 3 }} />
       <Grid container sx={{ p: 3 }} spacing={2.5}>
-        <Grid xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Box
             sx={{
               p: 2.5,
@@ -313,7 +313,7 @@ export function DealDetailsView({ deal }) {
             </Stack>
           </Box>
         </Grid>
-        <Grid xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Box
             sx={{
               p: 2.5,
@@ -462,13 +462,13 @@ export function DealDetailsView({ deal }) {
 
           <Divider />
           <Grid container sx={{ px: 3, py: 1.5 }} spacing={1}>
-            <Grid xs={4}>
+            <Grid size={{ xs: 4 }}>
               <Typography variant="caption" color="text.secondary">
                 Total Commission
               </Typography>
               <Typography variant="subtitle2">{fmt(bdmTotal)}</Typography>
             </Grid>
-            <Grid xs={4}>
+            <Grid size={{ xs: 4 }}>
               <Typography variant="caption" color="text.secondary">
                 Total Paid
               </Typography>
@@ -476,7 +476,7 @@ export function DealDetailsView({ deal }) {
                 {fmt(bdmPaid)}
               </Typography>
             </Grid>
-            <Grid xs={4}>
+            <Grid size={{ xs: 4 }}>
               <Typography variant="caption" color="text.secondary">
                 Balance
               </Typography>
@@ -623,7 +623,7 @@ export function DealDetailsView({ deal }) {
       {/* Horizontal two-column layout */}
       <Grid container>
         {/* Left: Commission summary */}
-        <Grid xs={12} md={6}>
+        <Grid size={{ xs: 12, md: 6 }}>
           <Stack spacing={2} sx={{ p: 3 }}>
             <Stack direction="row" justifyContent="space-between" alignItems="center">
               <Typography variant="body2" color="text.secondary">
@@ -690,8 +690,7 @@ export function DealDetailsView({ deal }) {
 
         {/* Right: Record Payment form — inputs/buttons disabled when fully settled */}
         <Grid
-          xs={12}
-          md={6}
+          size={{ xs: 12, md: 6 }}
           sx={{ borderLeft: { md: '1px dashed' }, borderColor: { md: 'divider' } }}
         >
           <Stack spacing={2} sx={{ p: 3 }}>
@@ -847,21 +846,17 @@ export function DealDetailsView({ deal }) {
 
       <Grid container spacing={3}>
         {/* Row 1: Invoices (full width) */}
-        <Grid xs={12}>{renderInvoices}</Grid>
+        <Grid size={{ xs: 12 }}>{renderInvoices}</Grid>
 
         {/* Row 2: Payment History (full width) */}
-        <Grid xs={12}>{renderPaymentHistory}</Grid>
+        <Grid size={{ xs: 12 }}>{renderPaymentHistory}</Grid>
 
         {/* Row 3: Deal Info + Profit Breakdown side by side */}
-        <Grid xs={12} md={6}>
-          {renderDealInfo}
-        </Grid>
-        <Grid xs={12} md={6}>
-          {renderProfit}
-        </Grid>
+        <Grid size={{ xs: 12, md: 6 }}>{renderDealInfo}</Grid>
+        <Grid size={{ xs: 12, md: 6 }}>{renderProfit}</Grid>
 
         {/* Row 4: BDM Commission full width */}
-        {deal.bdmId && <Grid xs={12}>{renderBDMCommission}</Grid>}
+        {deal.bdmId && <Grid size={{ xs: 12 }}>{renderBDMCommission}</Grid>}
       </Grid>
 
       <ConfirmDialog
