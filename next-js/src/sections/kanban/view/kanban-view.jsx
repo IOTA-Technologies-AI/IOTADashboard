@@ -107,7 +107,7 @@ export function KanbanView({
     [actionSet, localMoveTask, localMoveColumn]
   );
 
-  const { boardRef } = useBoardDnd(displayBoard);
+  const { boardRef } = useBoardDnd(displayBoard, localMoveTask, localMoveColumn);
 
   const [columnFixed, setColumnFixed] = useState(false);
 

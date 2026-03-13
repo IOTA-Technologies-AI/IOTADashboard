@@ -7,8 +7,6 @@ import { autoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-sc
 import { reorderWithEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/util/reorder-with-edge';
 import { unsafeOverflowAutoScrollForElements } from '@atlaskit/pragmatic-drag-and-drop-auto-scroll/unsafe-overflow/element';
 
-import { useKanbanActions } from '../context/actions-context';
-
 import { bindAll } from '../utils/bind-event-listener';
 import { getAttr, triggerFlashEffect, isInvalidOrSameIndex } from '../utils/helpers';
 import { isTaskData, isColumnData, isTaskDropTargetData } from '../utils/process-data';
@@ -27,10 +25,16 @@ const PANNING_STOP_EVENTS = [
   'visibilitychange',
 ];
 
-export function useBoardDnd(board) {
+export function useBoardDnd(board, onMoveTask, onMoveColumn) {
   const boardRef = useRef(null);
   const boardDataRef = useRef(board);
-  const { moveTask, moveColumn } = useKanbanActions();
+
+  // Refs for move callbacks – updated on every render so event handlers are
+  // always current and the monitorForElements effect never needs to re-run.
+  const moveTaskRef = useRef(onMoveTask);
+  const moveColumnRef = useRef(onMoveColumn);
+  moveTaskRef.current = onMoveTask;
+  moveColumnRef.current = onMoveColumn;
 
   // Always keep ref updated with latest board data to avoid stale closures
   useEffect(() => {
@@ -74,7 +78,7 @@ export function useBoardDnd(board) {
           const newIndex = reorderedTasks.findIndex((task) => task.id === sourceTaskId);
 
           if (sourceTaskIndex !== newIndex) {
-            moveTask({ ...currentBoard.tasks, [sourceColumnId]: reorderedTasks });
+            moveTaskRef.current({ ...currentBoard.tasks, [sourceColumnId]: reorderedTasks });
             triggerFlashEffect(getAttr('dataTaskId'), sourceData.task.id);
           }
           return;
@@ -95,7 +99,7 @@ export function useBoardDnd(board) {
         const updatedTargetTasks = [...targetTasks];
         updatedTargetTasks.splice(insertIndex, 0, sourceData.task);
 
-        moveTask({
+        moveTaskRef.current({
           ...currentBoard.tasks,
           [sourceColumnId]: updatedSourceTasks,
           [targetColumnId]: updatedTargetTasks,
@@ -121,7 +125,7 @@ export function useBoardDnd(board) {
               finishIndex: finalIndex,
             });
 
-            moveTask({ ...currentBoard.tasks, [sourceColumnId]: reorderedTasks });
+            moveTaskRef.current({ ...currentBoard.tasks, [sourceColumnId]: reorderedTasks });
             triggerFlashEffect(getAttr('dataTaskId'), sourceData.task.id);
           }
           return;
@@ -132,7 +136,7 @@ export function useBoardDnd(board) {
         updatedSourceTasks.splice(sourceTaskIndex, 1);
         const updatedTargetTasks = [...targetTasks, sourceData.task];
 
-        moveTask({
+        moveTaskRef.current({
           ...currentBoard.tasks,
           [sourceColumnId]: updatedSourceTasks,
           [targetColumnId]: updatedTargetTasks,
@@ -140,7 +144,7 @@ export function useBoardDnd(board) {
         triggerFlashEffect(getAttr('dataTaskId'), sourceData.task.id);
       }
     },
-    [moveTask]
+    [] // no deps – moveTaskRef.current is always up to date
   );
 
   const handleColumnDrop = useCallback(
@@ -168,9 +172,9 @@ export function useBoardDnd(board) {
         finishIndex: targetIndex,
       });
 
-      moveColumn(reorderedColumns);
+      moveColumnRef.current(reorderedColumns);
     },
-    [moveColumn]
+    [] // no deps – moveColumnRef.current is always up to date
   );
 
   useEffect(() => {
