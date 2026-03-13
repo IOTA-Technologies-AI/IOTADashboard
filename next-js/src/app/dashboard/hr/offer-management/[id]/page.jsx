@@ -378,7 +378,8 @@ export default function OfferManagementDetailsPage({ params }) {
                   Transportation
                 </Typography>
                 <Typography variant="body2" fontWeight={600}>
-                  {offer.currency || 'SAR'} {Number(offer.transportationAllowance || 0).toLocaleString()}
+                  {offer.currency || 'SAR'}{' '}
+                  {Number(offer.transportationAllowance || 0).toLocaleString()}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
