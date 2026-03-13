@@ -362,7 +362,7 @@ export default function OfferManagementDetailsPage({ params }) {
                   Basic Salary
                 </Typography>
                 <Typography variant="body2" fontWeight={600}>
-                  SAR {Number(offer.basicSalary || 0).toLocaleString()}
+                  {offer.currency || 'SAR'} {Number(offer.basicSalary || 0).toLocaleString()}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -370,7 +370,7 @@ export default function OfferManagementDetailsPage({ params }) {
                   Housing Allowance
                 </Typography>
                 <Typography variant="body2" fontWeight={600}>
-                  SAR {Number(offer.housingAllowance || 0).toLocaleString()}
+                  {offer.currency || 'SAR'} {Number(offer.housingAllowance || 0).toLocaleString()}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -378,7 +378,7 @@ export default function OfferManagementDetailsPage({ params }) {
                   Transportation
                 </Typography>
                 <Typography variant="body2" fontWeight={600}>
-                  SAR {Number(offer.transportationAllowance || 0).toLocaleString()}
+                  {offer.currency || 'SAR'} {Number(offer.transportationAllowance || 0).toLocaleString()}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -386,14 +386,14 @@ export default function OfferManagementDetailsPage({ params }) {
                   Other Allowances
                 </Typography>
                 <Typography variant="body2" fontWeight={600}>
-                  SAR {Number(offer.otherAllowances || 0).toLocaleString()}
+                  {offer.currency || 'SAR'} {Number(offer.otherAllowances || 0).toLocaleString()}
                 </Typography>
               </Box>
               <Divider />
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="subtitle1">Total Package</Typography>
                 <Typography variant="subtitle1" color="primary" fontWeight={700}>
-                  SAR {Number(offer.totalSalary || 0).toLocaleString()}
+                  {offer.currency || 'SAR'} {Number(offer.totalSalary || 0).toLocaleString()}
                 </Typography>
               </Box>
             </Stack>

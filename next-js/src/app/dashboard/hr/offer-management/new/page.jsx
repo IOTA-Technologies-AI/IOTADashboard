@@ -45,6 +45,21 @@ const DEPARTMENTS = [
 
 const CONTRACT_TYPES = ['Limited', 'Unlimited'];
 
+const CURRENCIES = [
+  { code: 'SAR', label: 'SAR – Saudi Riyal' },
+  { code: 'AED', label: 'AED – UAE Dirham' },
+  { code: 'USD', label: 'USD – US Dollar' },
+  { code: 'GBP', label: 'GBP – British Pound' },
+  { code: 'EUR', label: 'EUR – Euro' },
+  { code: 'INR', label: 'INR – Indian Rupee' },
+  { code: 'PKR', label: 'PKR – Pakistani Rupee' },
+  { code: 'EGP', label: 'EGP – Egyptian Pound' },
+  { code: 'QAR', label: 'QAR – Qatari Riyal' },
+  { code: 'KWD', label: 'KWD – Kuwaiti Dinar' },
+  { code: 'BHD', label: 'BHD – Bahraini Dinar' },
+  { code: 'OMR', label: 'OMR – Omani Rial' },
+];
+
 export default function OfferManagementNewPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -77,6 +92,7 @@ export default function OfferManagementNewPage() {
       probationPeriod: '6',
 
       // Salary Information
+      currency: 'SAR',
       basicSalary: '',
       housingAllowance: '',
       transportationAllowance: '',
@@ -88,6 +104,8 @@ export default function OfferManagementNewPage() {
       noticePeriod: '30',
     },
   });
+
+  const currency = watch('currency') || 'SAR';
 
   // Calculate total salary
   const basicSalary = parseFloat(watch('basicSalary')) || 0;
@@ -113,6 +131,7 @@ export default function OfferManagementNewPage() {
         startDate: data.startDate,
         contractDuration: data.contractDuration ? Number(data.contractDuration) : undefined,
         probationPeriod: data.probationPeriod ? Number(data.probationPeriod) : undefined,
+        currency: data.currency || 'SAR',
         basicSalary: Number(data.basicSalary) || 0,
         housingAllowance: Number(data.housingAllowance) || 0,
         transportationAllowance: Number(data.transportationAllowance) || 0,
@@ -323,11 +342,26 @@ export default function OfferManagementNewPage() {
                   Salary Information
                 </Typography>
                 <Grid container spacing={2}>
+                  <Grid size={{ xs: 12 }}>
+                    <TextField
+                      fullWidth
+                      select
+                      label="Currency"
+                      defaultValue="SAR"
+                      {...register('currency')}
+                    >
+                      {CURRENCIES.map((c) => (
+                        <MenuItem key={c.code} value={c.code}>
+                          {c.label}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
                   <Grid size={{ xs: 12, md: 6 }}>
                     <TextField
                       fullWidth
                       type="number"
-                      label="Basic Salary (AED)"
+                      label={`Basic Salary (${currency})`}
                       {...register('basicSalary', { required: 'Basic salary is required' })}
                       error={!!errors.basicSalary}
                       helperText={errors.basicSalary?.message}
@@ -337,7 +371,7 @@ export default function OfferManagementNewPage() {
                     <TextField
                       fullWidth
                       type="number"
-                      label="Housing Allowance (AED)"
+                      label={`Housing Allowance (${currency})`}
                       {...register('housingAllowance')}
                     />
                   </Grid>
@@ -345,7 +379,7 @@ export default function OfferManagementNewPage() {
                     <TextField
                       fullWidth
                       type="number"
-                      label="Transportation Allowance (AED)"
+                      label={`Transportation Allowance (${currency})`}
                       {...register('transportationAllowance')}
                     />
                   </Grid>
@@ -353,7 +387,7 @@ export default function OfferManagementNewPage() {
                     <TextField
                       fullWidth
                       type="number"
-                      label="Other Allowances (AED)"
+                      label={`Other Allowances (${currency})`}
                       {...register('otherAllowances')}
                     />
                   </Grid>
@@ -409,7 +443,7 @@ export default function OfferManagementNewPage() {
                       Basic Salary:
                     </Typography>
                     <Typography variant="body2" fontWeight="600">
-                      AED {basicSalary.toLocaleString()}
+                      {currency} {basicSalary.toLocaleString()}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -417,7 +451,7 @@ export default function OfferManagementNewPage() {
                       Housing Allowance:
                     </Typography>
                     <Typography variant="body2" fontWeight="600">
-                      AED {housingAllowance.toLocaleString()}
+                      {currency} {housingAllowance.toLocaleString()}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -425,7 +459,7 @@ export default function OfferManagementNewPage() {
                       Transportation:
                     </Typography>
                     <Typography variant="body2" fontWeight="600">
-                      AED {transportationAllowance.toLocaleString()}
+                      {currency} {transportationAllowance.toLocaleString()}
                     </Typography>
                   </Box>
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -433,14 +467,14 @@ export default function OfferManagementNewPage() {
                       Other Allowances:
                     </Typography>
                     <Typography variant="body2" fontWeight="600">
-                      AED {otherAllowances.toLocaleString()}
+                      {currency} {otherAllowances.toLocaleString()}
                     </Typography>
                   </Box>
                   <Divider />
                   <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                     <Typography variant="subtitle1">Total Monthly Salary:</Typography>
                     <Typography variant="subtitle1" color="primary" fontWeight="700">
-                      AED {totalSalary.toLocaleString()}
+                      {currency} {totalSalary.toLocaleString()}
                     </Typography>
                   </Box>
                 </Stack>
