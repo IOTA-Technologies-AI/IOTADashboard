@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 
 import Box from '@mui/material/Box';
@@ -55,8 +55,59 @@ export function KanbanView({
   canManageColumns = true,
 }) {
   const actionSet = actions || defaultKanbanActions;
-  const { board, boardLoading, boardEmpty } = useBoardHook();
-  const { boardRef } = useBoardDnd(board);
+  const { board: serverBoard, boardLoading, boardEmpty } = useBoardHook();
+
+  // ── Local board state ────────────────────────────────────────────────────
+  // Keeps a React-state copy of the board so drag-and-drop re-renders happen
+  // in the same frame the user releases the card, not after SWR propagates.
+  const [localBoard, setLocalBoard] = useState(null);
+  const serverBoardRef = useRef(serverBoard);
+  serverBoardRef.current = serverBoard;
+
+  // Keep local board in sync with server board (initial load, task creates /
+  // deletes, and error-recovery revalidations from the API layer).
+  useEffect(() => {
+    if (serverBoard) {
+      setLocalBoard(serverBoard);
+    }
+  }, [serverBoard]);
+
+  // The board actually rendered – local state takes priority so every drop is
+  // reflected in the same React render cycle without waiting for SWR.
+  const displayBoard = localBoard ?? serverBoard ?? { columns: [], tasks: {} };
+
+  // moveTask: update local state synchronously, then fire the async SWR + API
+  // path so the UI never blocks on the network.
+  const localMoveTask = useCallback(
+    (updateTasks) => {
+      const normalizedTasks = {};
+      Object.entries(updateTasks).forEach(([stageId, tasks]) => {
+        normalizedTasks[stageId] = (tasks || []).map((task) => ({ ...task, stageId }));
+      });
+      setLocalBoard((prev) => (prev ? { ...prev, tasks: normalizedTasks } : prev));
+      // Persist to server + keep SWR cache consistent (error handling / revert
+      // lives inside actionSet.moveTask which calls mutate(TODO_ENDPOINT) on failure).
+      actionSet.moveTask(updateTasks);
+    },
+    [actionSet]
+  );
+
+  // moveColumn: same local-first pattern.
+  const localMoveColumn = useCallback(
+    (updateColumns) => {
+      setLocalBoard((prev) => (prev ? { ...prev, columns: updateColumns } : prev));
+      actionSet.moveColumn(updateColumns);
+    },
+    [actionSet]
+  );
+
+  // Expose the wrapped actions through context so the DnD hooks pick them up.
+  const localActionSet = useMemo(
+    () => ({ ...actionSet, moveTask: localMoveTask, moveColumn: localMoveColumn }),
+    [actionSet, localMoveTask, localMoveColumn]
+  );
+
+  const { boardRef } = useBoardDnd(displayBoard);
 
   const [columnFixed, setColumnFixed] = useState(false);
 
@@ -96,11 +147,11 @@ export function KanbanView({
   const renderList = () => (
     <FlexibleColumnContainer columnFixed={columnFixed}>
       <AnimatePresence>
-        {board.columns.map((column) => (
+        {displayBoard.columns.map((column) => (
           <KanbanColumn
             key={column.id}
             column={column}
-            tasks={board.tasks[column.id]}
+            tasks={displayBoard.tasks[column.id]}
             canManageColumns={canManageColumns}
           />
         ))}
@@ -144,7 +195,7 @@ export function KanbanView({
   );
 
   return (
-    <KanbanActionsProvider actions={actionSet}>
+    <KanbanActionsProvider actions={localActionSet}>
       {inputGlobalStyles()}
 
       <DashboardContent

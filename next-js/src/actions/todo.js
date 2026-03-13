@@ -277,17 +277,15 @@ export async function updateColumn(columnId, columnName) {
 export async function moveColumn(updateColumns) {
   const pipelineId = currentPipelineId;
 
-  startTransition(() => {
-    mutate(
-      TODO_ENDPOINT,
-      (currentData) => {
-        if (!currentData?.board) return currentData;
-        const { board } = currentData;
-        return { ...currentData, board: { ...board, columns: updateColumns } };
-      },
-      { revalidate: false }
-    );
-  });
+  mutate(
+    TODO_ENDPOINT,
+    (currentData) => {
+      if (!currentData?.board) return currentData;
+      const { board } = currentData;
+      return { ...currentData, board: { ...board, columns: updateColumns } };
+    },
+    { revalidate: false }
+  );
 
   const stages = updateColumns.map((col, index) => ({ id: col.id, position: (index + 1) * 100 }));
   await axios.post(`${endpoints.todo.stages}/reorder`, { pipelineId, stages });
@@ -464,19 +462,17 @@ export async function moveTask(updateTasks) {
     }));
   });
 
-  // Use startTransition to ensure React processes this as an immediate state update
-  startTransition(() => {
-    mutate(
-      TODO_ENDPOINT,
-      (currentData) => {
-        if (!currentData?.board) return currentData;
-        const { board } = currentData;
-        // Spread normalizedTasks to guarantee a new object reference for React diffing
-        return { ...currentData, board: { ...board, tasks: { ...normalizedTasks } } };
-      },
-      { revalidate: false }
-    );
-  });
+  // Update the SWR cache immediately (no startTransition – we want SWR to stay
+  // in sync with localBoard in KanbanView without any scheduling delay).
+  mutate(
+    TODO_ENDPOINT,
+    (currentData) => {
+      if (!currentData?.board) return currentData;
+      const { board } = currentData;
+      return { ...currentData, board: { ...board, tasks: { ...normalizedTasks } } };
+    },
+    { revalidate: false }
+  );
 
   // Only call API for tasks that actually moved to a different column
   if (updates.length > 0) {
