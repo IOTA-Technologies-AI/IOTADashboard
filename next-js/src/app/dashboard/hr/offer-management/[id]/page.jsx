@@ -41,6 +41,14 @@ const STATUS_COLOR = {
   rejected: 'error',
 };
 
+const STAGE_LABEL = {
+  manager: 'Manager',
+  admin: 'Admin',
+  superAdmin: 'Super Admin',
+};
+
+const APPROVAL_CHAIN = ['manager', 'admin', 'superAdmin'];
+
 function DetailRow({ label, value }) {
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.75 }}>
@@ -76,6 +84,12 @@ export default function OfferManagementDetailsPage({ params }) {
 
   const isAdminOrSuperAdmin = user?.role === 'admin' || user?.role === 'superAdmin';
 
+  // User can act only when the offer is pending and it's their role's turn in the chain
+  const canAct =
+    offer?.status === 'pending_approval' &&
+    offer?.currentApprovalStage &&
+    offer.currentApprovalStage === user?.role;
+
   // Fetch offer
   useEffect(() => {
     const fetchData = async () => {
@@ -100,13 +114,20 @@ export default function OfferManagementDetailsPage({ params }) {
       setOffer(updated);
       setApproveOpen(false);
       setApproveComment('');
-      toast.success('Offer approved! Offer letter has been sent to the candidate.');
+      const stage = offer?.currentApprovalStage;
+      if (stage === 'superAdmin') {
+        toast.success('Offer fully approved! Offer letter has been sent to the candidate.');
+      } else if (stage === 'admin') {
+        toast.success('Approved! Forwarded to Super Admin for final approval.');
+      } else {
+        toast.success('Approved! Forwarded to Admin for next review.');
+      }
     } catch (err) {
       toast.error('Failed to approve offer');
     } finally {
       setActionLoading(false);
     }
-  }, [id, user, approveComment]);
+  }, [id, user, approveComment, offer?.currentApprovalStage]);
 
   const handleReject = useCallback(async () => {
     if (!rejectReason.trim()) {
@@ -180,7 +201,7 @@ export default function OfferManagementDetailsPage({ params }) {
         ]}
         action={
           <Stack direction="row" spacing={1}>
-            {isAdminOrSuperAdmin && offer.status === 'pending_approval' && (
+            {canAct && (
               <>
                 <Button
                   variant="contained"
@@ -398,6 +419,106 @@ export default function OfferManagementDetailsPage({ params }) {
               }
             />
           </Card>
+
+          {/* Approval chain progress */}
+          <Card sx={{ p: 3, mt: 3 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Approval Chain
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Stack spacing={2}>
+              {APPROVAL_CHAIN.map((stage, idx) => {
+                const isCurrent =
+                  offer.status === 'pending_approval' && offer.currentApprovalStage === stage;
+                const isRejected = offer.status === 'rejected';
+
+                // Determine done state
+                let isDone = false;
+                let doneBy = null;
+                let doneAt = null;
+
+                if (stage === 'manager' && offer.managerApprovedBy) {
+                  isDone = true;
+                  doneBy = offer.managerApprovedBy;
+                  doneAt = offer.managerApprovedAt;
+                } else if (stage === 'admin' && offer.adminApprovedBy) {
+                  isDone = true;
+                  doneBy = offer.adminApprovedBy;
+                  doneAt = offer.adminApprovedAt;
+                } else if (stage === 'superAdmin' && offer.approvedBy) {
+                  isDone = true;
+                  doneBy = offer.approvedBy;
+                  doneAt = offer.approvedAt;
+                }
+
+                // Pending but not yet reached
+                const isPending =
+                  !isDone && !isCurrent && offer.status !== 'approved' && !isRejected;
+
+                return (
+                  <Box
+                    key={stage}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 1.5,
+                      opacity: isPending ? 0.4 : 1,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: '50%',
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: isDone
+                          ? 'success.main'
+                          : isCurrent
+                            ? 'warning.main'
+                            : 'action.disabledBackground',
+                        color: isDone || isCurrent ? 'common.white' : 'text.disabled',
+                        fontSize: 14,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {isDone ? '✓' : idx + 1}
+                    </Box>
+                    <Box>
+                      <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        color={
+                          isCurrent ? 'warning.main' : isDone ? 'success.main' : 'text.primary'
+                        }
+                      >
+                        {STAGE_LABEL[stage]}
+                        {isCurrent && (
+                          <Typography
+                            component="span"
+                            variant="caption"
+                            sx={{ ml: 1, color: 'warning.main' }}
+                          >
+                            (Awaiting)
+                          </Typography>
+                        )}
+                      </Typography>
+                      {isDone && doneBy && (
+                        <Typography variant="caption" color="text.secondary">
+                          {doneBy}
+                          {doneAt
+                            ? ` · ${new Date(doneAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`
+                            : ''}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Stack>
+          </Card>
         </Grid>
       </Grid>
 
@@ -406,9 +527,11 @@ export default function OfferManagementDetailsPage({ params }) {
         <DialogTitle>Approve Offer Letter</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            You are approving the offer letter for <strong>{offer.candidateName}</strong> (
-            {offer.position}). An email will be sent to <strong>{offer.candidateEmail}</strong> with
-            the offer details.
+            {offer.currentApprovalStage === 'superAdmin'
+              ? `This is the final approval step. Approving will mark the offer as fully approved and send the offer letter to ${offer.candidateEmail}.`
+              : offer.currentApprovalStage === 'admin'
+                ? `Approving will forward this offer to Super Admin for final approval.`
+                : `Approving will forward this offer to Admin for the next review step.`}
           </Typography>
           <TextField
             fullWidth
