@@ -48,7 +48,10 @@ export function BDMProfileView({ bdm, deals }) {
 
   const getPaidAmount = useCallback((deal) => {
     if (!deal) return 0;
-    if (typeof deal.bdmCommissionPaidAmount === 'number' && !Number.isNaN(deal.bdmCommissionPaidAmount)) {
+    if (
+      typeof deal.bdmCommissionPaidAmount === 'number' &&
+      !Number.isNaN(deal.bdmCommissionPaidAmount)
+    ) {
       return Math.max(deal.bdmCommissionPaidAmount, 0);
     }
     if (deal.bdmCommissionPaid) {
@@ -82,7 +85,10 @@ export function BDMProfileView({ bdm, deals }) {
             const paid = getPaidAmount(deal);
             const remaining = Math.max(total - paid, 0);
             const expenseAmount = Number(
-              expense?.expenseAmount ?? expense?.expenseApprovedAmount ?? expense?.originalExpenseAmount ?? 0
+              expense?.expenseAmount ??
+                expense?.expenseApprovedAmount ??
+                expense?.originalExpenseAmount ??
+                0
             );
             const autoAmount = Math.min(remaining, Math.max(expenseAmount, 0));
             if (autoAmount > 0) {
@@ -151,7 +157,8 @@ export function BDMProfileView({ bdm, deals }) {
           return;
         }
         const approval = expense.expenseApprovalStatus;
-        const isApproved = approval === true || approval === 'approved' || approval === 'approved_by_admin';
+        const isApproved =
+          approval === true || approval === 'approved' || approval === 'approved_by_admin';
         if (!isApproved) {
           toast.error('Expense must be approved before adding to BDM payment');
           return;
@@ -160,9 +167,11 @@ export function BDMProfileView({ bdm, deals }) {
       }
 
       try {
+        const isFullyPaid = newPaid >= total;
         const payload = {
           bdmCommissionPaidAmount: newPaid,
-          bdmCommissionPaid: newPaid >= total,
+          bdmCommissionPaid: isFullyPaid,
+          status: isFullyPaid ? 'completed' : deal.status,
         };
 
         if (expenseKey) {
@@ -181,6 +190,7 @@ export function BDMProfileView({ bdm, deals }) {
                   ...d,
                   bdmCommissionPaidAmount: newPaid,
                   bdmCommissionPaid: newPaid >= total,
+                  status: newPaid >= total ? 'completed' : d.status,
                   ...(expenseKey
                     ? {
                         bdmExpenseId: expenseKey,
@@ -270,12 +280,14 @@ export function BDMProfileView({ bdm, deals }) {
     },
   ];
 
-  const selectedDeal = paymentDialog.dealId ? localDeals.find((d) => d.id === paymentDialog.dealId) : null;
+  const selectedDeal = paymentDialog.dealId
+    ? localDeals.find((d) => d.id === paymentDialog.dealId)
+    : null;
   const selectedTotal = selectedDeal ? selectedDeal.bdmCommissionAmount || 0 : 0;
   const selectedPaid = selectedDeal ? getPaidAmount(selectedDeal) : 0;
   const selectedRemaining = Math.max(selectedTotal - selectedPaid, 0);
-  const selectedInput = selectedDeal ? paymentInputs[selectedDeal.id] ?? '' : '';
-  const selectedExpenseInput = selectedDeal ? expenseInputs[selectedDeal.id] ?? '' : '';
+  const selectedInput = selectedDeal ? (paymentInputs[selectedDeal.id] ?? '') : '';
+  const selectedExpenseInput = selectedDeal ? (expenseInputs[selectedDeal.id] ?? '') : '';
   const selectedExpense = selectedExpenseInput ? expenseDetails[selectedExpenseInput] : null;
   const selectedInvalid =
     !selectedDeal ||
@@ -362,9 +374,15 @@ export function BDMProfileView({ bdm, deals }) {
                 {localDeals.map((deal) => {
                   const total = deal.bdmCommissionAmount || 0;
                   const paid = getPaidAmount(deal);
-                  const remaining = Math.max(total - paid, 0);
-                  const paymentStatus = paid >= total && total > 0 ? 'Paid' : paid > 0 ? 'Partially Paid' : 'Pending';
-                  const paymentColor = paymentStatus === 'Paid' ? 'success' : paymentStatus === 'Partially Paid' ? 'warning' : 'default';
+                  const remaining = Math.max(Math.round((total - paid) * 100) / 100, 0);
+                  const paymentStatus =
+                    remaining === 0 && total > 0 ? 'Paid' : paid > 0 ? 'Partially Paid' : 'Pending';
+                  const paymentColor =
+                    paymentStatus === 'Paid'
+                      ? 'success'
+                      : paymentStatus === 'Partially Paid'
+                        ? 'warning'
+                        : 'default';
 
                   return (
                     <TableRow key={deal.id} hover>
@@ -379,7 +397,15 @@ export function BDMProfileView({ bdm, deals }) {
                         })}
                       </TableCell>
                       <TableCell align="center">
-                        <Label color={deal.status === 'completed' ? 'success' : deal.status === 'active' ? 'info' : 'default'}>
+                        <Label
+                          color={
+                            deal.status === 'completed'
+                              ? 'success'
+                              : deal.status === 'active'
+                                ? 'info'
+                                : 'default'
+                          }
+                        >
                           {deal.status}
                         </Label>
                       </TableCell>
@@ -422,12 +448,7 @@ export function BDMProfileView({ bdm, deals }) {
         </Scrollbar>
       </Card>
 
-      <Dialog
-        open={paymentDialog.open}
-        onClose={handleCloseDialog}
-        fullWidth
-        maxWidth="xs"
-      >
+      <Dialog open={paymentDialog.open} onClose={handleCloseDialog} fullWidth maxWidth="xs">
         {selectedDeal ? (
           <>
             <DialogTitle>Record Partial Payment</DialogTitle>
@@ -535,7 +556,9 @@ export function BDMProfileView({ bdm, deals }) {
               <Button
                 variant="contained"
                 disabled={selectedInvalid}
-                onClick={() => handleRecordPayment(selectedDeal.id, Number(selectedInput), selectedExpenseInput)}
+                onClick={() =>
+                  handleRecordPayment(selectedDeal.id, Number(selectedInput), selectedExpenseInput)
+                }
               >
                 Save Payment
               </Button>
@@ -551,4 +574,3 @@ BDMProfileView.propTypes = {
   bdm: PropTypes.object,
   deals: PropTypes.array,
 };
-

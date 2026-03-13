@@ -828,7 +828,7 @@ export function DealDetailsView({ deal }) {
 
       <Grid container spacing={3}>
         {/* Left column */}
-        <Grid xs={12} md={8}>
+        <Grid xs={12} md={6}>
           <Stack spacing={3}>
             {renderInvoices}
             {renderPaymentHistory}
@@ -836,7 +836,7 @@ export function DealDetailsView({ deal }) {
         </Grid>
 
         {/* Right column */}
-        <Grid xs={12} md={4}>
+        <Grid xs={12} md={6}>
           <Stack spacing={3}>
             {renderDealInfo}
             {renderProfit}
