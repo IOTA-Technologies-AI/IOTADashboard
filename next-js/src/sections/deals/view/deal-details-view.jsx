@@ -619,157 +619,189 @@ export function DealDetailsView({ deal }) {
         <Label color={paymentStatusColor}>{paymentStatusText}</Label>
       </Stack>
       <Divider sx={{ borderStyle: 'dashed', mx: 3 }} />
-      <Stack spacing={2} sx={{ p: 3 }}>
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="body2" color="text.secondary">
-            Type
-          </Typography>
-          <Chip
-            label={deal.bdmCommissionType === 'fixed' ? 'Fixed' : 'Percentage'}
-            size="small"
-            variant="soft"
-            color="default"
-          />
-        </Stack>
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="body2" color="text.secondary">
-            Value
-          </Typography>
-          <Typography variant="subtitle2">
-            {deal.bdmCommissionType === 'fixed'
-              ? fmt(deal.bdmCommissionValue)
-              : `${deal.bdmCommissionValue}%`}
-          </Typography>
-        </Stack>
-        <Divider sx={{ borderStyle: 'dashed' }} />
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="subtitle2">Total</Typography>
-          <Typography variant="h6" color="warning.main">
-            {fmt(bdmTotal)}
-          </Typography>
-        </Stack>
-        <Stack direction="row" justifyContent="space-between" alignItems="center">
-          <Typography variant="body2" color="text.secondary">
-            Paid
-          </Typography>
-          <Typography variant="subtitle2" color="success.main">
-            {bdmPaid > 0 ? fmt(bdmPaid) : '—'}
-          </Typography>
-        </Stack>
-        {bdmPending > 0 && (
-          <Stack direction="row" justifyContent="space-between" alignItems="center">
-            <Typography variant="body2" color="text.secondary">
-              Balance
-            </Typography>
-            <Typography variant="subtitle2" color="warning.dark">
-              {fmt(bdmPending)}
-            </Typography>
-          </Stack>
-        )}
-        {bdmTotal > 0 && (
-          <Box>
-            <LinearProgress
-              variant="determinate"
-              value={paymentProgressPct}
-              color={bdmPending <= 0 ? 'success' : 'warning'}
-              sx={{ height: 6, borderRadius: 1, mb: 0.5 }}
-            />
-            <Typography variant="caption" color="text.secondary">
-              {paymentProgressPct.toFixed(0)}% paid
-            </Typography>
-          </Box>
-        )}
 
-        {/* Record payment form */}
-        {bdmPending > 0 && (
-          <>
-            <Divider sx={{ borderStyle: 'dashed' }} />
-            <Typography variant="subtitle2">Record Payment</Typography>
-            <TextField
-              label="Amount"
-              type="number"
-              size="small"
-              fullWidth
-              value={paymentAmount}
-              onChange={(e) => setPaymentAmount(e.target.value)}
-              inputProps={{ min: 0, step: '0.01' }}
-              helperText={`Max: ${fmt(bdmPending)}`}
-            />
-            <Stack direction="row" spacing={1} alignItems="flex-start">
-              <TextField
-                label="Expense ID (optional)"
+      {/* Horizontal two-column layout */}
+      <Grid container>
+        {/* Left: Commission summary */}
+        <Grid xs={12} md={6}>
+          <Stack spacing={2} sx={{ p: 3 }}>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="body2" color="text.secondary">
+                Type
+              </Typography>
+              <Chip
+                label={deal.bdmCommissionType === 'fixed' ? 'Fixed' : 'Percentage'}
                 size="small"
-                sx={{ flex: 1 }}
-                value={paymentExpenseId}
-                onChange={(e) => {
-                  setPaymentExpenseId(e.target.value);
-                  setFetchedExpense(null);
-                }}
-                error={!isExpenseInputNumeric && Boolean(trimmedExpenseInput)}
-                helperText={
-                  !isExpenseInputNumeric && Boolean(trimmedExpenseInput) ? 'Must be numeric' : ' '
-                }
+                variant="soft"
+                color="default"
               />
-              <LoadingButton
-                size="small"
-                variant="outlined"
-                color="inherit"
-                loading={isFetchingExpense}
-                onClick={handleFetchExpense}
-                sx={{ height: 40, mt: 0, flexShrink: 0, minWidth: 40, px: 1 }}
-              >
-                <Iconify icon="solar:search-bold" />
-              </LoadingButton>
             </Stack>
-            {fetchedExpense && (
-              <Box
-                sx={{
-                  p: 1.5,
-                  borderRadius: 1,
-                  bgcolor: varAlpha(theme.vars.palette.info.mainChannel, 0.08),
-                }}
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="body2" color="text.secondary">
+                Value
+              </Typography>
+              <Typography variant="subtitle2">
+                {deal.bdmCommissionType === 'fixed'
+                  ? fmt(deal.bdmCommissionValue)
+                  : `${deal.bdmCommissionValue}%`}
+              </Typography>
+            </Stack>
+            <Divider sx={{ borderStyle: 'dashed' }} />
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="subtitle2">Total</Typography>
+              <Typography variant="h6" color="warning.main">
+                {fmt(bdmTotal)}
+              </Typography>
+            </Stack>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="body2" color="text.secondary">
+                Paid
+              </Typography>
+              <Typography variant="subtitle2" color="success.main">
+                {bdmPaid > 0 ? fmt(bdmPaid) : '—'}
+              </Typography>
+            </Stack>
+            <Stack direction="row" justifyContent="space-between" alignItems="center">
+              <Typography variant="body2" color="text.secondary">
+                Balance
+              </Typography>
+              <Typography
+                variant="subtitle2"
+                color={bdmPending <= 0 ? 'success.main' : 'warning.dark'}
               >
-                <Typography variant="caption" color="info.main">
-                  Expense #{fetchedExpense.id} —{' '}
-                  {fmt(
-                    fetchedExpense.expenseAmount ||
-                      fetchedExpense.expenseApprovedAmount ||
-                      fetchedExpense.originalExpenseAmount ||
-                      0
-                  )}
-                  {fetchedExpense.expenseApprovalStatus
-                    ? ` · ${String(fetchedExpense.expenseApprovalStatus)}`
-                    : ''}
+                {bdmPending <= 0 ? fmt(0) : fmt(bdmPending)}
+              </Typography>
+            </Stack>
+            {bdmTotal > 0 && (
+              <Box>
+                <LinearProgress
+                  variant="determinate"
+                  value={paymentProgressPct}
+                  color={bdmPending <= 0 ? 'success' : 'warning'}
+                  sx={{ height: 6, borderRadius: 1, mb: 0.5 }}
+                />
+                <Typography variant="caption" color="text.secondary">
+                  {paymentProgressPct.toFixed(0)}% paid
                 </Typography>
               </Box>
             )}
-            <Stack direction="row" spacing={1}>
-              <LoadingButton
-                fullWidth
-                variant="outlined"
-                color="warning"
+          </Stack>
+        </Grid>
+
+        {/* Right: Record Payment form or Settled state */}
+        <Grid
+          xs={12}
+          md={6}
+          sx={{ borderLeft: { md: '1px dashed' }, borderColor: { md: 'divider' } }}
+        >
+          {bdmPending > 0 ? (
+            <Stack spacing={2} sx={{ p: 3 }}>
+              <Typography variant="subtitle2">Record Payment</Typography>
+              <TextField
+                label="Amount"
+                type="number"
                 size="small"
-                loading={isRecordingPayment}
-                onClick={handleRecordPartialPayment}
-                startIcon={<Iconify icon="solar:coins-bold" />}
-              >
-                Partial
-              </LoadingButton>
-              <LoadingButton
                 fullWidth
-                variant="contained"
-                color="warning"
-                size="small"
-                loading={isPayingBDM}
-                onClick={handlePayBDM}
-                startIcon={<Iconify icon="solar:wallet-money-bold" />}
-              >
-                Pay All
-              </LoadingButton>
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                inputProps={{ min: 0, step: '0.01' }}
+                helperText={`Max: ${fmt(bdmPending)}`}
+              />
+              <Stack direction="row" spacing={1} alignItems="flex-start">
+                <TextField
+                  label="Expense ID (optional)"
+                  size="small"
+                  sx={{ flex: 1 }}
+                  value={paymentExpenseId}
+                  onChange={(e) => {
+                    setPaymentExpenseId(e.target.value);
+                    setFetchedExpense(null);
+                  }}
+                  error={!isExpenseInputNumeric && Boolean(trimmedExpenseInput)}
+                  helperText={
+                    !isExpenseInputNumeric && Boolean(trimmedExpenseInput) ? 'Must be numeric' : ' '
+                  }
+                />
+                <LoadingButton
+                  size="small"
+                  variant="outlined"
+                  color="inherit"
+                  loading={isFetchingExpense}
+                  onClick={handleFetchExpense}
+                  sx={{ height: 40, mt: 0, flexShrink: 0, minWidth: 40, px: 1 }}
+                >
+                  <Iconify icon="solar:search-bold" />
+                </LoadingButton>
+              </Stack>
+              {fetchedExpense && (
+                <Box
+                  sx={{
+                    p: 1.5,
+                    borderRadius: 1,
+                    bgcolor: varAlpha(theme.vars.palette.info.mainChannel, 0.08),
+                  }}
+                >
+                  <Typography variant="caption" color="info.main">
+                    Expense #{fetchedExpense.id} —{' '}
+                    {fmt(
+                      fetchedExpense.expenseAmount ||
+                        fetchedExpense.expenseApprovedAmount ||
+                        fetchedExpense.originalExpenseAmount ||
+                        0
+                    )}
+                    {fetchedExpense.expenseApprovalStatus
+                      ? ` · ${String(fetchedExpense.expenseApprovalStatus)}`
+                      : ''}
+                  </Typography>
+                </Box>
+              )}
+              <Stack direction="row" spacing={1}>
+                <LoadingButton
+                  fullWidth
+                  variant="outlined"
+                  color="warning"
+                  size="small"
+                  loading={isRecordingPayment}
+                  onClick={handleRecordPartialPayment}
+                  startIcon={<Iconify icon="solar:coins-bold" />}
+                >
+                  Partial
+                </LoadingButton>
+                <LoadingButton
+                  fullWidth
+                  variant="contained"
+                  color="warning"
+                  size="small"
+                  loading={isPayingBDM}
+                  onClick={handlePayBDM}
+                  startIcon={<Iconify icon="solar:wallet-money-bold" />}
+                >
+                  Pay All
+                </LoadingButton>
+              </Stack>
             </Stack>
-          </>
-        )}
-      </Stack>
+          ) : (
+            <Stack
+              alignItems="center"
+              justifyContent="center"
+              spacing={1.5}
+              sx={{ p: 3, height: '100%', minHeight: 160 }}
+            >
+              <Iconify
+                icon="solar:check-circle-bold-duotone"
+                width={48}
+                sx={{ color: 'success.main' }}
+              />
+              <Typography variant="subtitle1" color="success.main">
+                Fully Settled
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Commission has been paid in full.
+              </Typography>
+            </Stack>
+          )}
+        </Grid>
+      </Grid>
     </Card>
   );
 
@@ -827,7 +859,7 @@ export function DealDetailsView({ deal }) {
       {renderKpiStrip}
 
       <Grid container spacing={3}>
-        {/* Left column */}
+        {/* Left column: Invoices + Payment History */}
         <Grid xs={12} md={6}>
           <Stack spacing={3}>
             {renderInvoices}
@@ -835,14 +867,20 @@ export function DealDetailsView({ deal }) {
           </Stack>
         </Grid>
 
-        {/* Right column */}
+        {/* Right column: Deal Info + Profit side by side */}
         <Grid xs={12} md={6}>
-          <Stack spacing={3}>
-            {renderDealInfo}
-            {renderProfit}
-            {renderBDMCommission}
-          </Stack>
+          <Grid container spacing={3}>
+            <Grid xs={12} md={6}>
+              {renderDealInfo}
+            </Grid>
+            <Grid xs={12} md={6}>
+              {renderProfit}
+            </Grid>
+          </Grid>
         </Grid>
+
+        {/* BDM Commission: full-width horizontal card */}
+        {deal.bdmId && <Grid xs={12}>{renderBDMCommission}</Grid>}
       </Grid>
 
       <ConfirmDialog
