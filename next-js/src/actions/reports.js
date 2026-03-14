@@ -56,3 +56,33 @@ export async function fetchEmployeePLReport({ year }) {
     return { error: error.message };
   }
 }
+
+/**
+ * Fetch BDM report — deals, revenue and commissions per BDM.
+ * @param {object} params
+ * @param {string} [params.bdmId]  Filter to a specific BDM (omit for all)
+ * @param {number} [params.year]   Filter by calendar year (omit for all-time)
+ */
+export async function fetchBdmReport({ bdmId, year } = {}) {
+  try {
+    const params = new URLSearchParams();
+    if (bdmId) params.set('bdmId', bdmId);
+    if (year) params.set('year', String(year));
+    const url = `${API_BASE_URL}/reports/bdm${params.toString() ? `?${params}` : ''}`;
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      const errText = await response.text().catch(() => '');
+      throw new Error(`HTTP ${response.status}: ${errText}`);
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('[fetchBdmReport] Error:', error);
+    return { error: error.message };
+  }
+}
