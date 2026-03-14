@@ -39,8 +39,13 @@ import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 // ----------------------------------------------------------------------
 
-const CURRENCY = 'SAR';
+const DEFAULT_CURRENCY = 'SAR';
 const CURRENT_YEAR = new Date().getFullYear();
+
+// Helper: format currency using per-deal or per-BDM currency code
+function fc(value, currency) {
+  return fCurrency(value, { currencyCode: currency || DEFAULT_CURRENCY });
+}
 const YEAR_OPTIONS = [
   { value: 0, label: 'All Time' },
   ...Array.from({ length: 5 }, (_, i) => ({
@@ -88,12 +93,13 @@ function downloadCSV(rows, filename) {
     'Deal #',
     'Deal Name',
     'Date',
-    'Revenue (SAR)',
-    'Gross Profit (SAR)',
-    'Net Profit Before BDM (SAR)',
-    'Commission (SAR)',
-    'Paid Commission (SAR)',
-    'Net Profit After BDM (SAR)',
+    'Currency',
+    'Revenue',
+    'Gross Profit',
+    'Net Profit Before BDM',
+    'Commission',
+    'Paid Commission',
+    'Net Profit After BDM',
     'Commission Paid',
     'Status',
   ];
@@ -104,6 +110,7 @@ function downloadCSV(rows, filename) {
         r.dealNumber,
         `"${r.dealName}"`,
         r.dealDate,
+        r.currency || DEFAULT_CURRENCY,
         r.arInvoiceAmount.toFixed(2),
         r.grossProfit.toFixed(2),
         r.netProfitBeforeBDM.toFixed(2),
@@ -162,7 +169,7 @@ function BDMDealsTable({ deals, bdmName }) {
               </TableCell>
               <TableCell align="right">
                 <Typography variant="body2" fontWeight={600}>
-                  {fCurrency(deal.arInvoiceAmount, CURRENCY)}
+                  {fc(deal.arInvoiceAmount, deal.currency)}
                 </Typography>
               </TableCell>
               <TableCell align="right">
@@ -170,17 +177,17 @@ function BDMDealsTable({ deals, bdmName }) {
                   variant="body2"
                   color={deal.grossProfit >= 0 ? 'success.main' : 'error.main'}
                 >
-                  {fCurrency(deal.grossProfit, CURRENCY)}
+                  {fc(deal.grossProfit, deal.currency)}
                 </Typography>
               </TableCell>
               <TableCell align="right">
                 <Typography variant="body2" color="warning.main">
-                  {fCurrency(deal.bdmCommissionAmount, CURRENCY)}
+                  {fc(deal.bdmCommissionAmount, deal.currency)}
                 </Typography>
               </TableCell>
               <TableCell align="right">
                 <Typography variant="body2" color="text.secondary">
-                  {fCurrency(deal.bdmCommissionPaidAmount, CURRENCY)}
+                  {fc(deal.bdmCommissionPaidAmount, deal.currency)}
                 </Typography>
               </TableCell>
               <TableCell align="right">
@@ -189,7 +196,7 @@ function BDMDealsTable({ deals, bdmName }) {
                   color={deal.netProfitAfterBDM >= 0 ? 'success.main' : 'error.main'}
                   fontWeight={600}
                 >
-                  {fCurrency(deal.netProfitAfterBDM, CURRENCY)}
+                  {fc(deal.netProfitAfterBDM, deal.currency)}
                 </Typography>
               </TableCell>
               <TableCell align="center">
@@ -225,8 +232,22 @@ function BDMDealsTable({ deals, bdmName }) {
 
 // ----------------------------------------------------------------------
 
+// Derive primary currency for a BDM: majority currency among their deals, fallback SAR
+function getPrimaryCurrency(deals) {
+  if (!deals?.length) return DEFAULT_CURRENCY;
+  const counts = {};
+  for (const d of deals) {
+    const c = d.currency || DEFAULT_CURRENCY;
+    counts[c] = (counts[c] || 0) + 1;
+  }
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+}
+
+// ----------------------------------------------------------------------
+
 function BDMCard({ report, expanded, onToggle }) {
   const { summary } = report;
+  const currency = getPrimaryCurrency(report.deals);
 
   return (
     <Card sx={{ mb: 2 }}>
@@ -281,7 +302,7 @@ function BDMCard({ report, expanded, onToggle }) {
               Total Revenue
             </Typography>
             <Typography variant="subtitle2" fontWeight={700}>
-              {fCurrency(summary.totalRevenue, CURRENCY)}
+              {fc(summary.totalRevenue, currency)}
             </Typography>
           </Grid>
           <Grid item xs={6} sm={4} md={2}>
@@ -293,7 +314,7 @@ function BDMCard({ report, expanded, onToggle }) {
               fontWeight={700}
               color={summary.totalGrossProfit >= 0 ? 'success.main' : 'error.main'}
             >
-              {fCurrency(summary.totalGrossProfit, CURRENCY)}
+              {fc(summary.totalGrossProfit, currency)}
             </Typography>
           </Grid>
           <Grid item xs={6} sm={4} md={2}>
@@ -305,7 +326,7 @@ function BDMCard({ report, expanded, onToggle }) {
               fontWeight={700}
               color={summary.totalNetProfit >= 0 ? 'success.main' : 'error.main'}
             >
-              {fCurrency(summary.totalNetProfit, CURRENCY)}
+              {fc(summary.totalNetProfit, currency)}
             </Typography>
           </Grid>
           <Grid item xs={6} sm={4} md={2}>
@@ -313,7 +334,7 @@ function BDMCard({ report, expanded, onToggle }) {
               Total Commission
             </Typography>
             <Typography variant="subtitle2" fontWeight={700} color="warning.main">
-              {fCurrency(summary.totalCommission, CURRENCY)}
+              {fc(summary.totalCommission, currency)}
             </Typography>
           </Grid>
           <Grid item xs={6} sm={4} md={2}>
@@ -321,7 +342,7 @@ function BDMCard({ report, expanded, onToggle }) {
               Paid Commission
             </Typography>
             <Typography variant="subtitle2" fontWeight={700} color="success.main">
-              {fCurrency(summary.paidCommission, CURRENCY)}
+              {fc(summary.paidCommission, currency)}
             </Typography>
           </Grid>
           <Grid item xs={6} sm={4} md={2}>
@@ -329,7 +350,7 @@ function BDMCard({ report, expanded, onToggle }) {
               Pending Commission
             </Typography>
             <Typography variant="subtitle2" fontWeight={700} color="error.main">
-              {fCurrency(summary.pendingCommission, CURRENCY)}
+              {fc(summary.pendingCommission, currency)}
             </Typography>
           </Grid>
         </Grid>
@@ -380,10 +401,26 @@ export function BdmReportView() {
         acc.paid += r.summary.paidCommission;
         acc.pending += r.summary.pendingCommission;
         acc.deals += r.summary.dealCount;
+        // Track dominant currency across all BDMs
+        const c = getPrimaryCurrency(r.deals);
+        acc.currencies[c] = (acc.currencies[c] || 0) + r.summary.dealCount;
         return acc;
       },
-      { revenue: 0, grossProfit: 0, netProfit: 0, commission: 0, paid: 0, pending: 0, deals: 0 }
+      {
+        revenue: 0,
+        grossProfit: 0,
+        netProfit: 0,
+        commission: 0,
+        paid: 0,
+        pending: 0,
+        deals: 0,
+        currencies: {},
+      }
     ) ?? null;
+
+  const totalsCurrency = totals
+    ? (Object.entries(totals.currencies).sort((a, b) => b[1] - a[1])[0]?.[0] ?? DEFAULT_CURRENCY)
+    : DEFAULT_CURRENCY;
 
   return (
     <DashboardContent maxWidth="xl">
@@ -439,7 +476,7 @@ export function BdmReportView() {
               <Grid item xs={12} sm={6} md={4} lg={2}>
                 <KpiCard
                   title="Total Revenue"
-                  value={fCurrency(totals.revenue, CURRENCY)}
+                  value={fc(totals.revenue, totalsCurrency)}
                   icon="mdi:cash-multiple"
                   color="primary"
                 />
@@ -447,7 +484,7 @@ export function BdmReportView() {
               <Grid item xs={12} sm={6} md={4} lg={2}>
                 <KpiCard
                   title="Gross Profit"
-                  value={fCurrency(totals.grossProfit, CURRENCY)}
+                  value={fc(totals.grossProfit, totalsCurrency)}
                   icon="mdi:trending-up"
                   color="success"
                 />
@@ -455,7 +492,7 @@ export function BdmReportView() {
               <Grid item xs={12} sm={6} md={4} lg={2}>
                 <KpiCard
                   title="Net Profit After BDM"
-                  value={fCurrency(totals.netProfit, CURRENCY)}
+                  value={fc(totals.netProfit, totalsCurrency)}
                   icon="mdi:chart-line"
                   color={totals.netProfit >= 0 ? 'success' : 'error'}
                 />
@@ -463,7 +500,7 @@ export function BdmReportView() {
               <Grid item xs={12} sm={6} md={4} lg={2}>
                 <KpiCard
                   title="Total Commission"
-                  value={fCurrency(totals.commission, CURRENCY)}
+                  value={fc(totals.commission, totalsCurrency)}
                   icon="mdi:hand-coin-outline"
                   color="warning"
                 />
@@ -471,7 +508,7 @@ export function BdmReportView() {
               <Grid item xs={12} sm={6} md={4} lg={2}>
                 <KpiCard
                   title="Paid Commission"
-                  value={fCurrency(totals.paid, CURRENCY)}
+                  value={fc(totals.paid, totalsCurrency)}
                   icon="mdi:check-circle-outline"
                   color="success"
                 />
@@ -479,7 +516,7 @@ export function BdmReportView() {
               <Grid item xs={12} sm={6} md={4} lg={2}>
                 <KpiCard
                   title="Pending Commission"
-                  value={fCurrency(totals.pending, CURRENCY)}
+                  value={fc(totals.pending, totalsCurrency)}
                   icon="mdi:clock-outline"
                   color="error"
                 />
