@@ -1537,6 +1537,23 @@ export async function deleteOffer(id) {
   }
 }
 
+// ============================================================================
+// WEBHOOK EVENTS API FUNCTIONS
+// ============================================================================
+
+export async function getWebhookEvents({ source, eventType, limit = 50, offset = 0 } = {}) {
+  try {
+    const params = { limit, offset };
+    if (source) params.source = source;
+    if (eventType) params.eventType = eventType;
+    const response = await axios.get(`${API_BASE_URL}webhook/events`, { params });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch webhook events:', error.response?.data || error.message);
+    return { events: [], total: 0 };
+  }
+}
+
 export const apiHelper = {
   fetchTotalIotaBilling,
   fetchTotalPartnerBilling,
@@ -1610,4 +1627,6 @@ export const apiHelper = {
   rejectOffer,
   commentOnOffer,
   deleteOffer,
+  // Webhook events
+  getWebhookEvents,
 };

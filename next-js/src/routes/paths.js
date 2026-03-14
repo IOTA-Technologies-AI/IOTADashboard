@@ -272,5 +272,11 @@ export const paths = {
       new: `${ROOTS.DASHBOARD}/integration/new`,
       details: (name, type) => `${ROOTS.DASHBOARD}/integration/${name}/${type}`,
     },
+    webhookLogs: {
+      root: `${ROOTS.DASHBOARD}/integration/webhook-logs`,
+      resend: `${ROOTS.DASHBOARD}/integration/webhook-logs/resend`,
+      vercel: `${ROOTS.DASHBOARD}/integration/webhook-logs/vercel`,
+      encore: `${ROOTS.DASHBOARD}/integration/webhook-logs/encore`,
+    },
   },
 };

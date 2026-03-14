@@ -138,6 +138,28 @@ export const AVAILABLE_INTEGRATIONS = [
     docsUrl: 'https://developers.google.com/analytics',
     comingSoon: true,
   },
+  {
+    name: 'encore',
+    displayName: 'Encore',
+    type: 'other',
+    description: 'Encore Cloud — backend deploys, logs, and service health',
+    icon: 'simple-icons:encore',
+    color: '#FF6154',
+    requiredFields: ['apiKey'],
+    optionalFields: ['webhookUrl'],
+    docsUrl: 'https://encore.dev/docs',
+  },
+  {
+    name: 'vercel',
+    displayName: 'Vercel',
+    type: 'other',
+    description: 'Vercel — frontend deployments, preview URLs, and build logs',
+    icon: 'simple-icons:vercel',
+    color: '#000000',
+    requiredFields: ['apiKey'],
+    optionalFields: ['webhookUrl', 'teamId'],
+    docsUrl: 'https://vercel.com/docs/rest-api',
+  },
 ];
 
 export const INTEGRATION_STATUS_OPTIONS = [
