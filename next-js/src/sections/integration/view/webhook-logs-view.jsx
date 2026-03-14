@@ -9,6 +9,7 @@ import Card from '@mui/material/Card';
 import Tabs from '@mui/material/Tabs';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
+import Switch from '@mui/material/Switch';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Tooltip from '@mui/material/Tooltip';
@@ -23,11 +24,12 @@ import DialogActions from '@mui/material/DialogActions';
 import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
 import CircularProgress from '@mui/material/CircularProgress';
+import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { paths } from 'src/routes/paths';
 
 import { fDateTime } from 'src/utils/format-time';
-import { getWebhookEvents } from 'src/utils/apiHelper';
+import { getWebhookEvents, getLogDrainStatus, toggleLogDrain } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -61,6 +63,8 @@ export function WebhookLogsView({ source: initialSource = 'all' }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [logDrainEnabled, setLogDrainEnabled] = useState(false);
+  const [drainToggling, setDrainToggling] = useState(false);
 
   const currentSource = tab === 'all' ? undefined : tab;
 
@@ -85,6 +89,18 @@ export function WebhookLogsView({ source: initialSource = 'all' }) {
     fetchEvents();
   }, [fetchEvents]);
 
+  // Load log drain status on mount
+  useEffect(() => {
+    getLogDrainStatus().then((data) => setLogDrainEnabled(data.enabled));
+  }, []);
+
+  const handleDrainToggle = async (e) => {
+    setDrainToggling(true);
+    const data = await toggleLogDrain(e.target.checked);
+    setLogDrainEnabled(data.enabled);
+    setDrainToggling(false);
+  };
+
   // Reset page when tab changes
   const handleTabChange = (_, newValue) => {
     setTab(newValue);
@@ -108,14 +124,37 @@ export function WebhookLogsView({ source: initialSource = 'all' }) {
         heading="Webhook Logs"
         links={breadcrumbLinks}
         action={
-          <Button
-            variant="outlined"
-            startIcon={<Iconify icon="eva:refresh-fill" />}
-            onClick={fetchEvents}
-            disabled={loading}
-          >
-            Refresh
-          </Button>
+          <Stack direction="row" spacing={1} alignItems="center">
+            {(tab === 'vercel' || tab === 'all') && (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={logDrainEnabled}
+                    onChange={handleDrainToggle}
+                    disabled={drainToggling}
+                    color="warning"
+                    size="small"
+                  />
+                }
+                label={
+                  <Typography
+                    variant="body2"
+                    color={logDrainEnabled ? 'warning.main' : 'text.secondary'}
+                  >
+                    {logDrainEnabled ? 'Log Drain: ON' : 'Log Drain: OFF'}
+                  </Typography>
+                }
+              />
+            )}
+            <Button
+              variant="outlined"
+              startIcon={<Iconify icon="eva:refresh-fill" />}
+              onClick={fetchEvents}
+              disabled={loading}
+            >
+              Refresh
+            </Button>
+          </Stack>
         }
         sx={{ mb: { xs: 3, md: 5 } }}
       />

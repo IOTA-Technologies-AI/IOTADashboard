@@ -1554,6 +1554,26 @@ export async function getWebhookEvents({ source, eventType, limit = 50, offset =
   }
 }
 
+export async function getLogDrainStatus() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}webhook/log-drain/status`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to get log drain status:', error.response?.data || error.message);
+    return { enabled: false };
+  }
+}
+
+export async function toggleLogDrain(enabled) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}webhook/log-drain/toggle`, { enabled });
+    return response.data;
+  } catch (error) {
+    console.error('Failed to toggle log drain:', error.response?.data || error.message);
+    return { enabled: false };
+  }
+}
+
 export const apiHelper = {
   fetchTotalIotaBilling,
   fetchTotalPartnerBilling,
@@ -1629,4 +1649,6 @@ export const apiHelper = {
   deleteOffer,
   // Webhook events
   getWebhookEvents,
+  getLogDrainStatus,
+  toggleLogDrain,
 };
