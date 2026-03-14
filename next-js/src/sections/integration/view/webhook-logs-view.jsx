@@ -35,7 +35,7 @@ import TablePagination from '@mui/material/TablePagination';
 import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
 
 import { paths } from 'src/routes/paths';
 
@@ -93,8 +93,8 @@ export function WebhookLogsView({ source: initialSource = 'all' }) {
         source: currentSource,
         eventType: filterEventType || undefined,
         status: filterStatus || undefined,
-        fromDate: filterFromDate ? filterFromDate.startOf('day').toISOString() : undefined,
-        toDate: filterToDate ? filterToDate.endOf('day').toISOString() : undefined,
+        fromDate: filterFromDate ? filterFromDate.toISOString() : undefined,
+        toDate: filterToDate ? filterToDate.toISOString() : undefined,
         limit: rowsPerPage,
         offset: page * rowsPerPage,
       });
@@ -243,25 +243,27 @@ export function WebhookLogsView({ source: initialSource = 'all' }) {
             borderColor: 'divider',
           }}
         >
-          <DatePicker
-            label="From date"
+          <DateTimePicker
+            label="From"
             value={filterFromDate}
             onChange={(val) => {
               setFilterFromDate(val);
               setPage(0);
             }}
-            maxDate={filterToDate || undefined}
-            slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
+            maxDateTime={filterToDate || undefined}
+            slotProps={{ textField: { size: 'small', sx: { width: 210 } } }}
+            ampm={false}
           />
-          <DatePicker
-            label="To date"
+          <DateTimePicker
+            label="To"
             value={filterToDate}
             onChange={(val) => {
               setFilterToDate(val);
               setPage(0);
             }}
-            minDate={filterFromDate || undefined}
-            slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
+            minDateTime={filterFromDate || undefined}
+            slotProps={{ textField: { size: 'small', sx: { width: 210 } } }}
+            ampm={false}
           />
           <TextField
             size="small"
