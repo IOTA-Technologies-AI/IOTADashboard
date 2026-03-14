@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+import dayjs from 'dayjs';
+
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import Chip from '@mui/material/Chip';
@@ -9,22 +11,31 @@ import Card from '@mui/material/Card';
 import Tabs from '@mui/material/Tabs';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
+import Select from '@mui/material/Select';
 import Switch from '@mui/material/Switch';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
 import TableRow from '@mui/material/TableRow';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+import InputLabel from '@mui/material/InputLabel';
 import DialogTitle from '@mui/material/DialogTitle';
+import FormControl from '@mui/material/FormControl';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import TableContainer from '@mui/material/TableContainer';
 import TablePagination from '@mui/material/TablePagination';
+import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 
 import { paths } from 'src/routes/paths';
 
@@ -66,6 +77,13 @@ export function WebhookLogsView({ source: initialSource = 'all' }) {
   const [logDrainEnabled, setLogDrainEnabled] = useState(false);
   const [drainToggling, setDrainToggling] = useState(false);
 
+  // Filters
+  const [filterEventTypeInput, setFilterEventTypeInput] = useState('');
+  const [filterEventType, setFilterEventType] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterFromDate, setFilterFromDate] = useState(null);
+  const [filterToDate, setFilterToDate] = useState(null);
+
   const currentSource = tab === 'all' ? undefined : tab;
 
   const fetchEvents = useCallback(async () => {
@@ -73,6 +91,10 @@ export function WebhookLogsView({ source: initialSource = 'all' }) {
     try {
       const data = await getWebhookEvents({
         source: currentSource,
+        eventType: filterEventType || undefined,
+        status: filterStatus || undefined,
+        fromDate: filterFromDate ? filterFromDate.startOf('day').toISOString() : undefined,
+        toDate: filterToDate ? filterToDate.endOf('day').toISOString() : undefined,
         limit: rowsPerPage,
         offset: page * rowsPerPage,
       });
@@ -83,11 +105,28 @@ export function WebhookLogsView({ source: initialSource = 'all' }) {
     } finally {
       setLoading(false);
     }
-  }, [currentSource, page, rowsPerPage]);
+  }, [
+    currentSource,
+    page,
+    rowsPerPage,
+    filterEventType,
+    filterStatus,
+    filterFromDate,
+    filterToDate,
+  ]);
 
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
+
+  // Debounce event type text search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setFilterEventType(filterEventTypeInput);
+      setPage(0);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [filterEventTypeInput]);
 
   // Load log drain status on mount
   useEffect(() => {
@@ -104,6 +143,22 @@ export function WebhookLogsView({ source: initialSource = 'all' }) {
   // Reset page when tab changes
   const handleTabChange = (_, newValue) => {
     setTab(newValue);
+    setPage(0);
+  };
+
+  const hasActiveFilters = !!(
+    filterEventTypeInput ||
+    filterStatus ||
+    filterFromDate ||
+    filterToDate
+  );
+
+  const handleClearFilters = () => {
+    setFilterEventTypeInput('');
+    setFilterEventType('');
+    setFilterStatus('');
+    setFilterFromDate(null);
+    setFilterToDate(null);
     setPage(0);
   };
 
@@ -175,6 +230,91 @@ export function WebhookLogsView({ source: initialSource = 'all' }) {
             />
           ))}
         </Tabs>
+
+        {/* Filter toolbar */}
+        <Box
+          sx={{
+            p: 2,
+            gap: 2,
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            borderBottom: 1,
+            borderColor: 'divider',
+          }}
+        >
+          <DatePicker
+            label="From date"
+            value={filterFromDate}
+            onChange={(val) => {
+              setFilterFromDate(val);
+              setPage(0);
+            }}
+            maxDate={filterToDate || undefined}
+            slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
+          />
+          <DatePicker
+            label="To date"
+            value={filterToDate}
+            onChange={(val) => {
+              setFilterToDate(val);
+              setPage(0);
+            }}
+            minDate={filterFromDate || undefined}
+            slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
+          />
+          <TextField
+            size="small"
+            placeholder="Search event type…"
+            value={filterEventTypeInput}
+            onChange={(e) => setFilterEventTypeInput(e.target.value)}
+            sx={{ width: 220 }}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Iconify icon="eva:search-fill" width={18} />
+                  </InputAdornment>
+                ),
+                endAdornment: filterEventTypeInput ? (
+                  <InputAdornment position="end">
+                    <IconButton size="small" edge="end" onClick={() => setFilterEventTypeInput('')}>
+                      <Iconify icon="eva:close-fill" width={16} />
+                    </IconButton>
+                  </InputAdornment>
+                ) : null,
+              },
+            }}
+          />
+          <FormControl size="small" sx={{ minWidth: 130 }}>
+            <InputLabel>Status</InputLabel>
+            <Select
+              value={filterStatus}
+              label="Status"
+              onChange={(e) => {
+                setFilterStatus(e.target.value);
+                setPage(0);
+              }}
+            >
+              <MenuItem value="">All</MenuItem>
+              <MenuItem value="processed">Processed</MenuItem>
+              <MenuItem value="failed">Failed</MenuItem>
+            </Select>
+          </FormControl>
+          {hasActiveFilters && (
+            <Button
+              size="small"
+              color="error"
+              variant="outlined"
+              startIcon={<Iconify icon="eva:close-fill" />}
+              onClick={handleClearFilters}
+            >
+              Clear filters
+            </Button>
+          )}
+        </Box>
+
+        <Divider />
 
         {loading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>

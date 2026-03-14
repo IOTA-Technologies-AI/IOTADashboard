@@ -1541,11 +1541,22 @@ export async function deleteOffer(id) {
 // WEBHOOK EVENTS API FUNCTIONS
 // ============================================================================
 
-export async function getWebhookEvents({ source, eventType, limit = 50, offset = 0 } = {}) {
+export async function getWebhookEvents({
+  source,
+  eventType,
+  status,
+  fromDate,
+  toDate,
+  limit = 50,
+  offset = 0,
+} = {}) {
   try {
     const params = { limit, offset };
     if (source) params.source = source;
     if (eventType) params.eventType = eventType;
+    if (status) params.status = status;
+    if (fromDate) params.fromDate = fromDate;
+    if (toDate) params.toDate = toDate;
     const response = await axios.get(`${API_BASE_URL}webhook/events`, { params });
     return response.data;
   } catch (error) {
