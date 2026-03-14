@@ -1,15 +1,24 @@
 import { Page, Text, View, Document, StyleSheet } from '@react-pdf/renderer';
 
+const IOTA_BLUE = '#1976D2';
+const GREEN = '#22c55e';
+const GREEN_BG = '#f0fdf4';
+const DARK_BOX = '#1e293b';
+const BORDER = '#e5e7eb';
+const MUTED = '#6b7280';
+const DARK = '#111827';
+
 // ---------------------------------------------------------------------------
 // Styles
 // ---------------------------------------------------------------------------
 
 const styles = StyleSheet.create({
   page: {
-    padding: 40,
-    fontSize: 9.5,
+    paddingHorizontal: 50,
+    paddingVertical: 40,
+    fontSize: 9,
     fontFamily: 'Helvetica',
-    color: '#1a1a1a',
+    color: DARK,
     backgroundColor: '#fff',
   },
 
@@ -18,16 +27,531 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    borderBottomWidth: 2,
-    borderBottomColor: '#1a237e',
-    paddingBottom: 12,
-    marginBottom: 16,
+    marginBottom: 24,
   },
-  headerLeft: {},
   companyName: {
     fontSize: 20,
     fontFamily: 'Helvetica-Bold',
-    color: '#1a237e',
+    color: IOTA_BLUE,
+  },
+  companySubtitle: {
+    fontSize: 8.5,
+    color: MUTED,
+    marginTop: 3,
+  },
+  payslipForMonth: {
+    fontSize: 8.5,
+    color: MUTED,
+    textAlign: 'right',
+  },
+  periodLarge: {
+    fontSize: 15,
+    fontFamily: 'Helvetica-Bold',
+    color: DARK,
+    marginTop: 2,
+    textAlign: 'right',
+  },
+
+  // ── Employee Summary ─────────────────────────────────────────────────────
+  sectionLabel: {
+    fontSize: 7.5,
+    fontFamily: 'Helvetica-Bold',
+    color: MUTED,
+    letterSpacing: 1,
+    marginBottom: 10,
+  },
+  employeeSection: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 22,
+  },
+  employeeLeft: {
+    flex: 1,
+    paddingRight: 16,
+  },
+  empRow: {
+    flexDirection: 'row',
+    marginBottom: 7,
+  },
+  empLabel: {
+    width: 90,
+    fontSize: 9,
+    color: MUTED,
+  },
+  empColon: {
+    width: 10,
+    fontSize: 9,
+    color: MUTED,
+  },
+  empValue: {
+    flex: 1,
+    fontSize: 9,
+    color: DARK,
+  },
+
+  // ── Net pay card (right of employee summary) ──────────────────────────────
+  netCard: {
+    width: 210,
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 4,
+  },
+  netCardTop: {
+    borderLeftWidth: 3,
+    borderLeftColor: GREEN,
+    backgroundColor: GREEN_BG,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+  },
+  netCardAmount: {
+    fontSize: 22,
+    fontFamily: 'Helvetica-Bold',
+    color: GREEN,
+  },
+  netCardLabel: {
+    fontSize: 8,
+    color: MUTED,
+    marginTop: 3,
+  },
+  netCardDivider: {
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+  },
+  netCardBottom: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  netCardRow: {
+    flexDirection: 'row',
+    marginBottom: 4,
+  },
+  netCardRowLabel: {
+    width: 70,
+    fontSize: 8.5,
+    color: MUTED,
+  },
+  netCardRowColon: {
+    width: 12,
+    fontSize: 8.5,
+    color: MUTED,
+  },
+  netCardRowValue: {
+    fontSize: 8.5,
+    fontFamily: 'Helvetica-Bold',
+    color: DARK,
+  },
+
+  // ── Earnings & Deductions table ───────────────────────────────────────────
+  tableBox: {
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 4,
+    flexDirection: 'row',
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  tableCol: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 10,
+  },
+  tableColLeft: {
+    borderRightWidth: 1,
+    borderRightColor: BORDER,
+  },
+  tableColHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingBottom: 6,
+    borderBottomWidth: 1,
+    borderBottomColor: BORDER,
+    marginBottom: 2,
+  },
+  tableColHeadText: {
+    fontSize: 8.5,
+    fontFamily: 'Helvetica-Bold',
+    color: DARK,
+    letterSpacing: 0.3,
+  },
+  tableDataRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+  },
+  tableDataLabel: {
+    flex: 1,
+    fontSize: 9,
+    color: DARK,
+  },
+  tableDataValue: {
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    color: DARK,
+  },
+  tableDataMuted: {
+    fontSize: 9,
+    color: MUTED,
+    fontFamily: 'Helvetica-Oblique',
+  },
+  tableTotalSep: {
+    borderTopWidth: 1,
+    borderTopColor: BORDER,
+    marginTop: 4,
+  },
+  tableTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingTop: 5,
+  },
+  tableTotalLabel: {
+    flex: 1,
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    color: DARK,
+  },
+  tableTotalValue: {
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    color: DARK,
+  },
+
+  // ── Total Net Payable ─────────────────────────────────────────────────────
+  totalNetBox: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: BORDER,
+    borderRadius: 4,
+    marginBottom: 6,
+    overflow: 'hidden',
+  },
+  totalNetLeft: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    justifyContent: 'center',
+  },
+  totalNetTitle: {
+    fontSize: 10,
+    fontFamily: 'Helvetica-Bold',
+    color: DARK,
+    letterSpacing: 0.3,
+  },
+  totalNetSubtitle: {
+    fontSize: 8,
+    color: MUTED,
+    marginTop: 3,
+  },
+  totalNetRight: {
+    backgroundColor: DARK_BOX,
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    minWidth: 100,
+  },
+  totalNetValue: {
+    fontSize: 13,
+    fontFamily: 'Helvetica-Bold',
+    color: '#fff',
+  },
+
+  // ── Amount in Words ───────────────────────────────────────────────────────
+  amountWordsRow: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingVertical: 7,
+    borderBottomWidth: 0.5,
+    borderBottomColor: BORDER,
+    marginBottom: 20,
+  },
+  amountWordsPrefix: {
+    fontSize: 8.5,
+    color: MUTED,
+    marginRight: 4,
+  },
+  amountWordsValue: {
+    fontSize: 8.5,
+    fontFamily: 'Helvetica-Bold',
+    color: DARK,
+  },
+
+  // ── Footer ───────────────────────────────────────────────────────────────
+  footer: {
+    marginTop: 'auto',
+    alignItems: 'center',
+    paddingTop: 16,
+  },
+  footerText: {
+    fontSize: 8,
+    color: '#bbb',
+    fontFamily: 'Helvetica-Oblique',
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+const fmt = (n, currency = 'SAR') => `${currency} ${Number(n || 0).toFixed(2)}`;
+
+const ONES = [
+  '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine', 'Ten',
+  'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen',
+];
+const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+function numToWordsUnder1000(n) {
+  if (n === 0) return 'Zero';
+  if (n < 20) return ONES[n];
+  if (n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? ' ' + ONES[n % 10] : '');
+  return ONES[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + numToWordsUnder1000(n % 100) : '');
+}
+
+function amountToWords(amount, currency = 'SAR') {
+  const n = Math.round(Number(amount) * 100);
+  if (isNaN(n) || n < 0) return '';
+  const major = Math.floor(n / 100);
+  const minor = n % 100;
+  const majorLabel = currency === 'AED' ? 'UAE Dirham' : 'Saudi Riyal';
+  const minorLabel = currency === 'AED' ? 'Fils' : 'Halalas';
+  if (major === 0 && minor === 0) return `${majorLabel} Zero Only`;
+  const parts = [];
+  if (major > 0) {
+    const thousands = Math.floor(major / 1000);
+    const rem = major % 1000;
+    let word = '';
+    if (thousands > 0) word += numToWordsUnder1000(thousands) + ' Thousand';
+    if (rem > 0) word += (word ? ' ' : '') + numToWordsUnder1000(rem);
+    parts.push(`${word} ${major === 1 ? majorLabel : majorLabel + 's'}`);
+  }
+  if (minor > 0) parts.push(`${numToWordsUnder1000(minor)} ${minorLabel}`);
+  return parts.join(' and ') + ' Only';
+}
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
+
+/**
+ * PayslipDocument
+ *
+ * Props:
+ *   lineItem    — a PayrollLineItem object
+ *   payroll     — the parent PayrollRun object
+ *   companyName — override company name (default: 'IOTA Technologies')
+ */
+export function PayslipDocument({ lineItem, payroll, companyName = 'IOTA Technologies' }) {
+  const monthName = new Date(payroll.periodYear, payroll.periodMonth - 1).toLocaleString(
+    'default',
+    { month: 'long' }
+  );
+  const period = `${monthName} ${payroll.periodYear}`;
+  const payDate = `01/${String(payroll.periodMonth).padStart(2, '0')}/${payroll.periodYear}`;
+  const currency = lineItem.currencyCode || 'SAR';
+
+  const basic = Number(lineItem.basicSalary || 0);
+  const housing = Number(lineItem.housingAllowance || 0);
+  const transport = Number(lineItem.transportAllowance || 0);
+  const other = Number(lineItem.otherAllowances || 0);
+  const gross = Number(lineItem.grossSalary || basic + housing + transport + other);
+
+  const lopDays = Number(lineItem.lopDays || 0);
+  const lopAmount = Number(lineItem.lopAmount || 0);
+  const manualDeduction = Number(lineItem.manualDeductionAmount ?? (lineItem.deductions || 0));
+  const manualDeductionLabel =
+    lineItem.manualDeductionRemarks || lineItem.remarks || 'Additional Deduction';
+  const totalDeductions = Number(lineItem.deductions || lopAmount + manualDeduction);
+  const net = Number(lineItem.netSalary || gross - totalDeductions);
+
+  const paidDays = lineItem.paidDays != null ? String(lineItem.paidDays) : '—';
+  const netInWords = amountToWords(net, currency);
+  const hasLop = lopAmount > 0;
+  const hasManual = manualDeduction > 0;
+  const hasDeductions = totalDeductions > 0;
+
+  const empFields = [
+    ['Employee Name', lineItem.employeeName || '—'],
+    ['Employee ID', lineItem.employeeId || '—'],
+    ['Pay Period', period],
+    ['Pay Date', payDate],
+  ];
+  if (lineItem.designation) empFields.push(['Designation', lineItem.designation]);
+  if (lineItem.department) empFields.push(['Department', lineItem.department]);
+
+  return (
+    <Document
+      title={`Payslip — ${lineItem.employeeName} — ${period}`}
+      author={companyName}
+      creator={companyName}
+    >
+      <Page size="A4" style={styles.page}>
+
+        {/* ── Header ── */}
+        <View style={styles.header}>
+          <View>
+            <Text style={styles.companyName}>{companyName}</Text>
+            <Text style={styles.companySubtitle}>Human Resources Department</Text>
+          </View>
+          <View>
+            <Text style={styles.payslipForMonth}>Payslip For the Month</Text>
+            <Text style={styles.periodLarge}>{period}</Text>
+          </View>
+        </View>
+
+        {/* ── Employee Summary ── */}
+        <Text style={styles.sectionLabel}>EMPLOYEE SUMMARY</Text>
+        <View style={styles.employeeSection}>
+          {/* Left: field rows */}
+          <View style={styles.employeeLeft}>
+            {empFields.map(([label, value]) => (
+              <View style={styles.empRow} key={label}>
+                <Text style={styles.empLabel}>{label}</Text>
+                <Text style={styles.empColon}>:</Text>
+                <Text style={styles.empValue}>{value}</Text>
+              </View>
+            ))}
+          </View>
+
+          {/* Right: net pay card */}
+          <View style={styles.netCard}>
+            <View style={styles.netCardTop}>
+              <Text style={styles.netCardAmount}>{fmt(net, currency)}</Text>
+              <Text style={styles.netCardLabel}>Total Net Pay</Text>
+            </View>
+            <View style={styles.netCardDivider} />
+            <View style={styles.netCardBottom}>
+              <View style={styles.netCardRow}>
+                <Text style={styles.netCardRowLabel}>Paid Days</Text>
+                <Text style={styles.netCardRowColon}>:</Text>
+                <Text style={styles.netCardRowValue}>{paidDays}</Text>
+              </View>
+              <View style={[styles.netCardRow, { marginBottom: 0 }]}>
+                <Text style={styles.netCardRowLabel}>LOP Days</Text>
+                <Text style={styles.netCardRowColon}>:</Text>
+                <Text style={styles.netCardRowValue}>{String(lopDays)}</Text>
+              </View>
+            </View>
+          </View>
+        </View>
+
+        {/* ── Earnings & Deductions ── */}
+        <View style={styles.tableBox}>
+          {/* Earnings */}
+          <View style={[styles.tableCol, styles.tableColLeft]}>
+            <View style={styles.tableColHead}>
+              <Text style={styles.tableColHeadText}>EARNINGS</Text>
+              <Text style={styles.tableColHeadText}>AMOUNT</Text>
+            </View>
+            <View style={styles.tableDataRow}>
+              <Text style={styles.tableDataLabel}>Basic</Text>
+              <Text style={styles.tableDataValue}>{fmt(basic, currency)}</Text>
+            </View>
+            <View style={styles.tableDataRow}>
+              <Text style={styles.tableDataLabel}>House Rent Allowance</Text>
+              <Text style={styles.tableDataValue}>{fmt(housing, currency)}</Text>
+            </View>
+            <View style={styles.tableDataRow}>
+              <Text style={styles.tableDataLabel}>Transport Allowance</Text>
+              <Text style={styles.tableDataValue}>{fmt(transport, currency)}</Text>
+            </View>
+            {other > 0 ? (
+              <View style={styles.tableDataRow}>
+                <Text style={styles.tableDataLabel}>Other Allowances</Text>
+                <Text style={styles.tableDataValue}>{fmt(other, currency)}</Text>
+              </View>
+            ) : null}
+            <View style={styles.tableTotalSep} />
+            <View style={styles.tableTotalRow}>
+              <Text style={styles.tableTotalLabel}>Gross Earnings</Text>
+              <Text style={styles.tableTotalValue}>{fmt(gross, currency)}</Text>
+            </View>
+          </View>
+
+          {/* Deductions */}
+          <View style={styles.tableCol}>
+            <View style={styles.tableColHead}>
+              <Text style={styles.tableColHeadText}>DEDUCTIONS</Text>
+              <Text style={styles.tableColHeadText}>AMOUNT</Text>
+            </View>
+            {!hasDeductions ? (
+              <View style={styles.tableDataRow}>
+                <Text style={styles.tableDataMuted}>No deductions this period</Text>
+              </View>
+            ) : null}
+            {hasLop ? (
+              <View style={styles.tableDataRow}>
+                <Text style={styles.tableDataLabel}>{`Loss of Pay${lopDays > 0 ? ` (${lopDays} day${lopDays !== 1 ? 's' : ''})` : ''}`}</Text>
+                <Text style={styles.tableDataValue}>{fmt(lopAmount, currency)}</Text>
+              </View>
+            ) : null}
+            {hasManual ? (
+              <View style={styles.tableDataRow}>
+                <Text style={styles.tableDataLabel}>{manualDeductionLabel}</Text>
+                <Text style={styles.tableDataValue}>{fmt(manualDeduction, currency)}</Text>
+              </View>
+            ) : null}
+            <View style={styles.tableTotalSep} />
+            <View style={styles.tableTotalRow}>
+              <Text style={styles.tableTotalLabel}>Total Deductions</Text>
+              <Text style={styles.tableTotalValue}>{fmt(totalDeductions, currency)}</Text>
+            </View>
+          </View>
+        </View>
+
+        {/* ── Total Net Payable ── */}
+        <View style={styles.totalNetBox}>
+          <View style={styles.totalNetLeft}>
+            <Text style={styles.totalNetTitle}>TOTAL NET PAYABLE</Text>
+            <Text style={styles.totalNetSubtitle}>Gross Earnings - Total Deductions</Text>
+          </View>
+          <View style={styles.totalNetRight}>
+            <Text style={styles.totalNetValue}>{fmt(net, currency)}</Text>
+          </View>
+        </View>
+
+        {/* ── Amount In Words ── */}
+        <View style={styles.amountWordsRow}>
+          <Text style={styles.amountWordsPrefix}>Amount In Words :</Text>
+          <Text style={styles.amountWordsValue}> {netInWords}</Text>
+        </View>
+
+        {/* ── Footer ── */}
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>-- This is a system-generated document. --</Text>
+        </View>
+
+      </Page>
+    </Document>
+  );
+}
+
+
+  // ── Header ──────────────────────────────────────────────────────────────
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    borderBottomWidth: 2,
+    borderBottomColor: BRAND,
+    paddingBottom: 12,
+    marginBottom: 16,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  logoImage: {
+    width: 36,
+    height: 36,
+    objectFit: 'contain',
+  },
+  headerTextBlock: {},
+  companyName: {
+    fontSize: 18,
+    fontFamily: 'Helvetica-Bold',
+    color: BRAND,
     letterSpacing: 1.2,
   },
   companyTagline: {
@@ -39,7 +563,7 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   payslipBadge: {
-    backgroundColor: '#1a237e',
+    backgroundColor: BRAND,
     color: 'white',
     fontSize: 11,
     fontFamily: 'Helvetica-Bold',
@@ -83,11 +607,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 9,
     fontFamily: 'Helvetica-Bold',
-    color: '#1a237e',
+    color: BRAND,
     letterSpacing: 0.8,
     textTransform: 'uppercase',
     borderBottomWidth: 1,
-    borderBottomColor: '#c5cae9',
+    borderBottomColor: BRAND_BORDER,
     paddingBottom: 3,
     marginBottom: 6,
     marginTop: 4,
@@ -96,7 +620,7 @@ const styles = StyleSheet.create({
   // ── Table ────────────────────────────────────────────────────────────────
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#e8eaf6',
+    backgroundColor: BRAND_LIGHT,
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderRadius: 2,
@@ -122,14 +646,14 @@ const styles = StyleSheet.create({
   tableHeadText: {
     fontFamily: 'Helvetica-Bold',
     fontSize: 8.5,
-    color: '#1a237e',
+    color: BRAND_DARK,
   },
   subtotalRow: {
     flexDirection: 'row',
     paddingHorizontal: 8,
     paddingVertical: 5,
     borderTopWidth: 1,
-    borderTopColor: '#9fa8da',
+    borderTopColor: BRAND_BORDER,
     marginTop: 3,
   },
   subtotalLabel: {
@@ -154,14 +678,14 @@ const styles = StyleSheet.create({
 
   // ── Net pay ──────────────────────────────────────────────────────────────
   netPayBox: {
-    backgroundColor: '#1a237e',
+    backgroundColor: BRAND,
     borderRadius: 4,
     padding: '10 16',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginTop: 16,
-    marginBottom: 20,
+    marginBottom: 12,
   },
   netPayLabel: {
     fontSize: 13,
@@ -176,9 +700,35 @@ const styles = StyleSheet.create({
   },
 
   // ── Bank details ─────────────────────────────────────────────────────────
+  amountInWordsBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 3,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  amountInWordsLabel: {
+    fontSize: 8.5,
+    color: '#666',
+    fontFamily: 'Helvetica-Bold',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginRight: 4,
+  },
+  amountInWordsText: {
+    fontSize: 8.5,
+    color: '#1E293B',
+    fontFamily: 'Helvetica-Oblique',
+    flex: 1,
+  },
+
+  // ── Bank details ─────────────────────────────────────────────────────────
   bankBox: {
     borderWidth: 0.5,
-    borderColor: '#c5cae9',
+    borderColor: BRAND_BORDER,
     borderRadius: 4,
     padding: 10,
     marginBottom: 16,
@@ -206,6 +756,60 @@ const styles = StyleSheet.create({
 
 const fmt = (n, currency = 'SAR') => `${currency} ${Number(n || 0).toFixed(2)}`;
 
+const ONES = [
+  '',
+  'One',
+  'Two',
+  'Three',
+  'Four',
+  'Five',
+  'Six',
+  'Seven',
+  'Eight',
+  'Nine',
+  'Ten',
+  'Eleven',
+  'Twelve',
+  'Thirteen',
+  'Fourteen',
+  'Fifteen',
+  'Sixteen',
+  'Seventeen',
+  'Eighteen',
+  'Nineteen',
+];
+const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+function numToWordsUnder1000(n) {
+  if (n === 0) return 'Zero';
+  if (n < 20) return ONES[n];
+  if (n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? ' ' + ONES[n % 10] : '');
+  return (
+    ONES[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + numToWordsUnder1000(n % 100) : '')
+  );
+}
+
+function amountToWords(amount, currency = 'SAR') {
+  const n = Math.round(Number(amount) * 100);
+  if (isNaN(n) || n < 0) return '';
+  const riyals = Math.floor(n / 100);
+  const fils = n % 100;
+  const currencyLabel = currency === 'AED' ? 'UAE Dirhams' : 'Saudi Riyals';
+  const filsLabel = currency === 'AED' ? 'Fils' : 'Halalas';
+  if (riyals === 0 && fils === 0) return `Zero ${currencyLabel} Only`;
+  let parts = [];
+  if (riyals > 0) {
+    const thousands = Math.floor(riyals / 1000);
+    const remainder = riyals % 1000;
+    let word = '';
+    if (thousands > 0) word += numToWordsUnder1000(thousands) + ' Thousand';
+    if (remainder > 0) word += (word ? ' ' : '') + numToWordsUnder1000(remainder);
+    parts.push(`${word} ${currencyLabel}`);
+  }
+  if (fils > 0) parts.push(`${numToWordsUnder1000(fils)} ${filsLabel}`);
+  return parts.join(' and ') + ' Only';
+}
+
 // ---------------------------------------------------------------------------
 // Component
 // ---------------------------------------------------------------------------
@@ -214,11 +818,16 @@ const fmt = (n, currency = 'SAR') => `${currency} ${Number(n || 0).toFixed(2)}`;
  * PayslipDocument
  *
  * Props:
- *   lineItem  — a PayrollLineItem object
- *   payroll   — the parent PayrollRun object
- *   companyName — override company name (default: 'IOTA')
+ *   lineItem    — a PayrollLineItem object
+ *   payroll     — the parent PayrollRun object
+ *   companyName — override company name (default: 'IOTA Technologies')
+ *   logoUrl     — absolute URL to company logo (default: '/logo/iotaLogo.png')
  */
-export function PayslipDocument({ lineItem, payroll, companyName = 'IOTA' }) {
+export function PayslipDocument({ lineItem, payroll, companyName = 'IOTA Technologies', logoUrl }) {
+  // Build logo URL: prefer prop, then derive from window.location if available
+  const resolvedLogoUrl =
+    logoUrl ||
+    (typeof window !== 'undefined' ? `${window.location.origin}/logo/iotaLogo.png` : null);
   const monthName = new Date(payroll.periodYear, payroll.periodMonth - 1).toLocaleString(
     'default',
     { month: 'long' }
@@ -244,6 +853,7 @@ export function PayslipDocument({ lineItem, payroll, companyName = 'IOTA' }) {
   const net = Number(lineItem.netSalary || gross - totalDeductions);
 
   const hasDeductions = totalDeductions > 0;
+  const netInWords = amountToWords(net, currency);
 
   return (
     <Document
@@ -255,8 +865,11 @@ export function PayslipDocument({ lineItem, payroll, companyName = 'IOTA' }) {
         {/* ── Header ── */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
-            <Text style={styles.companyName}>{companyName}</Text>
-            <Text style={styles.companyTagline}>Human Resources · Payroll Department</Text>
+            {resolvedLogoUrl ? <Image src={resolvedLogoUrl} style={styles.logoImage} /> : null}
+            <View style={styles.headerTextBlock}>
+              <Text style={styles.companyName}>{companyName}</Text>
+              <Text style={styles.companyTagline}>Human Resources · Payroll Department</Text>
+            </View>
           </View>
           <View style={styles.headerRight}>
             <Text style={styles.payslipBadge}>PAY SLIP</Text>
@@ -375,6 +988,20 @@ export function PayslipDocument({ lineItem, payroll, companyName = 'IOTA' }) {
           </View>
         </View>
 
+        {/* ── Net Pay ── */}
+        <View style={styles.netPayBox}>
+          <Text style={styles.netPayLabel}>NET SALARY PAYABLE</Text>
+          <Text style={styles.netPayValue}>{fmt(net, currency)}</Text>
+        </View>
+
+        {/* ── Amount in words ── */}
+        {netInWords ? (
+          <View style={styles.amountInWordsBox}>
+            <Text style={styles.amountInWordsLabel}>In Words:</Text>
+            <Text style={styles.amountInWordsText}>{netInWords}</Text>
+          </View>
+        ) : null}
+
         {/* ── Bank Details ── */}
         {lineItem.bankName || lineItem.iban || lineItem.bankAccountNumber ? (
           <View style={styles.bankBox}>
@@ -399,12 +1026,6 @@ export function PayslipDocument({ lineItem, payroll, companyName = 'IOTA' }) {
             ) : null}
           </View>
         ) : null}
-
-        {/* ── Net Pay ── */}
-        <View style={styles.netPayBox}>
-          <Text style={styles.netPayLabel}>NET SALARY PAYABLE</Text>
-          <Text style={styles.netPayValue}>{fmt(net, currency)}</Text>
-        </View>
 
         {/* ── Footer ── */}
         <View style={styles.footer}>
