@@ -87,7 +87,15 @@ export const navData = [
       { title: 'File', path: paths.dashboard.general.file, icon: ICONS.file },
       { title: 'Sales', path: paths.dashboard.sales, icon: ICONS.sales },
       { title: 'To Do', path: paths.dashboard.todo, icon: ICONS.todo },
-      { title: 'Reports', path: paths.dashboard.general.reports, icon: ICONS.course },
+      {
+        title: 'Reports',
+        path: paths.dashboard.general.reports.root,
+        icon: ICONS.course,
+        children: [
+          { title: 'P&L Report', path: paths.dashboard.general.reports.root },
+          { title: 'BDM Report', path: paths.dashboard.general.reports.bdm },
+        ],
+      },
     ],
   },
   /**

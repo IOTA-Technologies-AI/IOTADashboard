@@ -391,7 +391,7 @@ export function BdmReportView() {
         heading="BDM Report"
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
-          { name: 'Reports', href: paths.dashboard.general.reports },
+          { name: 'Reports', href: paths.dashboard.general.reports.root },
           { name: 'BDM Report' },
         ]}
         action={
