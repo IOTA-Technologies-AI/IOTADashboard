@@ -526,14 +526,6 @@ export function PayslipDocument({ lineItem, payroll, companyName = 'IOTA Technol
   );
 }
 
-
-  // ── Header ──────────────────────────────────────────────────────────────
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    borderBottomWidth: 2,
-    borderBottomColor: BRAND,
     paddingBottom: 12,
     marginBottom: 16,
   },
