@@ -1,6 +1,8 @@
-const axios = require('axios');
-
+import axiosInstance from 'src/lib/axios';
 import { decodeJWT, extractJWTFromSession } from './jwt-auth';
+
+// Use axiosInstance so every request automatically gets the JWT Authorization header
+const axios = axiosInstance;
 
 const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app/';
 
