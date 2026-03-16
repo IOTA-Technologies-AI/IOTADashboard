@@ -1,12 +1,23 @@
-'use server';
-
 const API_URL = 'https://staging-iotaapiserver-s572.encr.app';
+
+function getAuthHeader() {
+  if (typeof window === 'undefined') return {};
+  try {
+    const key = Object.keys(localStorage).find(
+      (k) => k.startsWith('sb-') && k.endsWith('-auth-token')
+    );
+    const token = key ? JSON.parse(localStorage.getItem(key) || '{}')?.access_token : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  } catch {
+    return {};
+  }
+}
 
 export async function getBDMs() {
   try {
     const response = await fetch(`${API_URL}/bdms`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
       cache: 'no-store',
     });
     if (!response.ok) throw new Error('Failed to fetch BDMs');
@@ -22,7 +33,7 @@ export async function getBDM(id) {
   try {
     const response = await fetch(`${API_URL}/bdms/${id}`, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
       cache: 'no-store',
     });
     if (!response.ok) {
@@ -53,7 +64,7 @@ export async function createBDM(bdmData) {
   try {
     const response = await fetch(`${API_URL}/bdm.createBDM`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
       body: JSON.stringify(bdmData),
     });
     if (!response.ok) throw new Error('Failed to create BDM');
@@ -69,7 +80,7 @@ export async function updateBDM(id, bdmData) {
   try {
     const response = await fetch(`${API_URL}/bdm.updateBDM`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
       body: JSON.stringify({ id, ...bdmData }),
     });
     if (!response.ok) throw new Error('Failed to update BDM');
@@ -85,7 +96,7 @@ export async function getBDMCommissions(id) {
   try {
     const response = await fetch(`${API_URL}/bdm.getBDMCommissions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
       body: JSON.stringify({ id }),
       cache: 'no-store',
     });
@@ -102,7 +113,7 @@ export async function getPendingBDMCommissions(id) {
   try {
     const response = await fetch(`${API_URL}/bdm.getPendingBDMCommissions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
       body: JSON.stringify({ id }),
       cache: 'no-store',
     });
@@ -119,7 +130,7 @@ export async function markCommissionsPaid(id, invoiceIds, expenseIds) {
   try {
     const response = await fetch(`${API_URL}/bdm.markCommissionsPaid`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
       body: JSON.stringify({ id, invoiceIds, expenseIds }),
     });
     if (!response.ok) throw new Error('Failed to mark commissions as paid');

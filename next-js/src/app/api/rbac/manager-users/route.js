@@ -1,16 +1,14 @@
 import { NextResponse } from 'next/server';
 
 const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
-const API_KEY = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
-const AUTH_TOKEN = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
-  ? `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY}`
-  : undefined;
+const ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZianRwbHlmdnJuZ3Z0cXd5ZHVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NTA3NDMsImV4cCI6MjA3NTQyNjc0M30.Jmj8g7US9gKA5vnbKuPmH9bsSRPX2JGLm_6zfSk45Sg';
 
-const buildHeaders = () => {
-  const headers = { 'Content-Type': 'application/json' };
-  if (API_KEY) headers.apikey = API_KEY;
-  if (AUTH_TOKEN) headers.Authorization = AUTH_TOKEN;
-  return headers;
+const buildHeaders = (request) => {
+  const h = { 'Content-Type': 'application/json', apikey: ANON_KEY };
+  const auth = request?.headers?.get?.('authorization');
+  if (auth) h.Authorization = auth;
+  return h;
 };
 
 export async function GET(request) {
@@ -22,7 +20,7 @@ export async function GET(request) {
 
   const url = `${API_BASE_URL}/managerUsers?managerId=eq.${encodeURIComponent(managerId)}`;
   try {
-    const res = await fetch(url, { headers: buildHeaders(), cache: 'no-store' });
+    const res = await fetch(url, { headers: buildHeaders(request), cache: 'no-store' });
     if (!res.ok) {
       const text = await res.text();
       return NextResponse.json(
@@ -48,7 +46,7 @@ export async function POST(request) {
   try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { ...buildHeaders(), Prefer: 'return=representation' },
+      headers: { ...buildHeaders(request), Prefer: 'return=representation' },
       body: JSON.stringify({ managerId, userId }),
     });
     if (!res.ok) {

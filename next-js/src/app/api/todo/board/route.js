@@ -9,16 +9,21 @@ const normalizeHost = (url) =>
 
 const BASE_URL = normalizeHost(CONFIG.serverUrl);
 
-const defaultHeaders = {
-  'Content-Type': 'application/json',
-  apikey:
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZianRwbHlmdnJuZ3Z0cXd5ZHVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NTA3NDMsImV4cCI6MjA3NTQyNjc0M30.Jmj8g7US9gKA5vnbKuPmH9bsSRPX2JGLm_6zfSk45Sg',
+const getHeaders = (request) => {
+  const h = {
+    'Content-Type': 'application/json',
+    apikey:
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZianRwbHlmdnJuZ3Z0cXd5ZHVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NTA3NDMsImV4cCI6MjA3NTQyNjc0M30.Jmj8g7US9gKA5vnbKuPmH9bsSRPX2JGLm_6zfSk45Sg',
+  };
+  const auth = request?.headers?.get?.('authorization');
+  if (auth) h.Authorization = auth;
+  return h;
 };
 
-export async function GET() {
+export async function GET(request) {
   try {
     const res = await fetch(`${BASE_URL}/todo/board`, {
-      headers: defaultHeaders,
+      headers: getHeaders(request),
       cache: 'no-store',
     });
     const data = await res.json();

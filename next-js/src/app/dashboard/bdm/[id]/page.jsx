@@ -1,20 +1,36 @@
-import { notFound } from 'next/navigation';
+'use client';
+
+import { useState, useEffect } from 'react';
+import { notFound, useParams } from 'next/navigation';
 
 import { getBDM } from 'src/actions/bdm';
 import { getDeals } from 'src/actions/deals';
 
 import { BDMProfileView } from 'src/sections/bdm/view/bdm-profile-view';
 
-export default async function Page({ params }) {
-  const { id } = params;
+export default function Page() {
+  const { id } = useParams();
+  const [bdm, setBdm] = useState(null);
+  const [bdmDeals, setBdmDeals] = useState([]);
+  const [notFoundFlag, setNotFoundFlag] = useState(false);
 
-  const [bdm, deals] = await Promise.all([getBDM(id), getDeals()]);
+  useEffect(() => {
+    if (!id) return;
+    Promise.all([getBDM(id), getDeals()]).then(([bdmData, deals]) => {
+      if (!bdmData) {
+        setNotFoundFlag(true);
+        return;
+      }
+      setBdm(bdmData);
+      setBdmDeals((deals || []).filter((deal) => String(deal.bdmId) === String(id)));
+    });
+  }, [id]);
 
-  if (!bdm) {
+  if (notFoundFlag) {
     notFound();
   }
 
-  const bdmDeals = (deals || []).filter((deal) => String(deal.bdmId) === String(id));
+  if (!bdm) return null;
 
   return <BDMProfileView bdm={bdm} deals={bdmDeals} />;
 }

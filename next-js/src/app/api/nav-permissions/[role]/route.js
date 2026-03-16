@@ -8,10 +8,15 @@ const normalizeHost = (url) =>
     .replace(/\/$/, '');
 
 const BASE_URL = normalizeHost(CONFIG.serverUrl);
-const defaultHeaders = {
-  'Content-Type': 'application/json',
-  apikey:
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZianRwbHlmdnJuZ3Z0cXd5ZHVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NTA3NDMsImV4cCI6MjA3NTQyNjc0M30.Jmj8g7US9gKA5vnbKuPmH9bsSRPX2JGLm_6zfSk45Sg',
+const getHeaders = (request) => {
+  const h = {
+    'Content-Type': 'application/json',
+    apikey:
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZianRwbHlmdnJuZ3Z0cXd5ZHVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NTA3NDMsImV4cCI6MjA3NTQyNjc0M30.Jmj8g7US9gKA5vnbKuPmH9bsSRPX2JGLm_6zfSk45Sg',
+  };
+  const auth = request?.headers?.get?.('authorization');
+  if (auth) h.Authorization = auth;
+  return h;
 };
 
 // GET nav permissions for a specific role (returns allowed paths)
@@ -20,7 +25,7 @@ export async function GET(request, { params }) {
     const { role } = await params;
     const res = await fetch(`${BASE_URL}/nav-permissions/${role}`, {
       method: 'GET',
-      headers: defaultHeaders,
+      headers: getHeaders(request),
     });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
@@ -40,7 +45,7 @@ export async function PATCH(request, { params }) {
     const body = await request.json();
     const res = await fetch(`${BASE_URL}/nav-permissions/update/${id}`, {
       method: 'PATCH',
-      headers: defaultHeaders,
+      headers: getHeaders(request),
       body: JSON.stringify(body),
     });
     const data = await res.json();
