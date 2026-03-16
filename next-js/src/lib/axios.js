@@ -26,9 +26,18 @@ const axiosInstance = axios.create({
 
 // * Optional: Add token (if using auth)
 //
+const ENCORE_ORIGIN = 'https://staging-iotaapiserver-s572.encr.app';
+
 axiosInstance.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
+      // Rewrite absolute Encore URLs to the same-origin /api/proxy/ route so the
+      // browser never sends a cross-origin request (avoids CORS preflight failure).
+      if (config.url?.startsWith(ENCORE_ORIGIN)) {
+        const rest = config.url.slice(ENCORE_ORIGIN.length).replace(/^\/+/, '/');
+        config.url = `/api/proxy${rest.startsWith('/') ? rest : `/${rest}`}`;
+      }
+
       try {
         // Supabase stores the session in localStorage: sb-{projectId}-auth-token
         const authKey = Object.keys(localStorage).find((k) => k.includes('auth-token'));

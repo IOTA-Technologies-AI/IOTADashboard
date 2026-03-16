@@ -642,14 +642,8 @@ const ENCORE_API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
 
 export async function fetchAccountsReceivable() {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/accountsReceivable`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!response.ok) throw new Error('Failed to fetch accounts receivable');
-
-    return await response.json();
+    const response = await axios.get(`${ENCORE_API_BASE_URL}/accountsReceivable`);
+    return response.data;
   } catch (error) {
     console.error('Error fetching AR:', error);
     throw error;
@@ -658,15 +652,11 @@ export async function fetchAccountsReceivable() {
 
 export async function fetchAccountsReceivableByDateRange(startDate, endDate) {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/accountsReceivable/daterange`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ startDate, endDate }),
+    const response = await axios.post(`${ENCORE_API_BASE_URL}/accountsReceivable/daterange`, {
+      startDate,
+      endDate,
     });
-
-    if (!response.ok) throw new Error('Failed to fetch AR by date range');
-
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error fetching AR by date:', error);
     throw error;
@@ -679,14 +669,8 @@ export async function fetchAccountsReceivableByDateRange(startDate, endDate) {
 
 export async function fetchAccountsPayable() {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/accountsPayable`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!response.ok) throw new Error('Failed to fetch accounts payable');
-
-    return await response.json();
+    const response = await axios.get(`${ENCORE_API_BASE_URL}/accountsPayable`);
+    return response.data;
   } catch (error) {
     console.error('Error fetching AP:', error);
     throw error;
@@ -695,15 +679,11 @@ export async function fetchAccountsPayable() {
 
 export async function fetchAccountsPayableByDateRange(startDate, endDate) {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/accountsPayable/daterange`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ startDate, endDate }),
+    const response = await axios.post(`${ENCORE_API_BASE_URL}/accountsPayable/daterange`, {
+      startDate,
+      endDate,
     });
-
-    if (!response.ok) throw new Error('Failed to fetch AP by date range');
-
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error fetching AP by date:', error);
     throw error;
@@ -716,14 +696,8 @@ export async function fetchAccountsPayableByDateRange(startDate, endDate) {
 
 export async function fetchVATTransactions() {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!response.ok) throw new Error('Failed to fetch VAT transactions');
-
-    return await response.json();
+    const response = await axios.get(`${ENCORE_API_BASE_URL}/vatTransactions`);
+    return response.data;
   } catch (error) {
     console.error('Error fetching VAT transactions:', error);
     throw error;
@@ -732,15 +706,11 @@ export async function fetchVATTransactions() {
 
 export async function fetchVATTransactionsByDateRange(startDate, endDate) {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions/daterange`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ startDate, endDate }),
+    const response = await axios.post(`${ENCORE_API_BASE_URL}/vatTransactions/daterange`, {
+      startDate,
+      endDate,
     });
-
-    if (!response.ok) throw new Error('Failed to fetch VAT transactions by date range');
-
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error fetching VAT transactions by date:', error);
     throw error;
@@ -749,14 +719,8 @@ export async function fetchVATTransactionsByDateRange(startDate, endDate) {
 
 export async function fetchVATTransactionsByTaxPeriod(taxPeriod) {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions/period/${taxPeriod}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!response.ok) throw new Error('Failed to fetch VAT transactions by period');
-
-    return await response.json();
+    const response = await axios.get(`${ENCORE_API_BASE_URL}/vatTransactions/period/${taxPeriod}`);
+    return response.data;
   } catch (error) {
     console.error('Error fetching VAT transactions by period:', error);
     throw error;
@@ -767,18 +731,12 @@ export async function fetchVATTransactionsByTaxPeriod(taxPeriod) {
 export async function postQuarterlyVAT(year, quarter, postedBy) {
   try {
     console.log(`📤 Posting VAT for Q${quarter}-${year}`);
-    const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions/post`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ year, quarter, postedBy }),
+    const response = await axios.post(`${ENCORE_API_BASE_URL}/vatTransactions/post`, {
+      year,
+      quarter,
+      postedBy,
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to post quarterly VAT');
-    }
-
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error posting quarterly VAT:', error);
     throw error;
@@ -788,17 +746,10 @@ export async function postQuarterlyVAT(year, quarter, postedBy) {
 // Get VAT posting status for a quarter
 export async function getVATPostingStatus(year, quarter) {
   try {
-    const response = await fetch(
-      `${ENCORE_API_BASE_URL}/vatTransactions/status/${year}/${quarter}`,
-      {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      }
+    const response = await axios.get(
+      `${ENCORE_API_BASE_URL}/vatTransactions/status/${year}/${quarter}`
     );
-
-    if (!response.ok) throw new Error('Failed to get VAT posting status');
-
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error getting VAT posting status:', error);
     throw error;
@@ -808,17 +759,10 @@ export async function getVATPostingStatus(year, quarter) {
 // Get VAT summary for a quarter (from posted VAT transactions)
 export async function getVATSummaryByQuarter(year, quarter) {
   try {
-    const response = await fetch(
-      `${ENCORE_API_BASE_URL}/vatTransactions/summary/${year}/${quarter}`,
-      {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      }
+    const response = await axios.get(
+      `${ENCORE_API_BASE_URL}/vatTransactions/summary/${year}/${quarter}`
     );
-
-    if (!response.ok) throw new Error('Failed to get VAT summary');
-
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error getting VAT summary:', error);
     throw error;
@@ -833,18 +777,8 @@ export async function getVATSummaryByQuarter(year, quarter) {
 export async function saveVATReturn(vatReturnData) {
   try {
     console.log('📤 Saving VAT Return:', vatReturnData.taxPeriod);
-    const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(vatReturnData),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to save VAT Return');
-    }
-
-    return await response.json();
+    const response = await axios.post(`${ENCORE_API_BASE_URL}/vatReturns`, vatReturnData);
+    return response.data;
   } catch (error) {
     console.error('Error saving VAT Return:', error);
     throw error;
@@ -854,14 +788,8 @@ export async function saveVATReturn(vatReturnData) {
 // Get all VAT Returns
 export async function getVATReturns() {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!response.ok) throw new Error('Failed to fetch VAT Returns');
-
-    return await response.json();
+    const response = await axios.get(`${ENCORE_API_BASE_URL}/vatReturns`);
+    return response.data;
   } catch (error) {
     console.error('Error fetching VAT Returns:', error);
     throw error;
@@ -871,14 +799,8 @@ export async function getVATReturns() {
 // Get VAT Return by tax period
 export async function getVATReturnByPeriod(taxPeriod) {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns/${taxPeriod}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
-
-    if (!response.ok) throw new Error('Failed to fetch VAT Return');
-
-    return await response.json();
+    const response = await axios.get(`${ENCORE_API_BASE_URL}/vatReturns/${taxPeriod}`);
+    return response.data;
   } catch (error) {
     console.error('Error fetching VAT Return:', error);
     throw error;
@@ -888,15 +810,13 @@ export async function getVATReturnByPeriod(taxPeriod) {
 // Update VAT Return status
 export async function updateVATReturnStatus(taxPeriod, status, zatcaReferenceNumber, updatedBy) {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns/${taxPeriod}/status`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taxPeriod, status, zatcaReferenceNumber, updatedBy }),
+    const response = await axios.patch(`${ENCORE_API_BASE_URL}/vatReturns/${taxPeriod}/status`, {
+      taxPeriod,
+      status,
+      zatcaReferenceNumber,
+      updatedBy,
     });
-
-    if (!response.ok) throw new Error('Failed to update VAT Return status');
-
-    return await response.json();
+    return response.data;
   } catch (error) {
     console.error('Error updating VAT Return status:', error);
     throw error;
