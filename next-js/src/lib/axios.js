@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 import { CONFIG } from 'src/global-config';
+import { supabase } from 'src/lib/supabase';
 
 // ----------------------------------------------------------------------
 
@@ -29,7 +30,7 @@ const axiosInstance = axios.create({
 const ENCORE_ORIGIN = 'https://staging-iotaapiserver-s572.encr.app';
 
 axiosInstance.interceptors.request.use(
-  (config) => {
+  async (config) => {
     if (typeof window !== 'undefined') {
       // Rewrite absolute Encore URLs to the same-origin /api/proxy/ route so the
       // browser never sends a cross-origin request (avoids CORS preflight failure).
@@ -39,18 +40,32 @@ axiosInstance.interceptors.request.use(
       }
 
       try {
-        // Supabase stores the session in localStorage: sb-{projectId}-auth-token
-        const authKey = Object.keys(localStorage).find((k) => k.includes('auth-token'));
-        const token = authKey
-          ? JSON.parse(localStorage.getItem(authKey) || '{}')?.access_token
-          : null;
+        // Use supabase.auth.getSession() so the token is auto-refreshed when
+        // expired — reading localStorage directly would return a stale token.
+        const {
+          data: { session },
+        } = await supabase.auth?.getSession?.();
+        const token = session?.access_token;
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         } else {
           delete config.headers.Authorization;
         }
       } catch {
-        delete config.headers.Authorization;
+        // Fallback: read raw localStorage in case the Supabase client is unavailable.
+        try {
+          const authKey = Object.keys(localStorage).find((k) => k.includes('auth-token'));
+          const token = authKey
+            ? JSON.parse(localStorage.getItem(authKey) || '{}')?.access_token
+            : null;
+          if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+          } else {
+            delete config.headers.Authorization;
+          }
+        } catch {
+          delete config.headers.Authorization;
+        }
       }
     }
 
