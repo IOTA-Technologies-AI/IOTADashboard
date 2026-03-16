@@ -1,33 +1,26 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+
 import { apiHelper } from 'src/utils/apiHelper';
 
 import ExpenseListWrapper from './list-wrapper';
 
-// ----------------------------------------------------------------------
+export default function Page() {
+  const [expenses, setExpenses] = useState([]);
+  const [permissionError, setPermissionError] = useState(null);
 
-export const metadata = { title: `Expense list` };
-
-export default async function Page() {
-  let expenses = [];
-  let permissionError = null;
-
-  try {
-    console.log('📄 Fetching expenses from API...');
-    expenses = await apiHelper.getExpenses();
-    console.log('📄 Fetched expenses:', expenses?.length || 0);
-  } catch (error) {
-    console.error('📄 Error fetching expenses:', error);
-
-    // Check if it's a permission error
-    if (error.message && error.message.includes('PERMISSION_DENIED')) {
-      console.error('🔒 Permission denied - user cannot view expenses');
-      permissionError = 'You do not have permission to view expenses';
-      expenses = [];
-    } else {
-      // For other errors, return empty array
-      console.error('❌ Failed to fetch expenses:', error.message);
-      expenses = [];
-    }
-  }
+  useEffect(() => {
+    apiHelper
+      .getExpenses()
+      .then((data) => setExpenses(Array.isArray(data) ? data : []))
+      .catch((error) => {
+        if (error.message?.includes('PERMISSION_DENIED')) {
+          setPermissionError('You do not have permission to view expenses');
+        }
+        setExpenses([]);
+      });
+  }, []);
 
   return <ExpenseListWrapper expenses={expenses} permissionError={permissionError} />;
 }

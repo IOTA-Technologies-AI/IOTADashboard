@@ -1,24 +1,20 @@
-import { apiHelper } from 'src/utils/apiHelper';
+'use client';
 
-import { CONFIG } from 'src/global-config';
+import { useState, useEffect } from 'react';
+
+import { apiHelper } from 'src/utils/apiHelper';
 
 import VendorListWrapper from './list-wrapper';
 
-// ----------------------------------------------------------------------
+export default function Page() {
+  const [vendors, setVendors] = useState([]);
 
-export const metadata = { title: `Vendor list` };
-
-export default async function Page() {
-  let vendors = [];
-
-  try {
-    console.log('📄 Fetching vendors from API...');
-    vendors = await apiHelper.getVendors();
-    console.log('📄 Fetched vendors:', vendors?.length || 0);
-  } catch (error) {
-    console.error('📄 Error fetching vendors:', error);
-    vendors = [];
-  }
+  useEffect(() => {
+    apiHelper
+      .getVendors()
+      .then((data) => setVendors(data || []))
+      .catch(() => setVendors([]));
+  }, []);
 
   return <VendorListWrapper vendors={vendors} />;
 }

@@ -1,32 +1,37 @@
-import { apiHelper } from 'src/utils/apiHelper';
+'use client';
 
-import { CONFIG } from 'src/global-config';
+import { useState, useEffect } from 'react';
+
+import { useParams } from 'next/navigation';
+
+import { apiHelper } from 'src/utils/apiHelper';
 
 import { ExpenseDetailsView } from 'src/sections/expense/view';
 
-// ----------------------------------------------------------------------
+export default function Page() {
+  const { id } = useParams();
+  const [expense, setExpense] = useState(null);
+  const [error, setError] = useState(null);
 
-export const metadata = { title: `Expense details` };
+  useEffect(() => {
+    if (!id) return;
+    apiHelper
+      .getExpenses()
+      .then((expenses) => {
+        if (!expenses || !Array.isArray(expenses)) {
+          setError('Error loading expenses');
+          return;
+        }
+        const found = expenses.find((e) => e.referenceId === id);
+        if (!found) setError('Expense not found');
+        else setExpense(found);
+      })
+      .catch(() => setError('Error loading expenses'));
+  }, [id]);
 
-export default async function Page({ params }) {
-  const { id } = params;
-
-  // Fetch all expenses from API
-  const expenses = await apiHelper.getExpenses();
-
-  // Handle case where API returns undefined or null
-  if (!expenses || !Array.isArray(expenses)) {
-    return <div>Error loading expenses</div>;
-  }
-
-  // Find the specific expense by referenceId
-  const currentExpense = expenses.find((expense) => expense.referenceId === id);
-
-  if (!currentExpense) {
-    return <div>Expense not found</div>;
-  }
-
-  return <ExpenseDetailsView expense={currentExpense} />;
+  if (error) return <div>{error}</div>;
+  if (!expense) return null;
+  return <ExpenseDetailsView expense={expense} />;
 }
 
 // ----------------------------------------------------------------------

@@ -1,32 +1,37 @@
-import { apiHelper } from 'src/utils/apiHelper';
+'use client';
 
-import { CONFIG } from 'src/global-config';
+import { useState, useEffect } from 'react';
+
+import { useParams } from 'next/navigation';
+
+import { apiHelper } from 'src/utils/apiHelper';
 
 import { VendorDetailsView } from 'src/sections/vendor/view';
 
-// ----------------------------------------------------------------------
+export default function Page() {
+  const { id } = useParams();
+  const [vendor, setVendor] = useState(null);
+  const [error, setError] = useState(null);
 
-export const metadata = { title: `Vendor details` };
+  useEffect(() => {
+    if (!id) return;
+    apiHelper
+      .getVendors()
+      .then((vendors) => {
+        if (!vendors || !Array.isArray(vendors)) {
+          setError('Error loading vendors');
+          return;
+        }
+        const found = vendors.find((v) => String(v.id) === id);
+        if (!found) setError('Vendor not found');
+        else setVendor(found);
+      })
+      .catch(() => setError('Error loading vendors'));
+  }, [id]);
 
-export default async function Page({ params }) {
-  const { id } = params;
-
-  // Fetch all vendors from API
-  const vendors = await apiHelper.getVendors();
-
-  // Handle case where API returns undefined or null
-  if (!vendors || !Array.isArray(vendors)) {
-    return <div>Error loading vendors</div>;
-  }
-
-  // Find the specific vendor by id
-  const currentVendor = vendors.find((vendor) => String(vendor.id) === id);
-
-  if (!currentVendor) {
-    return <div>Vendor not found</div>;
-  }
-
-  return <VendorDetailsView vendor={currentVendor} />;
+  if (error) return <div>{error}</div>;
+  if (!vendor) return null;
+  return <VendorDetailsView vendor={vendor} />;
 }
 
 // ----------------------------------------------------------------------

@@ -1,19 +1,29 @@
-import { notFound } from 'next/navigation';
+'use client';
 
-import { CONFIG } from 'src/global-config';
+import { useState, useEffect } from 'react';
+
+import { useParams, notFound } from 'next/navigation';
+
 import { getDeal } from 'src/actions/deals';
 
 import { DealEditView } from 'src/sections/deals/view/deal-edit-view';
 
-export const metadata = { title: `Edit deal` };
+export default function Page() {
+  const { id } = useParams();
+  const [deal, setDeal] = useState(null);
+  const [missing, setMissing] = useState(false);
 
-export default async function Page({ params }) {
-  const { id } = params;
-  const deal = await getDeal(id);
+  useEffect(() => {
+    if (!id) return;
+    getDeal(id)
+      .then((data) => {
+        if (!data) setMissing(true);
+        else setDeal(data);
+      })
+      .catch(() => setMissing(true));
+  }, [id]);
 
-  if (!deal) {
-    notFound();
-  }
-
+  if (missing) notFound();
+  if (!deal) return null;
   return <DealEditView currentDeal={deal} />;
 }

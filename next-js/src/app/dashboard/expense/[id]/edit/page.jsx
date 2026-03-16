@@ -1,37 +1,38 @@
-import { redirect } from 'next/navigation';
+'use client';
+
+import { useState, useEffect } from 'react';
+
+import { useParams, useRouter } from 'next/navigation';
 
 import { paths } from 'src/routes/paths';
 
 import { apiHelper } from 'src/utils/apiHelper';
 
-import { CONFIG } from 'src/global-config';
-
 import { ExpenseEditView } from 'src/sections/expense/view';
 
-// ----------------------------------------------------------------------
+export default function Page() {
+  const { id } = useParams();
+  const router = useRouter();
+  const [expense, setExpense] = useState(null);
 
-export const metadata = { title: `Expense edit` };
+  useEffect(() => {
+    if (!id) return;
+    apiHelper
+      .getExpenses()
+      .then((expenses) => {
+        if (!expenses || !Array.isArray(expenses)) {
+          router.replace(paths.dashboard.expense.root);
+          return;
+        }
+        const found = expenses.find((e) => e.referenceId === id);
+        if (!found) router.replace(paths.dashboard.expense.root);
+        else setExpense(found);
+      })
+      .catch(() => router.replace(paths.dashboard.expense.root));
+  }, [id, router]);
 
-export default async function Page({ params }) {
-  const { id } = await params;
-
-  // Fetch all expenses from API
-  const expenses = await apiHelper.getExpenses();
-
-  // Handle case where API returns undefined or null
-  if (!expenses || !Array.isArray(expenses)) {
-    redirect(paths.dashboard.expense.root);
-  }
-
-  // Find the specific expense by referenceId
-  const currentExpense = expenses.find((expense) => expense.referenceId === id);
-
-  // Redirect to list if expense not found
-  if (!currentExpense) {
-    redirect(paths.dashboard.expense.root);
-  }
-
-  return <ExpenseEditView expense={currentExpense} />;
+  if (!expense) return null;
+  return <ExpenseEditView expense={expense} />;
 }
 
 // ----------------------------------------------------------------------

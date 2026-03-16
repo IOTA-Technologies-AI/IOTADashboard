@@ -1,27 +1,29 @@
-import { notFound } from 'next/navigation';
+'use client';
 
-import { CONFIG } from 'src/global-config';
+import { useState, useEffect } from 'react';
+
+import { useParams, notFound } from 'next/navigation';
+
 import { getDeal } from 'src/actions/deals';
 
 import { DealDetailsView } from 'src/sections/deals/view/deal-details-view';
 
-export const metadata = {
-  title: `Deal Details`,
-};
+export default function Page() {
+  const { id } = useParams();
+  const [deal, setDeal] = useState(null);
+  const [missing, setMissing] = useState(false);
 
-export default async function Page({ params }) {
-  const { id } = params;
+  useEffect(() => {
+    if (!id) return;
+    getDeal(id)
+      .then((data) => {
+        if (!data) setMissing(true);
+        else setDeal(data);
+      })
+      .catch(() => setMissing(true));
+  }, [id]);
 
-  try {
-    const deal = await getDeal(id);
-
-    if (!deal) {
-      notFound();
-    }
-
-    return <DealDetailsView deal={deal} />;
-  } catch (error) {
-    console.error('Failed to load deal details page:', error);
-    notFound();
-  }
+  if (missing) notFound();
+  if (!deal) return null;
+  return <DealDetailsView deal={deal} />;
 }

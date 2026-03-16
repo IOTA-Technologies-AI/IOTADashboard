@@ -1,14 +1,19 @@
-import { CONFIG } from 'src/global-config';
+'use client';
+
+import { useState, useEffect } from 'react';
+
 import { getDeals } from 'src/actions/deals';
 
 import { DealListView } from 'src/sections/deals/view/deal-list-view';
 
-// ----------------------------------------------------------------------
+export default function Page() {
+  const [deals, setDeals] = useState([]);
 
-export const metadata = { title: `Deals` };
-
-export default async function Page() {
-  const deals = await getDeals();
+  useEffect(() => {
+    getDeals()
+      .then((data) => setDeals(data || []))
+      .catch(() => setDeals([]));
+  }, []);
 
   return <DealListView deals={deals} />;
 }
