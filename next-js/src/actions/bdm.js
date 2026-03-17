@@ -1,4 +1,4 @@
-const API_URL = 'https://staging-iotaapiserver-s572.encr.app';
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 function getAuthHeader() {
   if (typeof window === 'undefined') return {};
