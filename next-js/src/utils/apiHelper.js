@@ -4,7 +4,11 @@ import { decodeJWT, extractJWTFromSession } from './jwt-auth';
 // Use axiosInstance so every request automatically gets the JWT Authorization header
 const axios = axiosInstance;
 
-const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app/';
+const API_BASE_URL =
+  (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://staging-iotaapiserver-s572.encr.app').replace(
+    /\/$/,
+    ''
+  ) + '/';
 
 const PARTER_API_BASE_URL = 'https://staging-iwtapiserver-6x92.encr.app/getTotalInvoiceAmounts';
 const PARTER_AUTH_TOKEN = 'Bearer dGVzdEB0ZXN0LmNvbTpwYXN29yZDEyMyE=';
@@ -178,7 +182,7 @@ export async function fetchZohoInvoices() {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: 'https://staging-iotaapiserver-s572.encr.app/invoices',
+      url: `${API_BASE_URL}invoices`,
       headers: {},
     };
 
@@ -200,7 +204,7 @@ export async function fetchCustomerPayments() {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: 'https://staging-iotaapiserver-s572.encr.app/customerpayments',
+      url: `${API_BASE_URL}customerpayments`,
       headers: {},
     };
 
@@ -221,7 +225,7 @@ export async function getCustomers() {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: 'https://staging-iotaapiserver-s572.encr.app/customers',
+      url: `${API_BASE_URL}customers`,
       headers: {},
     };
 
@@ -242,7 +246,7 @@ export async function getVendors() {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: 'https://staging-iotaapiserver-s572.encr.app/vendors',
+      url: `${API_BASE_URL}vendors`,
       headers: {},
     };
 
@@ -366,7 +370,7 @@ export async function updateVendor(id, vendorData) {
     let config = {
       method: 'patch',
       maxBodyLength: Infinity,
-      url: `https://staging-iotaapiserver-s572.encr.app/vendors/${id}`,
+      url: `${API_BASE_URL}vendors/${id}`,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -410,7 +414,7 @@ export async function createVendor(vendorData) {
     let config = {
       method: 'post',
       maxBodyLength: Infinity,
-      url: 'https://staging-iotaapiserver-s572.encr.app/vendors',
+      url: `${API_BASE_URL}vendors`,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -634,7 +638,9 @@ export async function uploadExpenseAttachment({ folderPath, fileName, fileConten
 
 // Accounts Receivable APIs
 // Change this constant at the top of the file
-const ENCORE_API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
+const ENCORE_API_BASE_URL = (
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://staging-iotaapiserver-s572.encr.app'
+).replace(/\/$/, '');
 
 // ============================================================================
 // Accounts Receivable APIs
@@ -834,7 +840,7 @@ export async function createInvoice(invoiceData) {
     let config = {
       method: 'post',
       maxBodyLength: Infinity,
-      url: 'https://staging-iotaapiserver-s572.encr.app/invoices',
+      url: `${API_BASE_URL}invoices`,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -860,7 +866,7 @@ export async function createInvoice(invoiceData) {
 // ✅ NEW: Fetch invoices from your Supabase database
 export async function fetchInvoices() {
   try {
-    const response = await axios.get('https://staging-iotaapiserver-s572.encr.app/invoices', {
+    const response = await axios.get(`${API_BASE_URL}invoices`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -877,14 +883,11 @@ export async function fetchInvoices() {
 // Fetch single invoice by ID
 export async function fetchInvoice(invoiceId) {
   try {
-    const response = await axios.get(
-      `https://staging-iotaapiserver-s572.encr.app/invoices/${invoiceId}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const response = await axios.get(`${API_BASE_URL}invoices/${invoiceId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
     console.log('✅ Fetched invoice:', response.data);
     return response.data.invoice;
@@ -896,14 +899,11 @@ export async function fetchInvoice(invoiceId) {
 
 export async function deleteInvoice(invoiceId) {
   try {
-    const response = await axios.delete(
-      `https://staging-iotaapiserver-s572.encr.app/invoices/${invoiceId}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const response = await axios.delete(`${API_BASE_URL}invoices/${invoiceId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
     console.log('✅ Invoice deleted:', invoiceId);
     return response.data;
@@ -918,15 +918,11 @@ export async function updateInvoice(invoiceId, invoiceData) {
   try {
     console.log('📤 Updating invoice:', invoiceId, invoiceData);
 
-    const response = await axios.patch(
-      `https://staging-iotaapiserver-s572.encr.app/invoice/${invoiceId}`,
-      invoiceData,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const response = await axios.patch(`${API_BASE_URL}invoice/${invoiceId}`, invoiceData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
     console.log('✅ Invoice updated successfully:', response.data);
     return response.data.invoice;

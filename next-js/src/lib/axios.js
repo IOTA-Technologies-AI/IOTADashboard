@@ -27,16 +27,21 @@ const axiosInstance = axios.create({
 
 // * Optional: Add token (if using auth)
 //
-const ENCORE_ORIGIN = 'https://staging-iotaapiserver-s572.encr.app';
+const ENCORE_ORIGIN =
+  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://staging-iotaapiserver-s572.encr.app';
 
 axiosInstance.interceptors.request.use(
   async (config) => {
     if (typeof window !== 'undefined') {
-      // Rewrite absolute Encore URLs to the same-origin /api/proxy/ route so the
+      // Rewrite any absolute Encore URL to the same-origin /api/proxy/ route so the
       // browser never sends a cross-origin request (avoids CORS preflight failure).
-      if (config.url?.startsWith(ENCORE_ORIGIN)) {
-        const rest = config.url.slice(ENCORE_ORIGIN.length).replace(/^\/+/, '/');
-        config.url = `/api/proxy${rest.startsWith('/') ? rest : `/${rest}`}`;
+      if (config.url && /^https?:\/\//.test(config.url)) {
+        try {
+          const parsed = new URL(config.url);
+          config.url = `/api/proxy${parsed.pathname}${parsed.search}`;
+        } catch {
+          // malformed URL — leave as-is
+        }
       }
 
       try {
