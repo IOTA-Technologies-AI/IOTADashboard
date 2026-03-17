@@ -25,7 +25,11 @@ export function useDeploymentNotification() {
         console.log('[Deployment] New deployment detected:', response.data.deployment);
       }
     } catch (error) {
-      console.error('[Deployment] Failed to check for new deployment:', error);
+      // Silently ignore 404 — endpoint not yet implemented on the backend.
+      // Avoids flooding Sentry with expected errors.
+      if (error?.response?.status !== 404) {
+        console.error('[Deployment] Failed to check for new deployment:', error);
+      }
     }
   }, [lastKnownTimestamp]);
 
