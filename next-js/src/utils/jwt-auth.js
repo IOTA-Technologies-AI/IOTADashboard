@@ -42,17 +42,12 @@ export const extractJWTFromSession = () => {
     }
 
     const sessionData = JSON.parse(window.localStorage.getItem(authKey));
-
-    // Supabase JS v2 stores the token directly: { access_token, refresh_token, ... }
-    // Supabase JS v1 / some wrappers wrap it: { session: { access_token, ... } }
-    const token = sessionData?.access_token || sessionData?.session?.access_token || null;
-
-    if (!token) {
+    if (!sessionData || !sessionData.session || !sessionData.session.access_token) {
       console.warn('[JWT] No access_token in session');
       return null;
     }
 
-    return token;
+    return sessionData.session.access_token;
   } catch (error) {
     console.error('[JWT] Failed to extract JWT:', error.message);
     return null;

@@ -1,17 +1,6 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+'use server';
 
-function getAuthHeader() {
-  if (typeof window === 'undefined') return {};
-  try {
-    const key = Object.keys(localStorage).find(
-      (k) => k.startsWith('sb-') && k.endsWith('-auth-token')
-    );
-    const token = key ? JSON.parse(localStorage.getItem(key) || '{}')?.access_token : null;
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  } catch {
-    return {};
-  }
-}
+const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
 
 // ----------------------------------------------------------------------
 // BANK ACCOUNTS
@@ -30,7 +19,6 @@ export async function fetchBankAccounts(filters = {}) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeader(),
       },
     });
 
@@ -44,7 +32,7 @@ export async function fetchBankAccounts(filters = {}) {
 
     // Apply status filter client-side if needed
     if (filters.status) {
-      data = data.filter((account) => account.status === filters.status);
+      data = data.filter(account => account.status === filters.status);
     }
 
     return { success: true, data };
@@ -60,7 +48,6 @@ export async function fetchBankAccountById(accountId) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeader(),
       },
     });
 
@@ -83,7 +70,6 @@ export async function createBankAccount(accountData) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeader(),
       },
       body: JSON.stringify(accountData),
     });
@@ -107,7 +93,6 @@ export async function updateBankAccount(accountId, updates) {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeader(),
       },
       body: JSON.stringify({ id: accountId, ...updates }),
     });
@@ -131,7 +116,6 @@ export async function updateBankAccountBalance(accountId, newBalance) {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeader(),
       },
       body: JSON.stringify({ id: accountId, newBalance }),
     });
@@ -168,7 +152,6 @@ export async function fetchBankTransactions(filters = {}) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeader(),
       },
     });
 
@@ -182,16 +165,16 @@ export async function fetchBankTransactions(filters = {}) {
 
     // Apply additional filters client-side
     if (filters.transactionType) {
-      data = data.filter((txn) => txn.transactionType === filters.transactionType);
+      data = data.filter(txn => txn.transactionType === filters.transactionType);
     }
     if (filters.category) {
-      data = data.filter((txn) => txn.category === filters.category);
+      data = data.filter(txn => txn.category === filters.category);
     }
     if (filters.startDate) {
-      data = data.filter((txn) => txn.transactionDate >= filters.startDate);
+      data = data.filter(txn => txn.transactionDate >= filters.startDate);
     }
     if (filters.endDate) {
-      data = data.filter((txn) => txn.transactionDate <= filters.endDate);
+      data = data.filter(txn => txn.transactionDate <= filters.endDate);
     }
     if (filters.limit) {
       data = data.slice(0, filters.limit);
@@ -210,7 +193,6 @@ export async function createBankTransaction(transactionData) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeader(),
       },
       body: JSON.stringify(transactionData),
     });
@@ -234,7 +216,6 @@ export async function createBulkTransactions(transactions) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeader(),
       },
       body: JSON.stringify({ transactions }),
     });
@@ -259,7 +240,6 @@ export async function updateBankTransaction(transactionId, updates) {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeader(),
       },
       body: JSON.stringify({ id: transactionId, ...updates }),
     });
@@ -283,7 +263,6 @@ export async function deleteBankTransaction(transactionId) {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeader(),
       },
     });
 
@@ -309,7 +288,6 @@ export async function createBankStatement(statementData) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeader(),
       },
       body: JSON.stringify(statementData),
     });
@@ -339,7 +317,6 @@ export async function fetchBankStatements(accountId = null) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeader(),
       },
     });
 
@@ -362,7 +339,6 @@ export async function updateBankStatementStatus(statementId, status, errorMessag
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
-        ...getAuthHeader(),
       },
       body: JSON.stringify({ id: statementId, status, errorMessage }),
     });

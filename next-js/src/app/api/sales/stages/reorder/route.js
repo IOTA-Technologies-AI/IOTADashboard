@@ -8,15 +8,10 @@ const normalizeHost = (url) =>
     .replace(/\/$/, '');
 
 const BASE_URL = normalizeHost(CONFIG.serverUrl);
-const getHeaders = (request) => {
-  const h = {
-    'Content-Type': 'application/json',
-    apikey:
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZianRwbHlmdnJuZ3Z0cXd5ZHVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NTA3NDMsImV4cCI6MjA3NTQyNjc0M30.Jmj8g7US9gKA5vnbKuPmH9bsSRPX2JGLm_6zfSk45Sg',
-  };
-  const auth = request?.headers?.get?.('authorization');
-  if (auth) h.Authorization = auth;
-  return h;
+const defaultHeaders = {
+  'Content-Type': 'application/json',
+  apikey:
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZianRwbHlmdnJuZ3Z0cXd5ZHVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NTA3NDMsImV4cCI6MjA3NTQyNjc0M30.Jmj8g7US9gKA5vnbKuPmH9bsSRPX2JGLm_6zfSk45Sg',
 };
 
 export async function POST(request) {
@@ -24,7 +19,7 @@ export async function POST(request) {
     const body = await request.json();
     const res = await fetch(`${BASE_URL}/sales/stages/reorder`, {
       method: 'POST',
-      headers: getHeaders(request),
+      headers: defaultHeaders,
       body: JSON.stringify(body),
     });
     const data = await res.json();

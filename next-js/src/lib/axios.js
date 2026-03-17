@@ -1,7 +1,6 @@
 import axios from 'axios';
 
 import { CONFIG } from 'src/global-config';
-import { supabase } from 'src/lib/supabase';
 
 // ----------------------------------------------------------------------
 
@@ -27,51 +26,23 @@ const axiosInstance = axios.create({
 
 // * Optional: Add token (if using auth)
 //
-const ENCORE_ORIGIN =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://staging-iotaapiserver-s572.encr.app';
-
 axiosInstance.interceptors.request.use(
-  async (config) => {
-    if (typeof window !== 'undefined') {
-      // Rewrite any absolute Encore URL to the same-origin /api/proxy/ route so the
-      // browser never sends a cross-origin request (avoids CORS preflight failure).
-      if (config.url && /^https?:\/\//.test(config.url)) {
-        try {
-          const parsed = new URL(config.url);
-          config.url = `/api/proxy${parsed.pathname}${parsed.search}`;
-        } catch {
-          // malformed URL — leave as-is
-        }
-      }
+  (config) => {
+    // ✅ Check if we're in a browser environment
+    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
+      // Try to get token from sessionStorage (for JWT auth)
+      const token = sessionStorage.getItem('accessToken'); // Or your JWT_STORAGE_KEY
 
-      try {
-        // Use supabase.auth.getSession() so the token is auto-refreshed when
-        // expired — reading localStorage directly would return a stale token.
-        const {
-          data: { session },
-        } = await supabase.auth?.getSession?.();
-        const token = session?.access_token;
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
-        } else {
-          delete config.headers.Authorization;
-        }
-      } catch {
-        // Fallback: read raw localStorage in case the Supabase client is unavailable.
-        try {
-          const authKey = Object.keys(localStorage).find((k) => k.includes('auth-token'));
-          const token = authKey
-            ? JSON.parse(localStorage.getItem(authKey) || '{}')?.access_token
-            : null;
-          if (token) {
-            config.headers.Authorization = `Bearer ${token}`;
-          } else {
-            delete config.headers.Authorization;
-          }
-        } catch {
-          delete config.headers.Authorization;
-        }
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
       }
+    }
+
+    // ✅ For server-side rendering / build time, check if already set
+    // (This allows SSR functions to set headers manually if needed)
+    if (!config.headers.Authorization) {
+      // Optional: Remove the Authorization header if not set
+      delete config.headers.Authorization;
     }
 
     return config;

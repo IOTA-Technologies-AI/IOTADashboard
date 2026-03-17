@@ -1,20 +1,6 @@
-const API_BASE_URL =
-  typeof window === 'undefined'
-    ? process.env.NEXT_PUBLIC_API_BASE_URL || 'https://staging-iotaapiserver-s572.encr.app'
-    : '/api/proxy';
+'use server';
 
-function getAuthHeader() {
-  if (typeof window === 'undefined') return {};
-  try {
-    const key = Object.keys(localStorage).find(
-      (k) => k.startsWith('sb-') && k.endsWith('-auth-token')
-    );
-    const token = key ? JSON.parse(localStorage.getItem(key) || '{}')?.access_token : null;
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  } catch {
-    return {};
-  }
-}
+const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
 
 /**
  * Fetch P&L report data from the backend.
@@ -29,7 +15,7 @@ export async function fetchPLReport({ year, groupBy = 'month', dimension = 'over
     const url = `${API_BASE_URL}/reports/pl?year=${year}&groupBy=${groupBy}&dimension=${dimension}`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
     });
 
@@ -55,7 +41,7 @@ export async function fetchEmployeePLReport({ year }) {
     const url = `${API_BASE_URL}/reports/employee?year=${year}`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
     });
 
@@ -85,7 +71,7 @@ export async function fetchBdmReport({ bdmId, year } = {}) {
     const url = `${API_BASE_URL}/reports/bdm${params.toString() ? `?${params}` : ''}`;
     const response = await fetch(url, {
       method: 'GET',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
     });
 

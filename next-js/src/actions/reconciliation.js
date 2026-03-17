@@ -1,17 +1,6 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+'use server';
 
-function getAuthHeader() {
-  if (typeof window === 'undefined') return {};
-  try {
-    const key = Object.keys(localStorage).find(
-      (k) => k.startsWith('sb-') && k.endsWith('-auth-token')
-    );
-    const token = key ? JSON.parse(localStorage.getItem(key) || '{}')?.access_token : null;
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  } catch {
-    return {};
-  }
-}
+const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
 
 /**
  * Run auto-reconciliation for a recently uploaded bank statement.

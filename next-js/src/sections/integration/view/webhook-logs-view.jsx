@@ -128,10 +128,10 @@ export function WebhookLogsView({ source: initialSource = 'all' }) {
     return () => clearTimeout(timer);
   }, [filterEventTypeInput]);
 
-  // Log drain status polling disabled — re-enable when auth forwarding is fixed
-  // useEffect(() => {
-  //   getLogDrainStatus().then((data) => setLogDrainEnabled(data.enabled));
-  // }, []);
+  // Load log drain status on mount
+  useEffect(() => {
+    getLogDrainStatus().then((data) => setLogDrainEnabled(data.enabled));
+  }, []);
 
   const handleDrainToggle = async (e) => {
     setDrainToggling(true);

@@ -1,23 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
-
-function getAuthHeader() {
-  if (typeof window === 'undefined') return {};
-  try {
-    const key = Object.keys(localStorage).find(
-      (k) => k.startsWith('sb-') && k.endsWith('-auth-token')
-    );
-    const token = key ? JSON.parse(localStorage.getItem(key) || '{}')?.access_token : null;
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  } catch {
-    return {};
-  }
-}
+const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
 
 export async function getDeals() {
   try {
-    const response = await axios.get(`${API_BASE_URL}/deals`, { headers: { ...getAuthHeader() } });
+    const response = await axios.get(`${API_BASE_URL}/deals`);
     return response.data.deals || [];
   } catch (error) {
     console.error('Error fetching deals:', error);
@@ -27,9 +14,7 @@ export async function getDeals() {
 
 export async function getDeal(id) {
   try {
-    const response = await axios.get(`${API_BASE_URL}/deals/${id}`, {
-      headers: { ...getAuthHeader() },
-    });
+    const response = await axios.get(`${API_BASE_URL}/deals/${id}`);
     return response.data.deal;
   } catch (error) {
     const status = error?.response?.status;
@@ -40,9 +25,7 @@ export async function getDeal(id) {
 
 export async function createDeal(dealData) {
   try {
-    const response = await axios.post(`${API_BASE_URL}/deals`, dealData, {
-      headers: { ...getAuthHeader() },
-    });
+    const response = await axios.post(`${API_BASE_URL}/deals`, dealData);
     return response.data.deal;
   } catch (error) {
     console.error('Error creating deal:', error);
@@ -52,9 +35,7 @@ export async function createDeal(dealData) {
 
 export async function updateDeal(id, dealData) {
   try {
-    const response = await axios.patch(`${API_BASE_URL}/deals/${id}`, dealData, {
-      headers: { ...getAuthHeader() },
-    });
+    const response = await axios.patch(`${API_BASE_URL}/deals/${id}`, dealData);
     return response.data.deal;
   } catch (error) {
     console.error(`Error updating deal ${id}:`, error);
@@ -64,7 +45,7 @@ export async function updateDeal(id, dealData) {
 
 export async function deleteDeal(id) {
   try {
-    await axios.delete(`${API_BASE_URL}/deals/${id}`, { headers: { ...getAuthHeader() } });
+    await axios.delete(`${API_BASE_URL}/deals/${id}`);
     return true;
   } catch (error) {
     console.error(`Error deleting deal ${id}:`, error);
@@ -96,9 +77,7 @@ export async function payBDMCommission(dealId, { amount, expenseId } = {}) {
       payload.expenseId = expenseId;
     }
 
-    const response = await axios.post(`${API_BASE_URL}/deals/${dealId}/pay-bdm`, payload, {
-      headers: { ...getAuthHeader() },
-    });
+    const response = await axios.post(`${API_BASE_URL}/deals/${dealId}/pay-bdm`, payload);
     return response.data.deal;
   } catch (error) {
     const message = extractErrorMessage(error, 'Failed to pay BDM commission');

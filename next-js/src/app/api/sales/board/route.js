@@ -8,15 +8,10 @@ const normalizeHost = (url) =>
     .replace(/\/$/, '');
 
 const BASE_URL = normalizeHost(CONFIG.serverUrl);
-const getHeaders = (request) => {
-  const h = {
-    'Content-Type': 'application/json',
-    apikey:
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZianRwbHlmdnJuZ3Z0cXd5ZHVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NTA3NDMsImV4cCI6MjA3NTQyNjc0M30.Jmj8g7US9gKA5vnbKuPmH9bsSRPX2JGLm_6zfSk45Sg',
-  };
-  const auth = request?.headers?.get?.('authorization');
-  if (auth) h.Authorization = auth;
-  return h;
+const defaultHeaders = {
+  'Content-Type': 'application/json',
+  apikey:
+    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZianRwbHlmdnJuZ3Z0cXd5ZHVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NTA3NDMsImV4cCI6MjA3NTQyNjc0M30.Jmj8g7US9gKA5vnbKuPmH9bsSRPX2JGLm_6zfSk45Sg',
 };
 
 export async function GET(request) {
@@ -24,7 +19,7 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const queryString = searchParams.toString();
     const url = queryString ? `${BASE_URL}/sales/board?${queryString}` : `${BASE_URL}/sales/board`;
-    const res = await fetch(url, { method: 'GET', headers: getHeaders(request) });
+    const res = await fetch(url, { method: 'GET', headers: defaultHeaders });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
   } catch (error) {

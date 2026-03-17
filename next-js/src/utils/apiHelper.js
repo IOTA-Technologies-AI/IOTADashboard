@@ -1,14 +1,8 @@
-import axiosInstance from 'src/lib/axios';
+const axios = require('axios');
+
 import { decodeJWT, extractJWTFromSession } from './jwt-auth';
 
-// Use axiosInstance so every request automatically gets the JWT Authorization header
-const axios = axiosInstance;
-
-const API_BASE_URL =
-  (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://staging-iotaapiserver-s572.encr.app').replace(
-    /\/$/,
-    ''
-  ) + '/';
+const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app/';
 
 const PARTER_API_BASE_URL = 'https://staging-iwtapiserver-6x92.encr.app/getTotalInvoiceAmounts';
 const PARTER_AUTH_TOKEN = 'Bearer dGVzdEB0ZXN0LmNvbTpwYXN29yZDEyMyE=';
@@ -182,7 +176,7 @@ export async function fetchZohoInvoices() {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: `${API_BASE_URL}invoices`,
+      url: 'https://staging-iotaapiserver-s572.encr.app/invoices',
       headers: {},
     };
 
@@ -204,7 +198,7 @@ export async function fetchCustomerPayments() {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: `${API_BASE_URL}customerpayments`,
+      url: 'https://staging-iotaapiserver-s572.encr.app/customerpayments',
       headers: {},
     };
 
@@ -225,7 +219,7 @@ export async function getCustomers() {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: `${API_BASE_URL}customers`,
+      url: 'https://staging-iotaapiserver-s572.encr.app/customers',
       headers: {},
     };
 
@@ -246,7 +240,7 @@ export async function getVendors() {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: `${API_BASE_URL}vendors`,
+      url: 'https://staging-iotaapiserver-s572.encr.app/vendors',
       headers: {},
     };
 
@@ -370,7 +364,7 @@ export async function updateVendor(id, vendorData) {
     let config = {
       method: 'patch',
       maxBodyLength: Infinity,
-      url: `${API_BASE_URL}vendors/${id}`,
+      url: `https://staging-iotaapiserver-s572.encr.app/vendors/${id}`,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -414,7 +408,7 @@ export async function createVendor(vendorData) {
     let config = {
       method: 'post',
       maxBodyLength: Infinity,
-      url: `${API_BASE_URL}vendors`,
+      url: 'https://staging-iotaapiserver-s572.encr.app/vendors',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -638,9 +632,7 @@ export async function uploadExpenseAttachment({ folderPath, fileName, fileConten
 
 // Accounts Receivable APIs
 // Change this constant at the top of the file
-const ENCORE_API_BASE_URL = (
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://staging-iotaapiserver-s572.encr.app'
-).replace(/\/$/, '');
+const ENCORE_API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
 
 // ============================================================================
 // Accounts Receivable APIs
@@ -648,8 +640,14 @@ const ENCORE_API_BASE_URL = (
 
 export async function fetchAccountsReceivable() {
   try {
-    const response = await axios.get(`${ENCORE_API_BASE_URL}/accountsReceivable`);
-    return response.data;
+    const response = await fetch(`${ENCORE_API_BASE_URL}/accountsReceivable`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch accounts receivable');
+
+    return await response.json();
   } catch (error) {
     console.error('Error fetching AR:', error);
     throw error;
@@ -658,11 +656,15 @@ export async function fetchAccountsReceivable() {
 
 export async function fetchAccountsReceivableByDateRange(startDate, endDate) {
   try {
-    const response = await axios.post(`${ENCORE_API_BASE_URL}/accountsReceivable/daterange`, {
-      startDate,
-      endDate,
+    const response = await fetch(`${ENCORE_API_BASE_URL}/accountsReceivable/daterange`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startDate, endDate }),
     });
-    return response.data;
+
+    if (!response.ok) throw new Error('Failed to fetch AR by date range');
+
+    return await response.json();
   } catch (error) {
     console.error('Error fetching AR by date:', error);
     throw error;
@@ -675,8 +677,14 @@ export async function fetchAccountsReceivableByDateRange(startDate, endDate) {
 
 export async function fetchAccountsPayable() {
   try {
-    const response = await axios.get(`${ENCORE_API_BASE_URL}/accountsPayable`);
-    return response.data;
+    const response = await fetch(`${ENCORE_API_BASE_URL}/accountsPayable`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch accounts payable');
+
+    return await response.json();
   } catch (error) {
     console.error('Error fetching AP:', error);
     throw error;
@@ -685,11 +693,15 @@ export async function fetchAccountsPayable() {
 
 export async function fetchAccountsPayableByDateRange(startDate, endDate) {
   try {
-    const response = await axios.post(`${ENCORE_API_BASE_URL}/accountsPayable/daterange`, {
-      startDate,
-      endDate,
+    const response = await fetch(`${ENCORE_API_BASE_URL}/accountsPayable/daterange`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startDate, endDate }),
     });
-    return response.data;
+
+    if (!response.ok) throw new Error('Failed to fetch AP by date range');
+
+    return await response.json();
   } catch (error) {
     console.error('Error fetching AP by date:', error);
     throw error;
@@ -702,8 +714,14 @@ export async function fetchAccountsPayableByDateRange(startDate, endDate) {
 
 export async function fetchVATTransactions() {
   try {
-    const response = await axios.get(`${ENCORE_API_BASE_URL}/vatTransactions`);
-    return response.data;
+    const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch VAT transactions');
+
+    return await response.json();
   } catch (error) {
     console.error('Error fetching VAT transactions:', error);
     throw error;
@@ -712,11 +730,15 @@ export async function fetchVATTransactions() {
 
 export async function fetchVATTransactionsByDateRange(startDate, endDate) {
   try {
-    const response = await axios.post(`${ENCORE_API_BASE_URL}/vatTransactions/daterange`, {
-      startDate,
-      endDate,
+    const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions/daterange`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ startDate, endDate }),
     });
-    return response.data;
+
+    if (!response.ok) throw new Error('Failed to fetch VAT transactions by date range');
+
+    return await response.json();
   } catch (error) {
     console.error('Error fetching VAT transactions by date:', error);
     throw error;
@@ -725,8 +747,14 @@ export async function fetchVATTransactionsByDateRange(startDate, endDate) {
 
 export async function fetchVATTransactionsByTaxPeriod(taxPeriod) {
   try {
-    const response = await axios.get(`${ENCORE_API_BASE_URL}/vatTransactions/period/${taxPeriod}`);
-    return response.data;
+    const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions/period/${taxPeriod}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch VAT transactions by period');
+
+    return await response.json();
   } catch (error) {
     console.error('Error fetching VAT transactions by period:', error);
     throw error;
@@ -737,12 +765,18 @@ export async function fetchVATTransactionsByTaxPeriod(taxPeriod) {
 export async function postQuarterlyVAT(year, quarter, postedBy) {
   try {
     console.log(`📤 Posting VAT for Q${quarter}-${year}`);
-    const response = await axios.post(`${ENCORE_API_BASE_URL}/vatTransactions/post`, {
-      year,
-      quarter,
-      postedBy,
+    const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions/post`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ year, quarter, postedBy }),
     });
-    return response.data;
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to post quarterly VAT');
+    }
+
+    return await response.json();
   } catch (error) {
     console.error('Error posting quarterly VAT:', error);
     throw error;
@@ -752,10 +786,17 @@ export async function postQuarterlyVAT(year, quarter, postedBy) {
 // Get VAT posting status for a quarter
 export async function getVATPostingStatus(year, quarter) {
   try {
-    const response = await axios.get(
-      `${ENCORE_API_BASE_URL}/vatTransactions/status/${year}/${quarter}`
+    const response = await fetch(
+      `${ENCORE_API_BASE_URL}/vatTransactions/status/${year}/${quarter}`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      }
     );
-    return response.data;
+
+    if (!response.ok) throw new Error('Failed to get VAT posting status');
+
+    return await response.json();
   } catch (error) {
     console.error('Error getting VAT posting status:', error);
     throw error;
@@ -765,10 +806,17 @@ export async function getVATPostingStatus(year, quarter) {
 // Get VAT summary for a quarter (from posted VAT transactions)
 export async function getVATSummaryByQuarter(year, quarter) {
   try {
-    const response = await axios.get(
-      `${ENCORE_API_BASE_URL}/vatTransactions/summary/${year}/${quarter}`
+    const response = await fetch(
+      `${ENCORE_API_BASE_URL}/vatTransactions/summary/${year}/${quarter}`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      }
     );
-    return response.data;
+
+    if (!response.ok) throw new Error('Failed to get VAT summary');
+
+    return await response.json();
   } catch (error) {
     console.error('Error getting VAT summary:', error);
     throw error;
@@ -783,8 +831,18 @@ export async function getVATSummaryByQuarter(year, quarter) {
 export async function saveVATReturn(vatReturnData) {
   try {
     console.log('📤 Saving VAT Return:', vatReturnData.taxPeriod);
-    const response = await axios.post(`${ENCORE_API_BASE_URL}/vatReturns`, vatReturnData);
-    return response.data;
+    const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(vatReturnData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to save VAT Return');
+    }
+
+    return await response.json();
   } catch (error) {
     console.error('Error saving VAT Return:', error);
     throw error;
@@ -794,8 +852,14 @@ export async function saveVATReturn(vatReturnData) {
 // Get all VAT Returns
 export async function getVATReturns() {
   try {
-    const response = await axios.get(`${ENCORE_API_BASE_URL}/vatReturns`);
-    return response.data;
+    const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch VAT Returns');
+
+    return await response.json();
   } catch (error) {
     console.error('Error fetching VAT Returns:', error);
     throw error;
@@ -805,8 +869,14 @@ export async function getVATReturns() {
 // Get VAT Return by tax period
 export async function getVATReturnByPeriod(taxPeriod) {
   try {
-    const response = await axios.get(`${ENCORE_API_BASE_URL}/vatReturns/${taxPeriod}`);
-    return response.data;
+    const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns/${taxPeriod}`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+
+    if (!response.ok) throw new Error('Failed to fetch VAT Return');
+
+    return await response.json();
   } catch (error) {
     console.error('Error fetching VAT Return:', error);
     throw error;
@@ -816,13 +886,15 @@ export async function getVATReturnByPeriod(taxPeriod) {
 // Update VAT Return status
 export async function updateVATReturnStatus(taxPeriod, status, zatcaReferenceNumber, updatedBy) {
   try {
-    const response = await axios.patch(`${ENCORE_API_BASE_URL}/vatReturns/${taxPeriod}/status`, {
-      taxPeriod,
-      status,
-      zatcaReferenceNumber,
-      updatedBy,
+    const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns/${taxPeriod}/status`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ taxPeriod, status, zatcaReferenceNumber, updatedBy }),
     });
-    return response.data;
+
+    if (!response.ok) throw new Error('Failed to update VAT Return status');
+
+    return await response.json();
   } catch (error) {
     console.error('Error updating VAT Return status:', error);
     throw error;
@@ -840,7 +912,7 @@ export async function createInvoice(invoiceData) {
     let config = {
       method: 'post',
       maxBodyLength: Infinity,
-      url: `${API_BASE_URL}invoices`,
+      url: 'https://staging-iotaapiserver-s572.encr.app/invoices',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -866,7 +938,7 @@ export async function createInvoice(invoiceData) {
 // ✅ NEW: Fetch invoices from your Supabase database
 export async function fetchInvoices() {
   try {
-    const response = await axios.get(`${API_BASE_URL}invoices`, {
+    const response = await axios.get('https://staging-iotaapiserver-s572.encr.app/invoices', {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -883,11 +955,14 @@ export async function fetchInvoices() {
 // Fetch single invoice by ID
 export async function fetchInvoice(invoiceId) {
   try {
-    const response = await axios.get(`${API_BASE_URL}invoices/${invoiceId}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await axios.get(
+      `https://staging-iotaapiserver-s572.encr.app/invoices/${invoiceId}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     console.log('✅ Fetched invoice:', response.data);
     return response.data.invoice;
@@ -899,11 +974,14 @@ export async function fetchInvoice(invoiceId) {
 
 export async function deleteInvoice(invoiceId) {
   try {
-    const response = await axios.delete(`${API_BASE_URL}invoices/${invoiceId}`, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await axios.delete(
+      `https://staging-iotaapiserver-s572.encr.app/invoices/${invoiceId}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     console.log('✅ Invoice deleted:', invoiceId);
     return response.data;
@@ -918,11 +996,15 @@ export async function updateInvoice(invoiceId, invoiceData) {
   try {
     console.log('📤 Updating invoice:', invoiceId, invoiceData);
 
-    const response = await axios.patch(`${API_BASE_URL}invoice/${invoiceId}`, invoiceData, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
+    const response = await axios.patch(
+      `https://staging-iotaapiserver-s572.encr.app/invoice/${invoiceId}`,
+      invoiceData,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      }
+    );
 
     console.log('✅ Invoice updated successfully:', response.data);
     return response.data.invoice;
