@@ -1538,6 +1538,116 @@ export async function deleteOffer(id) {
 }
 
 // ============================================================================
+// NDA MANAGEMENT API FUNCTIONS
+// ============================================================================
+
+export async function getNdas() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}ndas`);
+    return response.data.ndas;
+  } catch (error) {
+    console.error('Error fetching NDAs:', error);
+    throw error;
+  }
+}
+
+export async function getNda(id) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}ndas/${id}`);
+    return response.data.nda;
+  } catch (error) {
+    console.error('Error fetching NDA:', error);
+    throw error;
+  }
+}
+
+export async function getNdaByToken(token) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}ndas/sign/${token}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching NDA by token:', error);
+    throw error;
+  }
+}
+
+export async function createNda(ndaData) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}ndas`, ndaData);
+    return response.data.nda;
+  } catch (error) {
+    console.error('Error creating NDA:', error);
+    throw error;
+  }
+}
+
+export async function updateNda(id, ndaData) {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}ndas/${id}`, ndaData);
+    return response.data.nda;
+  } catch (error) {
+    console.error('Error updating NDA:', error);
+    throw error;
+  }
+}
+
+export async function submitNdaForIotaSigning(id) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}ndas/${id}/submit`, {});
+    return response.data.nda;
+  } catch (error) {
+    console.error('Error submitting NDA for signing:', error);
+    throw error;
+  }
+}
+
+export async function iotaSignNda(id, signatureData, signedBy) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}ndas/${id}/iotaSign`, {
+      signatureData,
+      signedBy,
+    });
+    return response.data.nda;
+  } catch (error) {
+    console.error('Error submitting IOTA signature:', error);
+    throw error;
+  }
+}
+
+export async function partnerSignNda(token, signatureData, ipAddress) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}ndas/sign/${token}`, {
+      signatureData,
+      ipAddress: ipAddress || '',
+    });
+    return response.data.nda;
+  } catch (error) {
+    console.error('Error submitting partner signature:', error);
+    throw error;
+  }
+}
+
+export async function finalizeNda(id, pdfBase64) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}ndas/${id}/finalize`, { pdfBase64 });
+    return response.data.nda;
+  } catch (error) {
+    console.error('Error finalizing NDA:', error);
+    throw error;
+  }
+}
+
+export async function cancelNda(id, reason) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}ndas/${id}/cancel`, { reason });
+    return response.data.nda;
+  } catch (error) {
+    console.error('Error cancelling NDA:', error);
+    throw error;
+  }
+}
+
+// ============================================================================
 // WEBHOOK EVENTS API FUNCTIONS
 // ============================================================================
 
@@ -1662,4 +1772,15 @@ export const apiHelper = {
   getWebhookEvents,
   getLogDrainStatus,
   toggleLogDrain,
+  // NDA management
+  getNdas,
+  getNda,
+  getNdaByToken,
+  createNda,
+  updateNda,
+  submitNdaForIotaSigning,
+  iotaSignNda,
+  partnerSignNda,
+  finalizeNda,
+  cancelNda,
 };

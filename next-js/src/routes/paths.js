@@ -168,6 +168,11 @@ export const paths = {
         edit: (id) => path(ROOTS.DASHBOARD, `/hr/offer-management/${id}/edit`),
         details: (id) => path(ROOTS.DASHBOARD, `/hr/offer-management/${id}`),
       },
+      ndaManagement: {
+        root: path(ROOTS.DASHBOARD, '/hr/nda-management'),
+        new: path(ROOTS.DASHBOARD, '/hr/nda-management/new'),
+        details: (id) => path(ROOTS.DASHBOARD, `/hr/nda-management/${id}`),
+      },
       businessVisa: {
         root: path(ROOTS.DASHBOARD, '/hr/business-visa'),
         new: path(ROOTS.DASHBOARD, '/hr/business-visa/new'),
