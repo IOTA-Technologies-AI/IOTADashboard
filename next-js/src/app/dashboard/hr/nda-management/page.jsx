@@ -74,14 +74,21 @@ export default function NdaManagementPage() {
       field: 'effectiveDate',
       headerName: 'Effective Date',
       width: 140,
-      valueFormatter: ({ value }) => (value ? new Date(value).toLocaleDateString('en-GB') : '—'),
+      valueFormatter: (value) => (value ? new Date(value).toLocaleDateString('en-GB') : '—'),
     },
     {
       field: 'expiryDate',
       headerName: 'Expiry',
       width: 130,
-      valueFormatter: ({ value, row }) =>
-        row?.isPerpetual ? 'Perpetual' : value ? new Date(value).toLocaleDateString('en-GB') : '—',
+      renderCell: ({ value, row }) => (
+        <span>
+          {row?.isPerpetual
+            ? 'Perpetual'
+            : value
+              ? new Date(value).toLocaleDateString('en-GB')
+              : '—'}
+        </span>
+      ),
     },
     {
       field: 'status',
