@@ -180,7 +180,42 @@ export default function NdaDetailsPage({ params }) {
   };
 
   const handlePrint = () => {
-    window.print();
+    const content = printRef.current;
+    if (!content) return;
+
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8" />
+          <title>${nda?.ndaNumber || 'NDA'}</title>
+          <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body { font-family: Georgia, 'Times New Roman', serif; color: #000; background: #fff; }
+            @page { size: A4; margin: 20mm 18mm; }
+            @media print {
+              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+            }
+          </style>
+        </head>
+        <body>${content.innerHTML}</body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    // Allow images (signatures) to load before printing
+    printWindow.onload = () => {
+      printWindow.print();
+      printWindow.close();
+    };
+    // Fallback in case onload already fired
+    setTimeout(() => {
+      if (!printWindow.closed) {
+        printWindow.print();
+        printWindow.close();
+      }
+    }, 800);
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
