@@ -54,31 +54,46 @@ export default function NdaHtmlTemplate({ nda, showSignatures = true }) {
 
       {/* ── PAGE 1: COVER ── */}
       <div style={page}>
+        {/* Top accent bar */}
+        <div style={coverAccentBar} />
+
         <div style={coverPage}>
-          <div style={logoArea}>
+          {/* Logo + company name */}
+          <div style={coverLogoRow}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo/iota-logo-dark.svg" alt="IOTA Technologies" style={{ height: 48 }} />
+            <img src="/logo/logo-full.png" alt="IOTA Technologies" style={coverLogoImg} />
           </div>
 
-          <div style={coverTitle}>
-            <p style={coverSuperLabel}>CONFIDENTIAL</p>
+          {/* Document type badge */}
+          <div style={coverBadgeWrap}>
+            <span style={coverBadge}>CONFIDENTIAL</span>
+          </div>
+
+          {/* Title block */}
+          <div style={coverTitleBlock}>
             <h1 style={coverH1}>Non-Disclosure Agreement</h1>
             <p style={coverSubtitle}>Mutual Confidentiality &amp; Non-Disclosure</p>
           </div>
 
+          {/* Divider */}
+          <div style={coverDivider} />
+
+          {/* Meta table */}
           <div style={coverMeta}>
             <table style={coverTable}>
               <tbody>
                 <tr>
                   <td style={coverTdLabel}>NDA Reference</td>
-                  <td style={coverTdValue}>{nda.ndaNumber}</td>
+                  <td style={coverTdValue}>
+                    <strong>{nda.ndaNumber}</strong>
+                  </td>
                 </tr>
                 <tr>
                   <td style={coverTdLabel}>Effective Date</td>
                   <td style={coverTdValue}>{effectiveDateStr}</td>
                 </tr>
                 <tr>
-                  <td style={coverTdLabel}>Expiry Date</td>
+                  <td style={coverTdLabel}>Expiry</td>
                   <td style={coverTdValue}>{expiryDateStr}</td>
                 </tr>
                 <tr>
@@ -89,15 +104,28 @@ export default function NdaHtmlTemplate({ nda, showSignatures = true }) {
                   <td style={coverTdLabel}>Party B</td>
                   <td style={coverTdValue}>{nda.partnerCompanyName}</td>
                 </tr>
+                {nda.partnerAddress && (
+                  <tr>
+                    <td style={coverTdLabel}>Partner Address</td>
+                    <td style={coverTdValue}>{nda.partnerAddress}</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
 
+          {/* Purpose */}
           {nda.purpose && (
             <p style={coverPurpose}>
-              <strong>Purpose:</strong> {nda.purpose}
+              <em>{nda.purpose}</em>
             </p>
           )}
+        </div>
+
+        {/* Bottom footer strip */}
+        <div style={coverFooter}>
+          <span>IOTA Technologies Company · Confidential &amp; Proprietary</span>
+          <span>{new Date().getFullYear()}</span>
         </div>
       </div>
 
@@ -453,76 +481,143 @@ const pageHeaderTitle = { fontWeight: 600 };
 const pageHeaderRight = {};
 
 // Cover page styles
+const coverAccentBar = {
+  height: 6,
+  background: 'linear-gradient(90deg, #1a3c5e 0%, #2e6da4 60%, #4a9fd4 100%)',
+  borderRadius: '2px 2px 0 0',
+  marginBottom: 0,
+};
+
 const coverPage = {
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
   justifyContent: 'center',
-  height: '100%',
-  gap: 40,
+  minHeight: 'calc(100% - 60px)',
+  gap: 28,
   textAlign: 'center',
+  padding: '40px 0 20px',
 };
 
-const logoArea = { marginBottom: 8 };
+const coverLogoRow = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: 14,
+  marginBottom: 4,
+};
 
-const coverTitle = {};
+const coverLogoImg = {
+  height: 52,
+  objectFit: 'contain',
+};
 
-const coverSuperLabel = {
-  fontSize: 11,
-  letterSpacing: '0.2em',
-  color: '#b00',
+const coverBadgeWrap = {
+  display: 'flex',
+  justifyContent: 'center',
+};
+
+const coverBadge = {
+  display: 'inline-block',
+  padding: '4px 18px',
+  background: '#b91c1c',
+  color: '#fff',
+  fontSize: 10,
+  letterSpacing: '0.18em',
   textTransform: 'uppercase',
-  margin: '0 0 8px 0',
   fontFamily: "'Inter', Arial, sans-serif",
+  fontWeight: 700,
+  borderRadius: 2,
+};
+
+const coverTitleBlock = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  gap: 6,
+};
+
+const coverDivider = {
+  width: 80,
+  height: 3,
+  background: 'linear-gradient(90deg, #1a3c5e, #4a9fd4)',
+  borderRadius: 2,
+  margin: '0 auto',
 };
 
 const coverH1 = {
-  fontSize: 28,
-  fontWeight: 700,
+  fontSize: 30,
+  fontWeight: 800,
   color: '#0d1b2a',
-  margin: '0 0 8px 0',
+  margin: 0,
   letterSpacing: '-0.5px',
+  fontFamily: "'Inter', Arial, sans-serif",
 };
 
 const coverSubtitle = {
   fontSize: 13,
-  color: '#666',
+  color: '#5a7a96',
   margin: 0,
   fontFamily: "'Inter', Arial, sans-serif",
+  fontWeight: 500,
 };
 
-const coverMeta = { width: '100%', maxWidth: 400 };
+const coverMeta = { width: '100%', maxWidth: 460 };
 
 const coverTable = {
   width: '100%',
   borderCollapse: 'collapse',
   fontFamily: "'Inter', Arial, sans-serif",
   fontSize: 13,
+  boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
+  borderRadius: 6,
+  overflow: 'hidden',
 };
 
 const coverTdLabel = {
-  padding: '8px 16px 8px 0',
-  color: '#666',
+  padding: '10px 18px',
+  color: '#5a7a96',
   fontWeight: 600,
-  width: '40%',
-  borderBottom: '1px solid #eee',
+  width: '38%',
+  borderBottom: '1px solid #e8edf2',
+  background: '#f5f8fb',
   textAlign: 'left',
+  fontSize: 12,
 };
 
 const coverTdValue = {
-  padding: '8px 0',
+  padding: '10px 18px',
   color: '#0d1b2a',
-  borderBottom: '1px solid #eee',
+  borderBottom: '1px solid #e8edf2',
   textAlign: 'left',
+  background: '#fff',
+  fontSize: 13,
 };
 
 const coverPurpose = {
-  fontSize: 13,
-  color: '#555',
+  fontSize: 12.5,
+  color: '#666',
   fontFamily: "'Inter', Arial, sans-serif",
-  maxWidth: 440,
+  maxWidth: 460,
   textAlign: 'center',
-  lineHeight: 1.6,
+  lineHeight: 1.7,
+  fontStyle: 'italic',
+  borderLeft: '3px solid #4a9fd4',
+  paddingLeft: 14,
+  margin: 0,
+  textAlign: 'left',
+};
+
+const coverFooter = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  borderTop: '1px solid #e0e6ed',
+  paddingTop: 12,
+  fontSize: 10,
+  color: '#999',
+  fontFamily: "'Inter', Arial, sans-serif",
+  marginTop: 'auto',
 };
 
 // Body content styles
