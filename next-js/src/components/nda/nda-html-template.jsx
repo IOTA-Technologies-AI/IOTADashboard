@@ -166,24 +166,31 @@ export default function NdaHtmlTemplate({ nda, showSignatures = true, showAuditT
         </p>
 
         <h2 style={sectionHeading}>3. Definitions</h2>
-        <p style={body}>
-          &ldquo;<strong>Confidential Information</strong>&rdquo; means any information disclosed by
-          one Party (&ldquo;Disclosing Party&rdquo;) to the other (&ldquo;Receiving Party&rdquo;),
-          directly or indirectly, in writing, orally, or by inspection of tangible objects, which is
-          designated as confidential or that reasonably should be understood to be confidential
-          given the nature of the information and the circumstances of disclosure. Confidential
-          Information includes, without limitation: technical data, trade secrets, know-how,
-          research, product plans, products, services, customer lists, markets, software,
-          developments, inventions, processes, formulas, technology, designs, drawings, business
-          plans, financial data, pricing, and any other business information.
-        </p>
-        <p style={body}>
-          Confidential Information does not include information that (i) was already publicly known
-          at the time of disclosure; (ii) becomes publicly known after disclosure through no fault
-          of the Receiving Party; (iii) was already in the Receiving Party&apos;s possession free of
-          restrictions prior to disclosure; or (iv) is independently developed by the Receiving
-          Party without reference to the Confidential Information.
-        </p>
+        {nda.sectionOverrides?.definitions ? (
+          <p style={{ ...body, whiteSpace: 'pre-wrap' }}>{nda.sectionOverrides.definitions}</p>
+        ) : (
+          <>
+            <p style={body}>
+              &ldquo;<strong>Confidential Information</strong>&rdquo; means any information
+              disclosed by one Party (&ldquo;Disclosing Party&rdquo;) to the other (&ldquo;Receiving
+              Party&rdquo;), directly or indirectly, in writing, orally, or by inspection of
+              tangible objects, which is designated as confidential or that reasonably should be
+              understood to be confidential given the nature of the information and the
+              circumstances of disclosure. Confidential Information includes, without limitation:
+              technical data, trade secrets, know-how, research, product plans, products, services,
+              customer lists, markets, software, developments, inventions, processes, formulas,
+              technology, designs, drawings, business plans, financial data, pricing, and any other
+              business information.
+            </p>
+            <p style={body}>
+              Confidential Information does not include information that (i) was already publicly
+              known at the time of disclosure; (ii) becomes publicly known after disclosure through
+              no fault of the Receiving Party; (iii) was already in the Receiving Party&apos;s
+              possession free of restrictions prior to disclosure; or (iv) is independently
+              developed by the Receiving Party without reference to the Confidential Information.
+            </p>
+          </>
+        )}
       </div>
 
       {/* ── PAGE 3: OBLIGATIONS & EXCLUSIONS ── */}
@@ -194,76 +201,93 @@ export default function NdaHtmlTemplate({ nda, showSignatures = true, showAuditT
         </div>
 
         <h2 style={sectionHeading}>4. Obligations of the Receiving Party</h2>
-        <p style={body}>The Receiving Party agrees to:</p>
-        <ol style={orderedList}>
-          <li style={listItem}>
-            Hold all Confidential Information in strict confidence and not disclose it to any third
-            party without the prior written consent of the Disclosing Party.
-          </li>
-          <li style={listItem}>
-            Use the Confidential Information solely for the Purpose and for no other purpose
-            whatsoever.
-          </li>
-          <li style={listItem}>
-            Limit access to the Confidential Information to its employees, contractors, and advisors
-            who (a) have a need to know such information for the Purpose, and (b) are bound by
-            confidentiality obligations no less restrictive than those herein.
-          </li>
-          <li style={listItem}>
-            Protect the Confidential Information using at least the same degree of care it uses to
-            protect its own confidential information, but no less than reasonable care.
-          </li>
-          <li style={listItem}>
-            Promptly notify the Disclosing Party in writing upon becoming aware of any unauthorized
-            disclosure, misappropriation, or use of the Confidential Information.
-          </li>
-        </ol>
+        {nda.sectionOverrides?.obligations ? (
+          <p style={{ ...body, whiteSpace: 'pre-wrap' }}>{nda.sectionOverrides.obligations}</p>
+        ) : (
+          <>
+            <p style={body}>The Receiving Party agrees to:</p>
+            <ol style={orderedList}>
+              <li style={listItem}>
+                Hold all Confidential Information in strict confidence and not disclose it to any
+                third party without the prior written consent of the Disclosing Party.
+              </li>
+              <li style={listItem}>
+                Use the Confidential Information solely for the Purpose and for no other purpose
+                whatsoever.
+              </li>
+              <li style={listItem}>
+                Limit access to the Confidential Information to its employees, contractors, and
+                advisors who (a) have a need to know such information for the Purpose, and (b) are
+                bound by confidentiality obligations no less restrictive than those herein.
+              </li>
+              <li style={listItem}>
+                Protect the Confidential Information using at least the same degree of care it uses
+                to protect its own confidential information, but no less than reasonable care.
+              </li>
+              <li style={listItem}>
+                Promptly notify the Disclosing Party in writing upon becoming aware of any
+                unauthorized disclosure, misappropriation, or use of the Confidential Information.
+              </li>
+            </ol>
+          </>
+        )}
 
         <h2 style={sectionHeading}>5. Exclusions from Confidentiality</h2>
-        <p style={body}>
-          The obligations of confidentiality under this Agreement do not apply to information that
-          the Receiving Party can demonstrate:
-        </p>
-        <ol style={orderedList}>
-          <li style={listItem}>
-            Was already known to the Receiving Party at the time of disclosure without restriction;
-          </li>
-          <li style={listItem}>
-            Is or becomes publicly available through no act or omission of the Receiving Party;
-          </li>
-          <li style={listItem}>
-            Is rightfully obtained from a third party without restriction and without breach of this
-            Agreement;
-          </li>
-          <li style={listItem}>
-            Is required to be disclosed by applicable law, regulation, or court order, provided the
-            Receiving Party gives the Disclosing Party prompt written notice prior to such
-            disclosure and reasonably cooperates with any effort by the Disclosing Party to seek a
-            protective order; or
-          </li>
-          <li style={listItem}>
-            Is independently developed by the Receiving Party without use of or reference to the
-            Confidential Information.
-          </li>
-        </ol>
+        {nda.sectionOverrides?.exclusions ? (
+          <p style={{ ...body, whiteSpace: 'pre-wrap' }}>{nda.sectionOverrides.exclusions}</p>
+        ) : (
+          <>
+            <p style={body}>
+              The obligations of confidentiality under this Agreement do not apply to information
+              that the Receiving Party can demonstrate:
+            </p>
+            <ol style={orderedList}>
+              <li style={listItem}>
+                Was already known to the Receiving Party at the time of disclosure without
+                restriction;
+              </li>
+              <li style={listItem}>
+                Is or becomes publicly available through no act or omission of the Receiving Party;
+              </li>
+              <li style={listItem}>
+                Is rightfully obtained from a third party without restriction and without breach of
+                this Agreement;
+              </li>
+              <li style={listItem}>
+                Is required to be disclosed by applicable law, regulation, or court order, provided
+                the Receiving Party gives the Disclosing Party prompt written notice prior to such
+                disclosure and reasonably cooperates with any effort by the Disclosing Party to seek
+                a protective order; or
+              </li>
+              <li style={listItem}>
+                Is independently developed by the Receiving Party without use of or reference to the
+                Confidential Information.
+              </li>
+            </ol>
+          </>
+        )}
 
         <h2 style={sectionHeading}>6. Term and Duration</h2>
-        <p style={body}>
-          This Agreement shall commence on the Effective Date and remain in force for a period of{' '}
-          <strong>
-            {nda.isPerpetual
-              ? 'an indefinite period (perpetual)'
-              : `${nda.durationYears} year${nda.durationYears !== 1 ? 's' : ''}`}
-          </strong>
-          {!nda.isPerpetual && (
-            <>
-              , unless earlier terminated by mutual written consent of the Parties. The Agreement
-              shall therefore expire on <strong>{expiryDateStr}</strong>.
-            </>
-          )}
-          . The obligations of confidentiality shall survive the expiration or termination of this
-          Agreement for a further period of three (3) years.
-        </p>
+        {nda.sectionOverrides?.termDuration ? (
+          <p style={{ ...body, whiteSpace: 'pre-wrap' }}>{nda.sectionOverrides.termDuration}</p>
+        ) : (
+          <p style={body}>
+            This Agreement shall commence on the Effective Date and remain in force for a period of{' '}
+            <strong>
+              {nda.isPerpetual
+                ? 'an indefinite period (perpetual)'
+                : `${nda.durationYears} year${nda.durationYears !== 1 ? 's' : ''}`}
+            </strong>
+            {!nda.isPerpetual && (
+              <>
+                , unless earlier terminated by mutual written consent of the Parties. The Agreement
+                shall therefore expire on <strong>{expiryDateStr}</strong>.
+              </>
+            )}
+            . The obligations of confidentiality shall survive the expiration or termination of this
+            Agreement for a further period of three (3) years.
+          </p>
+        )}
       </div>
 
       {/* ── PAGE 4: CONSEQUENCES & GENERAL PROVISIONS ── */}
@@ -274,72 +298,92 @@ export default function NdaHtmlTemplate({ nda, showSignatures = true, showAuditT
         </div>
 
         <h2 style={sectionHeading}>7. Return or Destruction of Information</h2>
-        <p style={body}>
-          Upon written request by the Disclosing Party, or upon termination or expiration of this
-          Agreement, the Receiving Party shall promptly return or, at the Disclosing Party&apos;s
-          option, destroy all tangible materials embodying Confidential Information (in any form and
-          including all copies and extracts). The Receiving Party shall certify in writing that it
-          has complied with this obligation within ten (10) business days of such request.
-        </p>
+        {nda.sectionOverrides?.returnDestruction ? (
+          <p style={{ ...body, whiteSpace: 'pre-wrap' }}>
+            {nda.sectionOverrides.returnDestruction}
+          </p>
+        ) : (
+          <p style={body}>
+            Upon written request by the Disclosing Party, or upon termination or expiration of this
+            Agreement, the Receiving Party shall promptly return or, at the Disclosing Party&apos;s
+            option, destroy all tangible materials embodying Confidential Information (in any form
+            and including all copies and extracts). The Receiving Party shall certify in writing
+            that it has complied with this obligation within ten (10) business days of such request.
+          </p>
+        )}
 
         <h2 style={sectionHeading}>8. Remedies</h2>
-        <p style={body}>
-          The Parties acknowledge that any breach of this Agreement may cause irreparable harm to
-          the Disclosing Party for which monetary damages would be an inadequate remedy.
-          Accordingly, in addition to any other legal or equitable remedies that may be available,
-          the Disclosing Party shall be entitled to seek injunctive or other equitable relief to
-          prevent any actual or threatened breach of this Agreement, without the requirement of
-          posting any bond or other security.
-        </p>
+        {nda.sectionOverrides?.remedies ? (
+          <p style={{ ...body, whiteSpace: 'pre-wrap' }}>{nda.sectionOverrides.remedies}</p>
+        ) : (
+          <p style={body}>
+            The Parties acknowledge that any breach of this Agreement may cause irreparable harm to
+            the Disclosing Party for which monetary damages would be an inadequate remedy.
+            Accordingly, in addition to any other legal or equitable remedies that may be available,
+            the Disclosing Party shall be entitled to seek injunctive or other equitable relief to
+            prevent any actual or threatened breach of this Agreement, without the requirement of
+            posting any bond or other security.
+          </p>
+        )}
 
         <h2 style={sectionHeading}>9. No License</h2>
-        <p style={body}>
-          Nothing in this Agreement shall be construed to grant either Party any right, title,
-          interest, or license in or to the Confidential Information of the other Party, or any
-          intellectual property rights therein. Any use of Confidential Information beyond the
-          Purpose requires the prior written consent of the Disclosing Party.
-        </p>
+        {nda.sectionOverrides?.noLicense ? (
+          <p style={{ ...body, whiteSpace: 'pre-wrap' }}>{nda.sectionOverrides.noLicense}</p>
+        ) : (
+          <p style={body}>
+            Nothing in this Agreement shall be construed to grant either Party any right, title,
+            interest, or license in or to the Confidential Information of the other Party, or any
+            intellectual property rights therein. Any use of Confidential Information beyond the
+            Purpose requires the prior written consent of the Disclosing Party.
+          </p>
+        )}
 
         <h2 style={sectionHeading}>10. General Provisions</h2>
-        <ol style={orderedList}>
-          <li style={listItem}>
-            <strong>Governing Law.</strong> This Agreement shall be governed by and construed in
-            accordance with the laws of the Kingdom of Saudi Arabia. Any dispute arising out of or
-            in connection with this Agreement shall be subject to the exclusive jurisdiction of the
-            courts of Riyadh, Saudi Arabia.
-          </li>
-          <li style={listItem}>
-            <strong>Entire Agreement.</strong> This Agreement constitutes the entire understanding
-            between the Parties with respect to its subject matter and supersedes all prior
-            negotiations, understandings, and agreements, whether written or oral.
-          </li>
-          <li style={listItem}>
-            <strong>Amendments.</strong> No amendment or modification of this Agreement shall be
-            valid unless made in writing and signed by both Parties.
-          </li>
-          <li style={listItem}>
-            <strong>Severability.</strong> If any provision of this Agreement is found to be
-            unenforceable, invalid, or illegal, that provision shall be modified to the minimum
-            extent necessary to make it enforceable, and the remaining provisions shall continue in
-            full force and effect.
-          </li>
-          <li style={listItem}>
-            <strong>Waiver.</strong> Failure by either Party to enforce any provision of this
-            Agreement shall not constitute a waiver of that Party&apos;s right to enforce such
-            provision in the future.
-          </li>
-          <li style={listItem}>
-            <strong>Counterparts.</strong> This Agreement may be executed in counterparts, including
-            electronic form, each of which shall be deemed an original and all of which together
-            shall constitute one and the same instrument. Electronic signatures shall be deemed
-            valid and binding.
-          </li>
-          <li style={listItem}>
-            <strong>Notices.</strong> All notices under this Agreement shall be in writing and
-            delivered by email with acknowledgment of receipt to the representative signatories
-            listed below.
-          </li>
-        </ol>
+        {nda.sectionOverrides?.generalProvisions ? (
+          <p style={{ ...body, whiteSpace: 'pre-wrap' }}>
+            {nda.sectionOverrides.generalProvisions}
+          </p>
+        ) : (
+          <ol style={orderedList}>
+            <li style={listItem}>
+              <strong>Governing Law.</strong> This Agreement shall be governed by and construed in
+              accordance with the laws of the Kingdom of Saudi Arabia. Any dispute arising out of or
+              in connection with this Agreement shall be subject to the exclusive jurisdiction of
+              the courts of Riyadh, Saudi Arabia.
+            </li>
+            <li style={listItem}>
+              <strong>Entire Agreement.</strong> This Agreement constitutes the entire understanding
+              between the Parties with respect to its subject matter and supersedes all prior
+              negotiations, understandings, and agreements, whether written or oral.
+            </li>
+            <li style={listItem}>
+              <strong>Amendments.</strong> No amendment or modification of this Agreement shall be
+              valid unless made in writing and signed by both Parties.
+            </li>
+            <li style={listItem}>
+              <strong>Severability.</strong> If any provision of this Agreement is found to be
+              unenforceable, invalid, or illegal, that provision shall be modified to the minimum
+              extent necessary to make it enforceable, and the remaining provisions shall continue
+              in full force and effect.
+            </li>
+            <li style={listItem}>
+              <strong>Waiver.</strong> Failure by either Party to enforce any provision of this
+              Agreement shall not constitute a waiver of that Party&apos;s right to enforce such
+              provision in the future.
+            </li>
+            <li style={listItem}>
+              <strong>Counterparts.</strong> This Agreement may be executed in counterparts,
+              including electronic form, each of which shall be deemed an original and all of which
+              together shall constitute one and the same instrument. Electronic signatures shall be
+              deemed valid and binding.
+            </li>
+            <li style={listItem}>
+              <strong>Notices.</strong> All notices under this Agreement shall be in writing and
+              delivered by email with acknowledgment of receipt to the representative signatories
+              listed below.
+            </li>
+          </ol>
+        )}
       </div>
 
       {/* ── ADDITIONAL CLAUSES (rendered only if custom clauses exist) ── */}

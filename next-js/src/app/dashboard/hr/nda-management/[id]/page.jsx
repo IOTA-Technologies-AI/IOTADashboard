@@ -74,6 +74,53 @@ const ACTION_LABEL = {
 const formatAction = (action) =>
   ACTION_LABEL[action] || action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 
+const SECTION_META = [
+  { key: 'definitions', label: '3. Definitions' },
+  { key: 'obligations', label: '4. Obligations of the Receiving Party' },
+  { key: 'exclusions', label: '5. Exclusions from Confidentiality' },
+  { key: 'termDuration', label: '6. Term and Duration' },
+  { key: 'returnDestruction', label: '7. Return or Destruction of Information' },
+  { key: 'remedies', label: '8. Remedies' },
+  { key: 'noLicense', label: '9. No License' },
+  { key: 'generalProvisions', label: '10. General Provisions' },
+];
+
+const SECTION_DEFAULTS = {
+  definitions: `"Confidential Information" means any information disclosed by one Party ("Disclosing Party") to the other ("Receiving Party"), directly or indirectly, in writing, orally, or by inspection of tangible objects, which is designated as confidential or that reasonably should be understood to be confidential given the nature of the information and the circumstances of disclosure. Confidential Information includes, without limitation: technical data, trade secrets, know-how, research, product plans, products, services, customer lists, markets, software, developments, inventions, processes, formulas, technology, designs, drawings, business plans, financial data, pricing, and any other business information.
+
+Confidential Information does not include information that (i) was already publicly known at the time of disclosure; (ii) becomes publicly known after disclosure through no fault of the Receiving Party; (iii) was already in the Receiving Party's possession free of restrictions prior to disclosure; or (iv) is independently developed by the Receiving Party without reference to the Confidential Information.`,
+
+  obligations: `The Receiving Party agrees to:
+1. Hold all Confidential Information in strict confidence and not disclose it to any third party without the prior written consent of the Disclosing Party.
+2. Use the Confidential Information solely for the Purpose and for no other purpose whatsoever.
+3. Limit access to the Confidential Information to its employees, contractors, and advisors who (a) have a need to know such information for the Purpose, and (b) are bound by confidentiality obligations no less restrictive than those herein.
+4. Protect the Confidential Information using at least the same degree of care it uses to protect its own confidential information, but no less than reasonable care.
+5. Promptly notify the Disclosing Party in writing upon becoming aware of any unauthorized disclosure, misappropriation, or use of the Confidential Information.`,
+
+  exclusions: `The obligations of confidentiality under this Agreement do not apply to information that the Receiving Party can demonstrate:
+1. Was already known to the Receiving Party at the time of disclosure without restriction;
+2. Is or becomes publicly available through no act or omission of the Receiving Party;
+3. Is rightfully obtained from a third party without restriction and without breach of this Agreement;
+4. Is required to be disclosed by applicable law, regulation, or court order, provided the Receiving Party gives the Disclosing Party prompt written notice prior to such disclosure and reasonably cooperates with any effort by the Disclosing Party to seek a protective order; or
+5. Is independently developed by the Receiving Party without use of or reference to the Confidential Information.`,
+
+  termDuration: `This Agreement shall commence on the Effective Date and remain in force for the duration specified on the cover page, unless earlier terminated by mutual written consent of the Parties. The obligations of confidentiality shall survive the expiration or termination of this Agreement for a further period of three (3) years.`,
+
+  returnDestruction: `Upon written request by the Disclosing Party, or upon termination or expiration of this Agreement, the Receiving Party shall promptly return or, at the Disclosing Party's option, destroy all tangible materials embodying Confidential Information (in any form and including all copies and extracts). The Receiving Party shall certify in writing that it has complied with this obligation within ten (10) business days of such request.`,
+
+  remedies: `The Parties acknowledge that any breach of this Agreement may cause irreparable harm to the Disclosing Party for which monetary damages would be an inadequate remedy. Accordingly, in addition to any other legal or equitable remedies that may be available, the Disclosing Party shall be entitled to seek injunctive or other equitable relief to prevent any actual or threatened breach of this Agreement, without the requirement of posting any bond or other security.`,
+
+  noLicense: `Nothing in this Agreement shall be construed to grant either Party any right, title, interest, or license in or to the Confidential Information of the other Party, or any intellectual property rights therein. Any use of Confidential Information beyond the Purpose requires the prior written consent of the Disclosing Party.`,
+
+  generalProvisions: `1. Governing Law. This Agreement shall be governed by and construed in accordance with the laws of the Kingdom of Saudi Arabia. Any dispute arising out of or in connection with this Agreement shall be subject to the exclusive jurisdiction of the courts of Riyadh, Saudi Arabia.
+2. Entire Agreement. This Agreement constitutes the entire understanding between the Parties with respect to its subject matter and supersedes all prior negotiations, understandings, and agreements, whether written or oral.
+3. Amendments. No amendment or modification of this Agreement shall be valid unless made in writing and signed by both Parties.
+4. Severability. If any provision of this Agreement is found to be unenforceable, invalid, or illegal, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.
+5. Waiver. Failure by either Party to enforce any provision of this Agreement shall not constitute a waiver of that Party's right to enforce such provision in the future.
+6. Counterparts. This Agreement may be executed in counterparts, including electronic form, each of which shall be deemed an original and all of which together shall constitute one and the same instrument. Electronic signatures shall be deemed valid and binding.
+7. Notices. All notices under this Agreement shall be in writing and delivered by email with acknowledgment of receipt to the representative signatories listed below.`,
+};
+
 function DetailRow({ label, value }) {
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.75 }}>
@@ -103,6 +150,7 @@ export default function NdaDetailsPage({ params }) {
   const [cancelReason, setCancelReason] = useState('');
   const [clausesEditing, setClausesEditing] = useState(false);
   const [editedClauses, setEditedClauses] = useState([]);
+  const [sectionEditDialog, setSectionEditDialog] = useState({ open: false, key: '', text: '' });
 
   const userEmail = user?.email || '';
 
@@ -205,6 +253,23 @@ export default function NdaDetailsPage({ params }) {
     } catch (err) {
       console.error(err);
       toast.error('Failed to save clauses');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSaveSectionOverride = async (key, text) => {
+    try {
+      setActionLoading(true);
+      const updated = await updateNda(id, {
+        sectionOverrides: { ...(nda.sectionOverrides || {}), [key]: text || null },
+      });
+      setNda(updated);
+      setSectionEditDialog({ open: false, key: '', text: '' });
+      toast.success('Section updated.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to update section');
     } finally {
       setActionLoading(false);
     }
@@ -527,6 +592,61 @@ export default function NdaDetailsPage({ params }) {
               </Box>
             </Card>
 
+            {/* Body Sections — edit standard clauses (draft only) */}
+            {isDraft && (
+              <Card sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ mb: 0.5 }}>
+                  Body Sections
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mb: 2, display: 'block' }}
+                >
+                  Click Edit on any section to customise its default legal text for this NDA.
+                </Typography>
+                <Stack spacing={0}>
+                  {SECTION_META.map((sec, i) => {
+                    const isOverridden = !!nda.sectionOverrides?.[sec.key];
+                    return (
+                      <Box
+                        key={sec.key}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          py: 1,
+                          borderBottom: i < SECTION_META.length - 1 ? '1px solid' : 'none',
+                          borderColor: 'divider',
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body2">{sec.label}</Typography>
+                          {isOverridden && (
+                            <Chip label="Customised" size="small" color="primary" variant="soft" />
+                          )}
+                        </Box>
+                        <Button
+                          size="small"
+                          startIcon={<Iconify icon="solar:pen-bold" />}
+                          onClick={() =>
+                            setSectionEditDialog({
+                              open: true,
+                              key: sec.key,
+                              text:
+                                nda.sectionOverrides?.[sec.key] || SECTION_DEFAULTS[sec.key] || '',
+                            })
+                          }
+                        >
+                          Edit
+                        </Button>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              </Card>
+            )}
+
             {/* Clauses */}
             {((nda.clauses && nda.clauses.length > 0) || isDraft) && (
               <Card sx={{ p: 3 }}>
@@ -690,6 +810,55 @@ export default function NdaDetailsPage({ params }) {
           </Stack>
         </Grid>
       </Grid>
+
+      {/* ── Section edit dialog ── */}
+      <Dialog
+        open={sectionEditDialog.open}
+        onClose={() => setSectionEditDialog({ open: false, key: '', text: '' })}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          {SECTION_META.find((s) => s.key === sectionEditDialog.key)?.label || 'Edit Section'}
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+            Edit the text below. Line breaks are preserved. To reset to the original legal text,
+            click &ldquo;Reset to Default&rdquo;.
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={14}
+            value={sectionEditDialog.text}
+            onChange={(e) => setSectionEditDialog((prev) => ({ ...prev, text: e.target.value }))}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            color="inherit"
+            onClick={() =>
+              setSectionEditDialog((prev) => ({
+                ...prev,
+                text: SECTION_DEFAULTS[prev.key] || '',
+              }))
+            }
+          >
+            Reset to Default
+          </Button>
+          <Box sx={{ flex: 1 }} />
+          <Button onClick={() => setSectionEditDialog({ open: false, key: '', text: '' })}>
+            Cancel
+          </Button>
+          <LoadingButton
+            variant="contained"
+            loading={actionLoading}
+            onClick={() => handleSaveSectionOverride(sectionEditDialog.key, sectionEditDialog.text)}
+          >
+            Save
+          </LoadingButton>
+        </DialogActions>
+      </Dialog>
 
       {/* ── Cancel dialog ── */}
       <Dialog
