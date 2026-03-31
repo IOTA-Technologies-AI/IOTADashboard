@@ -13,6 +13,7 @@ import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
 import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -592,40 +593,38 @@ export default function NdaDetailsPage({ params }) {
               </Box>
             </Card>
 
-            {/* Body Sections — edit standard clauses (draft only) */}
-            {isDraft && (
-              <Card sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ mb: 0.5 }}>
-                  Body Sections
-                </Typography>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ mb: 2, display: 'block' }}
-                >
-                  Click Edit on any section to customise its default legal text for this NDA.
-                </Typography>
-                <Stack spacing={0}>
-                  {SECTION_META.map((sec, i) => {
-                    const isOverridden = !!nda.sectionOverrides?.[sec.key];
-                    return (
-                      <Box
-                        key={sec.key}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          py: 1,
-                          borderBottom: i < SECTION_META.length - 1 ? '1px solid' : 'none',
-                          borderColor: 'divider',
-                        }}
-                      >
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Typography variant="body2">{sec.label}</Typography>
-                          {isOverridden && (
-                            <Chip label="Customised" size="small" color="primary" variant="soft" />
-                          )}
-                        </Box>
+            {/* Body Sections */}
+            <Card sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 0.5 }}>
+                Body Sections
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
+                {isDraft
+                  ? 'Click Edit on any section to customise its default legal text for this NDA.'
+                  : 'Body sections can only be edited while the NDA is in Draft status.'}
+              </Typography>
+              <Stack spacing={0}>
+                {SECTION_META.map((sec, i) => {
+                  const isOverridden = !!nda.sectionOverrides?.[sec.key];
+                  return (
+                    <Box
+                      key={sec.key}
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        py: 1,
+                        borderBottom: i < SECTION_META.length - 1 ? '1px solid' : 'none',
+                        borderColor: 'divider',
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="body2">{sec.label}</Typography>
+                        {isOverridden && (
+                          <Chip label="Customised" size="small" color="primary" variant="soft" />
+                        )}
+                      </Box>
+                      {isDraft && (
                         <Button
                           size="small"
                           startIcon={<Iconify icon="solar:pen-bold" />}
@@ -640,12 +639,12 @@ export default function NdaDetailsPage({ params }) {
                         >
                           Edit
                         </Button>
-                      </Box>
-                    );
-                  })}
-                </Stack>
-              </Card>
-            )}
+                      )}
+                    </Box>
+                  );
+                })}
+              </Stack>
+            </Card>
 
             {/* Clauses */}
             {((nda.clauses && nda.clauses.length > 0) || isDraft) && (
@@ -793,7 +792,12 @@ export default function NdaDetailsPage({ params }) {
                         <Typography variant="caption" color="text.secondary">
                           {entry.performedBy}
                           {' · '}
-                          {entry.performedAt ? new Date(entry.performedAt).toLocaleString() : '—'}
+                          {(() => {
+                            const raw = entry.performedAt || entry.timestamp;
+                            if (!raw) return '—';
+                            const d = new Date(raw);
+                            return isNaN(d.getTime()) ? raw : d.toLocaleString();
+                          })()}
                           {entry.ipAddress && ` · IP: ${entry.ipAddress}`}
                         </Typography>
                         {entry.notes && (
