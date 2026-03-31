@@ -55,6 +55,7 @@ export default function NdaNewPage() {
       effectiveDate: new Date().toISOString().split('T')[0],
       durationYears: 2,
       isPerpetual: false,
+      clauses: [],
       iotaSignatories: [{ name: '', email: '', jobTitle: '' }],
       partnerSignatories: [{ name: '', email: '', jobTitle: '' }],
     },
@@ -71,6 +72,12 @@ export default function NdaNewPage() {
     append: appendPartner,
     remove: removePartner,
   } = useFieldArray({ control, name: 'partnerSignatories' });
+
+  const {
+    fields: clauseFields,
+    append: appendClause,
+    remove: removeClause,
+  } = useFieldArray({ control, name: 'clauses' });
 
   const isPerpetual = watch('isPerpetual');
 
@@ -338,6 +345,78 @@ export default function NdaNewPage() {
                   </Box>
                 ))}
               </Stack>
+
+              <Divider sx={{ my: 3 }} />
+
+              {/* ── Additional Clauses ── */}
+              <Stack
+                direction="row"
+                alignItems="flex-start"
+                justifyContent="space-between"
+                sx={{ mb: 2 }}
+              >
+                <Box>
+                  <Typography variant="subtitle1">Additional Clauses</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Optional custom provisions specific to this NDA
+                  </Typography>
+                </Box>
+                <Button
+                  size="small"
+                  startIcon={<Iconify icon="mingcute:add-line" />}
+                  onClick={() => appendClause({ title: '', content: '' })}
+                >
+                  Add Clause
+                </Button>
+              </Stack>
+
+              {clauseFields.length === 0 ? (
+                <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
+                  No additional clauses. Click &quot;Add Clause&quot; to include custom provisions.
+                </Typography>
+              ) : (
+                <Stack spacing={2}>
+                  {clauseFields.map((field, i) => (
+                    <Box
+                      key={field.id}
+                      sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}
+                    >
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        sx={{ mb: 1.5 }}
+                      >
+                        <Typography variant="subtitle2">Clause {i + 1}</Typography>
+                        <IconButton size="small" color="error" onClick={() => removeClause(i)}>
+                          <Iconify icon="solar:trash-bin-trash-bold" />
+                        </IconButton>
+                      </Stack>
+                      <Stack spacing={1.5}>
+                        <TextField
+                          label="Clause Title"
+                          fullWidth
+                          size="small"
+                          placeholder="e.g. Non-Solicitation, Special Jurisdiction, Exclusivity"
+                          {...register(`clauses.${i}.title`, { required: 'Required' })}
+                          error={!!errors.clauses?.[i]?.title}
+                          helperText={errors.clauses?.[i]?.title?.message}
+                        />
+                        <TextField
+                          label="Clause Content"
+                          fullWidth
+                          size="small"
+                          multiline
+                          rows={3}
+                          {...register(`clauses.${i}.content`, { required: 'Required' })}
+                          error={!!errors.clauses?.[i]?.content}
+                          helperText={errors.clauses?.[i]?.content?.message}
+                        />
+                      </Stack>
+                    </Box>
+                  ))}
+                </Stack>
+              )}
             </Card>
           </Grid>
 

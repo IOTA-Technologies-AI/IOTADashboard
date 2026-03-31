@@ -193,7 +193,7 @@ export default function PartnerNdaSignPage({ params }) {
               </Typography>
             </Box>
             <Box sx={{ p: 3, maxHeight: 700, overflowY: 'auto' }}>
-              <NdaHtmlTemplate nda={nda} showSignatures />
+              <NdaHtmlTemplate nda={nda} showSignatures showAuditTrail={false} />
             </Box>
           </Card>
 

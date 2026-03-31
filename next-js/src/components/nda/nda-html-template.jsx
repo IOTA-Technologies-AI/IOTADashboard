@@ -42,7 +42,7 @@ function SignatureBlock({ name, jobTitle, company, signedAt, signatureData, inde
 
 // ----------------------------------------------------------------------
 
-export default function NdaHtmlTemplate({ nda, showSignatures = true }) {
+export default function NdaHtmlTemplate({ nda, showSignatures = true, showAuditTrail = true }) {
   if (!nda) return null;
 
   const effectiveDateStr = fmt(nda.effectiveDate);
@@ -97,11 +97,11 @@ export default function NdaHtmlTemplate({ nda, showSignatures = true }) {
                   <td style={coverTdValue}>{expiryDateStr}</td>
                 </tr>
                 <tr>
-                  <td style={coverTdLabel}>Party A</td>
+                  <td style={coverTdLabel}>Disclosing Party</td>
                   <td style={coverTdValue}>IOTA Technologies Company</td>
                 </tr>
                 <tr>
-                  <td style={coverTdLabel}>Party B</td>
+                  <td style={coverTdLabel}>Receiving Party</td>
                   <td style={coverTdValue}>{nda.partnerCompanyName}</td>
                 </tr>
                 {nda.partnerAddress && (
@@ -143,14 +143,12 @@ export default function NdaHtmlTemplate({ nda, showSignatures = true }) {
           &rdquo;) between:
         </p>
         <p style={body}>
-          <strong>Party A:</strong> IOTA Technologies Company, a company registered in the Kingdom
-          of Saudi Arabia (&ldquo;<strong>IOTA</strong>&rdquo; or &ldquo;
-          <strong>Disclosing Party</strong>&rdquo;); and
+          <strong>Disclosing Party:</strong> IOTA Technologies Company, a company registered in the
+          Kingdom of Saudi Arabia (&ldquo;<strong>IOTA</strong>&rdquo;); and
         </p>
         <p style={body}>
-          <strong>Party B:</strong> {nda.partnerCompanyName}
-          {nda.partnerAddress ? `, ${nda.partnerAddress}` : ''} (&ldquo;
-          <strong>Recipient</strong>&rdquo;).
+          <strong>Receiving Party:</strong> {nda.partnerCompanyName}
+          {nda.partnerAddress ? `, ${nda.partnerAddress}` : ''}.
         </p>
         <p style={body}>
           IOTA and the Recipient are referred to individually as a &ldquo;Party&rdquo; and
@@ -344,6 +342,27 @@ export default function NdaHtmlTemplate({ nda, showSignatures = true }) {
         </ol>
       </div>
 
+      {/* ── ADDITIONAL CLAUSES (rendered only if custom clauses exist) ── */}
+      {nda.clauses && nda.clauses.length > 0 && (
+        <div style={page}>
+          <div style={pageHeader}>
+            <span style={pageHeaderTitle}>Non-Disclosure Agreement</span>
+            <span style={pageHeaderRight}>{nda.ndaNumber}</span>
+          </div>
+          <h2 style={sectionHeading}>Additional Provisions</h2>
+          <p style={body}>
+            The following provisions form an integral part of this Agreement and supplement the
+            standard terms set out above.
+          </p>
+          {nda.clauses.map((clause, i) => (
+            <div key={i}>
+              <h3 style={clauseHeading}>{clause.title || `Clause ${i + 1}`}</h3>
+              <p style={body}>{clause.content}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* ── PAGE 5: IOTA SIGNATURES ── */}
       <div style={page}>
         <div style={pageHeader}>
@@ -402,8 +421,8 @@ export default function NdaHtmlTemplate({ nda, showSignatures = true }) {
       </div>
 
       {/* ── PAGE 7: AUDIT TRAIL ── */}
-      {showSignatures && nda.auditLog && nda.auditLog.length > 0 && (
-        <div style={page}>
+      {showAuditTrail && showSignatures && nda.auditLog && nda.auditLog.length > 0 && (
+        <div className="nda-audit-trail" style={page}>
           <div style={pageHeader}>
             <span style={pageHeaderTitle}>Non-Disclosure Agreement</span>
             <span style={pageHeaderRight}>{nda.ndaNumber}</span>
@@ -621,6 +640,15 @@ const coverFooter = {
 };
 
 // Body content styles
+const clauseHeading = {
+  fontSize: 13,
+  fontWeight: 700,
+  color: '#1a3c5e',
+  marginTop: 20,
+  marginBottom: 6,
+  fontFamily: "'Inter', Arial, sans-serif",
+};
+
 const sectionHeading = {
   fontSize: 15,
   fontWeight: 700,
@@ -742,5 +770,6 @@ const pagedCss = `
 @media print {
   body { margin: 0; }
   .nda-document > div { page-break-after: always; }
+  .nda-audit-trail { display: none !important; }
 }
 `;
