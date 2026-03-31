@@ -1601,11 +1601,11 @@ export async function submitNdaForIotaSigning(id, submittedBy) {
   }
 }
 
-export async function iotaSignNda(id, signatureData, signedBy) {
+export async function iotaSignNda(id, signatureData, signerEmail) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/${id}/iotaSign`, {
       signatureData,
-      signedBy,
+      signerEmail,
     });
     return response.data.nda;
   } catch (error) {
