@@ -204,18 +204,10 @@ export default function NdaDetailsPage({ params }) {
     `);
     printWindow.document.close();
     printWindow.focus();
-    // Allow images (signatures) to load before printing
-    printWindow.onload = () => {
-      printWindow.print();
-      printWindow.close();
-    };
-    // Fallback in case onload already fired
-    setTimeout(() => {
-      if (!printWindow.closed) {
-        printWindow.print();
-        printWindow.close();
-      }
-    }, 800);
+    // Close the window only after the print dialog is dismissed
+    printWindow.addEventListener('afterprint', () => printWindow.close());
+    // Wait for images (signatures) to load, then open print dialog
+    printWindow.onload = () => printWindow.print();
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
