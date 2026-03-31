@@ -26,6 +26,7 @@ import { useRouter } from 'src/routes/hooks';
 import {
   getNda,
   cancelNda,
+  updateNda,
   finalizeNda,
   iotaSignNda,
   submitNdaForIotaSigning,
@@ -87,6 +88,8 @@ export default function NdaDetailsPage({ params }) {
   const [signatureData, setSignatureData] = useState('');
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [clausesEditing, setClausesEditing] = useState(false);
+  const [editedClauses, setEditedClauses] = useState([]);
 
   const userEmail = user?.email || '';
 
@@ -174,6 +177,21 @@ export default function NdaDetailsPage({ params }) {
     } catch (err) {
       console.error(err);
       toast.error('Failed to cancel NDA');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSaveClauses = async () => {
+    try {
+      setActionLoading(true);
+      const updated = await updateNda(id, { clauses: editedClauses });
+      setNda(updated);
+      setClausesEditing(false);
+      toast.success('Clauses saved.');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save clauses');
     } finally {
       setActionLoading(false);
     }
@@ -495,6 +513,132 @@ export default function NdaDetailsPage({ params }) {
                 <NdaHtmlTemplate nda={nda} showSignatures />
               </Box>
             </Card>
+
+            {/* Clauses */}
+            {((nda.clauses && nda.clauses.length > 0) || isDraft) && (
+              <Card sx={{ p: 3 }}>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  sx={{ mb: 2 }}
+                >
+                  <Typography variant="h6">Additional Clauses</Typography>
+                  {isDraft && !clausesEditing && (
+                    <Button
+                      size="small"
+                      startIcon={<Iconify icon="solar:pen-bold" />}
+                      onClick={() => {
+                        setEditedClauses(
+                          nda.clauses?.length ? JSON.parse(JSON.stringify(nda.clauses)) : []
+                        );
+                        setClausesEditing(true);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  )}
+                </Stack>
+
+                {clausesEditing ? (
+                  <Stack spacing={2}>
+                    {editedClauses.map((clause, i) => (
+                      <Box
+                        key={i}
+                        sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}
+                      >
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          justifyContent="space-between"
+                          sx={{ mb: 1.5 }}
+                        >
+                          <Typography variant="subtitle2">Clause {i + 1}</Typography>
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() =>
+                              setEditedClauses((prev) => prev.filter((_, idx) => idx !== i))
+                            }
+                          >
+                            <Iconify icon="solar:trash-bin-trash-bold" />
+                          </IconButton>
+                        </Stack>
+                        <Stack spacing={1.5}>
+                          <TextField
+                            label="Clause Title"
+                            fullWidth
+                            size="small"
+                            value={clause.title}
+                            onChange={(e) =>
+                              setEditedClauses((prev) =>
+                                prev.map((c, idx) =>
+                                  idx === i ? { ...c, title: e.target.value } : c
+                                )
+                              )
+                            }
+                          />
+                          <TextField
+                            label="Clause Content"
+                            fullWidth
+                            size="small"
+                            multiline
+                            rows={3}
+                            value={clause.content}
+                            onChange={(e) =>
+                              setEditedClauses((prev) =>
+                                prev.map((c, idx) =>
+                                  idx === i ? { ...c, content: e.target.value } : c
+                                )
+                              )
+                            }
+                          />
+                        </Stack>
+                      </Box>
+                    ))}
+
+                    <Button
+                      size="small"
+                      startIcon={<Iconify icon="mingcute:add-line" />}
+                      onClick={() =>
+                        setEditedClauses((prev) => [...prev, { title: '', content: '' }])
+                      }
+                      sx={{ alignSelf: 'flex-start' }}
+                    >
+                      Add Clause
+                    </Button>
+
+                    <Stack direction="row" spacing={1} justifyContent="flex-end">
+                      <Button onClick={() => setClausesEditing(false)}>Cancel</Button>
+                      <LoadingButton
+                        variant="contained"
+                        loading={actionLoading}
+                        onClick={handleSaveClauses}
+                      >
+                        Save Clauses
+                      </LoadingButton>
+                    </Stack>
+                  </Stack>
+                ) : nda.clauses?.length > 0 ? (
+                  <Stack spacing={1.5}>
+                    {nda.clauses.map((clause, i) => (
+                      <Box key={i}>
+                        <Typography variant="subtitle2">
+                          {clause.title || `Clause ${i + 1}`}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                          {clause.content}
+                        </Typography>
+                      </Box>
+                    ))}
+                  </Stack>
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No additional clauses. Click Edit to add some.
+                  </Typography>
+                )}
+              </Card>
+            )}
 
             {/* Audit Log */}
             {nda.auditLog?.length > 0 && (

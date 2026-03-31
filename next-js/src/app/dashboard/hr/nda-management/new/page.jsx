@@ -7,6 +7,7 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
+import Chip from '@mui/material/Chip';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
@@ -196,73 +197,85 @@ export default function NdaNewPage() {
                   const selectedUser = msUsers.find((u) => u.email === watchedEmail) || null;
                   return (
                     <Box key={field.id} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                      <Grid container spacing={1} sx={{ flex: 1 }}>
-                        <Grid item xs={12} sm={8}>
-                          <Autocomplete
-                            options={msUsers}
-                            loading={msUsersLoading}
-                            getOptionLabel={(opt) => opt?.name || ''}
-                            isOptionEqualToValue={(opt, val) => opt?.email === val?.email}
-                            value={selectedUser}
-                            onChange={(_, selected) => {
-                              setValue(`iotaSignatories.${i}.name`, selected?.name || '', {
-                                shouldValidate: true,
-                              });
-                              setValue(`iotaSignatories.${i}.email`, selected?.email || '', {
-                                shouldValidate: true,
-                              });
-                              setValue(`iotaSignatories.${i}.jobTitle`, selected?.role || '');
-                            }}
-                            renderOption={(props, option) => (
-                              <Box
-                                component="li"
-                                {...props}
-                                key={option.email}
-                                sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}
-                              >
-                                <Avatar sx={{ width: 30, height: 30, fontSize: 13 }}>
-                                  {option.name?.[0]?.toUpperCase()}
-                                </Avatar>
-                                <Box>
-                                  <Typography variant="body2" fontWeight={500}>
-                                    {option.name}
-                                  </Typography>
-                                  <Typography variant="caption" color="text.secondary">
-                                    {option.email}
-                                  </Typography>
-                                </Box>
+                      <Box sx={{ flex: 1 }}>
+                        <Autocomplete
+                          options={msUsers}
+                          loading={msUsersLoading}
+                          getOptionLabel={(opt) => opt?.name || ''}
+                          isOptionEqualToValue={(opt, val) => opt?.email === val?.email}
+                          value={selectedUser}
+                          onChange={(_, selected) => {
+                            setValue(`iotaSignatories.${i}.name`, selected?.name || '', {
+                              shouldValidate: true,
+                            });
+                            setValue(`iotaSignatories.${i}.email`, selected?.email || '', {
+                              shouldValidate: true,
+                            });
+                            setValue(`iotaSignatories.${i}.jobTitle`, selected?.role || '');
+                          }}
+                          renderOption={(props, option) => (
+                            <Box
+                              component="li"
+                              {...props}
+                              key={option.email}
+                              sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}
+                            >
+                              <Avatar sx={{ width: 30, height: 30, fontSize: 13 }}>
+                                {option.name?.[0]?.toUpperCase()}
+                              </Avatar>
+                              <Box>
+                                <Typography variant="body2" fontWeight={500}>
+                                  {option.name}
+                                </Typography>
+                                <Typography variant="caption" color="text.secondary">
+                                  {option.email}
+                                </Typography>
                               </Box>
-                            )}
-                            renderInput={(params) => (
-                              <TextField
-                                {...params}
-                                label="Select Signatory"
+                            </Box>
+                          )}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label="Select IOTA Signatory"
+                              size="small"
+                              fullWidth
+                              error={!!errors.iotaSignatories?.[i]?.email}
+                              helperText={errors.iotaSignatories?.[i]?.email?.message}
+                              InputProps={{
+                                ...params.InputProps,
+                                endAdornment: (
+                                  <>
+                                    {msUsersLoading ? <CircularProgress size={16} /> : null}
+                                    {params.InputProps.endAdornment}
+                                  </>
+                                ),
+                              }}
+                            />
+                          )}
+                        />
+                        {selectedUser && (
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            sx={{ mt: 0.75, flexWrap: 'wrap', gap: 0.5 }}
+                          >
+                            <Chip
+                              label={selectedUser.email}
+                              size="small"
+                              variant="outlined"
+                              sx={{ fontSize: 11 }}
+                            />
+                            {selectedUser.role && (
+                              <Chip
+                                label={selectedUser.role}
                                 size="small"
-                                error={!!errors.iotaSignatories?.[i]?.email}
-                                helperText={watchedEmail || 'Search by name'}
-                                InputProps={{
-                                  ...params.InputProps,
-                                  endAdornment: (
-                                    <>
-                                      {msUsersLoading ? <CircularProgress size={16} /> : null}
-                                      {params.InputProps.endAdornment}
-                                    </>
-                                  ),
-                                }}
+                                color="default"
+                                sx={{ fontSize: 11 }}
                               />
                             )}
-                          />
-                        </Grid>
-                        <Grid item xs={12} sm={4}>
-                          <TextField
-                            label="Job Title"
-                            fullWidth
-                            size="small"
-                            {...register(`iotaSignatories.${i}.jobTitle`)}
-                            helperText="Auto-filled, editable"
-                          />
-                        </Grid>
-                      </Grid>
+                          </Stack>
+                        )}
+                      </Box>
                       {iotaFields.length > 1 && (
                         <IconButton
                           size="small"
