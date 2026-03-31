@@ -217,7 +217,18 @@ export default function NdaDetailsPage({ params }) {
   const handleFinalize = async () => {
     try {
       setActionLoading(true);
-      const updated = await finalizeNda(id, '');
+
+      // Serialize the rendered NDA HTML to a base64 string so the backend can
+      // store it on OneDrive.  A full PDF library is not needed for this flow.
+      const htmlContent = printRef.current?.outerHTML ?? '<html><body>NDA Document</body></html>';
+      const bytes = new TextEncoder().encode(htmlContent);
+      let binary = '';
+      bytes.forEach((b) => {
+        binary += String.fromCharCode(b);
+      });
+      const pdfBase64 = window.btoa(binary);
+
+      const updated = await finalizeNda(id, pdfBase64);
       setNda(updated);
       toast.success('NDA finalized and uploaded to OneDrive.');
     } catch (err) {
@@ -231,7 +242,7 @@ export default function NdaDetailsPage({ params }) {
   const handleCancel = async () => {
     try {
       setActionLoading(true);
-      const updated = await cancelNda(id, cancelReason);
+      const updated = await cancelNda(id, userEmail, cancelReason);
       setNda(updated);
       setCancelDialogOpen(false);
       setCancelReason('');

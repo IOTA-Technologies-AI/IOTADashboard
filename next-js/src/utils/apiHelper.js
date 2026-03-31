@@ -1637,9 +1637,9 @@ export async function finalizeNda(id, pdfBase64) {
   }
 }
 
-export async function cancelNda(id, reason) {
+export async function cancelNda(id, cancelledBy, reason) {
   try {
-    const response = await axios.post(`${API_BASE_URL}ndas/${id}/cancel`, { reason });
+    const response = await axios.post(`${API_BASE_URL}ndas/${id}/cancel`, { cancelledBy, reason });
     return response.data.nda;
   } catch (error) {
     console.error('Error cancelling NDA:', error);
