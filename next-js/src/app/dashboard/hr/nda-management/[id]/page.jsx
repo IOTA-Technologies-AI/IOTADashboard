@@ -61,6 +61,19 @@ const STATUS_LABEL = {
   cancelled: 'Cancelled',
 };
 
+const ACTION_LABEL = {
+  created: 'Created',
+  submitted_for_iota_signing: 'Submitted for IOTA Signing',
+  iota_signed: 'IOTA Signed',
+  partner_signing_tokens_issued: 'Partner Signing Links Issued',
+  partner_signed: 'Partner Signed',
+  pdf_uploaded_to_onedrive: 'PDF Uploaded to OneDrive',
+  cancelled: 'Cancelled',
+};
+
+const formatAction = (action) =>
+  ACTION_LABEL[action] || action.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
 function DetailRow({ label, value }) {
   return (
     <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 0.75 }}>
@@ -656,11 +669,18 @@ export default function NdaDetailsPage({ params }) {
                         sx={{ mt: 0.5, flexShrink: 0 }}
                       />
                       <Box>
-                        <Typography variant="body2">{entry.action}</Typography>
+                        <Typography variant="body2">{formatAction(entry.action)}</Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {entry.actorEmail} · {new Date(entry.timestamp).toLocaleString()}
+                          {entry.performedBy}
+                          {' · '}
+                          {entry.performedAt ? new Date(entry.performedAt).toLocaleString() : '—'}
                           {entry.ipAddress && ` · IP: ${entry.ipAddress}`}
                         </Typography>
+                        {entry.notes && (
+                          <Typography variant="caption" color="text.disabled" display="block">
+                            {entry.notes}
+                          </Typography>
+                        )}
                       </Box>
                     </Box>
                   ))}
