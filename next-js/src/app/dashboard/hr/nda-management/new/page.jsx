@@ -7,13 +7,18 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
+import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import Autocomplete from '@mui/material/Autocomplete';
 import LoadingButton from '@mui/lab/LoadingButton';
+import CircularProgress from '@mui/material/CircularProgress';
+
+import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
@@ -32,11 +37,14 @@ export default function NdaNewPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
 
+  const { users: msUsers, loading: msUsersLoading } = useMicrosoftUsers();
+
   const {
     register,
     handleSubmit,
     control,
     watch,
+    setValue,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -67,6 +75,11 @@ export default function NdaNewPage() {
   const isPerpetual = watch('isPerpetual');
 
   const onSubmit = async (data) => {
+    const incompleteIota = data.iotaSignatories?.some((s) => !s.name || !s.email);
+    if (incompleteIota) {
+      toast.error('Please select all IOTA signatories from the Microsoft user list');
+      return;
+    }
     try {
       setSubmitting(true);
       const user =
@@ -171,50 +184,91 @@ export default function NdaNewPage() {
               </Stack>
 
               <Stack spacing={2}>
-                {iotaFields.map((field, i) => (
-                  <Box key={field.id} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
-                    <Grid container spacing={1} sx={{ flex: 1 }}>
-                      <Grid item xs={12} sm={4}>
-                        <TextField
-                          label="Full Name"
-                          fullWidth
-                          size="small"
-                          {...register(`iotaSignatories.${i}.name`, { required: 'Required' })}
-                          error={!!errors.iotaSignatories?.[i]?.name}
-                        />
+                {iotaFields.map((field, i) => {
+                  const watchedEmail = watch(`iotaSignatories.${i}.email`);
+                  const selectedUser = msUsers.find((u) => u.email === watchedEmail) || null;
+                  return (
+                    <Box key={field.id} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                      <Grid container spacing={1} sx={{ flex: 1 }}>
+                        <Grid item xs={12} sm={8}>
+                          <Autocomplete
+                            options={msUsers}
+                            loading={msUsersLoading}
+                            getOptionLabel={(opt) => opt?.name || ''}
+                            isOptionEqualToValue={(opt, val) => opt?.email === val?.email}
+                            value={selectedUser}
+                            onChange={(_, selected) => {
+                              setValue(`iotaSignatories.${i}.name`, selected?.name || '', {
+                                shouldValidate: true,
+                              });
+                              setValue(`iotaSignatories.${i}.email`, selected?.email || '', {
+                                shouldValidate: true,
+                              });
+                              setValue(`iotaSignatories.${i}.jobTitle`, selected?.role || '');
+                            }}
+                            renderOption={(props, option) => (
+                              <Box
+                                component="li"
+                                {...props}
+                                key={option.email}
+                                sx={{ display: 'flex', alignItems: 'center', gap: 1.5, py: 1 }}
+                              >
+                                <Avatar sx={{ width: 30, height: 30, fontSize: 13 }}>
+                                  {option.name?.[0]?.toUpperCase()}
+                                </Avatar>
+                                <Box>
+                                  <Typography variant="body2" fontWeight={500}>
+                                    {option.name}
+                                  </Typography>
+                                  <Typography variant="caption" color="text.secondary">
+                                    {option.email}
+                                  </Typography>
+                                </Box>
+                              </Box>
+                            )}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                label="Select Signatory"
+                                size="small"
+                                error={!!errors.iotaSignatories?.[i]?.email}
+                                helperText={watchedEmail || 'Search by name'}
+                                InputProps={{
+                                  ...params.InputProps,
+                                  endAdornment: (
+                                    <>
+                                      {msUsersLoading ? <CircularProgress size={16} /> : null}
+                                      {params.InputProps.endAdornment}
+                                    </>
+                                  ),
+                                }}
+                              />
+                            )}
+                          />
+                        </Grid>
+                        <Grid item xs={12} sm={4}>
+                          <TextField
+                            label="Job Title"
+                            fullWidth
+                            size="small"
+                            {...register(`iotaSignatories.${i}.jobTitle`)}
+                            helperText="Auto-filled, editable"
+                          />
+                        </Grid>
                       </Grid>
-                      <Grid item xs={12} sm={4}>
-                        <TextField
-                          label="Email"
-                          fullWidth
+                      {iotaFields.length > 1 && (
+                        <IconButton
                           size="small"
-                          type="email"
-                          {...register(`iotaSignatories.${i}.email`, { required: 'Required' })}
-                          error={!!errors.iotaSignatories?.[i]?.email}
-                        />
-                      </Grid>
-                      <Grid item xs={12} sm={4}>
-                        <TextField
-                          label="Job Title"
-                          fullWidth
-                          size="small"
-                          {...register(`iotaSignatories.${i}.jobTitle`, { required: 'Required' })}
-                          error={!!errors.iotaSignatories?.[i]?.jobTitle}
-                        />
-                      </Grid>
-                    </Grid>
-                    {iotaFields.length > 1 && (
-                      <IconButton
-                        size="small"
-                        color="error"
-                        onClick={() => removeIota(i)}
-                        sx={{ mt: 0.5 }}
-                      >
-                        <Iconify icon="solar:trash-bin-trash-bold" />
-                      </IconButton>
-                    )}
-                  </Box>
-                ))}
+                          color="error"
+                          onClick={() => removeIota(i)}
+                          sx={{ mt: 0.5 }}
+                        >
+                          <Iconify icon="solar:trash-bin-trash-bold" />
+                        </IconButton>
+                      )}
+                    </Box>
+                  );
+                })}
               </Stack>
 
               <Divider sx={{ my: 3 }} />

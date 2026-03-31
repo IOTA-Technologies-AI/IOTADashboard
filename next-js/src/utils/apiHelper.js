@@ -1591,9 +1591,9 @@ export async function updateNda(id, ndaData) {
   }
 }
 
-export async function submitNdaForIotaSigning(id) {
+export async function submitNdaForIotaSigning(id, submittedBy) {
   try {
-    const response = await axios.post(`${API_BASE_URL}ndas/${id}/submit`, {});
+    const response = await axios.post(`${API_BASE_URL}ndas/${id}/submit`, { submittedBy });
     return response.data.nda;
   } catch (error) {
     console.error('Error submitting NDA for signing:', error);

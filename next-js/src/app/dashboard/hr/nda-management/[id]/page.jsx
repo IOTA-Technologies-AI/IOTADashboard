@@ -115,7 +115,7 @@ export default function NdaDetailsPage({ params }) {
   const handleSubmitForSigning = async () => {
     try {
       setActionLoading(true);
-      const updated = await submitNdaForIotaSigning(id);
+      const updated = await submitNdaForIotaSigning(id, userEmail);
       setNda(updated);
       toast.success('NDA submitted for IOTA signatures. Signatories have been emailed.');
     } catch (err) {
