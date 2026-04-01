@@ -13,15 +13,19 @@ export function InvoiceTotalSummary({
   totalAmount,
   currencyCode = 'SAR',
 }) {
+  const vatLabel = vatDetails?.vatLabel || 'VAT';
+  const vatRatePercent = vatDetails?.vatRatePercent || 0;
+  const isZATCA = vatRatePercent === 15 && vatLabel === 'VAT';
+
   return (
     <Card sx={{ p: 3 }}>
       <Stack spacing={2}>
         <Row
-          label="Subtotal (excl. VAT)"
+          label={`Subtotal (excl. ${vatLabel})`}
           value={fCurrency(subtotal || 0, { currency: currencyCode })}
         />
         <Row
-          label={`VAT (${vatDetails?.vatRatePercent || 0}%)`}
+          label={`${vatLabel} (${vatRatePercent}%)`}
           value={fCurrency(vatDetails?.vatAmount || 0, { currency: currencyCode })}
           sx={{ color: (vatDetails?.vatAmount || 0) > 0 ? 'error.main' : 'text.secondary' }}
         />
@@ -29,11 +33,11 @@ export function InvoiceTotalSummary({
         <Row label="Shipping" value={fCurrency(shipping || 0, { currency: currencyCode })} />
         <Divider sx={{ borderStyle: 'dashed' }} />
         <Row
-          label="Total (incl. VAT)"
+          label={`Total (incl. ${vatLabel})`}
           value={fCurrency(totalAmount || 0, { currency: currencyCode })}
           sx={{ typography: 'h6', color: 'primary.main' }}
         />
-        {vatDetails?.vatRatePercent === 15 && (
+        {isZATCA && (
           <Typography variant="caption" color="success.main">
             ✅ ZATCA Compliant (Saudi VAT)
           </Typography>

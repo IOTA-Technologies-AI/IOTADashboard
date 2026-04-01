@@ -324,6 +324,19 @@ export async function getInvoiceTypes() {
   }
 }
 
+export async function getVatConfigs() {
+  try {
+    const isClient = typeof window !== 'undefined';
+    const url = isClient ? '/api/vatconfigs' : `${API_BASE_URL}vatconfigs`;
+    const response = await axios.get(url);
+    const list = response.data?.vatConfigs || response.data?.data || response.data || [];
+    return Array.isArray(list) ? list : [];
+  } catch (error) {
+    console.warn('⚠️ VAT configs fetch failed:', error.response?.status, error.message);
+    return [];
+  }
+}
+
 // Payroll APIs
 export async function fetchPayrollRuns() {
   const url = `${API_BASE_URL}/payroll/runs`;

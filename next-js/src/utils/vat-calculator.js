@@ -8,62 +8,64 @@ dayjs.extend(quarterOfYear);
 // ----------------------------------------------------------------------
 
 /**
- * Get VAT rate based on currency and country
- * @param {string} currency - Invoice currency (SAR, AED, etc.)
- * @param {string} country - Invoice country
+ * Get VAT rate based on country code using the DB-loaded vatConfigs.
+ * Falls back to hardcoded defaults if configs are not loaded yet.
+ * @param {string} countryCode - IOTA office country code (KSA, UAE, India, UK)
+ * @param {Array} vatConfigs - Array of vatConfig objects from DB
  * @returns {number} - VAT rate as decimal (0.15 for 15%)
  */
-export function getVATRate(currency, country) {
-  // Rule 1: SAR currency in Saudi Arabia = 15% VAT
-  if (currency === 'SAR' && country === 'Saudi Arabia') {
-    return 0.15;
+export function getVATRate(countryCode, vatConfigs = []) {
+  if (vatConfigs.length > 0) {
+    const config = vatConfigs.find((c) => c.countryCode === countryCode && c.isActive !== false);
+    return config ? Number(config.vatRate) / 100 : 0;
   }
 
-  // Rule 2: AED currency = 5% VAT (UAE)
-  if (currency === 'AED') {
-    return 0.05;
-  }
-
-  // Rule 3: All other countries/currencies = 0% VAT
-  return 0;
+  // Hardcoded fallback (used before DB loads)
+  const fallback = { KSA: 0.15, UAE: 0.05, India: 0.18, UK: 0.2 };
+  return fallback[countryCode] ?? 0;
 }
 
 /**
- * Calculate VAT amount for an invoice (VAT-INCLUSIVE)
- * @param {number} amount - Invoice total amount (including VAT)
- * @param {string} currency - Invoice currency
- * @param {string} country - Invoice country
- * @returns {object} - { vatRate, vatAmount, baseAmount, totalWithVAT }
+ * Get VAT label for a country (e.g. 'VAT', 'GST').
+ * @param {string} countryCode
+ * @param {Array} vatConfigs
+ * @returns {string}
  */
-export function calculateVAT(amount, currency, country) {
-  const vatRate = getVATRate(currency, country);
+export function getVATLabel(countryCode, vatConfigs = []) {
+  if (vatConfigs.length > 0) {
+    const config = vatConfigs.find((c) => c.countryCode === countryCode);
+    return config?.vatLabel || 'VAT';
+  }
+  return countryCode === 'India' ? 'GST' : 'VAT';
+}
+
+/**
+ * Calculate VAT for an invoice (VAT-EXCLUSIVE: amount is base, VAT is added on top).
+ * @param {number} amount - Base amount (excluding VAT)
+ * @param {string} countryCode - IOTA office country code (KSA, UAE, India, UK)
+ * @param {Array} vatConfigs - DB-loaded VAT config array
+ * @returns {object} - { vatRate, vatRatePercent, vatLabel, vatAmount, baseAmount, totalWithVAT }
+ */
+export function calculateVAT(amount, countryCode, vatConfigs = []) {
+  const vatRate = getVATRate(countryCode, vatConfigs);
+  const vatLabel = getVATLabel(countryCode, vatConfigs);
 
   if (vatRate === 0) {
-    // No VAT applicable
     return {
       vatRate: 0,
       vatRatePercent: 0,
+      vatLabel,
       vatAmount: 0,
       baseAmount: amount,
       totalWithVAT: amount,
     };
   }
 
-  // ✅ VAT-EXCLUSIVE CALCULATION (amount is base, we ADD VAT to it)
-  // Formula: VAT Amount = Base Amount × VAT Rate
-  // Formula: Total With VAT = Base Amount + VAT Amount
-
   const baseAmount = amount;
   const vatAmount = amount * vatRate;
   const totalWithVAT = amount + vatAmount;
 
-  return {
-    vatRate,
-    vatRatePercent: vatRate * 100,
-    vatAmount,
-    baseAmount,
-    totalWithVAT,
-  };
+  return { vatRate, vatRatePercent: vatRate * 100, vatLabel, vatAmount, baseAmount, totalWithVAT };
 }
 // ----------------------------------------------------------------------
 // Quarter Date Utilities

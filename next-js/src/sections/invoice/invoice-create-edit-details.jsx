@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { sumBy } from 'es-toolkit';
 import { useFieldArray, useFormContext } from 'react-hook-form';
 
@@ -10,8 +10,8 @@ import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
 import { inputBaseClasses } from '@mui/material/InputBase';
 
-// VAT calculator import
 import { calculateVAT } from 'src/utils/vat-calculator';
+import { getVatConfigs } from 'src/utils/apiHelper';
 
 import { Field } from 'src/components/hook-form';
 import { Iconify } from 'src/components/iconify';
@@ -43,33 +43,34 @@ export function InvoiceCreateEditDetails() {
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
 
+  // Load VAT configs from DB once
+  const [vatConfigs, setVatConfigs] = useState([]);
+  useEffect(() => {
+    getVatConfigs()
+      .then(setVatConfigs)
+      .catch(() => setVatConfigs([]));
+  }, []);
+
   // Watch values that change
   const items = watch('items');
   const discount = watch('discount') || 0;
   const shipping = watch('shipping') || 0;
-  const invoiceTo = watch('invoiceTo');
+  const invoiceFrom = watch('invoiceFrom'); // VAT driven by IOTA billing office
   const invoiceTypeName = watch('invoiceTypeName') || '';
 
-  // ✅ Get currency and country from selected customer
-  const currency = invoiceTo?.currency || 'SAR';
-  // Convert country code to full name for VAT calculator
-  const country =
-    invoiceTo?.country === 'KSA'
-      ? 'Saudi Arabia'
-      : invoiceTo?.country === 'ARE'
-        ? 'UAE'
-        : invoiceTo?.country || 'Saudi Arabia';
+  // VAT is based on the IOTA office issuing the invoice, not the customer
+  const officeCountryCode = invoiceFrom?.country || 'KSA';
 
   // Calculate subtotal
   const subtotal = sumBy(items || [], (item) => (item.quantity || 0) * (item.price || 0));
 
-  // ✅ Use VAT calculator with customer's currency and country
-  const vatDetails = calculateVAT(subtotal || 0, currency, country);
+  // Look up VAT using DB-loaded configs (falls back to hardcoded rates if not loaded yet)
+  const vatDetails = calculateVAT(subtotal || 0, officeCountryCode, vatConfigs);
 
   // Calculate total after discount and shipping
   const totalAmount = vatDetails.totalWithVAT - discount - shipping;
 
-  // ✅ Extract primitive values BEFORE useEffect
+  // Extract primitive values BEFORE useEffect
   const baseAmountValue = vatDetails?.baseAmount || 0;
   const vatAmountValue = vatDetails?.vatAmount || 0;
   const vatRatePercentValue = vatDetails?.vatRatePercent || 0;
