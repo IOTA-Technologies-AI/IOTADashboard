@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import dynamic from 'next/dynamic';
 import { useBoolean } from 'minimal-shared/hooks';
 
@@ -9,9 +11,13 @@ import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import DialogActions from '@mui/material/DialogActions';
+import CircularProgress from '@mui/material/CircularProgress';
 
+import { toast } from 'src/components/snackbar';
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
+
+import apiHelper from 'src/utils/apiHelper';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -27,8 +33,45 @@ const InvoicePDFViewer = dynamic(
   { ssr: false }
 );
 
-export function InvoiceToolbar({ invoice, currentStatus, statusOptions, onChangeStatus }) {
+export function InvoiceToolbar({
+  invoice,
+  currentStatus,
+  onRefresh,
+  statusOptions,
+  onChangeStatus,
+}) {
   const { value: open, onFalse: onClose, onTrue: onOpen } = useBoolean();
+  const [issuing, setIssuing] = useState(false);
+
+  const handleIssue = async () => {
+    try {
+      setIssuing(true);
+      // Dynamically import to keep SSR safe
+      const [{ pdf: renderPdf }, { InvoicePdfDocument }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('./invoice-pdf'),
+      ]);
+      const blob = await renderPdf(
+        <InvoicePdfDocument invoice={invoice} currentStatus={currentStatus} />
+      ).toBlob();
+      const arrayBuffer = await blob.arrayBuffer();
+      // Convert to base64 without btoa size limit
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const pdfBase64 = btoa(binary);
+      await apiHelper.issueInvoice(invoice?.invoiceId || invoice?.id, pdfBase64);
+      toast.success('Invoice issued and emailed to customer.');
+      onRefresh?.();
+    } catch (err) {
+      console.error('[InvoiceToolbar] Issue failed:', err);
+      toast.error('Failed to issue invoice. Please try again.');
+    } finally {
+      setIssuing(false);
+    }
+  };
 
   const renderDownloadButton = () =>
     invoice ? <InvoicePDFDownload invoice={invoice} currentStatus={currentStatus} /> : null;
@@ -90,10 +133,16 @@ export function InvoiceToolbar({ invoice, currentStatus, statusOptions, onChange
             </IconButton>
           </Tooltip>
 
-          <Tooltip title="Send">
-            <IconButton>
-              <Iconify icon="custom:send-fill" />
-            </IconButton>
+          <Tooltip title={issuing ? 'Issuing…' : 'Issue & Email to Customer'}>
+            <span>
+              <IconButton onClick={handleIssue} disabled={issuing}>
+                {issuing ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <Iconify icon="custom:send-fill" />
+                )}
+              </IconButton>
+            </span>
           </Tooltip>
 
           <Tooltip title="Share">

@@ -1111,6 +1111,31 @@ export async function updateInvoice(invoiceId, invoiceData) {
   }
 }
 
+/**
+ * Issue an invoice: upload the generated PDF to OneDrive and email it to the customer.
+ * @param {string} invoiceId  - The invoice's invoiceId field
+ * @param {string} pdfBase64  - Base64-encoded PDF content
+ */
+export async function issueInvoice(invoiceId, pdfBase64) {
+  try {
+    console.log('📤 Issuing invoice:', invoiceId);
+
+    const response = await axios.post(
+      `${API_BASE_URL}invoices/${invoiceId}/issue`,
+      { invoiceId, pdfBase64 },
+      {
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+
+    console.log('✅ Invoice issued successfully:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Failed to issue invoice:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
 // ============================================================================
 // EMPLOYEE API FUNCTIONS
 // ============================================================================
@@ -1842,6 +1867,7 @@ export const apiHelper = {
   fetchInvoice,
   deleteInvoice,
   updateInvoice,
+  issueInvoice,
   getEmployees,
   getEmployeeById,
   createEmployee,
