@@ -60,6 +60,7 @@ export function InvoiceCreateEditDetails() {
 
   // VAT is based on the IOTA office issuing the invoice, not the customer
   const officeCountryCode = invoiceFrom?.country || 'KSA';
+  const currency = invoiceFrom?.currency || 'SAR';
 
   // Calculate subtotal
   const subtotal = sumBy(items || [], (item) => (item.quantity || 0) * (item.price || 0));
