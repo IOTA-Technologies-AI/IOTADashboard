@@ -235,6 +235,23 @@ export async function getCustomers() {
   }
 }
 
+export async function createCustomer(data) {
+  try {
+    const config = {
+      method: 'post',
+      maxBodyLength: Infinity,
+      url: 'https://staging-iotaapiserver-s572.encr.app/customers',
+      headers: { 'Content-Type': 'application/json' },
+      data,
+    };
+    const response = await axios.request(config);
+    return response.data.customer;
+  } catch (error) {
+    console.error('Failed to create customer:', error);
+    throw error;
+  }
+}
+
 export async function getVendors() {
   try {
     let config = {

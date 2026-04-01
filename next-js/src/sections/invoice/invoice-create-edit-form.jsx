@@ -29,6 +29,16 @@ import { InvoiceCreateEditStatusDate } from './invoice-create-edit-status-date';
 import { defaultItem, InvoiceCreateEditDetails } from './invoice-create-edit-details';
 import { IOTA_OFFICES, InvoiceCreateEditAddress } from './invoice-create-edit-address';
 
+// Currency symbol map for IOTA offices
+const CURRENCY_SYMBOLS = {
+  SAR: 'ر.س',
+  AED: 'د.إ',
+  INR: '₹',
+  GBP: '£',
+  USD: '$',
+  EUR: '€',
+};
+
 // --------------------------------------------
 
 export const InvoiceCreateSchema = z
@@ -199,8 +209,8 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         status: data.status || 'draft', // ✅ Keep as draft
         total: parseFloat((data.totalAmount || 0).toFixed(2)),
         balance: parseFloat((data.totalAmount || 0).toFixed(2)),
-        currencyCode: data.invoiceTo?.currency || 'SAR',
-        currencySymbol: data.invoiceTo?.currency === 'SAR' ? 'ر.س' : '$',
+        currencyCode: data.invoiceFrom?.currency || 'SAR',
+        currencySymbol: CURRENCY_SYMBOLS[data.invoiceFrom?.currency] || 'ر.س',
         exchangeRate: 1,
         costcenterId: data.costcenterId ? Number(data.costcenterId) : null,
         baseAmount: parseFloat((data.subtotal || 0).toFixed(2)),
@@ -278,8 +288,8 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         balance: parseFloat((data.totalAmount || 0).toFixed(2)),
         shippingCharge: parseFloat((data.shipping || 0).toFixed(2)),
         adjustment: parseFloat((data.discount || 0).toFixed(2)),
-        currencyCode: data.invoiceTo?.currency || 'SAR',
-        currencySymbol: data.invoiceTo?.currency === 'SAR' ? 'ر.س' : '$',
+        currencyCode: data.invoiceFrom?.currency || 'SAR',
+        currencySymbol: CURRENCY_SYMBOLS[data.invoiceFrom?.currency] || 'ر.س',
         exchangeRate: 1,
         costcenterId: data.costcenterId ? Number(data.costcenterId) : null,
         // Invoice type fields
