@@ -1,5 +1,6 @@
 'use client';
 
+import { pdf } from '@react-pdf/renderer';
 import { use, useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
@@ -38,7 +39,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
-import { NdaHtmlTemplate, NdaSignatureCanvas } from 'src/components/nda';
+import { NdaPdfDocument, NdaHtmlTemplate, NdaSignatureCanvas } from 'src/components/nda';
 
 import { useAuthContext } from 'src/auth/hooks';
 
@@ -218,15 +219,11 @@ export default function NdaDetailsPage({ params }) {
     try {
       setActionLoading(true);
 
-      // Serialize the rendered NDA HTML to a base64 string so the backend can
-      // store it on OneDrive.  A full PDF library is not needed for this flow.
-      const htmlContent = printRef.current?.outerHTML ?? '<html><body>NDA Document</body></html>';
-      const bytes = new TextEncoder().encode(htmlContent);
-      let binary = '';
-      bytes.forEach((b) => {
-        binary += String.fromCharCode(b);
-      });
-      const pdfBase64 = window.btoa(binary);
+      // Generate a real PDF using @react-pdf/renderer, then base64-encode it
+      // for upload to OneDrive via the backend.
+      const blob = await pdf(<NdaPdfDocument nda={nda} />).toBlob();
+      const arrayBuffer = await blob.arrayBuffer();
+      const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
 
       const updated = await finalizeNda(id, pdfBase64);
       setNda(updated);
