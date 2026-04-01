@@ -1,5 +1,4 @@
 import { useState } from 'react';
-
 import dynamic from 'next/dynamic';
 import { useBoolean } from 'minimal-shared/hooks';
 
@@ -13,12 +12,12 @@ import IconButton from '@mui/material/IconButton';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { toast } from 'src/components/snackbar';
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
 import apiHelper from 'src/utils/apiHelper';
 
+import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
