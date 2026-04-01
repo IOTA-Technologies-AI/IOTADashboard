@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useRef, useState } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
-import Stack from '@mui/material/Stack';
 import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
@@ -16,13 +16,11 @@ import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
-import Autocomplete from '@mui/material/Autocomplete';
 import LoadingButton from '@mui/lab/LoadingButton';
-import CircularProgress from '@mui/material/CircularProgress';
+import Autocomplete from '@mui/material/Autocomplete';
 import ToggleButton from '@mui/material/ToggleButton';
+import CircularProgress from '@mui/material/CircularProgress';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-
-import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
@@ -34,6 +32,8 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+
+import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 
 // ----------------------------------------------------------------------
 
@@ -49,9 +49,11 @@ export default function NdaNewPage() {
   const handleNewDocFileChange = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const allowed = ['application/pdf',
+    const allowed = [
+      'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/msword'];
+      'application/msword',
+    ];
     if (!allowed.includes(file.type)) {
       toast.error('Only PDF, DOCX and DOC files are supported');
       return;
@@ -132,7 +134,6 @@ export default function NdaNewPage() {
         uploadedDocumentName: uploadedFile?.name ?? null,
         uploadedDocumentBase64: uploadedFile?.base64 ?? null,
       });
-      });
 
       toast.success(`NDA ${nda.ndaNumber} created`);
       router.push(paths.dashboard.hr.ndaManagement.details(nda.id));
@@ -172,7 +173,9 @@ export default function NdaNewPage() {
               <ToggleButtonGroup
                 value={documentSource}
                 exclusive
-                onChange={(_, val) => { if (val) setDocumentSource(val); }}
+                onChange={(_, val) => {
+                  if (val) setDocumentSource(val);
+                }}
                 size="small"
               >
                 <ToggleButton value="iota_generated">
@@ -201,7 +204,10 @@ export default function NdaNewPage() {
                       <Button
                         size="small"
                         color="inherit"
-                        onClick={() => { setUploadedFile(null); newDocFileRef.current.value = ''; }}
+                        onClick={() => {
+                          setUploadedFile(null);
+                          newDocFileRef.current.value = '';
+                        }}
                       >
                         Remove
                       </Button>
