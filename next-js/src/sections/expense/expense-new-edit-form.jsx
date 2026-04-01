@@ -688,19 +688,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
           );
           return;
         }
-        const expenseAmt = Number(data.originalExpenseAmount);
-        const walletBalance = Number(wallet.balance ?? 0);
-        // Block if expense currency matches wallet currency and balance is insufficient
-        if (
-          data.originalExpenseCurrency === (wallet.currency || 'SAR') &&
-          expenseAmt > walletBalance
-        ) {
-          toast.error(
-            `Insufficient wallet balance for ${data.expenseBy}. Available: ${walletBalance} ${wallet.currency || 'SAR'}, required: ${expenseAmt} ${data.originalExpenseCurrency}.`
-          );
-          return;
-        }
-        // Pass the employee's Microsoft user ID so the backend can auto-deduct the wallet
+        // Pass the employee's Microsoft user ID so the backend can reserve the wallet deduction
         expenseData.walletEmployeeId = selectedUser.id;
       }
 
@@ -896,7 +884,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
           </ToggleButtonGroup>
           <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
             {watch('paymentMethod') === 'wallet'
-              ? 'Expense will be deducted from the employee\u2019s pre-loaded IOTA wallet balance.'
+              ? 'A pending deduction will be reserved on the employee\u2019s IOTA wallet. The balance is deducted only when the expense is approved; rejected expenses are voided with no impact to the balance.'
               : 'Employee paid from personal funds and will be reimbursed.'}
           </Typography>
         </Box>
