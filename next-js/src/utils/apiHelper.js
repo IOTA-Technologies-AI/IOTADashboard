@@ -1909,4 +1909,11 @@ export const apiHelper = {
   cancelNda,
   uploadExternalNdaDocument,
   setNdaStampPlacements,
+  // Wallet management
+  getWallets,
+  getWallet,
+  getWalletTransactions,
+  topUpWallet,
+  deductFromWallet,
+  adjustWallet,
 };
