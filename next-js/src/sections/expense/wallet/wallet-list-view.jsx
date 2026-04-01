@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useBoolean } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
@@ -9,7 +9,6 @@ import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import Tooltip from '@mui/material/Tooltip';
 import TableRow from '@mui/material/TableRow';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -20,6 +19,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import TableContainer from '@mui/material/TableContainer';
 import InputAdornment from '@mui/material/InputAdornment';
+import LinearProgress from '@mui/material/LinearProgress';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
@@ -44,6 +44,7 @@ import {
 } from 'src/components/table';
 
 import { useAuthContext } from 'src/auth/hooks';
+import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 
 // ──────────────────────────────────────────────────────────────
 
@@ -63,9 +64,56 @@ export function WalletListView({ wallets: initialWallets = [] }) {
   const router = useRouter();
   const table = useTable({ defaultRowsPerPage: 25 });
 
-  const [wallets, setWallets] = useState(initialWallets);
+  // Existing wallet records from DB
+  const [walletMap, setWalletMap] = useState(() => {
+    const map = {};
+    initialWallets.forEach((w) => {
+      map[w.employeeId] = w;
+    });
+    return map;
+  });
 
-  // Top-up dialog state
+  // Microsoft user list — source of truth for "all employees"
+  const { users: msUsers, loading: loadingUsers } = useMicrosoftUsers();
+
+  // Merge: every MS user gets a row; DB wallet data overlaid where it exists
+  const dataFiltered = useMemo(() => {
+    if (!msUsers.length) {
+      // Fall back to DB rows only while MS users are loading
+      return Object.values(walletMap).sort((a, b) =>
+        (a.employeeName || '').localeCompare(b.employeeName || '')
+      );
+    }
+    return msUsers
+      .filter((u) => u.email) // skip accounts without an email
+      .map((u) => {
+        const existing = walletMap[u.id] || walletMap[u.email];
+        return {
+          employeeId: existing?.employeeId ?? u.id,
+          employeeName: existing?.employeeName ?? u.name,
+          employeeEmail: existing?.employeeEmail ?? u.email,
+          balance: existing?.balance ?? 0,
+          currency: existing?.currency ?? 'SAR',
+          updatedAt: existing?.updatedAt ?? null,
+          hasWallet: !!existing,
+        };
+      })
+      .sort((a, b) => a.employeeName.localeCompare(b.employeeName));
+  }, [msUsers, walletMap]);
+
+  const totalBalance = useMemo(
+    () => dataFiltered.reduce((sum, w) => sum + Number(w.balance ?? 0), 0),
+    [dataFiltered]
+  );
+  const activeCount = useMemo(
+    () => dataFiltered.filter((w) => Number(w.balance) > 0).length,
+    [dataFiltered]
+  );
+
+  const notFound = !loadingUsers && !dataFiltered.length;
+
+  // ── Top-up dialog ──────────────────────────────────────────────
+
   const topUpDialog = useBoolean();
   const [topUpForm, setTopUpForm] = useState({
     employeeId: '',
@@ -77,23 +125,14 @@ export function WalletListView({ wallets: initialWallets = [] }) {
   });
   const [topUpLoading, setTopUpLoading] = useState(false);
 
-  const totalBalance = wallets.reduce((sum, w) => sum + Number(w.balance ?? 0), 0);
-  const totalWallets = wallets.length;
-  const positiveWallets = wallets.filter((w) => Number(w.balance) > 0).length;
-
-  const dataFiltered = wallets;
-  const notFound = !dataFiltered.length;
-
-  // ── Handlers ──────────────────────────────────────────────────
-
   const handleOpenTopUp = useCallback(
-    (wallet) => {
+    (row) => {
       setTopUpForm({
-        employeeId: wallet.employeeId,
-        employeeName: wallet.employeeName,
-        employeeEmail: wallet.employeeEmail,
+        employeeId: row.employeeId,
+        employeeName: row.employeeName,
+        employeeEmail: row.employeeEmail,
         amount: '',
-        currency: wallet.currency || 'SAR',
+        currency: row.currency || 'SAR',
         description: '',
       });
       topUpDialog.onTrue();
@@ -115,16 +154,13 @@ export function WalletListView({ wallets: initialWallets = [] }) {
         performedBy,
       });
       toast.success(
-        `Successfully added ${topUpForm.currency} ${fNumber(topUpForm.amount)} to ${topUpForm.employeeName}'s wallet.`
+        `Added ${topUpForm.currency} ${fNumber(topUpForm.amount)} to ${topUpForm.employeeName}'s wallet.`
       );
-      // Update the local wallet balance
-      setWallets((prev) =>
-        prev.map((w) =>
-          w.employeeId === topUpForm.employeeId
-            ? { ...w, balance: result.wallet?.balance ?? w.balance }
-            : w
-        )
-      );
+      // Upsert the returned wallet into our map
+      const updated = result.wallet;
+      if (updated) {
+        setWalletMap((prev) => ({ ...prev, [updated.employeeId]: updated }));
+      }
       topUpDialog.onFalse();
     } catch (error) {
       toast.error(error?.response?.data?.message || error.message || 'Top-up failed.');
@@ -134,8 +170,8 @@ export function WalletListView({ wallets: initialWallets = [] }) {
   }, [topUpForm, user, topUpDialog]);
 
   const handleViewDetail = useCallback(
-    (wallet) => {
-      router.push(paths.dashboard.expense.wallet.employee(wallet.employeeId));
+    (row) => {
+      router.push(paths.dashboard.expense.wallet.employee(row.employeeId));
     },
     [router]
   );
@@ -143,7 +179,11 @@ export function WalletListView({ wallets: initialWallets = [] }) {
   const handleRefresh = useCallback(async () => {
     try {
       const fresh = await apiHelper.getWallets();
-      setWallets(fresh);
+      const map = {};
+      fresh.forEach((w) => {
+        map[w.employeeId] = w;
+      });
+      setWalletMap(map);
       toast.success('Wallets refreshed.');
     } catch {
       toast.error('Failed to refresh wallets.');
@@ -183,10 +223,10 @@ export function WalletListView({ wallets: initialWallets = [] }) {
         }}
       >
         <SummaryCard
-          icon="solar:wallet-bold"
+          icon="solar:users-group-two-rounded-bold"
           color="primary.main"
-          label="Total Wallets"
-          value={totalWallets}
+          label="Total Employees"
+          value={dataFiltered.length}
           isCurrency={false}
         />
         <SummaryCard
@@ -197,15 +237,15 @@ export function WalletListView({ wallets: initialWallets = [] }) {
           isCurrency
         />
         <SummaryCard
-          icon="solar:users-group-two-rounded-bold"
+          icon="solar:wallet-bold"
           color="warning.main"
-          label="Active Balances"
-          value={positiveWallets}
+          label="Active Wallets"
+          value={activeCount}
           isCurrency={false}
         />
       </Box>
 
-      {/* Wallets Table */}
+      {/* Employees Table */}
       <Card>
         <Stack
           direction="row"
@@ -213,11 +253,15 @@ export function WalletListView({ wallets: initialWallets = [] }) {
           justifyContent="space-between"
           sx={{ px: 3, py: 2 }}
         >
-          <Typography variant="h6">Employee Wallets</Typography>
-          <Tooltip title="Add funds to an employee wallet by clicking 'Top-Up' on the row.">
-            <Iconify icon="eva:info-outline" sx={{ color: 'text.secondary' }} />
-          </Tooltip>
+          <Box>
+            <Typography variant="h6">Employee Wallets</Typography>
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              All employees are listed. Click <strong>Top-Up</strong> to load funds into any wallet.
+            </Typography>
+          </Box>
         </Stack>
+
+        {loadingUsers && <LinearProgress />}
 
         <Scrollbar>
           <TableContainer sx={{ minWidth: 720 }}>
@@ -227,7 +271,6 @@ export function WalletListView({ wallets: initialWallets = [] }) {
                 orderBy={table.orderBy}
                 headCells={TABLE_HEAD}
                 rowCount={dataFiltered.length}
-                numSelected={table.selected.length}
                 onSort={table.onSort}
               />
 
@@ -239,7 +282,7 @@ export function WalletListView({ wallets: initialWallets = [] }) {
                   )
                   .map((row) => (
                     <WalletTableRow
-                      key={row.id || row.employeeId}
+                      key={row.employeeId}
                       row={row}
                       onTopUp={() => handleOpenTopUp(row)}
                       onViewDetail={() => handleViewDetail(row)}
@@ -325,7 +368,7 @@ function WalletTableRow({ row, onTopUp, onViewDetail }) {
       <TableCell align="right">
         <Label
           variant="soft"
-          color={balance > 0 ? 'success' : balance < 0 ? 'error' : 'default'}
+          color={balance > 0 ? 'success' : 'default'}
           sx={{ typography: 'subtitle2', px: 1.5 }}
         >
           {fNumber(balance)}
@@ -346,7 +389,7 @@ function WalletTableRow({ row, onTopUp, onViewDetail }) {
           >
             Top-Up
           </Button>
-          <Button size="small" variant="outlined" onClick={onViewDetail}>
+          <Button size="small" variant="outlined" onClick={onViewDetail} disabled={!row.hasWallet}>
             Detail
           </Button>
         </Stack>
@@ -362,15 +405,8 @@ function TopUpDialog({ open, onClose, form, onChange, onSubmit, loading }) {
       <DialogContent sx={{ pt: 2 }}>
         <Stack spacing={2}>
           <TextField
-            label="Employee Name"
-            value={form.employeeName}
-            fullWidth
-            InputProps={{ readOnly: true }}
-            size="small"
-          />
-          <TextField
-            label="Employee Email"
-            value={form.employeeEmail}
+            label="Employee"
+            value={`${form.employeeName} (${form.employeeEmail})`}
             fullWidth
             InputProps={{ readOnly: true }}
             size="small"
@@ -409,3 +445,4 @@ function TopUpDialog({ open, onClose, form, onChange, onSubmit, loading }) {
     </Dialog>
   );
 }
+
