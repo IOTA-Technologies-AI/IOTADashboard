@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 
 import Box from '@mui/material/Box';
@@ -8,6 +8,7 @@ import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import Chip from '@mui/material/Chip';
+import Alert from '@mui/material/Alert';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
@@ -18,6 +19,8 @@ import IconButton from '@mui/material/IconButton';
 import Autocomplete from '@mui/material/Autocomplete';
 import LoadingButton from '@mui/lab/LoadingButton';
 import CircularProgress from '@mui/material/CircularProgress';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 
@@ -37,8 +40,29 @@ import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 export default function NdaNewPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [documentSource, setDocumentSource] = useState('iota_generated');
+  const [uploadedFile, setUploadedFile] = useState(null); // { name, base64 }
+  const newDocFileRef = useRef(null);
 
   const { users: msUsers, loading: msUsersLoading } = useMicrosoftUsers();
+
+  const handleNewDocFileChange = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowed = ['application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword'];
+    if (!allowed.includes(file.type)) {
+      toast.error('Only PDF, DOCX and DOC files are supported');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result.split(',')[1];
+      setUploadedFile({ name: file.name, base64 });
+    };
+    reader.readAsDataURL(file);
+  };
 
   const {
     register,
@@ -83,9 +107,15 @@ export default function NdaNewPage() {
   const isPerpetual = watch('isPerpetual');
 
   const onSubmit = async (data) => {
-    const incompleteIota = data.iotaSignatories?.some((s) => !s.name || !s.email);
-    if (incompleteIota) {
-      toast.error('Please select all IOTA signatories from the Microsoft user list');
+    if (documentSource === 'iota_generated') {
+      const incompleteIota = data.iotaSignatories?.some((s) => !s.name || !s.email);
+      if (incompleteIota) {
+        toast.error('Please select all IOTA signatories from the Microsoft user list');
+        return;
+      }
+    }
+    if (documentSource === 'external_upload' && !uploadedFile) {
+      toast.error('Please upload a document file before creating the NDA');
       return;
     }
     try {
@@ -98,6 +128,10 @@ export default function NdaNewPage() {
         isPerpetual: data.isPerpetual === 'true' || data.isPerpetual === true,
         durationYears: Number(data.durationYears),
         createdBy: user?.email || 'unknown',
+        documentSource,
+        uploadedDocumentName: uploadedFile?.name ?? null,
+        uploadedDocumentBase64: uploadedFile?.base64 ?? null,
+      });
       });
 
       toast.success(`NDA ${nda.ndaNumber} created`);
@@ -125,6 +159,73 @@ export default function NdaNewPage() {
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <Grid container spacing={3}>
+          {/* ── Agreement Type ── */}
+          <Grid item xs={12}>
+            <Card sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 1 }}>
+                Agreement Type
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+                Choose whether to generate a new agreement using our template or upload an existing
+                document (PDF, DOCX, DOC) from your partner for signing.
+              </Typography>
+              <ToggleButtonGroup
+                value={documentSource}
+                exclusive
+                onChange={(_, val) => { if (val) setDocumentSource(val); }}
+                size="small"
+              >
+                <ToggleButton value="iota_generated">
+                  <Iconify icon="solar:document-bold" sx={{ mr: 1 }} />
+                  Generate from Template
+                </ToggleButton>
+                <ToggleButton value="external_upload">
+                  <Iconify icon="solar:upload-bold" sx={{ mr: 1 }} />
+                  Upload External Document
+                </ToggleButton>
+              </ToggleButtonGroup>
+
+              {documentSource === 'external_upload' && (
+                <Box sx={{ mt: 2.5 }}>
+                  <input
+                    ref={newDocFileRef}
+                    type="file"
+                    accept=".pdf,.docx,.doc"
+                    style={{ display: 'none' }}
+                    onChange={handleNewDocFileChange}
+                  />
+                  {uploadedFile ? (
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Iconify icon="solar:file-text-bold" sx={{ color: 'primary.main' }} />
+                      <Typography variant="body2">{uploadedFile.name}</Typography>
+                      <Button
+                        size="small"
+                        color="inherit"
+                        onClick={() => { setUploadedFile(null); newDocFileRef.current.value = ''; }}
+                      >
+                        Remove
+                      </Button>
+                    </Stack>
+                  ) : (
+                    <Stack spacing={1}>
+                      <Button
+                        variant="outlined"
+                        startIcon={<Iconify icon="solar:upload-bold" />}
+                        onClick={() => newDocFileRef.current?.click()}
+                      >
+                        Select File (PDF / DOCX / DOC)
+                      </Button>
+                      <Alert severity="info" sx={{ mt: 1 }}>
+                        The partner document will be stored securely. You can add IOTA stamp
+                        placements and collect signatures on the detail page after creation.
+                      </Alert>
+                    </Stack>
+                  )}
+                </Box>
+              )}
+            </Card>
+          </Grid>
+
           {/* ── Agreement Details ── */}
           <Grid item xs={12} md={8}>
             <Card sx={{ p: 3 }}>

@@ -31,7 +31,9 @@ import {
   updateNda,
   finalizeNda,
   iotaSignNda,
+  setNdaStampPlacements,
   submitNdaForIotaSigning,
+  uploadExternalNdaDocument,
 } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -69,6 +71,7 @@ const ACTION_LABEL = {
   iota_signed: 'IOTA Signed',
   partner_signing_tokens_issued: 'Partner Signing Links Issued',
   partner_signed: 'Partner Signed',
+  document_uploaded: 'Document Uploaded',
   pdf_uploaded_to_onedrive: 'PDF Uploaded to OneDrive',
   cancelled: 'Cancelled',
 };
@@ -143,6 +146,7 @@ export default function NdaDetailsPage({ params }) {
   const router = useRouter();
   const { user } = useAuthContext();
   const printRef = useRef(null);
+  const docFileInputRef = useRef(null);
 
   const [nda, setNda] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -153,6 +157,12 @@ export default function NdaDetailsPage({ params }) {
   const [clausesEditing, setClausesEditing] = useState(false);
   const [editedClauses, setEditedClauses] = useState([]);
   const [sectionEditDialog, setSectionEditDialog] = useState({ open: false, key: '', text: '' });
+  const [stampPlacements, setStampPlacements] = useState([]);
+  const [stampDialogOpen, setStampDialogOpen] = useState(false);
+  const [stampForm, setStampForm] = useState({ page: 1, xPct: 50, yPct: 50, widthPct: 15 });
+  const [stampSaving, setStampSaving] = useState(false);
+  const [docBlobUrl, setDocBlobUrl] = useState(null);
+  const [docUploading, setDocUploading] = useState(false);
 
   const userEmail = user?.email || '';
 
@@ -177,6 +187,23 @@ export default function NdaDetailsPage({ params }) {
   useEffect(() => {
     fetchNda();
   }, [fetchNda]);
+
+  useEffect(() => {
+    if (nda?.stampPlacements) {
+      setStampPlacements(nda.stampPlacements);
+    }
+  }, [nda?.stampPlacements]);
+
+  useEffect(() => {
+    if (nda?.uploadedDocumentBase64 && nda.uploadedDocumentName?.toLowerCase().endsWith('.pdf')) {
+      const bytes = Uint8Array.from(atob(nda.uploadedDocumentBase64), (c) => c.charCodeAt(0));
+      const blob = new Blob([bytes], { type: 'application/pdf' });
+      const url = URL.createObjectURL(blob);
+      setDocBlobUrl(url);
+      return () => URL.revokeObjectURL(url);
+    }
+    setDocBlobUrl(null);
+  }, [nda?.uploadedDocumentBase64, nda?.uploadedDocumentName]);
 
   const handleSubmitForSigning = async () => {
     try {
@@ -219,13 +246,57 @@ export default function NdaDetailsPage({ params }) {
     try {
       setActionLoading(true);
 
-      // Generate a real PDF using @react-pdf/renderer, then base64-encode it
-      // for upload to OneDrive via the backend.
-      const blob = await pdf(<NdaPdfDocument nda={nda} />).toBlob();
-      const arrayBuffer = await blob.arrayBuffer();
-      const pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      let fileBase64;
+      const isExternalUpload = nda.documentSource === 'external_upload';
 
-      const updated = await finalizeNda(id, pdfBase64);
+      if (isExternalUpload) {
+        if (!nda.uploadedDocumentBase64) {
+          toast.error('No document uploaded. Please upload the partner document first.');
+          setActionLoading(false);
+          return;
+        }
+        fileBase64 = nda.uploadedDocumentBase64;
+      } else {
+        // Generate PDF from react-pdf template
+        const blob = await pdf(<NdaPdfDocument nda={nda} />).toBlob();
+        const arrayBuffer = await blob.arrayBuffer();
+        fileBase64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      }
+
+      // Apply IOTA stamp placements when the document is a PDF
+      const isPdf =
+        !isExternalUpload ||
+        (nda.uploadedDocumentName && nda.uploadedDocumentName.toLowerCase().endsWith('.pdf'));
+      if (isPdf && stampPlacements.length > 0) {
+        const { PDFDocument } = await import('pdf-lib');
+        const pdfBytes = Uint8Array.from(atob(fileBase64), (c) => c.charCodeAt(0));
+        const pdfDoc = await PDFDocument.load(pdfBytes);
+        const stampRes = await fetch('/logo/iota-stamp.png');
+        if (stampRes.ok) {
+          const stampArrayBuffer = await stampRes.arrayBuffer();
+          const stampImage = await pdfDoc.embedPng(new Uint8Array(stampArrayBuffer));
+          const pages = pdfDoc.getPages();
+          for (const placement of stampPlacements) {
+            const pageIdx = Math.max(0, (placement.page || 1) - 1);
+            const page = pages[pageIdx];
+            if (!page) continue;
+            const { width: pw, height: ph } = page.getSize();
+            const stampW = (placement.widthPct / 100) * pw;
+            const stampH = stampW * (stampImage.height / stampImage.width);
+            page.drawImage(stampImage, {
+              x: (placement.xPct / 100) * pw - stampW / 2,
+              y: ph - (placement.yPct / 100) * ph - stampH / 2,
+              width: stampW,
+              height: stampH,
+              opacity: 0.85,
+            });
+          }
+          const saved = await pdfDoc.save();
+          fileBase64 = btoa(String.fromCharCode(...saved));
+        }
+      }
+
+      const updated = await finalizeNda(id, fileBase64);
       setNda(updated);
       toast.success('NDA finalized and uploaded to OneDrive.');
     } catch (err) {
@@ -314,7 +385,62 @@ export default function NdaDetailsPage({ params }) {
     // Wait for images (signatures) to load, then open print dialog
     printWindow.onload = () => printWindow.print();
   };
+  const handleUploadDocument = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const allowed = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'application/msword',
+    ];
+    if (!allowed.includes(file.type)) {
+      toast.error('Only PDF, DOCX and DOC files are supported');
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        setDocUploading(true);
+        const base64 = reader.result.split(',')[1];
+        const updated = await uploadExternalNdaDocument(id, file.name, base64);
+        setNda(updated);
+        toast.success('Document uploaded successfully');
+      } catch (err) {
+        console.error(err);
+        toast.error('Failed to upload document');
+      } finally {
+        setDocUploading(false);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
 
+  const handleAddStampPlacement = () => {
+    const newPlacement = {
+      id: crypto.randomUUID(),
+      page: stampForm.page,
+      xPct: stampForm.xPct,
+      yPct: stampForm.yPct,
+      widthPct: stampForm.widthPct,
+    };
+    setStampPlacements((prev) => [...prev, newPlacement]);
+    setStampDialogOpen(false);
+    setStampForm({ page: 1, xPct: 50, yPct: 50, widthPct: 15 });
+  };
+
+  const handleSaveStampPlacements = async () => {
+    try {
+      setStampSaving(true);
+      const updated = await setNdaStampPlacements(id, stampPlacements);
+      setNda(updated);
+      toast.success('Stamp placements saved');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save stamp placements');
+    } finally {
+      setStampSaving(false);
+    }
+  };
   // ── Render ────────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -424,6 +550,14 @@ export default function NdaDetailsPage({ params }) {
                   value={nda.isPerpetual ? 'Perpetual' : `${nda.durationYears} year(s)`}
                 />
                 <DetailRow label="Created By" value={nda.createdBy} />
+                <DetailRow
+                  label="Document Type"
+                  value={
+                    nda.documentSource === 'external_upload'
+                      ? 'External Upload'
+                      : 'Generated Template'
+                  }
+                />
                 {nda.onedriveWebUrl && (
                   <Box sx={{ pt: 1 }}>
                     <Button
@@ -571,214 +705,403 @@ export default function NdaDetailsPage({ params }) {
               </Card>
             )}
 
-            {/* NDA Document preview */}
-            <Card sx={{ p: 0, overflow: 'hidden' }}>
-              <Box
-                sx={{
-                  p: 2,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  borderBottom: '1px solid',
-                  borderColor: 'divider',
-                }}
-              >
-                <Typography variant="subtitle1">Document Preview</Typography>
-                <Tooltip title="Use Print / Download button above for a clean print">
-                  <Iconify icon="solar:info-circle-bold" color="text.secondary" />
-                </Tooltip>
-              </Box>
-              <Box
-                ref={printRef}
-                sx={{
-                  maxHeight: 900,
-                  overflowY: 'auto',
-                  p: 2,
-                  bgcolor: 'background.default',
-                }}
-              >
-                <NdaHtmlTemplate nda={nda} showSignatures />
-              </Box>
-            </Card>
+            {/* Uploaded Document preview (external_upload only) */}
+            {nda.documentSource === 'external_upload' && (
+              <Card sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ mb: 1 }}>
+                  Uploaded Document
+                </Typography>
+                {nda.uploadedDocumentName ? (
+                  <Stack spacing={2}>
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Iconify icon="solar:file-text-bold" sx={{ color: 'primary.main' }} />
+                      <Typography variant="body2">{nda.uploadedDocumentName}</Typography>
+                      {isDraft && (
+                        <>
+                          <input
+                            ref={docFileInputRef}
+                            type="file"
+                            accept=".pdf,.docx,.doc"
+                            style={{ display: 'none' }}
+                            onChange={handleUploadDocument}
+                          />
+                          <Button
+                            size="small"
+                            startIcon={<Iconify icon="solar:upload-bold" />}
+                            onClick={() => docFileInputRef.current?.click()}
+                            disabled={docUploading}
+                          >
+                            Replace
+                          </Button>
+                        </>
+                      )}
+                    </Stack>
+                    {docBlobUrl ? (
+                      <Box
+                        component="iframe"
+                        src={docBlobUrl}
+                        title="Document Preview"
+                        sx={{
+                          width: '100%',
+                          height: 600,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          borderRadius: 1,
+                        }}
+                      />
+                    ) : (
+                      <Alert severity="info">
+                        DOCX / DOC files cannot be previewed in the browser. Download the file to
+                        review it.
+                      </Alert>
+                    )}
+                    <Box>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<Iconify icon="solar:download-bold" />}
+                        onClick={() => {
+                          const a = document.createElement('a');
+                          a.href = `data:application/octet-stream;base64,${nda.uploadedDocumentBase64}`;
+                          a.download = nda.uploadedDocumentName;
+                          a.click();
+                        }}
+                      >
+                        Download {nda.uploadedDocumentName}
+                      </Button>
+                    </Box>
+                  </Stack>
+                ) : (
+                  <Stack spacing={1}>
+                    <Alert severity="warning">No document uploaded yet.</Alert>
+                    {isDraft && (
+                      <>
+                        <input
+                          ref={docFileInputRef}
+                          type="file"
+                          accept=".pdf,.docx,.doc"
+                          style={{ display: 'none' }}
+                          onChange={handleUploadDocument}
+                        />
+                        <Button
+                          variant="outlined"
+                          startIcon={<Iconify icon="solar:upload-bold" />}
+                          onClick={() => docFileInputRef.current?.click()}
+                          disabled={docUploading}
+                        >
+                          {docUploading ? 'Uploading...' : 'Upload Document (PDF / DOCX / DOC)'}
+                        </Button>
+                      </>
+                    )}
+                  </Stack>
+                )}
+              </Card>
+            )}
 
-            {/* Body Sections */}
+            {/* NDA Document preview (iota_generated only) */}
+            {(!nda.documentSource || nda.documentSource === 'iota_generated') && (
+              <Card sx={{ p: 0, overflow: 'hidden' }}>
+                <Box
+                  sx={{
+                    p: 2,
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Typography variant="subtitle1">Document Preview</Typography>
+                  <Tooltip title="Use Print / Download button above for a clean print">
+                    <Iconify icon="solar:info-circle-bold" color="text.secondary" />
+                  </Tooltip>
+                </Box>
+                <Box
+                  ref={printRef}
+                  sx={{
+                    maxHeight: 900,
+                    overflowY: 'auto',
+                    p: 2,
+                    bgcolor: 'background.default',
+                  }}
+                >
+                  <NdaHtmlTemplate nda={nda} showSignatures />
+                </Box>
+              </Card>
+            )}
+
+            {/* Body Sections (iota_generated only) */}
+            {(!nda.documentSource || nda.documentSource === 'iota_generated') && (
+              <Card sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ mb: 0.5 }}>
+                  Body Sections
+                </Typography>
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mb: 2, display: 'block' }}
+                >
+                  {isDraft
+                    ? 'Click Edit on any section to customise its default legal text for this NDA.'
+                    : 'Body sections can only be edited while the NDA is in Draft status.'}
+                </Typography>
+                <Stack spacing={0}>
+                  {SECTION_META.map((sec, i) => {
+                    const isOverridden = !!nda.sectionOverrides?.[sec.key];
+                    return (
+                      <Box
+                        key={sec.key}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          py: 1,
+                          borderBottom: i < SECTION_META.length - 1 ? '1px solid' : 'none',
+                          borderColor: 'divider',
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Typography variant="body2">{sec.label}</Typography>
+                          {isOverridden && (
+                            <Chip label="Customised" size="small" color="primary" variant="soft" />
+                          )}
+                        </Box>
+                        {isDraft && (
+                          <Button
+                            size="small"
+                            startIcon={<Iconify icon="solar:pen-bold" />}
+                            onClick={() =>
+                              setSectionEditDialog({
+                                open: true,
+                                key: sec.key,
+                                text:
+                                  nda.sectionOverrides?.[sec.key] ||
+                                  SECTION_DEFAULTS[sec.key] ||
+                                  '',
+                              })
+                            }
+                          >
+                            Edit
+                          </Button>
+                        )}
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              </Card>
+            )}
+
+            {/* Clauses (iota_generated only) */}
+            {(!nda.documentSource || nda.documentSource === 'iota_generated') &&
+              ((nda.clauses && nda.clauses.length > 0) || isDraft) && (
+                <Card sx={{ p: 3 }}>
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    sx={{ mb: 2 }}
+                  >
+                    <Typography variant="h6">Additional Clauses</Typography>
+                    {isDraft && !clausesEditing && (
+                      <Button
+                        size="small"
+                        startIcon={<Iconify icon="solar:pen-bold" />}
+                        onClick={() => {
+                          setEditedClauses(
+                            nda.clauses?.length ? JSON.parse(JSON.stringify(nda.clauses)) : []
+                          );
+                          setClausesEditing(true);
+                        }}
+                      >
+                        Edit
+                      </Button>
+                    )}
+                  </Stack>
+
+                  {clausesEditing ? (
+                    <Stack spacing={2}>
+                      {editedClauses.map((clause, i) => (
+                        <Box
+                          key={i}
+                          sx={{
+                            p: 2,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            borderRadius: 1,
+                          }}
+                        >
+                          <Stack
+                            direction="row"
+                            alignItems="center"
+                            justifyContent="space-between"
+                            sx={{ mb: 1.5 }}
+                          >
+                            <Typography variant="subtitle2">Clause {i + 1}</Typography>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() =>
+                                setEditedClauses((prev) => prev.filter((_, idx) => idx !== i))
+                              }
+                            >
+                              <Iconify icon="solar:trash-bin-trash-bold" />
+                            </IconButton>
+                          </Stack>
+                          <Stack spacing={1.5}>
+                            <TextField
+                              label="Clause Title"
+                              fullWidth
+                              size="small"
+                              value={clause.title}
+                              onChange={(e) =>
+                                setEditedClauses((prev) =>
+                                  prev.map((c, idx) =>
+                                    idx === i ? { ...c, title: e.target.value } : c
+                                  )
+                                )
+                              }
+                            />
+                            <TextField
+                              label="Clause Content"
+                              fullWidth
+                              size="small"
+                              multiline
+                              rows={3}
+                              value={clause.content}
+                              onChange={(e) =>
+                                setEditedClauses((prev) =>
+                                  prev.map((c, idx) =>
+                                    idx === i ? { ...c, content: e.target.value } : c
+                                  )
+                                )
+                              }
+                            />
+                          </Stack>
+                        </Box>
+                      ))}
+
+                      <Button
+                        size="small"
+                        startIcon={<Iconify icon="mingcute:add-line" />}
+                        onClick={() =>
+                          setEditedClauses((prev) => [...prev, { title: '', content: '' }])
+                        }
+                        sx={{ alignSelf: 'flex-start' }}
+                      >
+                        Add Clause
+                      </Button>
+
+                      <Stack direction="row" spacing={1} justifyContent="flex-end">
+                        <Button onClick={() => setClausesEditing(false)}>Cancel</Button>
+                        <LoadingButton
+                          variant="contained"
+                          loading={actionLoading}
+                          onClick={handleSaveClauses}
+                        >
+                          Save Clauses
+                        </LoadingButton>
+                      </Stack>
+                    </Stack>
+                  ) : nda.clauses?.length > 0 ? (
+                    <Stack spacing={1.5}>
+                      {nda.clauses.map((clause, i) => (
+                        <Box key={i}>
+                          <Typography variant="subtitle2">
+                            {clause.title || `Clause ${i + 1}`}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                            {clause.content}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Stack>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      No additional clauses. Click Edit to add some.
+                    </Typography>
+                  )}
+                </Card>
+              )}
+
+            {/* IOTA Stamp Placements */}
             <Card sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ mb: 0.5 }}>
-                Body Sections
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-                {isDraft
-                  ? 'Click Edit on any section to customise its default legal text for this NDA.'
-                  : 'Body sections can only be edited while the NDA is in Draft status.'}
-              </Typography>
-              <Stack spacing={0}>
-                {SECTION_META.map((sec, i) => {
-                  const isOverridden = !!nda.sectionOverrides?.[sec.key];
-                  return (
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{ mb: 2 }}
+              >
+                <Box>
+                  <Typography variant="h6">IOTA Stamp Placements</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Define where the IOTA stamp PNG appears on the PDF. Stamps are embedded during
+                    the OneDrive upload. Place the stamp PNG at{' '}
+                    <code>/public/logo/iota-stamp.png</code>.
+                  </Typography>
+                </Box>
+                {isDraft && (
+                  <Button
+                    size="small"
+                    startIcon={<Iconify icon="mingcute:add-line" />}
+                    onClick={() => setStampDialogOpen(true)}
+                  >
+                    Add Placement
+                  </Button>
+                )}
+              </Stack>
+
+              {stampPlacements.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  No stamp placements configured.
+                  {isDraft && ' Click “Add Placement” to mark stamp positions.'}
+                </Typography>
+              ) : (
+                <Stack spacing={0}>
+                  {stampPlacements.map((sp) => (
                     <Box
-                      key={sec.key}
+                      key={sp.id}
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         py: 1,
-                        borderBottom: i < SECTION_META.length - 1 ? '1px solid' : 'none',
+                        borderBottom: '1px solid',
                         borderColor: 'divider',
                       }}
                     >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                        <Typography variant="body2">{sec.label}</Typography>
-                        {isOverridden && (
-                          <Chip label="Customised" size="small" color="primary" variant="soft" />
-                        )}
-                      </Box>
+                      <Typography variant="body2">
+                        Page {sp.page} — Position ({sp.xPct}%, {sp.yPct}%) — Width {sp.widthPct}%
+                      </Typography>
                       {isDraft && (
-                        <Button
+                        <IconButton
                           size="small"
-                          startIcon={<Iconify icon="solar:pen-bold" />}
+                          color="error"
                           onClick={() =>
-                            setSectionEditDialog({
-                              open: true,
-                              key: sec.key,
-                              text:
-                                nda.sectionOverrides?.[sec.key] || SECTION_DEFAULTS[sec.key] || '',
-                            })
+                            setStampPlacements((prev) => prev.filter((p) => p.id !== sp.id))
                           }
                         >
-                          Edit
-                        </Button>
+                          <Iconify icon="solar:trash-bin-trash-bold" />
+                        </IconButton>
                       )}
                     </Box>
-                  );
-                })}
-              </Stack>
-            </Card>
-
-            {/* Clauses */}
-            {((nda.clauses && nda.clauses.length > 0) || isDraft) && (
-              <Card sx={{ p: 3 }}>
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  justifyContent="space-between"
-                  sx={{ mb: 2 }}
-                >
-                  <Typography variant="h6">Additional Clauses</Typography>
-                  {isDraft && !clausesEditing && (
-                    <Button
-                      size="small"
-                      startIcon={<Iconify icon="solar:pen-bold" />}
-                      onClick={() => {
-                        setEditedClauses(
-                          nda.clauses?.length ? JSON.parse(JSON.stringify(nda.clauses)) : []
-                        );
-                        setClausesEditing(true);
-                      }}
-                    >
-                      Edit
-                    </Button>
-                  )}
+                  ))}
                 </Stack>
+              )}
 
-                {clausesEditing ? (
-                  <Stack spacing={2}>
-                    {editedClauses.map((clause, i) => (
-                      <Box
-                        key={i}
-                        sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}
-                      >
-                        <Stack
-                          direction="row"
-                          alignItems="center"
-                          justifyContent="space-between"
-                          sx={{ mb: 1.5 }}
-                        >
-                          <Typography variant="subtitle2">Clause {i + 1}</Typography>
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() =>
-                              setEditedClauses((prev) => prev.filter((_, idx) => idx !== i))
-                            }
-                          >
-                            <Iconify icon="solar:trash-bin-trash-bold" />
-                          </IconButton>
-                        </Stack>
-                        <Stack spacing={1.5}>
-                          <TextField
-                            label="Clause Title"
-                            fullWidth
-                            size="small"
-                            value={clause.title}
-                            onChange={(e) =>
-                              setEditedClauses((prev) =>
-                                prev.map((c, idx) =>
-                                  idx === i ? { ...c, title: e.target.value } : c
-                                )
-                              )
-                            }
-                          />
-                          <TextField
-                            label="Clause Content"
-                            fullWidth
-                            size="small"
-                            multiline
-                            rows={3}
-                            value={clause.content}
-                            onChange={(e) =>
-                              setEditedClauses((prev) =>
-                                prev.map((c, idx) =>
-                                  idx === i ? { ...c, content: e.target.value } : c
-                                )
-                              )
-                            }
-                          />
-                        </Stack>
-                      </Box>
-                    ))}
-
-                    <Button
-                      size="small"
-                      startIcon={<Iconify icon="mingcute:add-line" />}
-                      onClick={() =>
-                        setEditedClauses((prev) => [...prev, { title: '', content: '' }])
-                      }
-                      sx={{ alignSelf: 'flex-start' }}
-                    >
-                      Add Clause
-                    </Button>
-
-                    <Stack direction="row" spacing={1} justifyContent="flex-end">
-                      <Button onClick={() => setClausesEditing(false)}>Cancel</Button>
-                      <LoadingButton
-                        variant="contained"
-                        loading={actionLoading}
-                        onClick={handleSaveClauses}
-                      >
-                        Save Clauses
-                      </LoadingButton>
-                    </Stack>
-                  </Stack>
-                ) : nda.clauses?.length > 0 ? (
-                  <Stack spacing={1.5}>
-                    {nda.clauses.map((clause, i) => (
-                      <Box key={i}>
-                        <Typography variant="subtitle2">
-                          {clause.title || `Clause ${i + 1}`}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                          {clause.content}
-                        </Typography>
-                      </Box>
-                    ))}
-                  </Stack>
-                ) : (
-                  <Typography variant="body2" color="text.secondary">
-                    No additional clauses. Click Edit to add some.
-                  </Typography>
-                )}
-              </Card>
-            )}
+              {isDraft && (
+                <Box sx={{ mt: 2 }}>
+                  <LoadingButton
+                    size="small"
+                    variant="contained"
+                    loading={stampSaving}
+                    onClick={handleSaveStampPlacements}
+                    startIcon={<Iconify icon="solar:diskette-bold" />}
+                  >
+                    Save Placements
+                  </LoadingButton>
+                </Box>
+              )}
+            </Card>
 
             {/* Audit Log */}
             {nda.auditLog?.length > 0 && (
@@ -869,6 +1192,89 @@ export default function NdaDetailsPage({ params }) {
           >
             Save
           </LoadingButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Stamp placement dialog ── */}
+      <Dialog
+        open={stampDialogOpen}
+        onClose={() => setStampDialogOpen(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Add IOTA Stamp Placement</DialogTitle>
+        <DialogContent>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+            Specify the page and position as a percentage of the page dimensions (0–100). Place the
+            IOTA stamp PNG at <code>/public/logo/iota-stamp.png</code>.
+          </Typography>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="Page Number"
+              type="number"
+              fullWidth
+              size="small"
+              value={stampForm.page}
+              onChange={(e) =>
+                setStampForm((prev) => ({
+                  ...prev,
+                  page: Math.max(1, parseInt(e.target.value) || 1),
+                }))
+              }
+              InputProps={{ inputProps: { min: 1 } }}
+            />
+            <TextField
+              label="X Position (% from left)"
+              type="number"
+              fullWidth
+              size="small"
+              value={stampForm.xPct}
+              onChange={(e) =>
+                setStampForm((prev) => ({
+                  ...prev,
+                  xPct: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)),
+                }))
+              }
+              helperText="0 = left edge, 100 = right edge"
+              InputProps={{ inputProps: { min: 0, max: 100, step: 0.5 } }}
+            />
+            <TextField
+              label="Y Position (% from top)"
+              type="number"
+              fullWidth
+              size="small"
+              value={stampForm.yPct}
+              onChange={(e) =>
+                setStampForm((prev) => ({
+                  ...prev,
+                  yPct: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)),
+                }))
+              }
+              helperText="0 = top, 100 = bottom"
+              InputProps={{ inputProps: { min: 0, max: 100, step: 0.5 } }}
+            />
+            <TextField
+              label="Stamp Width (% of page width)"
+              type="number"
+              fullWidth
+              size="small"
+              value={stampForm.widthPct}
+              onChange={(e) =>
+                setStampForm((prev) => ({
+                  ...prev,
+                  widthPct: Math.min(100, Math.max(1, parseFloat(e.target.value) || 15)),
+                }))
+              }
+              helperText="e.g. 15 = stamp is 15% of the page width"
+              InputProps={{ inputProps: { min: 1, max: 100, step: 0.5 } }}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setStampDialogOpen(false)}>Cancel</Button>
+          <Button variant="contained" onClick={handleAddStampPlacement}>
+            Add
+          </Button>
         </DialogActions>
       </Dialog>
 

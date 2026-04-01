@@ -1647,6 +1647,33 @@ export async function cancelNda(id, cancelledBy, reason) {
   }
 }
 
+export async function uploadExternalNdaDocument(id, fileName, fileBase64) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}ndas/${id}/upload-document`, {
+      id,
+      fileName,
+      fileBase64,
+    });
+    return response.data.nda;
+  } catch (error) {
+    console.error('Error uploading external NDA document:', error);
+    throw error;
+  }
+}
+
+export async function setNdaStampPlacements(id, stampPlacements) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}ndas/${id}/stamp-placements`, {
+      id,
+      stampPlacements,
+    });
+    return response.data.nda;
+  } catch (error) {
+    console.error('Error saving NDA stamp placements:', error);
+    throw error;
+  }
+}
+
 // ============================================================================
 // WEBHOOK EVENTS API FUNCTIONS
 // ============================================================================
@@ -1783,4 +1810,6 @@ export const apiHelper = {
   partnerSignNda,
   finalizeNda,
   cancelNda,
+  uploadExternalNdaDocument,
+  setNdaStampPlacements,
 };

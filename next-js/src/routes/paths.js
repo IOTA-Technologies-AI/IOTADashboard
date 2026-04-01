@@ -173,6 +173,11 @@ export const paths = {
         new: path(ROOTS.DASHBOARD, '/hr/nda-management/new'),
         details: (id) => path(ROOTS.DASHBOARD, `/hr/nda-management/${id}`),
       },
+      partnershipAgreement: {
+        root: path(ROOTS.DASHBOARD, '/hr/partnership-agreement'),
+        new: path(ROOTS.DASHBOARD, '/hr/partnership-agreement/new'),
+        details: (id) => path(ROOTS.DASHBOARD, `/hr/partnership-agreement/${id}`),
+      },
       businessVisa: {
         root: path(ROOTS.DASHBOARD, '/hr/business-visa'),
         new: path(ROOTS.DASHBOARD, '/hr/business-visa/new'),

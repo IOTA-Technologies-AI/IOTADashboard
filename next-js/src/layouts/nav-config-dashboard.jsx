@@ -146,6 +146,13 @@ export const navData = [
           },
           { title: 'Employee Offer Management', path: paths.dashboard.hr.offerManagement.root },
           { title: 'NDA Management', path: paths.dashboard.hr.ndaManagement.root },
+          {
+            title: 'Partnership Agreements',
+            path: paths.dashboard.hr.partnershipAgreement.root,
+            // TODO: Full Partnership Agreement implementation — mirrors NDA Management.
+            // Supports iota_generated and external_upload modes, IOTA stamp placement, signing flow.
+            info: <Label color="warning">Soon</Label>,
+          },
           { title: 'Business Visa Requests', path: paths.dashboard.hr.businessVisa.root },
           {
             title: 'Leave Management',
