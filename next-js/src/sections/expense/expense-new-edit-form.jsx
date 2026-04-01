@@ -664,6 +664,46 @@ export function ExpenseNewEditForm({ currentExpense }) {
           expenseData.expenseApprovedAmount = Number(data.expenseApprovedAmount);
       }
 
+      // Wallet validation: only for new expense creation with wallet payment method
+      if (data.paymentMethod === 'wallet' && !currentExpense) {
+        const selectedUser = microsoftUsers.find((u) => u.name === data.expenseBy);
+        if (!selectedUser?.id) {
+          toast.error(
+            'Cannot verify wallet: the selected employee was not found in the directory.'
+          );
+          return;
+        }
+        let wallet = null;
+        try {
+          wallet = await apiHelper.getWallet(selectedUser.id);
+        } catch {
+          toast.error(
+            `${data.expenseBy} does not have an active wallet. Please ask the finance team to top up a wallet for this employee first.`
+          );
+          return;
+        }
+        if (!wallet) {
+          toast.error(
+            `${data.expenseBy} does not have an active wallet. Please ask the finance team to top up a wallet for this employee first.`
+          );
+          return;
+        }
+        const expenseAmt = Number(data.originalExpenseAmount);
+        const walletBalance = Number(wallet.balance ?? 0);
+        // Block if expense currency matches wallet currency and balance is insufficient
+        if (
+          data.originalExpenseCurrency === (wallet.currency || 'SAR') &&
+          expenseAmt > walletBalance
+        ) {
+          toast.error(
+            `Insufficient wallet balance for ${data.expenseBy}. Available: ${walletBalance} ${wallet.currency || 'SAR'}, required: ${expenseAmt} ${data.originalExpenseCurrency}.`
+          );
+          return;
+        }
+        // Pass the employee's Microsoft user ID so the backend can auto-deduct the wallet
+        expenseData.walletEmployeeId = selectedUser.id;
+      }
+
       if (currentExpense) {
         await apiHelper.updateExpense(currentExpense.referenceId, expenseData);
         toast.success('Expense updated successfully!');

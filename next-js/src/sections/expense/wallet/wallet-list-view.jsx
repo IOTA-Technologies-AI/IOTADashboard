@@ -50,11 +50,10 @@ import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 
 const TABLE_HEAD = [
   { id: 'employeeName', label: 'Employee', sortable: true },
-  { id: 'employeeEmail', label: 'Email', sortable: false },
   { id: 'balance', label: 'Balance', width: 140, align: 'right', sortable: true },
   { id: 'currency', label: 'Currency', width: 100, sortable: false },
   { id: 'updatedAt', label: 'Last Updated', width: 140, sortable: true },
-  { id: '', width: 160 },
+  { id: '', width: 220 },
 ];
 
 // ──────────────────────────────────────────────────────────────
@@ -362,9 +361,7 @@ function WalletTableRow({ row, onTopUp, onViewDetail }) {
         <Box sx={{ typography: 'subtitle2' }}>{row.employeeName}</Box>
         <Box sx={{ typography: 'caption', color: 'text.secondary' }}>{row.employeeId}</Box>
       </TableCell>
-      <TableCell sx={{ typography: 'body2', color: 'text.secondary' }}>
-        {row.employeeEmail}
-      </TableCell>
+
       <TableCell align="right">
         <Label
           variant="soft"
@@ -379,9 +376,8 @@ function WalletTableRow({ row, onTopUp, onViewDetail }) {
         {row.updatedAt ? new Date(row.updatedAt).toLocaleDateString() : '—'}
       </TableCell>
       <TableCell align="right">
-        <Stack direction="row" spacing={1} justifyContent="flex-end">
+        <Stack direction="row" spacing={1.5} justifyContent="flex-end">
           <Button
-            size="small"
             variant="contained"
             color="primary"
             startIcon={<Iconify icon="eva:plus-fill" />}
@@ -389,7 +385,7 @@ function WalletTableRow({ row, onTopUp, onViewDetail }) {
           >
             Top-Up
           </Button>
-          <Button size="small" variant="outlined" onClick={onViewDetail} disabled={!row.hasWallet}>
+          <Button variant="outlined" onClick={onViewDetail} disabled={!row.hasWallet}>
             Detail
           </Button>
         </Stack>
@@ -445,4 +441,3 @@ function TopUpDialog({ open, onClose, form, onChange, onSubmit, loading }) {
     </Dialog>
   );
 }
-
