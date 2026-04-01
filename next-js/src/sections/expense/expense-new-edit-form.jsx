@@ -18,6 +18,8 @@ import Autocomplete from '@mui/material/Autocomplete';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import LinearProgress from '@mui/material/LinearProgress';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import CircularProgress from '@mui/material/CircularProgress'; // ✅ Added for loading state
 
 import { paths } from 'src/routes/paths';
@@ -91,6 +93,8 @@ const ExpenseSchema = zod.object({
   // ✅ Employee-related fields
   employeeId: zod.string().optional(),
   employeeName: zod.string().optional(),
+  // Payment method: out_of_pocket = expense reimbursed to employee; wallet = deducted from IOTA wallet
+  paymentMethod: zod.enum(['out_of_pocket', 'wallet']).default('out_of_pocket'),
 });
 
 // ----------------------------------------------------------------------
@@ -375,6 +379,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
       // ✅ Employee-related defaults
       employeeId: currentExpense?.employeeId || '',
       employeeName: currentExpense?.employeeName || '',
+      paymentMethod: currentExpense?.paymentMethod || 'out_of_pocket',
     }),
     [currentExpense, isSuperAdmin]
   );
@@ -641,6 +646,9 @@ export function ExpenseNewEditForm({ currentExpense }) {
       // VAT exemption
       expenseData.isVATExempt = data.isVATExempt || false;
 
+      // Payment method
+      expenseData.paymentMethod = data.paymentMethod || 'out_of_pocket';
+
       // Employee-related fields — only include when the selected type is employee-related
       const selectedType = expenseTypes.find((t) => t.id === Number(data.expenseType));
       if (selectedType?.isEmployeeRelated) {
@@ -822,6 +830,36 @@ export function ExpenseNewEditForm({ currentExpense }) {
             </MenuItem>
           ))}
         </Field.Select>
+
+        {/* Payment Method Toggle */}
+        <Box>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            Payment Method
+          </Typography>
+          <ToggleButtonGroup
+            exclusive
+            value={watch('paymentMethod') || 'out_of_pocket'}
+            onChange={(_, val) => {
+              if (val) setValue('paymentMethod', val, { shouldDirty: true });
+            }}
+            size="small"
+            color="primary"
+          >
+            <ToggleButton value="out_of_pocket">
+              <Iconify icon="solar:wallet-bold" sx={{ mr: 1 }} />
+              Out of Pocket (Reimburse)
+            </ToggleButton>
+            <ToggleButton value="wallet">
+              <Iconify icon="solar:card-bold" sx={{ mr: 1 }} />
+              Company Wallet
+            </ToggleButton>
+          </ToggleButtonGroup>
+          <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
+            {watch('paymentMethod') === 'wallet'
+              ? 'Expense will be deducted from the employee\u2019s pre-loaded IOTA wallet balance.'
+              : 'Employee paid from personal funds and will be reimbursed.'}
+          </Typography>
+        </Box>
 
         <Field.Text
           name="expenseSettlementNotes"

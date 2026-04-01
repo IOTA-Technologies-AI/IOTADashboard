@@ -628,6 +628,103 @@ export async function uploadExpenseAttachment({ folderPath, fileName, fileConten
   }
 }
 
+// ============================================================================
+// Wallet Management APIs
+// ============================================================================
+
+const WALLET_API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
+
+/** Return all employee wallets (admin overview). */
+export async function getWallets() {
+  try {
+    const response = await axios.get(`${WALLET_API_BASE_URL}/wallet`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.data?.wallets ?? [];
+  } catch (error) {
+    console.error('❌ getWallets error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+/** Return a single employee wallet by employeeId. */
+export async function getWallet(employeeId) {
+  try {
+    const response = await axios.get(
+      `${WALLET_API_BASE_URL}/wallet/${encodeURIComponent(employeeId)}`,
+      {
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
+    return response.data?.wallet ?? null;
+  } catch (error) {
+    console.error('❌ getWallet error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+/** Return all wallet transactions for an employee, newest first. */
+export async function getWalletTransactions(employeeId) {
+  try {
+    const response = await axios.get(
+      `${WALLET_API_BASE_URL}/wallet/${encodeURIComponent(employeeId)}/transactions`,
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    return response.data?.transactions ?? [];
+  } catch (error) {
+    console.error('❌ getWalletTransactions error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+/**
+ * Credit funds to an employee wallet (auto-creates wallet on first top-up).
+ * @param {{ employeeId: string, employeeName: string, employeeEmail: string, amount: number, currency?: string, description?: string, performedBy: string }} data
+ */
+export async function topUpWallet(data) {
+  try {
+    const response = await axios.post(`${WALLET_API_BASE_URL}/wallet/top-up`, data, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ topUpWallet error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+/**
+ * Deduct an approved wallet-payment expense from the employee's balance.
+ * @param {{ employeeId: string, amount: number, currency?: string, description?: string, expenseReferenceId?: string, performedBy: string }} data
+ */
+export async function deductFromWallet(data) {
+  try {
+    const response = await axios.post(`${WALLET_API_BASE_URL}/wallet/deduct`, data, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ deductFromWallet error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+/**
+ * Manually credit or debit an employee wallet (correction / adjustment).
+ * @param {{ employeeId: string, direction: 'credit'|'debit', amount: number, currency?: string, description?: string, performedBy: string }} data
+ */
+export async function adjustWallet(data) {
+  try {
+    const response = await axios.post(`${WALLET_API_BASE_URL}/wallet/adjust`, data, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ adjustWallet error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
 // Add these functions to your existing apiHelper.js
 
 // Accounts Receivable APIs

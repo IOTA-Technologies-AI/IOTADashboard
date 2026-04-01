@@ -233,6 +233,10 @@ export const paths = {
         details: `${ROOTS.DASHBOARD}/expense/1`,
         edit: `${ROOTS.DASHBOARD}/expense/1/edit`,
       },
+      wallet: {
+        root: `${ROOTS.DASHBOARD}/expense/wallet`,
+        employee: (employeeId) => `${ROOTS.DASHBOARD}/expense/wallet/${employeeId}`,
+      },
     },
     invoice: {
       root: `${ROOTS.DASHBOARD}/invoice`,

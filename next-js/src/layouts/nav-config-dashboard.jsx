@@ -217,6 +217,7 @@ export const navData = [
           { title: 'Details', path: paths.dashboard.expense.demo.details },
           { title: 'Create', path: paths.dashboard.expense.new },
           { title: 'Edit', path: paths.dashboard.expense.demo.edit },
+          { title: 'Wallet Management', path: paths.dashboard.expense.wallet.root },
         ],
       },
       {
