@@ -127,7 +127,11 @@ export function InvoiceToolbar({
           {renderDownloadButton()}
 
           <Tooltip title="Print">
-            <IconButton>
+            <IconButton
+              onClick={() =>
+                window.open(`/invoice-print/${invoice?.id || invoice?.invoiceId}`, '_blank')
+              }
+            >
               <Iconify icon="solar:printer-minimalistic-bold" />
             </IconButton>
           </Tooltip>

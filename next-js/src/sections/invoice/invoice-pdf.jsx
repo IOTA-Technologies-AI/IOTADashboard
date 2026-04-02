@@ -378,14 +378,7 @@ export function InvoicePdfDocument({ invoice, currentStatus }) {
           {/* ── HEADER ── */}
           <View style={styles.headerRow}>
             <Image source="/logo/logo-single.png" style={styles.logo} />
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={styles.invoiceTitle}>INVOICE</Text>
-              {invoiceFrom?.vatNumber ? (
-                <Text style={[styles.bodyText, { marginTop: 4, color: IOTA_GRAY }]}>
-                  VAT Reg #: {invoiceFrom.vatNumber}
-                </Text>
-              ) : null}
-            </View>
+            <Text style={styles.invoiceTitle}>INVOICE</Text>
           </View>
 
           {/* Blue accent line */}
@@ -410,6 +403,12 @@ export function InvoicePdfDocument({ invoice, currentStatus }) {
 
             {/* Invoice meta */}
             <View style={styles.metaCol}>
+              {invoiceFrom?.vatNumber ? (
+                <View style={styles.metaRow}>
+                  <Text style={styles.metaLabel}>VAT Registration #:</Text>
+                  <Text style={styles.metaValue}>{invoiceFrom.vatNumber}</Text>
+                </View>
+              ) : null}
               <View style={styles.metaRow}>
                 <Text style={styles.metaLabel}>Invoice #:</Text>
                 <Text style={[styles.metaValue, { fontWeight: 700 }]}>{invoiceNumber}</Text>

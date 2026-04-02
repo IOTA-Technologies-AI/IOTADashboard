@@ -40,6 +40,12 @@ export const IOTA_OFFICES = [
     country: 'KSA',
     businessType: 'Information Technology Services',
     isIOTAOffice: true,
+    bankDetails: {
+      accountName: 'IOTA Information Technology Services',
+      iban: '',
+      bank: '',
+      city: 'Riyadh, Saudi Arabia',
+    },
   },
   {
     id: 'iota-uae',
@@ -53,6 +59,12 @@ export const IOTA_OFFICES = [
     country: 'UAE',
     businessType: 'Information Technology Services',
     isIOTAOffice: true,
+    bankDetails: {
+      accountName: 'IOTA Information Technology Services.',
+      iban: 'AE480260001015933487201',
+      bank: 'Emirates NBD',
+      city: 'Dubai, United Arab Emirates',
+    },
   },
   {
     id: 'iota-india',
@@ -66,6 +78,12 @@ export const IOTA_OFFICES = [
     country: 'India',
     businessType: 'Information Technology Services',
     isIOTAOffice: true,
+    bankDetails: {
+      accountName: 'IOTA Information Technology Services',
+      iban: '',
+      bank: '',
+      city: 'India',
+    },
   },
   {
     id: 'iota-uk',
@@ -79,6 +97,12 @@ export const IOTA_OFFICES = [
     country: 'UK',
     businessType: 'Information Technology Services',
     isIOTAOffice: true,
+    bankDetails: {
+      accountName: 'IOTA Information Technology Services',
+      iban: '',
+      bank: '',
+      city: 'United Kingdom',
+    },
   },
 ];
 
