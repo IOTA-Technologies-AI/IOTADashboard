@@ -444,7 +444,7 @@ export function InvoicePdfDocument({ invoice, currentStatus }) {
               </View>
               <View style={styles.colAmount}>
                 <Text style={styles.itemAmount}>
-                  {fCurrency(item.price ?? item.total, currencyCode)}
+                  {fCurrency(item.price ?? item.total, { currencyCode })}
                 </Text>
               </View>
             </View>
@@ -455,23 +455,25 @@ export function InvoicePdfDocument({ invoice, currentStatus }) {
             <View style={styles.summaryInner}>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Subtotal</Text>
-                <Text style={styles.summaryValue}>{fCurrency(subtotal, currencyCode)}</Text>
+                <Text style={styles.summaryValue}>{fCurrency(subtotal, { currencyCode })}</Text>
               </View>
               {discount > 0 && (
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Discount</Text>
-                  <Text style={styles.summaryValue}>-{fCurrency(discount, currencyCode)}</Text>
+                  <Text style={styles.summaryValue}>-{fCurrency(discount, { currencyCode })}</Text>
                 </View>
               )}
               {shipping > 0 && (
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Shipping</Text>
-                  <Text style={styles.summaryValue}>{fCurrency(shipping, currencyCode)}</Text>
+                  <Text style={styles.summaryValue}>{fCurrency(shipping, { currencyCode })}</Text>
                 </View>
               )}
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabelBold}>{vatLabel}</Text>
-                <Text style={styles.summaryValueBold}>{fCurrency(vatAmount, currencyCode)}</Text>
+                <Text style={styles.summaryValueBold}>
+                  {fCurrency(vatAmount, { currencyCode })}
+                </Text>
               </View>
             </View>
           </View>
@@ -479,7 +481,7 @@ export function InvoicePdfDocument({ invoice, currentStatus }) {
           {/* ── TOTAL BOX ── */}
           <View style={styles.totalBox}>
             <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>{fCurrency(totalAmount, currencyCode)}</Text>
+            <Text style={styles.totalValue}>{fCurrency(totalAmount, { currencyCode })}</Text>
           </View>
 
           {amountWords ? <Text style={styles.amountWords}>{amountWords}</Text> : null}

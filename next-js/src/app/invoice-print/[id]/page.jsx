@@ -411,20 +411,13 @@ export default function InvoicePrintPage() {
     });
   }, [id]);
 
-  // Set page title and load paged.js after invoice data is ready
+  // Set page title and trigger print after invoice data is ready
   useEffect(() => {
     if (!invoice) return;
-
     document.title = invoice.invoiceNumber || 'IOTA Invoice';
-
-    // Load paged.js polyfill — handles @page CSS rules across all browsers
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/pagedjs/dist/paged.polyfill.js';
-    script.onload = () => {
-      // paged.js processes the DOM; give it time then open the print dialog
-      setTimeout(() => window.print(), 1500);
-    };
-    document.head.appendChild(script);
+    // Small delay so fonts/styles render before the print dialog opens
+    const timer = setTimeout(() => window.print(), 800);
+    return () => clearTimeout(timer);
   }, [invoice]);
 
   if (!invoice) {
