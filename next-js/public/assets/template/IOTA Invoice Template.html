@@ -5,13 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>{{INVOICE_NUMBER}}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Red+Hat+Display:wght@600;700;800;900&display=swap" rel="stylesheet">
   <style>
     @page { size: A4 portrait; margin: 0; }
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: 'Inter', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+      font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif;
       background: #e8e8e8;
       color: #1a1a1a;
       -webkit-print-color-adjust: exact;
@@ -28,7 +29,8 @@
     .toolbar-title { color: white; font-size: 14px; font-weight: 600; flex: 1; }
     .btn {
       border: none; padding: 8px 20px; border-radius: 6px;
-      font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
     }
     .btn-print { background: #0166ff; color: white; }
     .btn-print:hover { background: #0050cc; }
@@ -56,10 +58,11 @@
     /* ── Header: INVOICE left, logo right ── */
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .invoice-title {
-      font-size: 28px; font-weight: 800;
+      font-family: 'Red Hat Display', sans-serif;
+      font-size: 28px; font-weight: 900;
       letter-spacing: 8px; text-transform: uppercase; color: #1a1a1a;
     }
-    .logo { width: 48px; height: 48px; object-fit: contain; }
+    .logo { width: 48px; height: 48px; object-fit: contain; transform: scaleX(-1); }
 
     /* ── Blue accent line ── */
     .accent { height: 1.5px; background: #0166ff; margin-bottom: 22px; }
@@ -70,7 +73,8 @@
     .meta-col { width: 48%; text-align: right; }
 
     .bill-label {
-      font-size: 9px; font-weight: 600; color: #1a1a1a;
+      font-family: 'Red Hat Display', sans-serif;
+      font-size: 9px; font-weight: 700; color: #1a1a1a;
       text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
     }
     .customer-name { font-size: 11px; font-weight: 700; color: #1a1a1a; margin-bottom: 3px; }
@@ -88,6 +92,7 @@
       border-bottom: 1.5px solid #0166ff;
     }
     .items-box th {
+      font-family: 'Red Hat Display', sans-serif;
       font-size: 9px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.8px; color: #1a1a1a;
       padding: 10px 14px; text-align: left;
@@ -117,6 +122,7 @@
 
     /* ── Total row (last row in the box, bold, white bg) ── */
     .total-row td {
+      font-family: 'Red Hat Display', sans-serif;
       padding: 12px 14px;
       font-size: 11px; font-weight: 700; color: #1a1a1a;
       text-transform: uppercase; letter-spacing: 1px;
@@ -133,6 +139,7 @@
     .footer-col { width: 48%; }
     .footer-col-right { width: 48%; text-align: right; }
     .footer-heading {
+      font-family: 'Red Hat Display', sans-serif;
       font-size: 8px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 1.5px; color: #1a1a1a; margin-bottom: 6px;
     }
