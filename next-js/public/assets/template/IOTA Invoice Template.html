@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{INVOICE_NUMBER}}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    @page { size: A4 portrait; margin: 0; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', 'Helvetica Neue', Arial, Helvetica, sans-serif;
+      background: #e8e8e8;
+      color: #1a1a1a;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* ── Screen toolbar (hidden on print) ── */
+    .toolbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+      background: #013927; padding: 10px 24px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .toolbar-title { color: white; font-size: 14px; font-weight: 600; flex: 1; }
+    .btn {
+      border: none; padding: 8px 20px; border-radius: 6px;
+      font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+    }
+    .btn-print { background: #0166ff; color: white; }
+    .btn-print:hover { background: #0050cc; }
+    .btn-close {
+      background: rgba(255,255,255,0.15); color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    /* ── Page wrapper ── */
+    .page-wrapper { padding: 58px 20px 20px; }
+
+    /* ── A4 invoice card ── */
+    .page {
+      width: 210mm;
+      background: white;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+    }
+
+    /* ── Content area ── */
+    .content { padding: 40px 48px 36px; position: relative; }
+
+    /* ── Header: INVOICE left, logo right ── */
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+    .invoice-title {
+      font-size: 28px; font-weight: 800;
+      letter-spacing: 8px; text-transform: uppercase; color: #1a1a1a;
+    }
+    .logo { width: 48px; height: 48px; object-fit: contain; }
+
+    /* ── Blue accent line ── */
+    .accent { height: 1.5px; background: #0166ff; margin-bottom: 22px; }
+
+    /* ── Billing section: Bill To left, meta right (no box) ── */
+    .billing { display: flex; justify-content: space-between; margin-bottom: 28px; }
+    .bill-col { width: 48%; }
+    .meta-col { width: 48%; text-align: right; }
+
+    .bill-label {
+      font-size: 9px; font-weight: 600; color: #1a1a1a;
+      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
+    }
+    .customer-name { font-size: 11px; font-weight: 700; color: #1a1a1a; margin-bottom: 3px; }
+    .body-sm { font-size: 9.5px; color: #1a1a1a; line-height: 1.65; }
+
+    .meta-line { font-size: 9.5px; color: #1a1a1a; line-height: 1.85; }
+
+    /* ── Items area: blue bordered box ── */
+    .items-box {
+      border: 1.5px solid #0166ff;
+      border-collapse: collapse;
+      width: 100%;
+    }
+    .items-box thead tr {
+      border-bottom: 1.5px solid #0166ff;
+    }
+    .items-box th {
+      font-size: 9px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.8px; color: #1a1a1a;
+      padding: 10px 14px; text-align: left;
+    }
+    .items-box th.col-right { text-align: right; }
+    /* Vertical divider between description and amount columns */
+    .items-box th.col-right,
+    .items-box td.col-right {
+      border-left: 1.5px solid #0166ff;
+    }
+    .items-box td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #d8e4ff;
+      vertical-align: top;
+      font-size: 9.5px;
+    }
+    .items-box td.col-right { text-align: right; font-size: 9.5px; vertical-align: middle; }
+    .item-title { font-size: 9.5px; font-weight: 700; color: #1a1a1a; margin-bottom: 2px; }
+    .item-desc { font-size: 9px; color: #1a1a1a; line-height: 1.5; }
+
+    /* ── VAT row (inside the box) ── */
+    .vat-row td {
+      border-bottom: 1.5px solid #0166ff;
+    }
+    .vat-label-main { font-size: 9.5px; font-weight: 700; color: #1a1a1a; }
+    .vat-label-sub  { font-size: 9px; color: #1a1a1a; }
+
+    /* ── Total row (last row in the box, bold, white bg) ── */
+    .total-row td {
+      padding: 12px 14px;
+      font-size: 11px; font-weight: 700; color: #1a1a1a;
+      text-transform: uppercase; letter-spacing: 1px;
+      border-bottom: none;
+    }
+    .total-row td.col-right { font-size: 13px; font-weight: 700; }
+
+    /* ── Amount in words ── */
+    .amount-words { font-size: 8.5px; color: #666; text-align: right; margin-top: 8px; font-style: normal; }
+
+    /* ── Footer ── */
+    .footer-divider { height: 1px; background: #e0e0e0; margin: 20px 0 14px; }
+    .footer-row { display: flex; justify-content: space-between; }
+    .footer-col { width: 48%; }
+    .footer-col-right { width: 48%; text-align: right; }
+    .footer-heading {
+      font-size: 8px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1.5px; color: #1a1a1a; margin-bottom: 6px;
+    }
+    .footer-text { font-size: 9px; color: #1a1a1a; line-height: 1.85; }
+    .footer-link { font-size: 9px; color: #0166ff; line-height: 1.85; }
+
+    /* ── Print overrides ── */
+    @media print {
+      body { background: white; }
+      .toolbar { display: none !important; }
+      .page-wrapper { padding: 0; }
+      .page { box-shadow: none; overflow: hidden; break-after: avoid; page-break-after: avoid; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen-only toolbar -->
+  <div class="toolbar">
+    <span class="toolbar-title">{{INVOICE_NUMBER}} &mdash; {{CUSTOMER_NAME}}</span>
+    <button class="btn btn-close" onclick="window.close()">Close</button>
+    <button class="btn btn-print" onclick="window.print()">&#x1F5A8;&nbsp; Print / Save as PDF</button>
+  </div>
+
+  <div class="page-wrapper">
+    <div class="page">
+      <div class="content">
+
+        <!-- Header: INVOICE left, logo right -->
+        <div class="header">
+          <span class="invoice-title">Invoice</span>
+          <img src="/logo/logo-single.png" class="logo" alt="IOTA">
+        </div>
+
+        <!-- Blue accent line -->
+        <div class="accent"></div>
+
+        <!-- Billing section -->
+        <div class="billing">
+          <!-- Left: Bill To -->
+          <div class="bill-col">
+            <div class="bill-label">Bill To</div>
+            <div class="customer-name">{{CUSTOMER_NAME}}</div>
+            <div class="body-sm">{{CUSTOMER_ADDRESS}}</div>
+            {{CUSTOMER_VAT_HTML}}
+          </div>
+          <!-- Right: Invoice meta (right-aligned) -->
+          <div class="meta-col">
+            {{META_VAT_ROW}}
+            <div class="meta-line">Invoice #: {{INVOICE_NUMBER}}</div>
+            <div class="meta-line">Invoice Date: {{INVOICE_DATE}}</div>
+            <div class="meta-line">Due Date: {{DUE_DATE}}</div>
+          </div>
+        </div>
+
+        <!-- Items / VAT / Total — all inside one blue-bordered table -->
+        <table class="items-box">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th class="col-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{ITEMS_ROWS}}
+            {{DISCOUNT_ROW}}
+            {{SHIPPING_ROW}}
+            <!-- VAT row -->
+            <tr class="vat-row">
+              <td>
+                <div class="vat-label-main">VAT</div>
+                <div class="vat-label-sub">{{VAT_LABEL}}</div>
+              </td>
+              <td class="col-right">{{VAT_AMOUNT}}</td>
+            </tr>
+            <!-- Total row -->
+            <tr class="total-row">
+              <td>Total Amount</td>
+              <td class="col-right">{{TOTAL_AMOUNT}}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Amount in words -->
+        <div class="amount-words">{{AMOUNT_IN_WORDS}}</div>
+
+        <!-- Footer -->
+        <div class="footer-divider"></div>
+        <div class="footer-row">
+          <div class="footer-col">
+            <div class="footer-heading">Bank Transfer Details</div>
+            <div class="footer-text">A/c Name: {{BANK_ACCOUNT_NAME}}</div>
+            <div class="footer-text">IBAN: {{BANK_IBAN}}</div>
+            <div class="footer-text">Bank: {{BANK_NAME}}</div>
+            <div class="footer-text">City: {{BANK_CITY}}</div>
+          </div>
+          <div class="footer-col-right">
+            <div class="footer-heading">In Case of Queries</div>
+            <div class="footer-text">Write to us at {{OFFICE_EMAIL}}</div>
+            <div class="footer-link">{{OFFICE_EMAIL}}</div>
+            <div class="footer-text">cite our Invoice # for reference and better tracking.</div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+    </div><!-- /page -->
+  </div><!-- /page-wrapper -->
+
+</body>
+</html>
