@@ -21,14 +21,6 @@ import { fCurrency } from 'src/utils/format-number';
 import { Iconify } from 'src/components/iconify';
 import { IOTA_OFFICES } from './invoice-create-edit-address';
 
-// ── Brand colours ─────────────────────────────────────────────────────────────
-const IOTA_BLUE = '#0166ff';
-const IOTA_GREEN = '#013927';
-const IOTA_DARK = '#1e1e1e';
-const IOTA_GRAY = '#888888';
-const IOTA_LIGHT = '#f5f5f5';
-const WHITE = '#ffffff';
-
 // ── Number-to-words helper ────────────────────────────────────────────────────
 const ONES = [
   '',
@@ -102,244 +94,187 @@ const useStyles = () =>
       StyleSheet.create({
         page: {
           fontFamily: 'Roboto',
-          backgroundColor: WHITE,
+          backgroundColor: '#ffffff',
           fontSize: 9,
-          lineHeight: 1.5,
-          position: 'relative',
         },
-        // Decorative circles (absolute, behind content)
-        circleTopRight: {
-          position: 'absolute',
-          top: -70,
-          right: -70,
-          width: 260,
-          height: 260,
-          borderRadius: 130,
-          backgroundColor: IOTA_BLUE,
-          opacity: 0.1,
-        },
-        circleBottomLeft: {
-          position: 'absolute',
-          bottom: -70,
-          left: -70,
-          width: 260,
-          height: 260,
-          borderRadius: 130,
-          backgroundColor: IOTA_BLUE,
-          opacity: 0.1,
-        },
-        // Page padding wrapper
         content: {
-          paddingTop: 38,
-          paddingBottom: 32,
-          paddingHorizontal: 42,
+          flex: 1,
+          paddingTop: 40,
+          paddingBottom: 36,
+          paddingHorizontal: 48,
+          flexDirection: 'column',
         },
         // ── Header ──
-        headerRow: {
+        header: {
           flexDirection: 'row',
           justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          marginBottom: 6,
-        },
-        logo: {
-          width: 50,
-          height: 50,
+          alignItems: 'center',
+          marginBottom: 16,
         },
         invoiceTitle: {
-          fontSize: 26,
+          fontSize: 22,
           fontWeight: 700,
-          color: IOTA_DARK,
-          letterSpacing: 7,
+          letterSpacing: 8,
+          color: '#1a1a1a',
+          textTransform: 'uppercase',
         },
-        accentLine: {
-          height: 2,
-          backgroundColor: IOTA_BLUE,
-          marginBottom: 18,
+        logo: { width: 44, height: 44 },
+        // ── Blue accent line ──
+        accent: {
+          height: 1.5,
+          backgroundColor: '#0166ff',
+          marginBottom: 22,
         },
         // ── Billing row ──
         billingRow: {
           flexDirection: 'row',
           justifyContent: 'space-between',
-          marginBottom: 18,
+          marginBottom: 28,
         },
-        billToCol: { width: '50%' },
-        metaCol: { width: '47%', alignItems: 'flex-end' },
-        sectionLabel: {
+        billCol: { width: '50%' },
+        metaCol: { width: '48%', alignItems: 'flex-end' },
+        billLabel: {
           fontSize: 8,
           fontWeight: 700,
-          color: IOTA_BLUE,
+          color: '#1a1a1a',
           textTransform: 'uppercase',
-          letterSpacing: 1.5,
           marginBottom: 4,
         },
         customerName: {
           fontSize: 11,
           fontWeight: 700,
-          color: IOTA_DARK,
-          marginBottom: 2,
-        },
-        bodyText: {
-          fontSize: 9,
-          color: IOTA_DARK,
-          marginBottom: 1,
-        },
-        metaRow: {
-          flexDirection: 'row',
-          justifyContent: 'flex-end',
+          color: '#1a1a1a',
           marginBottom: 3,
         },
-        metaLabel: {
+        bodySm: { fontSize: 9, color: '#1a1a1a', lineHeight: 1.65, marginBottom: 1 },
+        metaLine: {
           fontSize: 9,
-          fontWeight: 700,
-          color: IOTA_DARK,
-          marginRight: 6,
-        },
-        metaValue: {
-          fontSize: 9,
-          color: IOTA_DARK,
-          minWidth: 110,
+          color: '#1a1a1a',
+          lineHeight: 1.85,
+          marginBottom: 1,
           textAlign: 'right',
         },
-        divider: {
-          height: 1,
-          backgroundColor: IOTA_BLUE,
-          opacity: 0.3,
-          marginVertical: 10,
+        // ── Items table — outer blue border, flex:1 fills remaining page height ──
+        tableOuter: {
+          flex: 1,
+          borderWidth: 1.5,
+          borderColor: '#0166ff',
+          borderStyle: 'solid',
+          marginBottom: 8,
+          flexDirection: 'column',
         },
-        // ── Table ──
+        // Table header row
         tableHeaderRow: {
           flexDirection: 'row',
-          borderBottomWidth: 1,
-          borderBottomColor: IOTA_BLUE,
-          paddingBottom: 6,
-          marginBottom: 0,
+          borderBottomWidth: 1.5,
+          borderBottomColor: '#0166ff',
+          borderBottomStyle: 'solid',
         },
-        colDesc: { flex: 1 },
-        colAmount: { width: 110, alignItems: 'flex-end' },
-        tableHeaderText: {
+        thDesc: { flex: 1, paddingVertical: 10, paddingHorizontal: 14 },
+        thAmount: {
+          width: 110,
+          paddingVertical: 10,
+          paddingHorizontal: 14,
+          borderLeftWidth: 1.5,
+          borderLeftColor: '#0166ff',
+          borderLeftStyle: 'solid',
+          alignItems: 'flex-end',
+        },
+        thText: {
           fontSize: 8,
           fontWeight: 700,
-          color: IOTA_DARK,
+          color: '#1a1a1a',
           textTransform: 'uppercase',
-          letterSpacing: 1,
         },
-        tableRow: {
+        // Item rows
+        itemRow: {
           flexDirection: 'row',
-          paddingVertical: 9,
           borderBottomWidth: 1,
-          borderBottomColor: '#eeeeee',
-          alignItems: 'flex-start',
+          borderBottomColor: '#d8e4ff',
+          borderBottomStyle: 'solid',
         },
-        itemTitle: {
-          fontSize: 10,
-          fontWeight: 700,
-          color: IOTA_DARK,
-          marginBottom: 2,
-        },
-        itemDesc: {
-          fontSize: 8.5,
-          color: IOTA_GRAY,
-        },
-        itemAmount: {
-          fontSize: 10,
-          color: IOTA_DARK,
-          textAlign: 'right',
-        },
-        // ── Summary ──
-        summaryOuter: {
+        tdDesc: { flex: 1, paddingVertical: 12, paddingHorizontal: 14 },
+        tdAmount: {
+          width: 110,
+          paddingTop: 12,
+          paddingBottom: 12,
+          paddingHorizontal: 14,
+          borderLeftWidth: 1.5,
+          borderLeftColor: '#0166ff',
+          borderLeftStyle: 'solid',
           alignItems: 'flex-end',
-          marginTop: 8,
         },
-        summaryInner: {
-          width: '52%',
-        },
-        summaryRow: {
+        itemTitle: { fontSize: 9, fontWeight: 700, color: '#1a1a1a', marginBottom: 2 },
+        itemDesc: { fontSize: 8.5, color: '#1a1a1a', lineHeight: 1.5 },
+        itemAmount: { fontSize: 9, color: '#1a1a1a' },
+        // ── VAT row — compact ──
+        vatRow: {
           flexDirection: 'row',
-          justifyContent: 'space-between',
-          paddingVertical: 3,
-        },
-        summaryLabel: {
-          fontSize: 9,
-          color: IOTA_GRAY,
-        },
-        summaryValue: {
-          fontSize: 9,
-          color: IOTA_DARK,
-        },
-        summaryLabelBold: {
-          fontSize: 9,
-          fontWeight: 700,
-          color: IOTA_DARK,
-        },
-        summaryValueBold: {
-          fontSize: 9,
-          fontWeight: 700,
-          color: IOTA_DARK,
-        },
-        // ── Total box ──
-        totalBox: {
-          backgroundColor: IOTA_GREEN,
-          paddingVertical: 14,
-          paddingHorizontal: 18,
-          marginTop: 10,
-          flexDirection: 'row',
-          justifyContent: 'space-between',
+          borderBottomWidth: 1.5,
+          borderBottomColor: '#0166ff',
+          borderBottomStyle: 'solid',
+          minHeight: 38,
           alignItems: 'center',
+        },
+        tdVatDesc: { flex: 1, paddingVertical: 7, paddingHorizontal: 14 },
+        tdVatAmount: {
+          width: 110,
+          paddingVertical: 7,
+          paddingHorizontal: 14,
+          borderLeftWidth: 1.5,
+          borderLeftColor: '#0166ff',
+          borderLeftStyle: 'solid',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
+        },
+        vatMain: { fontSize: 9, fontWeight: 700, color: '#1a1a1a' },
+        vatSub: { fontSize: 8.5, color: '#1a1a1a' },
+        // ── Total row — compact, white bg ──
+        totalRow: {
+          flexDirection: 'row',
+          minHeight: 42,
+          alignItems: 'center',
+        },
+        tdTotalDesc: { flex: 1, paddingVertical: 10, paddingHorizontal: 14 },
+        tdTotalAmount: {
+          width: 110,
+          paddingVertical: 10,
+          paddingHorizontal: 14,
+          borderLeftWidth: 1.5,
+          borderLeftColor: '#0166ff',
+          borderLeftStyle: 'solid',
+          alignItems: 'flex-end',
+          justifyContent: 'center',
         },
         totalLabel: {
           fontSize: 11,
           fontWeight: 700,
-          color: WHITE,
+          color: '#1a1a1a',
           textTransform: 'uppercase',
-          letterSpacing: 2,
         },
-        totalValue: {
-          fontSize: 15,
-          fontWeight: 700,
-          color: WHITE,
-        },
-        amountWords: {
-          fontSize: 8,
-          color: IOTA_GRAY,
-          textAlign: 'right',
-          marginTop: 6,
-        },
+        totalValue: { fontSize: 13, fontWeight: 700, color: '#1a1a1a' },
+        // ── Amount in words ──
+        amountWords: { fontSize: 8, color: '#666666', textAlign: 'right', marginTop: 8 },
         // ── Footer ──
         footerDivider: {
           height: 1,
-          backgroundColor: '#eeeeee',
-          marginTop: 18,
+          backgroundColor: '#e0e0e0',
+          marginTop: 20,
           marginBottom: 14,
         },
-        footerRow: {
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-        },
+        footerRow: { flexDirection: 'row', justifyContent: 'space-between' },
         footerCol: { width: '48%' },
         footerColRight: { width: '48%', alignItems: 'flex-end' },
         footerHeading: {
-          fontSize: 8,
+          fontSize: 7.5,
           fontWeight: 700,
           textTransform: 'uppercase',
-          letterSpacing: 1.5,
-          color: IOTA_DARK,
+          color: '#1a1a1a',
           marginBottom: 5,
         },
-        footerText: {
-          fontSize: 8.5,
-          color: IOTA_DARK,
-          lineHeight: 1.7,
-        },
-        footerTextRight: {
-          fontSize: 8.5,
-          color: IOTA_DARK,
-          lineHeight: 1.7,
-          textAlign: 'right',
-        },
-        footerLink: {
-          fontSize: 8.5,
-          color: IOTA_BLUE,
-        },
+        footerText: { fontSize: 8.5, color: '#1a1a1a', lineHeight: 1.85 },
+        footerLink: { fontSize: 8.5, color: '#0166ff', lineHeight: 1.85 },
+        footerTextRight: { fontSize: 8.5, color: '#1a1a1a', lineHeight: 1.85, textAlign: 'right' },
       }),
     []
   );
@@ -352,11 +287,9 @@ export function InvoicePdfDocument({ invoice, currentStatus }) {
     dueDate,
     discount,
     shipping,
-    subtotal,
     invoiceTo,
     createDate,
     totalAmount,
-    invoiceFrom,
     invoiceNumber,
     vatRate,
     vatAmount,
@@ -364,146 +297,132 @@ export function InvoicePdfDocument({ invoice, currentStatus }) {
   } = invoice ?? {};
 
   const styles = useStyles();
-
-  const vatLabel = vatRate ? `VAT @ ${vatRate}%` : 'VAT';
-  const amountWords = amountInWords(totalAmount, currencyCode);
   const office = IOTA_OFFICES.find((o) => o.currency === currencyCode) || IOTA_OFFICES[0];
   const bank = office.bankDetails || {};
+  const vatLabel = vatRate ? `VAT @ ${vatRate}%` : 'VAT';
+  const amountWords = amountInWords(totalAmount, currencyCode);
+  const fmt = (v) => fCurrency(v, { currency: currencyCode });
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
-        {/* Decorative background circles */}
-        <View style={styles.circleTopRight} fixed />
-        <View style={styles.circleBottomLeft} fixed />
-
         <View style={styles.content}>
-          {/* ── HEADER ── */}
-          <View style={styles.headerRow}>
-            <Image source="/logo/logo-single.png" style={styles.logo} />
+          {/* ── HEADER: title left, logo right ── */}
+          <View style={styles.header}>
             <Text style={styles.invoiceTitle}>INVOICE</Text>
+            <Image source="/logo/logo-single.png" style={styles.logo} />
           </View>
 
           {/* Blue accent line */}
-          <View style={styles.accentLine} />
+          <View style={styles.accent} />
 
-          {/* ── BILLING INFO ── */}
+          {/* ── BILLING ── */}
           <View style={styles.billingRow}>
             {/* Bill To */}
-            <View style={styles.billToCol}>
-              <Text style={styles.sectionLabel}>Bill To</Text>
+            <View style={styles.billCol}>
+              <Text style={styles.billLabel}>Bill To</Text>
               <Text style={styles.customerName}>{invoiceTo?.name}</Text>
               {invoiceTo?.addressStreet ? (
-                <Text style={styles.bodyText}>{invoiceTo.addressStreet}</Text>
+                <Text style={styles.bodySm}>{invoiceTo.addressStreet}</Text>
               ) : null}
               {invoiceTo?.addressCity ? (
-                <Text style={styles.bodyText}>{invoiceTo.addressCity}</Text>
-              ) : null}
-              {invoiceTo?.phoneNumber ? (
-                <Text style={styles.bodyText}>{invoiceTo.phoneNumber}</Text>
+                <Text style={styles.bodySm}>{invoiceTo.addressCity}</Text>
               ) : null}
               {invoiceTo?.vatNumber ? (
-                <Text style={styles.bodyText}>VAT #: {invoiceTo.vatNumber}</Text>
+                <Text style={styles.bodySm}>VAT #: {invoiceTo.vatNumber}</Text>
               ) : null}
             </View>
 
             {/* Invoice meta */}
             <View style={styles.metaCol}>
-              {invoiceFrom?.vatNumber ? (
-                <View style={styles.metaRow}>
-                  <Text style={styles.metaLabel}>VAT Registration #:</Text>
-                  <Text style={styles.metaValue}>{invoiceFrom.vatNumber}</Text>
-                </View>
+              {office.vatNumber ? (
+                <Text style={styles.metaLine}>VAT Registration #: {office.vatNumber}</Text>
               ) : null}
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Invoice #:</Text>
-                <Text style={[styles.metaValue, { fontWeight: 700 }]}>{invoiceNumber}</Text>
-              </View>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Invoice Date:</Text>
-                <Text style={styles.metaValue}>{fDate(createDate)}</Text>
-              </View>
-              <View style={styles.metaRow}>
-                <Text style={styles.metaLabel}>Due Date:</Text>
-                <Text style={styles.metaValue}>{fDate(dueDate)}</Text>
-              </View>
+              <Text style={styles.metaLine}>Invoice #: {invoiceNumber}</Text>
+              <Text style={styles.metaLine}>Invoice Date: {fDate(createDate)}</Text>
+              <Text style={styles.metaLine}>Due Date: {fDate(dueDate)}</Text>
             </View>
           </View>
 
-          <View style={styles.divider} />
-
-          {/* ── LINE ITEMS TABLE ── */}
-          <View style={styles.tableHeaderRow}>
-            <View style={styles.colDesc}>
-              <Text style={styles.tableHeaderText}>Description</Text>
-            </View>
-            <View style={styles.colAmount}>
-              <Text style={[styles.tableHeaderText, { textAlign: 'right' }]}>Amount</Text>
-            </View>
-          </View>
-
-          {(items || []).map((item, index) => (
-            <View key={index} style={styles.tableRow}>
-              <View style={styles.colDesc}>
-                <Text style={styles.itemTitle}>{item.title}</Text>
-                {item.description ? <Text style={styles.itemDesc}>{item.description}</Text> : null}
+          {/* ── ITEMS TABLE ── */}
+          <View style={styles.tableOuter}>
+            {/* Header row */}
+            <View style={styles.tableHeaderRow}>
+              <View style={styles.thDesc}>
+                <Text style={styles.thText}>Description</Text>
               </View>
-              <View style={styles.colAmount}>
-                <Text style={styles.itemAmount}>
-                  {fCurrency(item.price ?? item.total, { currency: currencyCode })}
-                </Text>
+              <View style={styles.thAmount}>
+                <Text style={styles.thText}>Amount</Text>
               </View>
             </View>
-          ))}
 
-          {/* ── SUMMARY ── */}
-          <View style={styles.summaryOuter}>
-            <View style={styles.summaryInner}>
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabel}>Subtotal</Text>
-                <Text style={styles.summaryValue}>
-                  {fCurrency(subtotal, { currency: currencyCode })}
-                </Text>
-              </View>
-              {discount > 0 && (
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Discount</Text>
-                  <Text style={styles.summaryValue}>
-                    -{fCurrency(discount, { currency: currencyCode })}
-                  </Text>
+            {/* Line items */}
+            {(items || []).map((item, index) => (
+              <View key={index} style={styles.itemRow}>
+                <View style={styles.tdDesc}>
+                  <Text style={styles.itemTitle}>{item.title}</Text>
+                  {item.description ? (
+                    <Text style={styles.itemDesc}>{item.description}</Text>
+                  ) : null}
                 </View>
-              )}
-              {shipping > 0 && (
-                <View style={styles.summaryRow}>
-                  <Text style={styles.summaryLabel}>Shipping</Text>
-                  <Text style={styles.summaryValue}>
-                    {fCurrency(shipping, { currency: currencyCode })}
-                  </Text>
+                <View style={styles.tdAmount}>
+                  <Text style={styles.itemAmount}>{fmt(item.price ?? item.total)}</Text>
                 </View>
-              )}
-              <View style={styles.summaryRow}>
-                <Text style={styles.summaryLabelBold}>{vatLabel}</Text>
-                <Text style={styles.summaryValueBold}>
-                  {fCurrency(vatAmount, { currency: currencyCode })}
-                </Text>
+              </View>
+            ))}
+
+            {/* Discount row */}
+            {discount > 0 ? (
+              <View style={styles.itemRow}>
+                <View style={styles.tdDesc}>
+                  <Text style={styles.itemTitle}>Discount</Text>
+                </View>
+                <View style={styles.tdAmount}>
+                  <Text style={styles.itemAmount}>-{fmt(discount)}</Text>
+                </View>
+              </View>
+            ) : null}
+
+            {/* Shipping row */}
+            {shipping > 0 ? (
+              <View style={styles.itemRow}>
+                <View style={styles.tdDesc}>
+                  <Text style={styles.itemTitle}>Shipping</Text>
+                </View>
+                <View style={styles.tdAmount}>
+                  <Text style={styles.itemAmount}>{fmt(shipping)}</Text>
+                </View>
+              </View>
+            ) : null}
+
+            {/* VAT row */}
+            <View style={styles.vatRow}>
+              <View style={styles.tdVatDesc}>
+                <Text style={styles.vatMain}>VAT</Text>
+                <Text style={styles.vatSub}>{vatLabel}</Text>
+              </View>
+              <View style={styles.tdVatAmount}>
+                <Text style={styles.itemAmount}>{fmt(vatAmount)}</Text>
+              </View>
+            </View>
+
+            {/* Total row */}
+            <View style={styles.totalRow}>
+              <View style={styles.tdTotalDesc}>
+                <Text style={styles.totalLabel}>Total Amount</Text>
+              </View>
+              <View style={styles.tdTotalAmount}>
+                <Text style={styles.totalValue}>{fmt(totalAmount)}</Text>
               </View>
             </View>
           </View>
 
-          {/* ── TOTAL BOX ── */}
-          <View style={styles.totalBox}>
-            <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>
-              {fCurrency(totalAmount, { currency: currencyCode })}
-            </Text>
-          </View>
-
+          {/* Amount in words */}
           {amountWords ? <Text style={styles.amountWords}>{amountWords}</Text> : null}
 
           {/* ── FOOTER ── */}
           <View style={styles.footerDivider} />
           <View style={styles.footerRow}>
-            {/* Bank details */}
             <View style={styles.footerCol}>
               <Text style={styles.footerHeading}>Bank Transfer Details</Text>
               <Text style={styles.footerText}>
@@ -513,15 +432,14 @@ export function InvoicePdfDocument({ invoice, currentStatus }) {
               {bank.bank ? <Text style={styles.footerText}>Bank: {bank.bank}</Text> : null}
               {bank.city ? <Text style={styles.footerText}>City: {bank.city}</Text> : null}
             </View>
-            {/* Queries */}
             <View style={styles.footerColRight}>
               <Text style={styles.footerHeading}>In Case of Queries</Text>
               <Text style={styles.footerTextRight}>Write to us at</Text>
               <Text style={styles.footerLink}>
                 {office.email || 'accounts@iotatechnologies.ai'}
               </Text>
-              <Text style={[styles.footerTextRight, { marginTop: 3 }]}>
-                Cite our Invoice # for reference{'\n'}and better tracking.
+              <Text style={styles.footerTextRight}>
+                Cite our Invoice # for reference and better tracking.
               </Text>
             </View>
           </View>
