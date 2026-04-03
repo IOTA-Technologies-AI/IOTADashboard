@@ -170,10 +170,29 @@
 
     /* ── Print overrides ── */
     @media print {
-      body { background: white; }
+      /* Constrain to exactly one A4 page — no second blank page */
+      html, body {
+        height: 297mm !important;
+        max-height: 297mm !important;
+        overflow: hidden !important;
+        background: white;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
       .toolbar { display: none !important; }
-      .page-wrapper { padding: 0; }
-      .page { box-shadow: none; }
+      .page-wrapper { padding: 0 !important; margin: 0 !important; }
+      .page { box-shadow: none; margin: 0 !important; }
+      /* Hide Next.js / MUI portal-rendered elements that appear outside the invoice */
+      .MuiSnackbar-root,
+      .MuiSnackbarContent-root,
+      .MuiDrawer-root,
+      .MuiModal-root,
+      .MuiBackdrop-root,
+      .MuiPopover-root,
+      .MuiMenu-root,
+      [class*="ProgressBar"],
+      [class*="progress-bar"],
+      #nprogress { display: none !important; }
     }
   </style>
 </head>
