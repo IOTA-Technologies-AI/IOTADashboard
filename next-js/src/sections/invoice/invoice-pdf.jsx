@@ -19,6 +19,7 @@ import { fDate } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
 
 import { Iconify } from 'src/components/iconify';
+import { IOTA_OFFICES } from './invoice-create-edit-address';
 
 // ── Brand colours ─────────────────────────────────────────────────────────────
 const IOTA_BLUE = '#0166ff';
@@ -366,6 +367,8 @@ export function InvoicePdfDocument({ invoice, currentStatus }) {
 
   const vatLabel = vatRate ? `VAT @ ${vatRate}%` : 'VAT';
   const amountWords = amountInWords(totalAmount, currencyCode);
+  const office = IOTA_OFFICES.find((o) => o.currency === currencyCode) || IOTA_OFFICES[0];
+  const bank = office.bankDetails || {};
 
   return (
     <Document>
@@ -447,7 +450,7 @@ export function InvoicePdfDocument({ invoice, currentStatus }) {
               </View>
               <View style={styles.colAmount}>
                 <Text style={styles.itemAmount}>
-                  {fCurrency(item.price ?? item.total, { currencyCode })}
+                  {fCurrency(item.price ?? item.total, { currency: currencyCode })}
                 </Text>
               </View>
             </View>
@@ -458,24 +461,30 @@ export function InvoicePdfDocument({ invoice, currentStatus }) {
             <View style={styles.summaryInner}>
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabel}>Subtotal</Text>
-                <Text style={styles.summaryValue}>{fCurrency(subtotal, { currencyCode })}</Text>
+                <Text style={styles.summaryValue}>
+                  {fCurrency(subtotal, { currency: currencyCode })}
+                </Text>
               </View>
               {discount > 0 && (
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Discount</Text>
-                  <Text style={styles.summaryValue}>-{fCurrency(discount, { currencyCode })}</Text>
+                  <Text style={styles.summaryValue}>
+                    -{fCurrency(discount, { currency: currencyCode })}
+                  </Text>
                 </View>
               )}
               {shipping > 0 && (
                 <View style={styles.summaryRow}>
                   <Text style={styles.summaryLabel}>Shipping</Text>
-                  <Text style={styles.summaryValue}>{fCurrency(shipping, { currencyCode })}</Text>
+                  <Text style={styles.summaryValue}>
+                    {fCurrency(shipping, { currency: currencyCode })}
+                  </Text>
                 </View>
               )}
               <View style={styles.summaryRow}>
                 <Text style={styles.summaryLabelBold}>{vatLabel}</Text>
                 <Text style={styles.summaryValueBold}>
-                  {fCurrency(vatAmount, { currencyCode })}
+                  {fCurrency(vatAmount, { currency: currencyCode })}
                 </Text>
               </View>
             </View>
@@ -484,7 +493,9 @@ export function InvoicePdfDocument({ invoice, currentStatus }) {
           {/* ── TOTAL BOX ── */}
           <View style={styles.totalBox}>
             <Text style={styles.totalLabel}>Total Amount</Text>
-            <Text style={styles.totalValue}>{fCurrency(totalAmount, { currencyCode })}</Text>
+            <Text style={styles.totalValue}>
+              {fCurrency(totalAmount, { currency: currencyCode })}
+            </Text>
           </View>
 
           {amountWords ? <Text style={styles.amountWords}>{amountWords}</Text> : null}
@@ -495,16 +506,20 @@ export function InvoicePdfDocument({ invoice, currentStatus }) {
             {/* Bank details */}
             <View style={styles.footerCol}>
               <Text style={styles.footerHeading}>Bank Transfer Details</Text>
-              <Text style={styles.footerText}>A/c Name: IOTA Information Technology Services</Text>
-              <Text style={styles.footerText}>IBAN: AE480260001015933487201</Text>
-              <Text style={styles.footerText}>Bank: Emirates NBD</Text>
-              <Text style={styles.footerText}>City: Dubai, United Arab Emirates</Text>
+              <Text style={styles.footerText}>
+                A/c Name: {bank.accountName || 'IOTA Information Technology Services'}
+              </Text>
+              {bank.iban ? <Text style={styles.footerText}>IBAN: {bank.iban}</Text> : null}
+              {bank.bank ? <Text style={styles.footerText}>Bank: {bank.bank}</Text> : null}
+              {bank.city ? <Text style={styles.footerText}>City: {bank.city}</Text> : null}
             </View>
             {/* Queries */}
             <View style={styles.footerColRight}>
               <Text style={styles.footerHeading}>In Case of Queries</Text>
               <Text style={styles.footerTextRight}>Write to us at</Text>
-              <Text style={styles.footerLink}>accounts@iotatechnologies.ai</Text>
+              <Text style={styles.footerLink}>
+                {office.email || 'accounts@iotatechnologies.ai'}
+              </Text>
               <Text style={[styles.footerTextRight, { marginTop: 3 }]}>
                 Cite our Invoice # for reference{'\n'}and better tracking.
               </Text>
