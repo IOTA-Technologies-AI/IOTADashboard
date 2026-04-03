@@ -127,24 +127,29 @@
       vertical-align: top;
       font-size: 9.5px;
     }
-    .items-box td.col-right { text-align: right; font-size: 9.5px; vertical-align: middle; }
+    .items-box td.col-right { text-align: right; font-size: 9.5px; vertical-align: top; padding-top: 12px; }
     .item-title { font-size: 9.5px; font-weight: 700; color: #1a1a1a; margin-bottom: 2px; }
     .item-desc { font-size: 9px; color: #1a1a1a; line-height: 1.5; }
 
-    /* ── VAT row (inside the box) ── */
+    /* ── VAT row (inside the box) — compact, two-line height ── */
+    .vat-row { height: 40px; }
     .vat-row td {
       border-bottom: 1.5px solid #0166ff;
+      padding: 7px 14px;
+      vertical-align: middle;
     }
     .vat-label-main { font-size: 9.5px; font-weight: 700; color: #1a1a1a; }
     .vat-label-sub  { font-size: 9px; color: #1a1a1a; }
 
-    /* ── Total row (last row in the box, bold, white bg) ── */
+    /* ── Total row (last row in the box, bold, white bg) — compact ── */
+    .total-row { height: 44px; }
     .total-row td {
       font-family: 'Red Hat Display', sans-serif;
-      padding: 12px 14px;
+      padding: 10px 14px;
       font-size: 11px; font-weight: 700; color: #1a1a1a;
       text-transform: uppercase; letter-spacing: 1px;
       border-bottom: none;
+      vertical-align: middle;
     }
     .total-row td.col-right { font-size: 13px; font-weight: 700; }
 

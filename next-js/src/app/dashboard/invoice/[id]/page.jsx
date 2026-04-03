@@ -62,15 +62,33 @@ export default function Page() {
           vatNumber: '313081317100003',
           registrationNumber: '7050457477',
         },
-        items: [
-          {
-            title: 'Service',
-            description: data.description || '',
-            quantity: 1,
-            price: baseAmount,
-            total: baseAmount,
-          },
-        ],
+        items: (() => {
+          if (data.description) {
+            try {
+              const parsed = JSON.parse(data.description);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                return parsed.map((item) => ({
+                  title: item.title || data.invoiceTypeName || 'Service',
+                  description: item.description || '',
+                  quantity: 1,
+                  price: item.price ?? baseAmount,
+                  total: item.price ?? baseAmount,
+                }));
+              }
+            } catch {
+              // plain text fallback
+            }
+          }
+          return [
+            {
+              title: data.invoiceTypeName || 'Service',
+              description: '',
+              quantity: 1,
+              price: baseAmount,
+              total: baseAmount,
+            },
+          ];
+        })(),
         subtotal: baseAmount,
         vatAmount: data.vatAmount || 0,
         vatRate: data.vatRate || 0,
