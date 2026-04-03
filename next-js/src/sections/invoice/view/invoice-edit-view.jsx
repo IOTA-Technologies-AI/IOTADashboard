@@ -14,6 +14,7 @@ import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 import { useAuthContext } from 'src/auth/hooks';
 
+import { IOTA_OFFICES } from '../invoice-create-edit-address';
 import { InvoiceCreateEditForm } from '../invoice-create-edit-form';
 
 export function InvoiceEditView({ invoice: initialInvoice }) {
@@ -55,10 +56,15 @@ export function InvoiceEditView({ invoice: initialInvoice }) {
               },
             ];
 
+            // Map invoiceFrom from currencyCode so the correct IOTA office is pre-selected
+            const invoiceFrom =
+              IOTA_OFFICES.find((o) => o.currency === (data.currencyCode || 'SAR')) ||
+              IOTA_OFFICES[0];
+
             // Transform backend data to match form structure
             const transformedInvoice = {
-              id: data.invoiceId, // ✅ USE NUMERIC ID, NOT invoiceId STRING
-              invoiceId: data.invoiceId, // ✅ KEEP THIS SEPARATE
+              id: data.invoiceId,
+              invoiceId: data.invoiceId,
               invoiceNumber: data.invoiceNumber,
               createDate: data.invoiceDate,
               dueDate: data.dueDate,
@@ -67,7 +73,7 @@ export function InvoiceEditView({ invoice: initialInvoice }) {
                 name: data.customerName,
                 currency: data.currencyCode || 'SAR',
               },
-              invoiceFrom: null,
+              invoiceFrom,
               items: defaultItems,
               subtotal: baseAmount,
               totalAmount: data.total || 0,
@@ -77,6 +83,13 @@ export function InvoiceEditView({ invoice: initialInvoice }) {
               vatRate: data.vatRate || 0,
               status: data.status || 'draft',
               taxes: 0,
+              // Preserve all DB fields so they are not nulled on save
+              invoiceTypeId: data.invoiceTypeId || '',
+              invoiceTypeName: data.invoiceTypeName || '',
+              costcenterId: data.costcenterId || '',
+              isEmployeeRelated: data.isEmployeeRelated || false,
+              employeeId: data.employeeId || '',
+              employeeName: data.employeeName || '',
             };
 
             console.log('✅ Transformed invoice for form:', transformedInvoice);
