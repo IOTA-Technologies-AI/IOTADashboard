@@ -28,6 +28,30 @@ export default function Page() {
         invoiceTo: {
           id: data.customerId,
           name: customer?.customerNameEn || data.customerName,
+          addressStreet: (() => {
+            if (customer?.addresses) {
+              const addr = customer.addresses;
+              const parts = [];
+              if (addr.addressLine1) parts.push(addr.addressLine1);
+              if (addr.addressLine2) parts.push(addr.addressLine2);
+              return parts.join(', ');
+            }
+            return customer?.customerNameOfBusiness || '';
+          })(),
+          addressCity: (() => {
+            if (customer?.addresses) {
+              const addr = customer.addresses;
+              const parts = [];
+              if (addr.city) parts.push(addr.city);
+              if (addr.state && addr.state !== addr.city) parts.push(addr.state);
+              if (addr.zipCode) parts.push(addr.zipCode);
+              if (addr.country) parts.push(addr.country);
+              return parts.join(', ');
+            }
+            return customer?.customerBillingCountryCode === 'KSA'
+              ? 'Saudi Arabia'
+              : customer?.customerBillingCountryCode || '';
+          })(),
           fullAddress: (() => {
             if (customer?.addresses) {
               const addr = customer.addresses;

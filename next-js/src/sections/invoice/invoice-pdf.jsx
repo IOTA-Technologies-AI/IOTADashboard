@@ -390,8 +390,11 @@ export function InvoicePdfDocument({ invoice, currentStatus }) {
             <View style={styles.billToCol}>
               <Text style={styles.sectionLabel}>Bill To</Text>
               <Text style={styles.customerName}>{invoiceTo?.name}</Text>
-              {invoiceTo?.fullAddress ? (
-                <Text style={styles.bodyText}>{invoiceTo.fullAddress}</Text>
+              {invoiceTo?.addressStreet ? (
+                <Text style={styles.bodyText}>{invoiceTo.addressStreet}</Text>
+              ) : null}
+              {invoiceTo?.addressCity ? (
+                <Text style={styles.bodyText}>{invoiceTo.addressCity}</Text>
               ) : null}
               {invoiceTo?.phoneNumber ? (
                 <Text style={styles.bodyText}>{invoiceTo.phoneNumber}</Text>

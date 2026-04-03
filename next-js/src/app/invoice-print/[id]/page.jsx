@@ -154,8 +154,14 @@ function fillTemplate(templateHtml, invoice) {
     .join(esc(invoice.invoiceNumber))
     .split('{{CUSTOMER_NAME}}')
     .join(esc(invoice.invoiceTo.name))
-    .split('{{CUSTOMER_ADDRESS}}')
-    .join(esc(invoice.invoiceTo.fullAddress))
+    .split('{{CUSTOMER_ADDRESS_STREET_HTML}}')
+    .join(
+      invoice.invoiceTo.addressStreet
+        ? `<div class="body-sm">${esc(invoice.invoiceTo.addressStreet)}</div>`
+        : ''
+    )
+    .split('{{CUSTOMER_ADDRESS_CITY}}')
+    .join(esc(invoice.invoiceTo.addressCity))
     .split('{{CUSTOMER_VAT_HTML}}')
     .join(customerVatHtml)
     .split('{{META_VAT_ROW}}')
@@ -212,24 +218,27 @@ export default function InvoicePrintPage() {
       const customer = (allCustomers || []).find((c) => String(c.id) === String(data?.customerId));
       const baseAmount = data?.baseAmount || 0;
 
-      // Build full address from the address record
-      let fullAddress = '';
+      // Build structured address (street lines + city/country last line)
+      let addressStreet = '';
+      let addressCity = '';
       if (customer?.addresses) {
         const addr = customer.addresses;
-        const parts = [];
-        if (addr.addressLine1) parts.push(addr.addressLine1);
-        if (addr.addressLine2) parts.push(addr.addressLine2);
-        if (addr.city) parts.push(addr.city);
-        if (addr.state && addr.state !== addr.city) parts.push(addr.state);
-        if (addr.zipCode) parts.push(addr.zipCode);
-        if (addr.country) parts.push(addr.country);
-        fullAddress = parts.join(', ');
+        const streetParts = [];
+        if (addr.addressLine1) streetParts.push(addr.addressLine1);
+        if (addr.addressLine2) streetParts.push(addr.addressLine2);
+        addressStreet = streetParts.join(', ');
+        const cityParts = [];
+        if (addr.city) cityParts.push(addr.city);
+        if (addr.state && addr.state !== addr.city) cityParts.push(addr.state);
+        if (addr.zipCode) cityParts.push(addr.zipCode);
+        if (addr.country) cityParts.push(addr.country);
+        addressCity = cityParts.join(', ');
       } else if (customer?.customerNameOfBusiness) {
-        fullAddress = `${customer.customerNameOfBusiness}, ${
+        addressStreet = customer.customerNameOfBusiness;
+        addressCity =
           customer.customerBillingCountryCode === 'KSA'
             ? 'Saudi Arabia'
-            : customer.customerBillingCountryCode || ''
-        }`;
+            : customer.customerBillingCountryCode || '';
       }
 
       const invoice = {
@@ -239,7 +248,8 @@ export default function InvoicePrintPage() {
         currencyCode: data.currencyCode || 'SAR',
         invoiceTo: {
           name: customer?.customerNameEn || data.customerName || '',
-          fullAddress,
+          addressStreet,
+          addressCity,
           vatNumber: customer?.['VAT#'] || '',
         },
         items: (() => {
