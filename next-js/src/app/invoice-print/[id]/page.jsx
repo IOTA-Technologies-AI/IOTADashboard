@@ -82,15 +82,7 @@ function amountInWords(amount, currencyCode = 'SAR') {
 function formatCurrency(amount, currencyCode = 'SAR') {
   if (amount == null || isNaN(amount)) return '';
   try {
-    const localeMap = {
-      SAR: 'ar-SA',
-      AED: 'en-AE',
-      USD: 'en-US',
-      GBP: 'en-GB',
-      INR: 'en-IN',
-      EUR: 'de-DE',
-    };
-    return new Intl.NumberFormat(localeMap[currencyCode] || 'en-US', {
+    return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currencyCode,
       minimumFractionDigits: 2,
@@ -250,13 +242,31 @@ export default function InvoicePrintPage() {
           fullAddress,
           vatNumber: customer?.['VAT#'] || '',
         },
-        items: [
-          {
-            title: data.invoiceTypeName || 'Service',
-            description: data.description || '',
-            price: baseAmount,
-          },
-        ],
+        items: (() => {
+          // Try to parse structured items stored as JSON in the description field
+          if (data.description) {
+            try {
+              const parsed = JSON.parse(data.description);
+              if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            } catch {
+              // Not JSON — treat description as plain text for the single item
+              return [
+                {
+                  title: data.invoiceTypeName || 'Service',
+                  description: data.description,
+                  price: baseAmount,
+                },
+              ];
+            }
+          }
+          return [
+            {
+              title: data.invoiceTypeName || 'Service',
+              description: '',
+              price: baseAmount,
+            },
+          ];
+        })(),
         subtotal: baseAmount,
         vatAmount: data.vatAmount || 0,
         vatRate: data.vatRate || 0,

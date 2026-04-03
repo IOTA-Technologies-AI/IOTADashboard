@@ -217,6 +217,14 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         vatAmount: parseFloat((data.vatAmount || 0).toFixed(2)),
         vatRate: parseFloat((data.vatRate || 0).toFixed(2)),
         shippingCharge: parseFloat((data.shipping || 0).toFixed(2)),
+        // Serialize line items (title + description + price) as JSON into the description column
+        description: JSON.stringify(
+          (data.items || []).map((item) => ({
+            title: item.title || '',
+            description: item.description || '',
+            price: parseFloat((item.price || 0).toFixed(2)),
+          }))
+        ),
         // Invoice type fields
         invoiceTypeId: data.invoiceTypeId ? Number(data.invoiceTypeId) : null,
         invoiceTypeName: data.invoiceTypeName || selectedInvoiceType?.invoiceTypeDesc || null,
@@ -292,6 +300,14 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         currencySymbol: CURRENCY_SYMBOLS[data.invoiceFrom?.currency] || 'ر.س',
         exchangeRate: 1,
         costcenterId: data.costcenterId ? Number(data.costcenterId) : null,
+        // Serialize line items (title + description + price) as JSON into the description column
+        description: JSON.stringify(
+          (data.items || []).map((item) => ({
+            title: item.title || '',
+            description: item.description || '',
+            price: parseFloat((item.price || 0).toFixed(2)),
+          }))
+        ),
         // Invoice type fields
         invoiceTypeId: data.invoiceTypeId ? Number(data.invoiceTypeId) : null,
         invoiceTypeName: data.invoiceTypeName || selectedInvoiceType?.invoiceTypeDesc || null,

@@ -43,18 +43,48 @@ export function InvoiceEditView({ invoice: initialInvoice }) {
           if (data) {
             console.log('📥 Fetched invoice data:', data);
 
-            // ✅ CREATE DEFAULT ITEM FROM BASEAMOUNT (since DB doesn't store items array)
+            // Parse items from the description JSON field (saved by the form)
             const baseAmount = data.baseAmount || 0;
-            const defaultItems = [
-              {
-                title: 'Service',
-                service: 'General Service',
-                description: data.description || '',
-                quantity: 1,
-                price: baseAmount, // Use baseAmount as the item price
-                total: baseAmount,
-              },
-            ];
+            let defaultItems;
+            if (data.description) {
+              try {
+                const parsed = JSON.parse(data.description);
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  defaultItems = parsed.map((item) => ({
+                    title: item.title || '',
+                    service: data.invoiceTypeName || 'General Service',
+                    description: item.description || '',
+                    quantity: 1,
+                    price: item.price ?? baseAmount,
+                    total: item.price ?? baseAmount,
+                  }));
+                }
+              } catch {
+                // Plain text description — single item
+                defaultItems = [
+                  {
+                    title: data.invoiceTypeName || 'Service',
+                    service: data.invoiceTypeName || 'General Service',
+                    description: data.description,
+                    quantity: 1,
+                    price: baseAmount,
+                    total: baseAmount,
+                  },
+                ];
+              }
+            }
+            if (!defaultItems) {
+              defaultItems = [
+                {
+                  title: data.invoiceTypeName || 'Service',
+                  service: data.invoiceTypeName || 'General Service',
+                  description: '',
+                  quantity: 1,
+                  price: baseAmount,
+                  total: baseAmount,
+                },
+              ];
+            }
 
             // Map invoiceFrom from currencyCode so the correct IOTA office is pre-selected
             const invoiceFrom =

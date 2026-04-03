@@ -42,8 +42,8 @@ export const IOTA_OFFICES = [
     isIOTAOffice: true,
     bankDetails: {
       accountName: 'IOTA Information Technology Services',
-      iban: '',
-      bank: '',
+      iban: 'SA1105000068204000188000',
+      bank: 'Al Rajhi Bank',
       city: 'Riyadh, Saudi Arabia',
     },
   },

@@ -45,15 +45,32 @@
     /* ── A4 invoice card ── */
     .page {
       width: 210mm;
+      height: 297mm;
       background: white;
       margin: 0 auto;
       position: relative;
-      overflow: hidden;
+      display: flex;
+      flex-direction: column;
       box-shadow: 0 4px 32px rgba(0,0,0,0.18);
     }
 
     /* ── Content area ── */
-    .content { padding: 40px 48px 36px; position: relative; }
+    .content {
+      flex: 1;
+      padding: 40px 48px 36px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Items section grows to fill all unused vertical space ── */
+    .items-section {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 8px;
+    }
 
     /* ── Header: INVOICE left, logo right ── */
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
@@ -87,6 +104,7 @@
       border: 1.5px solid #0166ff;
       border-collapse: collapse;
       width: 100%;
+      flex: 1;
     }
     .items-box thead tr {
       border-bottom: 1.5px solid #0166ff;
@@ -132,7 +150,6 @@
 
     /* ── Amount in words ── */
     .amount-words { font-size: 8.5px; color: #666; text-align: right; margin-top: 8px; font-style: normal; }
-
     /* ── Footer ── */
     .footer-divider { height: 1px; background: #e0e0e0; margin: 20px 0 14px; }
     .footer-row { display: flex; justify-content: space-between; }
@@ -151,7 +168,7 @@
       body { background: white; }
       .toolbar { display: none !important; }
       .page-wrapper { padding: 0; }
-      .page { box-shadow: none; overflow: hidden; break-after: avoid; page-break-after: avoid; }
+      .page { box-shadow: none; }
     }
   </style>
 </head>
@@ -196,6 +213,7 @@
         </div>
 
         <!-- Items / VAT / Total — all inside one blue-bordered table -->
+        <div class="items-section">
         <table class="items-box">
           <thead>
             <tr>
@@ -222,6 +240,7 @@
             </tr>
           </tbody>
         </table>
+        </div><!-- /items-section -->
 
         <!-- Amount in words -->
         <div class="amount-words">{{AMOUNT_IN_WORDS}}</div>
