@@ -5,9 +5,10 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 import Card from '@mui/material/Card';
 import Button from '@mui/material/Button';
 import Switch from '@mui/material/Switch';
-import { DataGrid } from '@mui/x-data-grid';
+import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 
 import { paths } from 'src/routes/paths';
+import { useRouter } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
 import { listInsuranceProviders, updateInsuranceProvider } from 'src/utils/apiHelper';
@@ -19,6 +20,7 @@ import { toast } from 'src/components/snackbar';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 export default function InsuranceProvidersPage() {
+  const router = useRouter();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -67,8 +69,21 @@ export default function InsuranceProvidersPage() {
           />
         ),
       },
+      {
+        field: 'actions',
+        type: 'actions',
+        width: 60,
+        getActions: ({ id }) => [
+          <GridActionsCellItem
+            key="edit"
+            icon={<Iconify icon="solar:pen-bold" />}
+            label="Edit"
+            onClick={() => router.push(paths.dashboard.hr.insurance.providerEdit(id))}
+          />,
+        ],
+      },
     ],
-    [handleToggleActive]
+    [handleToggleActive, router]
   );
 
   return (

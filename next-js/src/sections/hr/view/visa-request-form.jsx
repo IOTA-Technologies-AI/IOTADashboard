@@ -27,6 +27,7 @@ const VISA_REQUEST_TYPES = [
   'Exit Re-Entry Visa',
   'Final Exit Visa',
   'Work Permit',
+  'Family Visit Visa',
   'Visit Visa',
   'Other',
 ];

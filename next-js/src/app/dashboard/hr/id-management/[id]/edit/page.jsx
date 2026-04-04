@@ -38,6 +38,17 @@ const IdRecordSchema = z.object({
   emiratesIdExpiryDate: z.string().optional(),
   nationality: z.string().optional(),
   country: z.enum(['KSA', 'UAE', 'OTHER']).optional(),
+  // Renewal fee tracking
+  renewalFee: z.coerce.number().optional(),
+  renewalApprovedBy: z.string().optional(),
+  renewalApprovalDate: z.string().optional(),
+  // UAE medical/biometric
+  medicalRequirementsStatus: z.string().optional(),
+  biometricSubmittedDate: z.string().optional(),
+  // Visa cancellation/transfer
+  visaCancellationDate: z.string().optional(),
+  visaTransferDate: z.string().optional(),
+  visaTransferStatus: z.string().optional(),
 });
 
 export default function IdManagementEditPage({ params }) {
@@ -71,6 +82,14 @@ export default function IdManagementEditPage({ params }) {
       emiratesIdExpiryDate: employee?.emiratesIdExpiryDate || '',
       nationality: employee?.nationality || '',
       country: employee?.country || 'KSA',
+      renewalFee: employee?.renewalFee ?? '',
+      renewalApprovedBy: employee?.renewalApprovedBy || '',
+      renewalApprovalDate: employee?.renewalApprovalDate || '',
+      medicalRequirementsStatus: employee?.medicalRequirementsStatus || '',
+      biometricSubmittedDate: employee?.biometricSubmittedDate || '',
+      visaCancellationDate: employee?.visaCancellationDate || '',
+      visaTransferDate: employee?.visaTransferDate || '',
+      visaTransferStatus: employee?.visaTransferStatus || '',
     }),
     [employee]
   );
@@ -219,6 +238,67 @@ export default function IdManagementEditPage({ params }) {
                   type="date"
                   slotProps={{ inputLabel: { shrink: true } }}
                 />
+              </Box>
+
+              {/* Renewal Fee Tracking */}
+              <Typography variant="subtitle1" sx={{ mt: 3, mb: 1 }}>
+                Renewal Fee Tracking
+              </Typography>
+              <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={2}>
+                <Field.Text name="renewalFee" label="Renewal Fee (SAR/AED)" type="number" />
+                <Field.Text name="renewalApprovedBy" label="Approved By" />
+                <Field.Text
+                  name="renewalApprovalDate"
+                  label="Approval Date"
+                  type="date"
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+              </Box>
+
+              {/* UAE Medical / Biometric */}
+              <Typography variant="subtitle1" sx={{ mt: 3, mb: 1 }}>
+                UAE Medical & Biometric
+              </Typography>
+              <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={2}>
+                <Field.Select name="medicalRequirementsStatus" label="Medical Requirements Status">
+                  {['pending', 'completed', 'waived'].map((s) => (
+                    <MenuItem key={s} value={s}>
+                      {s.charAt(0).toUpperCase() + s.slice(1)}
+                    </MenuItem>
+                  ))}
+                </Field.Select>
+                <Field.Text
+                  name="biometricSubmittedDate"
+                  label="Biometric Submitted Date"
+                  type="date"
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+              </Box>
+
+              {/* Visa Cancellation / Transfer */}
+              <Typography variant="subtitle1" sx={{ mt: 3, mb: 1 }}>
+                Visa Cancellation / Transfer
+              </Typography>
+              <Box display="grid" gridTemplateColumns={{ xs: '1fr', sm: '1fr 1fr' }} gap={2}>
+                <Field.Text
+                  name="visaCancellationDate"
+                  label="Visa Cancellation Date"
+                  type="date"
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+                <Field.Text
+                  name="visaTransferDate"
+                  label="Visa Transfer Date"
+                  type="date"
+                  slotProps={{ inputLabel: { shrink: true } }}
+                />
+                <Field.Select name="visaTransferStatus" label="Visa Transfer Status">
+                  {['not_applicable', 'in_progress', 'completed', 'cancelled'].map((s) => (
+                    <MenuItem key={s} value={s}>
+                      {s.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </MenuItem>
+                  ))}
+                </Field.Select>
               </Box>
 
               {/* Iqama Copy */}
