@@ -22,6 +22,11 @@ import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
+const InvoicePDFDownload = dynamic(
+  () => import('./invoice-pdf').then((mod) => mod.InvoicePDFDownload),
+  { ssr: false }
+);
+
 const InvoicePDFViewer = dynamic(
   () => import('./invoice-pdf').then((mod) => mod.InvoicePDFViewer),
   { ssr: false }
@@ -68,17 +73,7 @@ export function InvoiceToolbar({
   };
 
   const renderDownloadButton = () =>
-    invoice ? (
-      <Tooltip title="Download (Save as PDF)">
-        <IconButton
-          onClick={() =>
-            window.open(`/invoice-print/${invoice?.id || invoice?.invoiceId}`, '_blank')
-          }
-        >
-          <Iconify icon="eva:cloud-download-fill" />
-        </IconButton>
-      </Tooltip>
-    ) : null;
+    invoice ? <InvoicePDFDownload invoice={invoice} currentStatus={currentStatus} /> : null;
 
   const renderDetailsDialog = () => (
     <Dialog fullScreen open={open}>
