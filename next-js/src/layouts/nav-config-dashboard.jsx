@@ -134,12 +134,55 @@ export const navData = [
               { title: 'All Employees', path: paths.dashboard.hr.employee.root },
               {
                 title: 'Finance',
+                path: paths.dashboard.hr.employee.finance.payroll.root,
                 children: [
                   {
                     title: 'Payroll',
                     path: paths.dashboard.hr.employee.finance.payroll.root,
-                    icon: ICONS.payroll,
                   },
+                ],
+              },
+              {
+                title: 'Insurance',
+                path: paths.dashboard.hr.insurance.root,
+                children: [
+                  { title: 'Insurance Records', path: paths.dashboard.hr.insurance.root },
+                  { title: 'Providers', path: paths.dashboard.hr.insurance.providers },
+                ],
+              },
+              {
+                title: 'Employee Requests',
+                path: paths.dashboard.hr.employeeRequests.root,
+                children: [
+                  {
+                    title: 'Pending Approvals',
+                    path: paths.dashboard.hr.employeeRequests.pendingApprovals,
+                  },
+                  { title: 'Visa Requests', path: paths.dashboard.hr.employeeRequests.visa.root },
+                  {
+                    title: 'Service Requests',
+                    path: paths.dashboard.hr.employeeRequests.service.root,
+                  },
+                  {
+                    title: 'Reimbursements',
+                    path: paths.dashboard.hr.employeeRequests.reimbursement.root,
+                  },
+                  {
+                    title: 'Travel Tickets',
+                    path: paths.dashboard.hr.employeeRequests.travel.root,
+                  },
+                  {
+                    title: 'Letter Requests',
+                    path: paths.dashboard.hr.employeeRequests.letter.root,
+                  },
+                ],
+              },
+              {
+                title: 'ID Management',
+                path: paths.dashboard.hr.idManagement.root,
+                children: [
+                  { title: 'All Employees', path: paths.dashboard.hr.idManagement.root },
+                  { title: 'Expiring Documents', path: paths.dashboard.hr.idManagement.expiring },
                 ],
               },
             ],
@@ -149,8 +192,6 @@ export const navData = [
           {
             title: 'Partnership Agreements',
             path: paths.dashboard.hr.partnershipAgreement.root,
-            // TODO: Full Partnership Agreement implementation — mirrors NDA Management.
-            // Supports iota_generated and external_upload modes, IOTA stamp placement, signing flow.
             info: <Label color="warning">Soon</Label>,
           },
           { title: 'Business Visa Requests', path: paths.dashboard.hr.businessVisa.root },
@@ -161,40 +202,6 @@ export const navData = [
             children: [
               { title: 'Leave Summary', path: paths.dashboard.hr.leave.summary },
               { title: 'All Requests', path: paths.dashboard.hr.leave.root },
-            ],
-          },
-          {
-            title: 'ID Management',
-            path: paths.dashboard.hr.idManagement.root,
-            children: [
-              { title: 'All Employees', path: paths.dashboard.hr.idManagement.root },
-              { title: 'Expiring Documents', path: paths.dashboard.hr.idManagement.expiring },
-            ],
-          },
-          {
-            title: 'Insurance',
-            path: paths.dashboard.hr.insurance.root,
-            children: [
-              { title: 'Insurance Records', path: paths.dashboard.hr.insurance.root },
-              { title: 'Providers', path: paths.dashboard.hr.insurance.providers },
-            ],
-          },
-          {
-            title: 'Employee Requests',
-            path: paths.dashboard.hr.employeeRequests.root,
-            children: [
-              {
-                title: 'Pending Approvals',
-                path: paths.dashboard.hr.employeeRequests.pendingApprovals,
-              },
-              { title: 'Visa Requests', path: paths.dashboard.hr.employeeRequests.visa.root },
-              { title: 'Service Requests', path: paths.dashboard.hr.employeeRequests.service.root },
-              {
-                title: 'Reimbursements',
-                path: paths.dashboard.hr.employeeRequests.reimbursement.root,
-              },
-              { title: 'Travel Tickets', path: paths.dashboard.hr.employeeRequests.travel.root },
-              { title: 'Letter Requests', path: paths.dashboard.hr.employeeRequests.letter.root },
             ],
           },
         ],
