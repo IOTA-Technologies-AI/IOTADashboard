@@ -22,11 +22,6 @@ import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
-const InvoicePDFDownload = dynamic(
-  () => import('./invoice-pdf').then((mod) => mod.InvoicePDFDownload),
-  { ssr: false }
-);
-
 const InvoicePDFViewer = dynamic(
   () => import('./invoice-pdf').then((mod) => mod.InvoicePDFViewer),
   { ssr: false }
@@ -71,9 +66,6 @@ export function InvoiceToolbar({
       setIssuing(false);
     }
   };
-
-  const renderDownloadButton = () =>
-    invoice ? <InvoicePDFDownload invoice={invoice} currentStatus={currentStatus} /> : null;
 
   const renderDetailsDialog = () => (
     <Dialog fullScreen open={open}>
@@ -123,8 +115,6 @@ export function InvoiceToolbar({
               <Iconify icon="solar:eye-bold" />
             </IconButton>
           </Tooltip>
-
-          {renderDownloadButton()}
 
           <Tooltip title="Print / Save as PDF">
             <IconButton

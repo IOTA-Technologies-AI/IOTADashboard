@@ -51,6 +51,7 @@
       position: relative;
       display: flex;
       flex-direction: column;
+      overflow: hidden;
       box-shadow: 0 4px 32px rgba(0,0,0,0.18);
     }
 
@@ -70,6 +71,8 @@
       display: flex;
       flex-direction: column;
       margin-bottom: 8px;
+      overflow: hidden;
+      min-height: 0;
     }
 
     /* ── Header: INVOICE left, logo right ── */
@@ -104,7 +107,7 @@
       border: 1.5px solid #0166ff;
       border-collapse: collapse;
       width: 100%;
-      flex: 1;
+      table-layout: fixed;
     }
     .items-box thead tr {
       border-bottom: 1.5px solid #0166ff;
@@ -170,6 +173,13 @@
 
     /* ── Print overrides ── */
     @media print {
+      @page { size: A4 portrait; margin: 0; }
+
+      html {
+        height: 297mm !important;
+        max-height: 297mm !important;
+        overflow: hidden !important;
+      }
       /* Constrain to exactly one A4 page — no second blank page */
       html, body {
         height: 297mm !important;
@@ -181,7 +191,22 @@
       }
       .toolbar { display: none !important; }
       .page-wrapper { padding: 0 !important; margin: 0 !important; }
-      .page { box-shadow: none; margin: 0 !important; }
+      .page {
+        width: 210mm !important;
+        height: 297mm !important;
+        max-height: 297mm !important;
+        overflow: hidden !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .content {
+        overflow: hidden !important;
+      }
+      .items-section {
+        overflow: hidden !important;
+        min-height: 0 !important;
+      }
       /* Hide Next.js / MUI portal-rendered elements that appear outside the invoice */
       .MuiSnackbar-root,
       .MuiSnackbarContent-root,
