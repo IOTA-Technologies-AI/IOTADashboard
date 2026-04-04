@@ -755,6 +755,401 @@ export async function adjustWallet(data) {
   }
 }
 
+// ============================================================================
+// Employee ID Management APIs
+// ============================================================================
+
+export async function listEmployeeIds(params = {}) {
+  try {
+    const query = new URLSearchParams();
+    if (params.country) query.set('country', params.country);
+    if (params.status) query.set('status', params.status);
+    if (params.expiringSoonDays) query.set('expiringSoonDays', params.expiringSoonDays);
+    const response = await axios.get(
+      `${API_BASE_URL}employee-ids${query.toString() ? '?' + query.toString() : ''}`,
+      { headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('❌ listEmployeeIds error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function getEmployeeIdRecord(id) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}employee-ids/${id}`, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ getEmployeeIdRecord error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function updateEmployeeId(id, data) {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}employee-ids/${id}`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ updateEmployeeId error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function getExpiringDocuments(days) {
+  try {
+    const query = days ? `?days=${days}` : '';
+    const response = await axios.get(`${API_BASE_URL}employee-ids/expiring${query}`, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ getExpiringDocuments error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function getComplianceDashboard() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}employee-ids/compliance-dashboard`, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ getComplianceDashboard error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function getSceMemberships(employeeId) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}employee-ids/${employeeId}/sce`, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data?.memberships ?? [];
+  } catch (error) {
+    console.error('❌ getSceMemberships error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function createSceMembership(data) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}employee-ids/sce`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ createSceMembership error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function updateSceMembership(id, data) {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}employee-ids/sce/${id}`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ updateSceMembership error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// ============================================================================
+// Insurance Management APIs
+// ============================================================================
+
+export async function listInsuranceRecords(params = {}) {
+  try {
+    const query = new URLSearchParams();
+    if (params.employeeId) query.set('employeeId', params.employeeId);
+    if (params.status) query.set('status', params.status);
+    if (params.providerId) query.set('providerId', params.providerId);
+    if (params.expiringSoonDays) query.set('expiringSoonDays', params.expiringSoonDays);
+    const response = await axios.get(
+      `${API_BASE_URL}insurance/records${query.toString() ? '?' + query.toString() : ''}`,
+      { headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('❌ listInsuranceRecords error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function getInsuranceRecord(id) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}insurance/records/${id}`, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ getInsuranceRecord error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function createInsuranceRecord(data) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}insurance/records`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ createInsuranceRecord error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function updateInsuranceRecord(id, data) {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}insurance/records/${id}`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ updateInsuranceRecord error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function listDependents(recordId) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}insurance/records/${recordId}/dependents`, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data?.dependents ?? [];
+  } catch (error) {
+    console.error('❌ listDependents error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function createDependent(data) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}insurance/dependents`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ createDependent error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function updateDependent(id, data) {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}insurance/dependents/${id}`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ updateDependent error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function listInsuranceProviders(activeOnly = false) {
+  try {
+    const query = activeOnly ? '?activeOnly=true' : '';
+    const response = await axios.get(`${API_BASE_URL}insurance/providers${query}`, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data?.providers ?? [];
+  } catch (error) {
+    console.error('❌ listInsuranceProviders error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function createInsuranceProvider(data) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}insurance/providers`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ createInsuranceProvider error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function updateInsuranceProvider(id, data) {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}insurance/providers/${id}`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ updateInsuranceProvider error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function getInsuranceDashboard() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}insurance/dashboard`, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ getInsuranceDashboard error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// ============================================================================
+// Employee Requests Management APIs
+// ============================================================================
+
+export async function listRequests(params = {}) {
+  try {
+    const query = new URLSearchParams();
+    if (params.employeeId) query.set('employeeId', params.employeeId);
+    if (params.status) query.set('status', params.status);
+    if (params.requestTable) query.set('requestTable', params.requestTable);
+    if (params.limit) query.set('limit', params.limit);
+    if (params.offset) query.set('offset', params.offset);
+    const response = await axios.get(
+      `${API_BASE_URL}employee-requests${query.toString() ? '?' + query.toString() : ''}`,
+      { headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('❌ listRequests error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function getRequestWithApprovals(requestTable, id) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}employee-requests/${requestTable}/${id}`, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ getRequestWithApprovals error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function createVisaRequest(data) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}employee-requests/visa`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ createVisaRequest error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function updateVisaRequest(id, data) {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}employee-requests/visa/${id}`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ updateVisaRequest error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function createServiceRequest(data) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}employee-requests/service`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ createServiceRequest error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function updateServiceRequest(id, data) {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}employee-requests/service/${id}`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ updateServiceRequest error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function createReimbursementRequest(data) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}employee-requests/reimbursement`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ createReimbursementRequest error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function updateReimbursementRequest(id, data) {
+  try {
+    const response = await axios.patch(
+      `${API_BASE_URL}employee-requests/reimbursement/${id}`,
+      data,
+      { headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('❌ updateReimbursementRequest error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function submitApproval(data) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}employee-requests/approve`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ submitApproval error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function listPendingApprovals(approverEmail) {
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}employee-requests/pending-approvals?approverEmail=${encodeURIComponent(approverEmail)}`,
+      { headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('❌ listPendingApprovals error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function getRequestsDashboard() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}employee-requests/dashboard`, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ getRequestsDashboard error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
 // Add these functions to your existing apiHelper.js
 
 // Accounts Receivable APIs
@@ -1972,4 +2367,37 @@ export const apiHelper = {
   topUpWallet,
   deductFromWallet,
   adjustWallet,
+  // Employee ID Management
+  listEmployeeIds,
+  getEmployeeIdRecord,
+  updateEmployeeId,
+  getExpiringDocuments,
+  getComplianceDashboard,
+  getSceMemberships,
+  createSceMembership,
+  updateSceMembership,
+  // Insurance Management
+  listInsuranceRecords,
+  getInsuranceRecord,
+  createInsuranceRecord,
+  updateInsuranceRecord,
+  listDependents,
+  createDependent,
+  updateDependent,
+  listInsuranceProviders,
+  createInsuranceProvider,
+  updateInsuranceProvider,
+  getInsuranceDashboard,
+  // Employee Requests Management
+  listRequests,
+  getRequestWithApprovals,
+  createVisaRequest,
+  updateVisaRequest,
+  createServiceRequest,
+  updateServiceRequest,
+  createReimbursementRequest,
+  updateReimbursementRequest,
+  submitApproval,
+  listPendingApprovals,
+  getRequestsDashboard,
 };

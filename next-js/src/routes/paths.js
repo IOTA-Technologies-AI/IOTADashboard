@@ -191,6 +191,40 @@ export const paths = {
         edit: (id) => path(ROOTS.DASHBOARD, `/hr/leave/${id}/edit`),
         details: (id) => path(ROOTS.DASHBOARD, `/hr/leave/${id}`),
       },
+      idManagement: {
+        root: path(ROOTS.DASHBOARD, '/hr/id-management'),
+        details: (id) => path(ROOTS.DASHBOARD, `/hr/id-management/${id}`),
+        expiring: path(ROOTS.DASHBOARD, '/hr/id-management/expiring'),
+        sce: {
+          new: path(ROOTS.DASHBOARD, '/hr/id-management/sce/new'),
+        },
+      },
+      insurance: {
+        root: path(ROOTS.DASHBOARD, '/hr/insurance'),
+        new: path(ROOTS.DASHBOARD, '/hr/insurance/new'),
+        details: (id) => path(ROOTS.DASHBOARD, `/hr/insurance/${id}`),
+        edit: (id) => path(ROOTS.DASHBOARD, `/hr/insurance/${id}/edit`),
+        providers: path(ROOTS.DASHBOARD, '/hr/insurance/providers'),
+      },
+      employeeRequests: {
+        root: path(ROOTS.DASHBOARD, '/hr/employee-requests'),
+        visa: {
+          root: path(ROOTS.DASHBOARD, '/hr/employee-requests/visa'),
+          new: path(ROOTS.DASHBOARD, '/hr/employee-requests/visa/new'),
+          details: (id) => path(ROOTS.DASHBOARD, `/hr/employee-requests/visa/${id}`),
+        },
+        service: {
+          root: path(ROOTS.DASHBOARD, '/hr/employee-requests/service'),
+          new: path(ROOTS.DASHBOARD, '/hr/employee-requests/service/new'),
+          details: (id) => path(ROOTS.DASHBOARD, `/hr/employee-requests/service/${id}`),
+        },
+        reimbursement: {
+          root: path(ROOTS.DASHBOARD, '/hr/employee-requests/reimbursement'),
+          new: path(ROOTS.DASHBOARD, '/hr/employee-requests/reimbursement/new'),
+          details: (id) => path(ROOTS.DASHBOARD, `/hr/employee-requests/reimbursement/${id}`),
+        },
+        pendingApprovals: path(ROOTS.DASHBOARD, '/hr/employee-requests/pending-approvals'),
+      },
     },
     user: {
       root: `${ROOTS.DASHBOARD}/user`,
