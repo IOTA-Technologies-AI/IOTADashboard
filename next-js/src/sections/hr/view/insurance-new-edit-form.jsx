@@ -32,6 +32,7 @@ const InsuranceSchema = z.object({
   policyClass: z.enum(['VIP', 'A', 'B', 'C']),
   startDate: z.string().optional(),
   expiryDate: z.string().optional(),
+  networkCoverageDetails: z.string().optional(),
   status: z.enum(['active', 'expired', 'pending_renewal', 'cancelled']),
   notes: z.string().optional(),
 });
@@ -56,6 +57,7 @@ export function InsuranceNewEditForm({ currentRecord }) {
       policyClass: currentRecord?.policyClass || 'A',
       startDate: currentRecord?.startDate || '',
       expiryDate: currentRecord?.expiryDate || '',
+      networkCoverageDetails: currentRecord?.networkCoverageDetails || '',
       status: currentRecord?.status || 'active',
       notes: currentRecord?.notes || '',
     }),
@@ -137,6 +139,13 @@ export function InsuranceNewEditForm({ currentRecord }) {
               </Field.Select>
             </Box>
 
+            <Field.Text
+              name="networkCoverageDetails"
+              label="Network Coverage Details"
+              multiline
+              rows={3}
+              sx={{ mt: 2 }}
+            />
             <Field.Text name="notes" label="Notes" multiline rows={3} sx={{ mt: 2 }} />
 
             <Stack alignItems="flex-end" sx={{ mt: 3 }}>

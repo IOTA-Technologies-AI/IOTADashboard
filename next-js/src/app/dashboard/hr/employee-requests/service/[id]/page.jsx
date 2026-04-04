@@ -17,8 +17,11 @@ import CardContent from '@mui/material/CardContent';
 
 import { paths } from 'src/routes/paths';
 
-import { getRequestWithApprovals } from 'src/utils/apiHelper';
+import Button from '@mui/material/Button';
 
+import { getRequestWithApprovals, updateServiceRequest } from 'src/utils/apiHelper';
+
+import { toast } from 'src/components/snackbar';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
@@ -37,14 +40,28 @@ export default function ServiceRequestDetailPage({ params }) {
   const [request, setRequest] = useState(null);
   const [approvals, setApprovals] = useState([]);
 
-  useEffect(() => {
+  const load = () => {
     getRequestWithApprovals('employeeServiceRequests', id)
       .then((data) => {
         setRequest(data.request);
         setApprovals(data.approvals ?? []);
       })
       .catch((e) => console.error('Failed to load service request:', e));
+  };
+
+  useEffect(() => {
+    load();
   }, [id]);
+
+  const markComplete = async () => {
+    try {
+      await updateServiceRequest(id, { status: 'completed' });
+      toast.success('Marked as completed');
+      load();
+    } catch {
+      toast.error('Failed to update status');
+    }
+  };
 
   if (!request) return null;
 
@@ -87,6 +104,11 @@ export default function ServiceRequestDetailPage({ params }) {
               </Box>
               <LabelValue label="Notes" value={request.notes} />
               <LabelValue label="Submitted At" value={request.submittedAt?.split('T')[0]} />
+              {request.status === 'approved' && (
+                <Button variant="outlined" size="small" onClick={markComplete}>
+                  Mark Complete
+                </Button>
+              )}
             </Stack>
           </CardContent>
         </Card>

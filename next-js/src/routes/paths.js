@@ -205,6 +205,8 @@ export const paths = {
         details: (id) => path(ROOTS.DASHBOARD, `/hr/insurance/${id}`),
         edit: (id) => path(ROOTS.DASHBOARD, `/hr/insurance/${id}/edit`),
         providers: path(ROOTS.DASHBOARD, '/hr/insurance/providers'),
+        providersNew: path(ROOTS.DASHBOARD, '/hr/insurance/providers/new'),
+        providerEdit: (id) => path(ROOTS.DASHBOARD, `/hr/insurance/providers/${id}/edit`),
       },
       employeeRequests: {
         root: path(ROOTS.DASHBOARD, '/hr/employee-requests'),
@@ -222,6 +224,16 @@ export const paths = {
           root: path(ROOTS.DASHBOARD, '/hr/employee-requests/reimbursement'),
           new: path(ROOTS.DASHBOARD, '/hr/employee-requests/reimbursement/new'),
           details: (id) => path(ROOTS.DASHBOARD, `/hr/employee-requests/reimbursement/${id}`),
+        },
+        travel: {
+          root: path(ROOTS.DASHBOARD, '/hr/employee-requests/travel'),
+          new: path(ROOTS.DASHBOARD, '/hr/employee-requests/travel/new'),
+          details: (id) => path(ROOTS.DASHBOARD, `/hr/employee-requests/travel/${id}`),
+        },
+        letter: {
+          root: path(ROOTS.DASHBOARD, '/hr/employee-requests/letter'),
+          new: path(ROOTS.DASHBOARD, '/hr/employee-requests/letter/new'),
+          details: (id) => path(ROOTS.DASHBOARD, `/hr/employee-requests/letter/${id}`),
         },
         pendingApprovals: path(ROOTS.DASHBOARD, '/hr/employee-requests/pending-approvals'),
       },

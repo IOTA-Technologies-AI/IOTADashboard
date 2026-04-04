@@ -3,15 +3,18 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Card from '@mui/material/Card';
+import Button from '@mui/material/Button';
 import Switch from '@mui/material/Switch';
 import { DataGrid } from '@mui/x-data-grid';
 
 import { paths } from 'src/routes/paths';
+import { RouterLink } from 'src/routes/components';
 
 import { listInsuranceProviders, updateInsuranceProvider } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
+import { Iconify } from 'src/components/iconify';
 import { toast } from 'src/components/snackbar';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
@@ -78,6 +81,16 @@ export default function InsuranceProvidersPage() {
           { name: 'Insurance', href: paths.dashboard.hr.insurance.root },
           { name: 'Providers' },
         ]}
+        action={
+          <Button
+            component={RouterLink}
+            href={paths.dashboard.hr.insurance.providersNew}
+            variant="contained"
+            startIcon={<Iconify icon="mingcute:add-line" />}
+          >
+            New Provider
+          </Button>
+        }
         sx={{ mb: { xs: 3, md: 5 } }}
       />
       <Card>

@@ -95,6 +95,12 @@ export default function InsuranceDetailPage({ params }) {
                   </Box>
                 </Box>
                 <LabelValue label="Notes" value={record.notes} />
+                {record.networkCoverageDetails && (
+                  <LabelValue
+                    label="Network Coverage Details"
+                    value={record.networkCoverageDetails}
+                  />
+                )}
               </Stack>
             </CardContent>
           </Card>

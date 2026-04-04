@@ -12,8 +12,11 @@ import CardContent from '@mui/material/CardContent';
 
 import { paths } from 'src/routes/paths';
 
-import { getRequestWithApprovals } from 'src/utils/apiHelper';
+import Button from '@mui/material/Button';
 
+import { getRequestWithApprovals, updateReimbursementRequest } from 'src/utils/apiHelper';
+
+import { toast } from 'src/components/snackbar';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
@@ -31,11 +34,25 @@ export default function ReimbursementDetailPage({ params }) {
   const { id } = params;
   const [request, setRequest] = useState(null);
 
-  useEffect(() => {
+  const load = () => {
     getRequestWithApprovals('reimbursementRequests', id)
       .then((data) => setRequest(data.request))
       .catch((e) => console.error('Failed to load reimbursement:', e));
+  };
+
+  useEffect(() => {
+    load();
   }, [id]);
+
+  const markComplete = async () => {
+    try {
+      await updateReimbursementRequest(id, { status: 'completed' });
+      toast.success('Marked as completed');
+      load();
+    } catch {
+      toast.error('Failed to update status');
+    }
+  };
 
   if (!request) return null;
 
@@ -75,6 +92,11 @@ export default function ReimbursementDetailPage({ params }) {
             </Box>
             <LabelValue label="Notes" value={request.notes} />
             <LabelValue label="Created At" value={request.createdAt?.split('T')[0]} />
+            {request.status === 'approved' && (
+              <Button variant="outlined" size="small" onClick={markComplete}>
+                Mark Complete
+              </Button>
+            )}
           </Stack>
         </CardContent>
       </Card>

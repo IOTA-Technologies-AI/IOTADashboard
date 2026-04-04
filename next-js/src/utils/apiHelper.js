@@ -1150,6 +1150,96 @@ export async function getRequestsDashboard() {
   }
 }
 
+// ─── Travel Ticket Requests ───────────────────────────────────────────────────
+
+export async function createTravelRequest(data) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}employee-requests/travel`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ createTravelRequest error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function updateTravelRequest(id, data) {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}employee-requests/travel/${id}`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ updateTravelRequest error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+// ─── Letter Requests ─────────────────────────────────────────────────────────
+
+export async function createLetterRequest(data) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}employee-requests/letter`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ createLetterRequest error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function updateLetterRequest(id, data) {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}employee-requests/letter/${id}`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ updateLetterRequest error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function uploadDocument({ fileBase64, fileName, mimeType, folder }) {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}documents/upload`,
+      { fileBase64, fileName, mimeType, folder: folder || 'misc' },
+      { headers: { 'Content-Type': 'application/json', ...getAuthHeaders() } }
+    );
+    return response.data; // { url, path }
+  } catch (error) {
+    console.error('❌ uploadDocument error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function generateSalaryCertificate(employeeId) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}documents/salary-certificate/${employeeId}`, {
+      headers: getAuthHeaders(),
+    });
+    return response.data; // { html, fileName }
+  } catch (error) {
+    console.error('❌ generateSalaryCertificate error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+export async function generateLetterDocument(letterId) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}documents/generate-letter/${letterId}`, {
+      headers: getAuthHeaders(),
+    });
+    return response.data; // { html, fileName }
+  } catch (error) {
+    console.error('❌ generateLetterDocument error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
 // Add these functions to your existing apiHelper.js
 
 // Accounts Receivable APIs
@@ -2400,4 +2490,12 @@ export const apiHelper = {
   submitApproval,
   listPendingApprovals,
   getRequestsDashboard,
+  createTravelRequest,
+  updateTravelRequest,
+  createLetterRequest,
+  updateLetterRequest,
+  // Document Management
+  uploadDocument,
+  generateSalaryCertificate,
+  generateLetterDocument,
 };

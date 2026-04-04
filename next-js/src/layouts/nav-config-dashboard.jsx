@@ -193,6 +193,8 @@ export const navData = [
                 title: 'Reimbursements',
                 path: paths.dashboard.hr.employeeRequests.reimbursement.root,
               },
+              { title: 'Travel Tickets', path: paths.dashboard.hr.employeeRequests.travel.root },
+              { title: 'Letter Requests', path: paths.dashboard.hr.employeeRequests.letter.root },
             ],
           },
         ],
