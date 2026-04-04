@@ -1138,6 +1138,23 @@ export async function listPendingApprovals(approverEmail) {
   }
 }
 
+export async function getAuditLog({ entityType, entityId, limit = 100, offset = 0 } = {}) {
+  try {
+    const params = new URLSearchParams();
+    if (entityType) params.append('entityType', entityType);
+    if (entityId) params.append('entityId', String(entityId));
+    params.append('limit', String(limit));
+    params.append('offset', String(offset));
+    const response = await axios.get(`${API_BASE_URL}hr-audit-log?${params.toString()}`, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ getAuditLog error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
 export async function getRequestsDashboard() {
   try {
     const response = await axios.get(`${API_BASE_URL}employee-requests/dashboard`, {
@@ -2494,6 +2511,8 @@ export const apiHelper = {
   updateTravelRequest,
   createLetterRequest,
   updateLetterRequest,
+  // Audit Log
+  getAuditLog,
   // Document Management
   uploadDocument,
   generateSalaryCertificate,

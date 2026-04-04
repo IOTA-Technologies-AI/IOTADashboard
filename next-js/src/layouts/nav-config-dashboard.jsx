@@ -204,6 +204,7 @@ export const navData = [
               { title: 'All Requests', path: paths.dashboard.hr.leave.root },
             ],
           },
+          { title: 'Audit Log', path: paths.dashboard.hr.auditLog },
         ],
       },
       {

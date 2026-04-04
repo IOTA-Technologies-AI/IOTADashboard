@@ -19,12 +19,14 @@ import CardHeader from '@mui/material/CardHeader';
 import CardContent from '@mui/material/CardContent';
 
 import { paths } from 'src/routes/paths';
+import { RouterLink } from 'src/routes/components';
 
 import { getEmployeeIdRecord } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-
+import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import Button from '@mui/material/Button';
 
 const LabelValue = ({ label, value }) => (
   <Box>
@@ -64,6 +66,16 @@ export default function IdManagementDetailPage({ params }) {
           { name: 'ID Management', href: paths.dashboard.hr.idManagement.root },
           { name: fullName },
         ]}
+        action={
+          <Button
+            component={RouterLink}
+            href={paths.dashboard.hr.idManagement.edit(id)}
+            variant="contained"
+            startIcon={<Iconify icon="solar:pen-bold" />}
+          >
+            Edit
+          </Button>
+        }
         sx={{ mb: { xs: 3, md: 5 } }}
       />
 

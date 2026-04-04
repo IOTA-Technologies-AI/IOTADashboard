@@ -193,7 +193,9 @@ export const paths = {
       },
       idManagement: {
         root: path(ROOTS.DASHBOARD, '/hr/id-management'),
+        new: path(ROOTS.DASHBOARD, '/hr/id-management/new'),
         details: (id) => path(ROOTS.DASHBOARD, `/hr/id-management/${id}`),
+        edit: (id) => path(ROOTS.DASHBOARD, `/hr/id-management/${id}/edit`),
         expiring: path(ROOTS.DASHBOARD, '/hr/id-management/expiring'),
         sce: {
           new: path(ROOTS.DASHBOARD, '/hr/id-management/sce/new'),
@@ -237,6 +239,7 @@ export const paths = {
         },
         pendingApprovals: path(ROOTS.DASHBOARD, '/hr/employee-requests/pending-approvals'),
       },
+      auditLog: path(ROOTS.DASHBOARD, '/hr/audit-log'),
     },
     user: {
       root: `${ROOTS.DASHBOARD}/user`,

@@ -4,6 +4,7 @@ import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Chip from '@mui/material/Chip';
 import Card from '@mui/material/Card';
+import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 
@@ -98,14 +99,24 @@ export default function IdManagementListPage() {
           { name: 'ID Management' },
         ]}
         action={
-          <Button
-            component={RouterLink}
-            href={paths.dashboard.hr.idManagement.expiring}
-            variant="outlined"
-            startIcon={<Iconify icon="solar:bell-bing-bold" />}
-          >
-            Expiring Documents
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button
+              component={RouterLink}
+              href={paths.dashboard.hr.idManagement.new}
+              variant="contained"
+              startIcon={<Iconify icon="mingcute:add-line" />}
+            >
+              New Record
+            </Button>
+            <Button
+              component={RouterLink}
+              href={paths.dashboard.hr.idManagement.expiring}
+              variant="outlined"
+              startIcon={<Iconify icon="solar:bell-bing-bold" />}
+            >
+              Expiring Documents
+            </Button>
+          </Stack>
         }
         sx={{ mb: { xs: 3, md: 5 } }}
       />
