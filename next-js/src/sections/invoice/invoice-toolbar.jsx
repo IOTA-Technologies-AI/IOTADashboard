@@ -15,7 +15,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
-import apiHelper from 'src/utils/apiHelper';
+import { issueInvoice } from 'src/utils/apiHelper';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -56,7 +56,7 @@ export function InvoiceToolbar({
         binary += String.fromCharCode(bytes[i]);
       }
       const pdfBase64 = btoa(binary);
-      await apiHelper.issueInvoice(invoice?.invoiceId || invoice?.id, pdfBase64);
+      await issueInvoice(invoice?.invoiceId || invoice?.id, pdfBase64);
       toast.success('Invoice issued and emailed to customer.');
       onRefresh?.();
     } catch (err) {
