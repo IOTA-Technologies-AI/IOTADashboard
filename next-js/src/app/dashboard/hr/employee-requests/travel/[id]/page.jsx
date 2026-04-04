@@ -23,7 +23,7 @@ import { updateTravelRequest, getRequestWithApprovals } from 'src/utils/apiHelpe
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { toast } from 'src/components/snackbar';
-import CustomBreadcrumbs from 'src/components/custom-breadcrumbs';
+import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 const STATUS_COLORS = {
   submitted: 'info',

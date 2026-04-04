@@ -17,7 +17,7 @@ import { listRequests } from 'src/utils/apiHelper';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
-import CustomBreadcrumbs from 'src/components/custom-breadcrumbs';
+import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 const STATUS_COLORS = {
   submitted: 'info',
