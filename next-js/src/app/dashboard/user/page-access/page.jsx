@@ -181,15 +181,15 @@ export default function UserPageAccess() {
             let userPaths = [];
             try {
               const response = await axios.get(
-                `${API_BASE_URL}user-nav-permissions/${encodeURIComponent(user.id)}/paths`
+                `${API_BASE_URL}user-nav-permissions/${encodeURIComponent(user.email)}/paths`
               );
               userPaths = response.data?.paths || [];
               console.log(
-                `[PageAccess] Loaded ${userPaths.length} paths for user ${user.id} from API`
+                `[PageAccess] Loaded ${userPaths.length} paths for user ${user.email} from API`
               );
             } catch (apiError) {
               console.warn(
-                `[PageAccess] Failed to fetch paths from API for user ${user.id}:`,
+                `[PageAccess] Failed to fetch paths from API for user ${user.email}:`,
                 apiError.message
               );
             }
@@ -288,7 +288,7 @@ export default function UserPageAccess() {
 
       // 2. Save to userNavPermissions table via backend API (NEW ENDPOINT)
       const apiResponse = await axios.post(`${API_BASE_URL}user-nav-permissions/set-by-paths`, {
-        userId: user.id,
+        userId: user.email,
         paths: user.paths,
         grantedBy: currentUser?.email || 'unknown',
       });
@@ -307,7 +307,7 @@ export default function UserPageAccess() {
 
       // 3. Save to local storage cache and clear old cache
       savePageAccessForUser(user.id, user.paths);
-      clearUserNavPermissionCache(user.id);
+      clearUserNavPermissionCache(user.email);
 
       setMessage(
         apiResponse.data.message ||
