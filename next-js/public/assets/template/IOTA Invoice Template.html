@@ -185,11 +185,22 @@
         margin: 0;
       }
 
-      /* Kill every scrollable container — nothing must expand beyond 297mm */
-      html, body {
+      /* height: 100% resolves to exactly the @page height (297mm), which is
+         what tells the print engine there is only one page.
+         height: 297mm does NOT do this — it sets the box but leaves the
+         document flow unconstrained, causing the blank second page. */
+      html {
         width: 210mm !important;
-        height: 297mm !important;
-        max-height: 297mm !important;
+        height: 100% !important;
+        overflow: hidden !important;
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      body {
+        width: 210mm !important;
+        height: 100% !important;
         overflow: hidden !important;
         background: white !important;
         margin: 0 !important;
@@ -198,28 +209,25 @@
 
       .toolbar { display: none !important; }
 
-      /* Remove screen padding; the .page IS the viewport */
+      /* Cascade 100% down so .page fills exactly one printed page */
       .page-wrapper {
+        display: block !important;
+        width: 100% !important;
+        height: 100% !important;
         padding: 0 !important;
         margin: 0 !important;
-        width: 210mm !important;
-        height: 297mm !important;
         overflow: hidden !important;
       }
 
       .page {
-        width: 210mm !important;
-        height: 297mm !important;
-        max-height: 297mm !important;
+        width: 100% !important;
+        height: 100% !important;
         overflow: hidden !important;
         box-shadow: none !important;
         margin: 0 !important;
         padding: 0 !important;
-        page-break-after: avoid !important;
-        break-after: avoid !important;
       }
 
-      /* Prevent any child from growing beyond its flex allocation */
       .content {
         overflow: hidden !important;
         min-height: 0 !important;
@@ -230,16 +238,9 @@
         min-height: 0 !important;
       }
 
-      /* Table must never auto-size beyond its container */
       .items-box {
         table-layout: fixed !important;
         width: 100% !important;
-      }
-
-      /* No page breaks inside any element */
-      * {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
       }
     }
   </style>
