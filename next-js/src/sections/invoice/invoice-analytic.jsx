@@ -10,7 +10,7 @@ import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
-export function InvoiceAnalytic({ title, total, icon, color, percent, price }) {
+export function InvoiceAnalytic({ title, total, icon, color, percent, price, currencyCode }) {
   return (
     <Box
       sx={{
@@ -68,7 +68,7 @@ export function InvoiceAnalytic({ title, total, icon, color, percent, price }) {
         </Box>
 
         <Box component="span" sx={{ typography: 'subtitle2' }}>
-          {fCurrency(price)}
+          {fCurrency(price, currencyCode ? { currencyCode } : undefined)}
         </Box>
       </div>
     </Box>

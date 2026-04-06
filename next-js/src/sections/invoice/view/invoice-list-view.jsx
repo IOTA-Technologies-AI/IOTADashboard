@@ -23,6 +23,7 @@ import { RouterLink } from 'src/routes/components';
 
 import { fIsAfter } from 'src/utils/format-time';
 import { fetchInvoices, deleteInvoice } from 'src/utils/apiHelper';
+import { getExchangeRate } from 'src/utils/currency-converter';
 
 import { INVOICE_SERVICE_OPTIONS } from 'src/_mock';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -123,7 +124,25 @@ export function InvoiceListView() {
         const mappedInvoices = invoices.map(mapBackendInvoiceToFrontend);
         console.log('✅ Mapped invoices:', mappedInvoices);
 
-        setTableData(mappedInvoices);
+        // Fetch exchange rates for every unique non-SAR currency in one batch
+        const uniqueCurrencies = [
+          ...new Set(mappedInvoices.map((i) => i.currencyCode).filter((c) => c && c !== 'SAR')),
+        ];
+        const rateEntries = await Promise.all(
+          uniqueCurrencies.map(async (currency) => {
+            const { rate } = await getExchangeRate(currency, 'SAR');
+            return [currency, rate];
+          })
+        );
+        const rateMap = { SAR: 1, ...Object.fromEntries(rateEntries) };
+
+        // Attach sarAmount so analytic totals are always in SAR
+        const invoicesWithSar = mappedInvoices.map((inv) => ({
+          ...inv,
+          sarAmount: (inv.totalAmount || 0) * (rateMap[inv.currencyCode] ?? 1),
+        }));
+
+        setTableData(invoicesWithSar);
       } catch (error) {
         console.error('❌ Failed to fetch invoices:', error);
         toast.error('Failed to load invoices');
@@ -168,7 +187,7 @@ export function InvoiceListView() {
   const getTotalAmount = (status) =>
     sumBy(
       tableData.filter((item) => item.status === status),
-      (invoice) => invoice.totalAmount
+      (invoice) => invoice.sarAmount ?? invoice.totalAmount
     );
 
   const getPercentByStatus = (status) =>
@@ -321,7 +340,8 @@ export function InvoiceListView() {
                 title="Total"
                 total={tableData.length}
                 percent={100}
-                price={sumBy(tableData, (invoice) => invoice.totalAmount)}
+                price={sumBy(tableData, (invoice) => invoice.sarAmount ?? invoice.totalAmount)}
+                currencyCode="SAR"
                 icon="solar:bill-list-bold-duotone"
                 color={theme.vars.palette.info.main}
               />
@@ -332,7 +352,8 @@ export function InvoiceListView() {
                 percent={getPercentByStatus('paid')}
                 price={tableData
                   .filter((item) => item.status.toLowerCase() === 'paid')
-                  .reduce((sum, invoice) => sum + invoice.totalAmount, 0)}
+                  .reduce((sum, invoice) => sum + (invoice.sarAmount ?? invoice.totalAmount), 0)}
+                currencyCode="SAR"
                 icon="solar:file-check-bold-duotone"
                 color={theme.vars.palette.success.main}
               />
@@ -343,7 +364,8 @@ export function InvoiceListView() {
                 percent={getPercentByStatus('pending')}
                 price={tableData
                   .filter((item) => item.status.toLowerCase() === 'pending')
-                  .reduce((sum, invoice) => sum + invoice.totalAmount, 0)}
+                  .reduce((sum, invoice) => sum + (invoice.sarAmount ?? invoice.totalAmount), 0)}
+                currencyCode="SAR"
                 icon="solar:sort-by-time-bold-duotone"
                 color={theme.vars.palette.warning.main}
               />
@@ -353,6 +375,7 @@ export function InvoiceListView() {
                 total={getInvoiceLength('overdue')}
                 percent={getPercentByStatus('overdue')}
                 price={getTotalAmount('overdue')}
+                currencyCode="SAR"
                 icon="solar:bell-bing-bold-duotone"
                 color={theme.vars.palette.error.main}
               />
@@ -362,6 +385,7 @@ export function InvoiceListView() {
                 total={getInvoiceLength('draft')}
                 percent={getPercentByStatus('draft')}
                 price={getTotalAmount('draft')}
+                currencyCode="SAR"
                 icon="solar:file-corrupted-bold-duotone"
                 color={theme.vars.palette.text.secondary}
               />
