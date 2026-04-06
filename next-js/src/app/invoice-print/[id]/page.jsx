@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 
 import { fDate } from 'src/utils/format-time';
@@ -204,6 +204,7 @@ export default function InvoicePrintPage() {
   const { id } = useParams();
   const [html, setHtml] = useState(null);
   const [invoiceNumber, setInvoiceNumber] = useState('');
+  const iframeRef = useRef(null);
 
   useEffect(() => {
     if (!id) return;
@@ -290,13 +291,35 @@ export default function InvoicePrintPage() {
     });
   }, [id]);
 
-  // Trigger print once the filled HTML is mounted
+  // Write the filled HTML into the iframe's own document and print from there
   useEffect(() => {
-    if (!html) return;
+    if (!html || !iframeRef.current) return;
     document.title = invoiceNumber || 'IOTA Invoice';
-    const timer = setTimeout(() => window.print(), 800);
-    // eslint-disable-next-line consistent-return
-    return () => clearTimeout(timer);
+
+    const iframe = iframeRef.current;
+
+    const write = () => {
+      const doc = iframe.contentDocument || iframe.contentWindow?.document;
+      if (!doc) return;
+      doc.open();
+      doc.write(html);
+      doc.close();
+
+      // Wait for fonts/images then print
+      const doPrint = () => iframe.contentWindow?.print();
+      if (iframe.contentDocument?.fonts) {
+        iframe.contentDocument.fonts.ready.then(() => setTimeout(doPrint, 300));
+      } else {
+        setTimeout(doPrint, 800);
+      }
+    };
+
+    // iframe may not be interactive yet on first render
+    if (iframe.contentDocument) {
+      write();
+    } else {
+      iframe.addEventListener('load', write, { once: true });
+    }
   }, [html, invoiceNumber]);
 
   if (!html) {
@@ -317,6 +340,21 @@ export default function InvoicePrintPage() {
     );
   }
 
-  // Render the fully-populated HTML template directly
-  return <div dangerouslySetInnerHTML={{ __html: html }} />;
+  // Render inside a hidden iframe so the template's @page rules are not
+  // polluted by Next.js's own <html>/<body> wrapping.
+  return (
+    <iframe
+      ref={iframeRef}
+      title="invoice-print"
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        border: 'none',
+        background: '#e8e8e8',
+      }}
+    />
+  );
 }
