@@ -50,6 +50,7 @@ import {
 import { InvoiceAnalytic } from '../invoice-analytic';
 import { InvoiceTableRow } from '../invoice-table-row';
 import { InvoiceTableToolbar } from '../invoice-table-toolbar';
+import { InvoiceApprovalDialog } from '../invoice-approval-dialog';
 import { InvoiceTableFiltersResult } from '../invoice-table-filters-result';
 import { useAuthContext } from 'src/auth/hooks';
 
@@ -94,6 +95,11 @@ const mapBackendInvoiceToFrontend = (invoice) => ({
   balance: invoice.balance || 0,
   currencyCode: invoice.currencyCode || 'SAR',
   sent: invoice.isReminderSent ? 1 : 0,
+  // Approval workflow fields
+  rejectionReason: invoice.rejectionReason || null,
+  createdByEmail: invoice.createdByEmail || '',
+  approvedBy: invoice.approvedBy || null,
+  approvedDate: invoice.approvedDate || null,
 });
 
 export function InvoiceListView() {
@@ -106,11 +112,15 @@ export function InvoiceListView() {
   };
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
   const canEdit = normalizedRole === 'superAdmin';
+  const canApprove = normalizedRole === 'superAdmin';
+
+  const [approvalInvoice, setApprovalInvoice] = useState(null);
+  const approvalDialogOpen = useBoolean();
 
   const theme = useTheme();
   const table = useTable({ defaultOrderBy: 'createDate' });
   const confirmDialog = useBoolean();
-  const [tableData, setTableData] = useState([]); // ✅ Changed from _invoices to []
+  const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -280,6 +290,14 @@ export function InvoiceListView() {
       updateFilters({ status: newValue });
     },
     [updateFilters, table]
+  );
+
+  const handleOpenApproval = useCallback(
+    (invoice) => {
+      setApprovalInvoice(invoice);
+      approvalDialogOpen.onTrue();
+    },
+    [approvalDialogOpen]
   );
 
   const renderConfirmDialog = () => (
@@ -520,6 +538,8 @@ export function InvoiceListView() {
                             onSelectRow={() => table.onSelectRow(row.id)}
                             onDeleteRow={() => handleDeleteRow(row.id)}
                             canEdit={canEdit}
+                            canApprove={canApprove}
+                            onOpenApproval={handleOpenApproval}
                             editHref={paths.dashboard.invoice.edit(row.id)}
                             detailsHref={paths.dashboard.invoice.details(row.id)}
                           />
@@ -551,6 +571,27 @@ export function InvoiceListView() {
       </DashboardContent>
 
       {renderConfirmDialog()}
+
+      <InvoiceApprovalDialog
+        open={approvalDialogOpen.value}
+        onClose={approvalDialogOpen.onFalse}
+        invoice={approvalInvoice}
+        onApprovalComplete={async () => {
+          // Reload invoices after approval/rejection
+          try {
+            const { fetchInvoices: refetch } = await import('src/utils/apiHelper');
+            const updated = await refetch();
+            setTableData(
+              updated.map((inv) => ({
+                ...mapBackendInvoiceToFrontend(inv),
+                sarAmount: inv.total || 0,
+              }))
+            );
+          } catch (e) {
+            console.error('Failed to reload invoices after approval:', e);
+          }
+        }}
+      />
     </>
   );
 }

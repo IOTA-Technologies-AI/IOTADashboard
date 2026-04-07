@@ -24,17 +24,20 @@ export function InvoiceEditView({ invoice: initialInvoice }) {
 
   const roleIdToName = { 1: 'regular', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
-  const canEdit = normalizedRole === 'superAdmin';
+  // SuperAdmins can always edit; the original creator can edit a rejected invoice to resubmit
+  const canEdit =
+    normalizedRole === 'superAdmin' ||
+    (invoice?.status === 'rejected' && invoice?.createdByEmail === user?.email);
 
   const [invoice, setInvoice] = useState(initialInvoice);
   const [loading, setLoading] = useState(!initialInvoice);
 
   useEffect(() => {
-    if (!canEdit) {
+    if (!canEdit && invoice && invoice.status !== 'rejected') {
       toast.error('Only super admins can edit invoices');
       router.replace(paths.dashboard.invoice.root);
     }
-  }, [canEdit, router]);
+  }, [canEdit, invoice, router]);
 
   useEffect(() => {
     if (!initialInvoice && params?.id) {
@@ -120,6 +123,9 @@ export function InvoiceEditView({ invoice: initialInvoice }) {
               isEmployeeRelated: data.isEmployeeRelated || false,
               employeeId: data.employeeId || '',
               employeeName: data.employeeName || '',
+              // Approval workflow fields
+              rejectionReason: data.rejectionReason || null,
+              createdByEmail: data.createdByEmail || '',
             };
 
             console.log('✅ Transformed invoice for form:', transformedInvoice);

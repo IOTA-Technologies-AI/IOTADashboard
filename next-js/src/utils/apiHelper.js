@@ -1644,6 +1644,25 @@ export async function updateInvoice(invoiceId, invoiceData) {
 }
 
 /**
+ * Approve or reject an invoice.
+ * @param {string} invoiceId
+ * @param {{ approved: boolean, approverName: string, approverEmail: string, rejectionReason?: string, pdfBase64?: string }} data
+ */
+export async function approveInvoice(invoiceId, data) {
+  try {
+    console.log('📤 Approving/rejecting invoice:', invoiceId, { approved: data.approved });
+    const response = await axios.post(`${API_BASE_URL}invoices/${invoiceId}/approve`, data, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    console.log('✅ Invoice approval response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('❌ Failed to approve/reject invoice:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+/**
  * Issue an invoice: upload the generated PDF to OneDrive and email it to the customer.
  * @param {string} invoiceId  - The invoice's invoiceId field
  * @param {string} pdfBase64  - Base64-encoded PDF content
@@ -2400,6 +2419,7 @@ export const apiHelper = {
   deleteInvoice,
   updateInvoice,
   issueInvoice,
+  approveInvoice,
   getEmployees,
   getEmployeeById,
   createEmployee,

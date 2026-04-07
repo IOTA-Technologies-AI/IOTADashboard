@@ -115,9 +115,10 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
 
   const isEdit = !!currentInvoice?.id;
 
-  // ✅ CHECK IF INVOICE IS PAID - Cannot edit
-  const isPaid = currentInvoice?.status === 'paid';
-  const canSubmitChanges = isEdit ? canEditByRole && !isPaid : !isPaid;
+  // Paid/approved invoices cannot be edited; rejected invoices CAN be re-edited and resubmitted
+  const isNotEditable = currentInvoice?.status === 'paid' || currentInvoice?.status === 'approved';
+  const isRejected = currentInvoice?.status === 'rejected';
+  const canSubmitChanges = isEdit ? canEditByRole && !isNotEditable : !isNotEditable;
 
   const defaultValues = {
     invoiceNumber: `INV-${Date.now()}`,
@@ -204,9 +205,10 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         customerId: data.invoiceTo?.id ? String(data.invoiceTo.id) : null,
         customerName: data.invoiceTo?.name || '',
         companyName: data.invoiceTo?.name || '',
+        createdByEmail: user?.email || '',
         invoiceDate: data.createDate,
         dueDate: data.dueDate,
-        status: data.status || 'draft', // ✅ Keep as draft
+        status: 'draft', // Save as draft
         total: parseFloat((data.totalAmount || 0).toFixed(2)),
         balance: parseFloat((data.totalAmount || 0).toFixed(2)),
         currencyCode: data.invoiceFrom?.currency || 'SAR',
@@ -286,9 +288,10 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         customerId: data.invoiceTo?.id ? String(data.invoiceTo.id) : null,
         customerName: data.invoiceTo?.name || '',
         companyName: data.invoiceTo?.name || '',
+        createdByEmail: user?.email || '',
         invoiceDate: data.createDate,
         dueDate: data.dueDate,
-        status: data.status || 'pending', // ✅ PENDING - Waiting for approval
+        status: 'pending', // Always pending when submitted for approval
         baseAmount: parseFloat((data.subtotal || 0).toFixed(2)),
         vatAmount: parseFloat((data.vatAmount || 0).toFixed(2)),
         vatRate: parseFloat((data.vatRate || 0).toFixed(2)),
@@ -354,14 +357,24 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
 
   return (
     <Form methods={methods}>
-      {/* ✅ SHOW WARNING IF TRYING TO EDIT PAID/APPROVED INVOICE */}
-      {isPaid && (
+      {/* Status-based alerts */}
+      {isNotEditable && (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          This invoice has been paid and cannot be edited.
+          This invoice has been {currentInvoice?.status} and cannot be edited.
         </Alert>
       )}
 
-      {isEdit && !canEditByRole && (
+      {isRejected && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          <strong>Invoice Rejected.</strong>
+          {currentInvoice?.rejectionReason
+            ? ` Reason: ${currentInvoice.rejectionReason}.`
+            : ''}{' '}
+          Please update and resubmit for approval.
+        </Alert>
+      )}
+
+      {isEdit && !canEditByRole && !isRejected && (
         <Alert severity="error" sx={{ mb: 3 }}>
           Only admins and super admins can edit invoices. You have view-only access.
         </Alert>

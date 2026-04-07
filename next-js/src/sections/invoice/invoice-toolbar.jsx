@@ -137,12 +137,6 @@ export function InvoiceToolbar({
               </IconButton>
             </span>
           </Tooltip>
-
-          <Tooltip title="Share">
-            <IconButton>
-              <Iconify icon="solar:share-bold" />
-            </IconButton>
-          </Tooltip>
         </Box>
         {statusOptions && onChangeStatus && (
           <TextField

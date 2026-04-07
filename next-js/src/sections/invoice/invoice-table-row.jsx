@@ -33,6 +33,8 @@ export function InvoiceTableRow({
   onDeleteRow,
   detailsHref,
   canEdit = true,
+  canApprove = false,
+  onOpenApproval,
 }) {
   const menuActions = usePopover();
   const confirmDialog = useBoolean();
@@ -51,6 +53,21 @@ export function InvoiceTableRow({
             View
           </MenuItem>
         </li>
+
+        {canApprove && row.status === 'pending' && (
+          <li>
+            <MenuItem
+              onClick={() => {
+                onOpenApproval?.(row);
+                menuActions.onClose();
+              }}
+              sx={{ color: 'success.main' }}
+            >
+              <Iconify icon="solar:check-circle-bold" />
+              Review &amp; Approve
+            </MenuItem>
+          </li>
+        )}
 
         {canEdit && (
           <>
@@ -163,6 +180,8 @@ export function InvoiceTableRow({
             color={
               (row.status === 'paid' && 'success') ||
               (row.status === 'pending' && 'warning') ||
+              (row.status === 'approved' && 'info') ||
+              (row.status === 'rejected' && 'error') ||
               (row.status === 'overdue' && 'error') ||
               'default'
             }
