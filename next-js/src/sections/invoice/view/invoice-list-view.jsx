@@ -118,7 +118,7 @@ export function InvoiceListView() {
   const approvalDialogOpen = useBoolean();
 
   const theme = useTheme();
-  const table = useTable({ defaultOrderBy: 'createDate' });
+  const table = useTable({ defaultOrderBy: 'createDate', defaultRowsPerPage: 25 });
   const confirmDialog = useBoolean();
   const [tableData, setTableData] = useState([]);
   const [loading, setLoading] = useState(true);
