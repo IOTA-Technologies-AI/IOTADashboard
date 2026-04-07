@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation';
 
 import { fDate } from 'src/utils/format-time';
 import { fetchInvoice, fetchOfficeConfigs, getCustomers } from 'src/utils/apiHelper';
-
 import { IOTA_OFFICES } from 'src/sections/invoice/invoice-create-edit-address';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -108,9 +107,10 @@ function esc(str) {
 }
 
 // Fill every {{PLACEHOLDER}} in the template with real invoice data
-function fillTemplate(templateHtml, invoice, officeList) {
+function fillTemplate(templateHtml, invoice, officeList, qrCodeBlock) {
   const office = getOffice(invoice.currencyCode, officeList);
   const bank = office.bankDetails || {};
+  const qrHtml = qrCodeBlock || '';
   const vatLabel = invoice.vatRate ? `VAT @ ${invoice.vatRate}%` : 'VAT';
 
   const itemsRows = (invoice.items || [])
@@ -196,7 +196,9 @@ function fillTemplate(templateHtml, invoice, officeList) {
     .split('{{BANK_CITY}}')
     .join(esc(bank.city || ''))
     .split('{{OFFICE_EMAIL}}')
-    .join(esc(office.email || ''));
+    .join(esc(office.email || ''))
+    .split('{{QR_CODE_BLOCK}}')
+    .join(qrHtml);
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
@@ -222,7 +224,7 @@ export default function InvoicePrintPage() {
       fetch('/assets/template/IOTA Invoice Template.html').then((r) => r.text()),
       fetchInvoice(id),
       getCustomers(),
-    ]).then(([templateHtml, data, allCustomers]) => {
+    ]).then(async ([templateHtml, data, allCustomers]) => {
       if (!data) return;
 
       const customer = (allCustomers || []).find((c) => String(c.id) === String(data?.customerId));
@@ -296,7 +298,23 @@ export default function InvoicePrintPage() {
       };
 
       setInvoiceNumber(invoice.invoiceNumber);
-      setHtml(fillTemplate(templateHtml, invoice, liveOffices));
+
+      // Generate QR code for view link if token is available
+      let qrCodeBlock = '';
+      if (data.viewToken) {
+        try {
+          const QRCode = await import('qrcode');
+          const viewUrl = `https://docs.iotatechnologies.io/view/${data.viewToken}`;
+          const qrDataUrl = await QRCode.toDataURL(viewUrl, { width: 120, margin: 1 });
+          qrCodeBlock = `<div style="text-align:center;margin-top:16px;">
+            <img src="${qrDataUrl}" width="80" height="80" style="display:inline-block;" alt="Scan to view invoice" />
+            <div style="font-size:9px;color:#888;margin-top:4px;">Scan to view invoice online</div>
+          </div>`;
+        } catch {
+          qrCodeBlock = '';
+        }
+      }
+      setHtml(fillTemplate(templateHtml, invoice, liveOffices, qrCodeBlock));
     });
   }, [id, liveOffices]);
 

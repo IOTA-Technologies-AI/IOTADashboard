@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   Page,
   Text,
@@ -275,13 +275,17 @@ const useStyles = () =>
         footerText: { fontSize: 8.5, color: '#1a1a1a', lineHeight: 1.85 },
         footerLink: { fontSize: 8.5, color: '#0166ff', lineHeight: 1.85 },
         footerTextRight: { fontSize: 8.5, color: '#1a1a1a', lineHeight: 1.85, textAlign: 'right' },
+        // ── QR code block ──
+        qrBlock: { marginTop: 14, alignItems: 'center' },
+        qrImage: { width: 64, height: 64 },
+        qrLabel: { fontSize: 7, color: '#888888', marginTop: 3, textAlign: 'center' },
       }),
     []
   );
 
 // ── Public PDF document (exported for direct use) ─────────────────────────────
 
-export function InvoicePdfDocument({ invoice, currentStatus, offices }) {
+export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase64 }) {
   const {
     items,
     dueDate,
@@ -444,6 +448,14 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices }) {
               </Text>
             </View>
           </View>
+
+          {/* QR code — scan to view this invoice online */}
+          {viewQrBase64 ? (
+            <View style={styles.qrBlock}>
+              <Image src={viewQrBase64} style={styles.qrImage} />
+              <Text style={styles.qrLabel}>Scan to view invoice online</Text>
+            </View>
+          ) : null}
         </View>
       </Page>
     </Document>
@@ -452,7 +464,20 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices }) {
 
 // ── Download link wrapper ─────────────────────────────────────────────────────
 
-export function InvoicePDFDownload({ invoice, currentStatus }) {
+export function InvoicePDFDownload({ invoice, currentStatus, offices }) {
+  const [viewQrBase64, setViewQrBase64] = useState(null);
+
+  useEffect(() => {
+    const token = invoice?.viewToken;
+    if (!token) return;
+    const viewUrl = `https://docs.iotatechnologies.io/view/${token}`;
+    import('qrcode').then((QRCode) => {
+      QRCode.toDataURL(viewUrl, { width: 160, margin: 1 })
+        .then(setViewQrBase64)
+        .catch(() => {});
+    });
+  }, [invoice?.viewToken]);
+
   const renderButton = (loading) => (
     <Tooltip title="Download">
       <IconButton>
@@ -467,7 +492,14 @@ export function InvoicePDFDownload({ invoice, currentStatus }) {
 
   return (
     <PDFDownloadLink
-      document={<InvoicePdfDocument invoice={invoice} currentStatus={currentStatus} />}
+      document={
+        <InvoicePdfDocument
+          invoice={invoice}
+          currentStatus={currentStatus}
+          offices={offices}
+          viewQrBase64={viewQrBase64}
+        />
+      }
       fileName={invoice?.invoiceNumber || 'invoice'}
       style={{ textDecoration: 'none' }}
     >
@@ -478,10 +510,28 @@ export function InvoicePDFDownload({ invoice, currentStatus }) {
 
 // ── Viewer wrapper ────────────────────────────────────────────────────────────
 
-export function InvoicePDFViewer({ invoice, currentStatus }) {
+export function InvoicePDFViewer({ invoice, currentStatus, offices }) {
+  const [viewQrBase64, setViewQrBase64] = useState(null);
+
+  useEffect(() => {
+    const token = invoice?.viewToken;
+    if (!token) return;
+    const viewUrl = `https://docs.iotatechnologies.io/view/${token}`;
+    import('qrcode').then((QRCode) => {
+      QRCode.toDataURL(viewUrl, { width: 160, margin: 1 })
+        .then(setViewQrBase64)
+        .catch(() => {});
+    });
+  }, [invoice?.viewToken]);
+
   return (
     <PDFViewer width="100%" height="100%" style={{ border: 'none' }}>
-      <InvoicePdfDocument invoice={invoice} currentStatus={currentStatus} />
+      <InvoicePdfDocument
+        invoice={invoice}
+        currentStatus={currentStatus}
+        offices={offices}
+        viewQrBase64={viewQrBase64}
+      />
     </PDFViewer>
   );
 }
