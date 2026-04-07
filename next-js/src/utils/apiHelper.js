@@ -337,6 +337,22 @@ export async function getVatConfigs() {
   }
 }
 
+export async function fetchOfficeConfigs() {
+  try {
+    const isClient = typeof window !== 'undefined';
+    const url = isClient
+      ? '/api/appconfigs?namespace=iotaOffice'
+      : `${API_BASE_URL}appconfigs?namespace=iotaOffice`;
+    const response = await axios.get(url);
+    const list = response.data?.configs || [];
+    // Map each config row to the same shape as IOTA_OFFICES entries
+    return list.map((c) => ({ ...c.configValue, id: c.configKey, label: c.label }));
+  } catch (error) {
+    console.warn('⚠️ Office configs fetch failed:', error.response?.status, error.message);
+    return null; // null signals caller to fall back to IOTA_OFFICES
+  }
+}
+
 // Payroll APIs
 export async function fetchPayrollRuns() {
   const url = `${API_BASE_URL}/payroll/runs`;
@@ -2416,6 +2432,7 @@ export const apiHelper = {
   createInvoice,
   fetchInvoices,
   fetchInvoice,
+  fetchOfficeConfigs,
   deleteInvoice,
   updateInvoice,
   issueInvoice,

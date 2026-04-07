@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 
 import { fDate } from 'src/utils/format-time';
-import { fetchInvoice, getCustomers } from 'src/utils/apiHelper';
+import { fetchInvoice, fetchOfficeConfigs, getCustomers } from 'src/utils/apiHelper';
 
 import { IOTA_OFFICES } from 'src/sections/invoice/invoice-create-edit-address';
 
@@ -92,8 +92,9 @@ function formatCurrency(amount, currencyCode = 'SAR') {
   }
 }
 
-function getOffice(currencyCode) {
-  return IOTA_OFFICES.find((o) => o.currency === currencyCode) || IOTA_OFFICES[0];
+function getOffice(currencyCode, officeList) {
+  const list = officeList?.length ? officeList : IOTA_OFFICES;
+  return list.find((o) => o.currency === currencyCode) || list[0];
 }
 
 // Escape user-supplied strings before inserting into HTML
@@ -107,8 +108,8 @@ function esc(str) {
 }
 
 // Fill every {{PLACEHOLDER}} in the template with real invoice data
-function fillTemplate(templateHtml, invoice) {
-  const office = getOffice(invoice.currencyCode);
+function fillTemplate(templateHtml, invoice, officeList) {
+  const office = getOffice(invoice.currencyCode, officeList);
   const bank = office.bankDetails || {};
   const vatLabel = invoice.vatRate ? `VAT @ ${invoice.vatRate}%` : 'VAT';
 
@@ -204,7 +205,15 @@ export default function InvoicePrintPage() {
   const { id } = useParams();
   const [html, setHtml] = useState(null);
   const [invoiceNumber, setInvoiceNumber] = useState('');
+  const [liveOffices, setLiveOffices] = useState(null);
   const iframeRef = useRef(null);
+
+  // Fetch live office configs once on mount so PDF uses up-to-date bank details
+  useEffect(() => {
+    fetchOfficeConfigs().then((offices) => {
+      if (offices?.length) setLiveOffices(offices);
+    });
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -287,9 +296,9 @@ export default function InvoicePrintPage() {
       };
 
       setInvoiceNumber(invoice.invoiceNumber);
-      setHtml(fillTemplate(templateHtml, invoice));
+      setHtml(fillTemplate(templateHtml, invoice, liveOffices));
     });
-  }, [id]);
+  }, [id, liveOffices]);
 
   // Write the filled HTML into the iframe's own document and print from there
   useEffect(() => {

@@ -281,7 +281,7 @@ const useStyles = () =>
 
 // ── Public PDF document (exported for direct use) ─────────────────────────────
 
-export function InvoicePdfDocument({ invoice, currentStatus }) {
+export function InvoicePdfDocument({ invoice, currentStatus, offices }) {
   const {
     items,
     dueDate,
@@ -297,7 +297,8 @@ export function InvoicePdfDocument({ invoice, currentStatus }) {
   } = invoice ?? {};
 
   const styles = useStyles();
-  const office = IOTA_OFFICES.find((o) => o.currency === currencyCode) || IOTA_OFFICES[0];
+  const officeList = offices?.length ? offices : IOTA_OFFICES;
+  const office = officeList.find((o) => o.currency === currencyCode) || officeList[0];
   const bank = office.bankDetails || {};
   const vatLabel = vatRate ? `VAT @ ${vatRate}%` : 'VAT';
   const amountWords = amountInWords(totalAmount, currencyCode);

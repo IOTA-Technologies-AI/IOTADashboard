@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
@@ -16,7 +16,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { fDate } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
-import { approveInvoice } from 'src/utils/apiHelper';
+import { approveInvoice, fetchOfficeConfigs } from 'src/utils/apiHelper';
 
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
@@ -32,6 +32,13 @@ export function InvoiceApprovalDialog({ open, onClose, invoice, onApprovalComple
   const [rejecting, setRejecting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [reasonError, setReasonError] = useState('');
+  const [liveOffices, setLiveOffices] = useState(null);
+
+  useEffect(() => {
+    fetchOfficeConfigs().then((offices) => {
+      if (offices?.length) setLiveOffices(offices);
+    });
+  }, []);
 
   if (!invoice) return null;
 
@@ -68,7 +75,11 @@ export function InvoiceApprovalDialog({ open, onClose, invoice, onApprovalComple
             import('./invoice-pdf'),
           ]);
           const blob = await renderPdf(
-            <InvoicePdfDocument invoice={invoice} currentStatus="approved" />
+            <InvoicePdfDocument
+              invoice={invoice}
+              currentStatus="approved"
+              offices={liveOffices || undefined}
+            />
           ).toBlob();
           const arrayBuffer = await blob.arrayBuffer();
           const bytes = new Uint8Array(arrayBuffer);
