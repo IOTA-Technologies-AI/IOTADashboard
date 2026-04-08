@@ -122,6 +122,7 @@ export default function Page() {
         taxes: data.vatAmount ? `${data.vatRate}%` : '0%',
         balance: data.balance || 0,
         currencyCode: data.currencyCode || 'SAR',
+        viewToken: data.viewToken || null,
       });
     });
   }, [id]);

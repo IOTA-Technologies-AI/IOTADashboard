@@ -20,6 +20,8 @@ import { issueInvoice } from 'src/utils/apiHelper';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 
+const DOCS_BASE_URL = 'https://docs.iotatechnologies.io';
+
 // ----------------------------------------------------------------------
 
 const InvoicePDFViewer = dynamic(
@@ -36,6 +38,21 @@ export function InvoiceToolbar({
 }) {
   const { value: open, onFalse: onClose, onTrue: onOpen } = useBoolean();
   const [issuing, setIssuing] = useState(false);
+
+  const isPaid = currentStatus === 'paid';
+  const publicLink = invoice?.viewToken ? `${DOCS_BASE_URL}/view/${invoice.viewToken}` : null;
+
+  const handleCopyPublicLink = () => {
+    if (!publicLink) return;
+    navigator.clipboard
+      .writeText(publicLink)
+      .then(() => {
+        toast.success('Public invoice link copied to clipboard.');
+      })
+      .catch(() => {
+        toast.error('Failed to copy link.');
+      });
+  };
 
   const handleIssue = async () => {
     try {
@@ -124,6 +141,22 @@ export function InvoiceToolbar({
             >
               <Iconify icon="solar:printer-minimalistic-bold" />
             </IconButton>
+          </Tooltip>
+
+          <Tooltip
+            title={
+              isPaid
+                ? 'Public link disabled — invoice is paid'
+                : publicLink
+                  ? 'Copy public invoice link'
+                  : 'Public link unavailable — issue the invoice first'
+            }
+          >
+            <span>
+              <IconButton onClick={handleCopyPublicLink} disabled={!publicLink || isPaid}>
+                <Iconify icon="solar:link-bold" />
+              </IconButton>
+            </span>
           </Tooltip>
 
           <Tooltip title={issuing ? 'Issuing…' : 'Issue & Email to Customer'}>
