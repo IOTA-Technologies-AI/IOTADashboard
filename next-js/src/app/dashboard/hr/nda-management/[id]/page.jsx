@@ -158,9 +158,10 @@ export default function NdaDetailsPage({ params }) {
   const [editedClauses, setEditedClauses] = useState([]);
   const [sectionEditDialog, setSectionEditDialog] = useState({ open: false, key: '', text: '' });
   const [stampPlacements, setStampPlacements] = useState([]);
-  const [stampDialogOpen, setStampDialogOpen] = useState(false);
-  const [stampForm, setStampForm] = useState({ page: 1, xPct: 50, yPct: 50, widthPct: 15 });
   const [stampSaving, setStampSaving] = useState(false);
+  const [stampPreviewPage, setStampPreviewPage] = useState(1);
+  const [draggingStamp, setDraggingStamp] = useState(null); // { id } during drag, null otherwise
+  const stampPreviewRef = useRef(null);
   const [docBlobUrl, setDocBlobUrl] = useState(null);
   const [docUploading, setDocUploading] = useState(false);
 
@@ -415,17 +416,37 @@ export default function NdaDetailsPage({ params }) {
     reader.readAsDataURL(file);
   };
 
-  const handleAddStampPlacement = () => {
-    const newPlacement = {
-      id: crypto.randomUUID(),
-      page: stampForm.page,
-      xPct: stampForm.xPct,
-      yPct: stampForm.yPct,
-      widthPct: stampForm.widthPct,
-    };
-    setStampPlacements((prev) => [...prev, newPlacement]);
-    setStampDialogOpen(false);
-    setStampForm({ page: 1, xPct: 50, yPct: 50, widthPct: 15 });
+  // Drop a new stamp onto the preview canvas
+  const handleStampPreviewClick = (e) => {
+    if (!isDraft) return;
+    const container = stampPreviewRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const xPct = Math.round(((e.clientX - rect.left) / rect.width) * 100 * 10) / 10;
+    const yPct = Math.round(((e.clientY - rect.top) / rect.height) * 100 * 10) / 10;
+    setStampPlacements((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), page: stampPreviewPage, xPct, yPct, widthPct: 15 },
+    ]);
+  };
+
+  // While dragging an existing stamp, update its position live
+  const handleStampMouseMove = (e) => {
+    if (!draggingStamp) return;
+    const container = stampPreviewRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const xPct = Math.min(
+      100,
+      Math.max(0, Math.round(((e.clientX - rect.left) / rect.width) * 100 * 10) / 10)
+    );
+    const yPct = Math.min(
+      100,
+      Math.max(0, Math.round(((e.clientY - rect.top) / rect.height) * 100 * 10) / 10)
+    );
+    setStampPlacements((prev) =>
+      prev.map((p) => (p.id === draggingStamp ? { ...p, xPct, yPct } : p))
+    );
   };
 
   const handleSaveStampPlacements = async () => {
@@ -1023,41 +1044,143 @@ export default function NdaDetailsPage({ params }) {
                 </Card>
               )}
 
-            {/* IOTA Stamp Placements */}
+            {/* IOTA Stamp Placements — drag-and-drop visual placer */}
             <Card sx={{ p: 3 }}>
-              <Stack
-                direction="row"
-                alignItems="center"
-                justifyContent="space-between"
-                sx={{ mb: 2 }}
-              >
-                <Box>
-                  <Typography variant="h6">IOTA Stamp Placements</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Define where the IOTA stamp PNG appears on the PDF. Stamps are embedded during
-                    the OneDrive upload. Place the stamp PNG at{' '}
-                    <code>/public/logo/iota-stamp.png</code>.
-                  </Typography>
-                </Box>
-                {isDraft && (
-                  <Button
-                    size="small"
-                    startIcon={<Iconify icon="mingcute:add-line" />}
-                    onClick={() => setStampDialogOpen(true)}
-                  >
-                    Add Placement
-                  </Button>
-                )}
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="h6">IOTA Stamp Placements</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {isDraft
+                    ? 'Click anywhere on the page preview to place the IOTA stamp. Drag placed stamps to reposition. Stamps are embedded during the OneDrive upload.'
+                    : 'Stamp placements are locked once the NDA leaves draft status.'}
+                </Typography>
+              </Box>
+
+              {/* Page selector */}
+              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                <Typography variant="body2" color="text.secondary">
+                  Preview page:
+                </Typography>
+                <IconButton
+                  size="small"
+                  disabled={stampPreviewPage <= 1}
+                  onClick={() => setStampPreviewPage((p) => p - 1)}
+                >
+                  <Iconify icon="solar:arrow-left-bold" width={16} />
+                </IconButton>
+                <Typography variant="body2" fontWeight={600}>
+                  {stampPreviewPage}
+                </Typography>
+                <IconButton size="small" onClick={() => setStampPreviewPage((p) => p + 1)}>
+                  <Iconify icon="solar:arrow-right-bold" width={16} />
+                </IconButton>
               </Stack>
 
+              {/* Visual page preview with stamp overlay */}
+              <Box
+                ref={stampPreviewRef}
+                onClick={isDraft ? handleStampPreviewClick : undefined}
+                onMouseMove={handleStampMouseMove}
+                onMouseUp={() => setDraggingStamp(null)}
+                onMouseLeave={() => setDraggingStamp(null)}
+                sx={{
+                  position: 'relative',
+                  width: '100%',
+                  paddingTop: '141.4%',
+                  bgcolor: 'common.white',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  overflow: 'hidden',
+                  cursor: isDraft ? 'crosshair' : 'default',
+                  boxShadow: 2,
+                  userSelect: 'none',
+                }}
+              >
+                <Box sx={{ position: 'absolute', inset: 0, p: '8%' }}>
+                  {[...Array(14)].map((_, i) => (
+                    // eslint-disable-next-line react/no-array-index-key
+                    <Box
+                      key={i}
+                      sx={{ height: 8, bgcolor: 'grey.100', borderRadius: 0.5, mb: 1.2 }}
+                    />
+                  ))}
+                </Box>
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    bottom: 8,
+                    left: 0,
+                    right: 0,
+                    textAlign: 'center',
+                    pointerEvents: 'none',
+                  }}
+                >
+                  <Typography variant="caption" color="text.disabled">
+                    Page {stampPreviewPage}
+                  </Typography>
+                </Box>
+                {stampPlacements
+                  .filter((sp) => sp.page === stampPreviewPage)
+                  .map((sp) => (
+                    <Box
+                      key={sp.id}
+                      onMouseDown={(e) => {
+                        if (!isDraft) return;
+                        e.stopPropagation();
+                        setDraggingStamp(sp.id);
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      sx={{
+                        position: 'absolute',
+                        left: `${sp.xPct}%`,
+                        top: `${sp.yPct}%`,
+                        width: `${sp.widthPct}%`,
+                        transform: 'translate(-50%, -50%)',
+                        cursor: isDraft ? 'grab' : 'default',
+                        zIndex: 10,
+                        '&:active': { cursor: 'grabbing' },
+                      }}
+                    >
+                      <Box
+                        component="img"
+                        src="/logo/iota-stamp.png"
+                        alt="IOTA Stamp"
+                        draggable={false}
+                        sx={{ width: '100%', opacity: 0.85, display: 'block' }}
+                      />
+                      {isDraft && (
+                        <IconButton
+                          size="small"
+                          sx={{
+                            position: 'absolute',
+                            top: -10,
+                            right: -10,
+                            bgcolor: 'error.main',
+                            color: 'common.white',
+                            width: 18,
+                            height: 18,
+                            '&:hover': { bgcolor: 'error.dark' },
+                          }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setStampPlacements((prev) => prev.filter((p) => p.id !== sp.id));
+                          }}
+                        >
+                          <Iconify icon="mingcute:close-line" width={12} />
+                        </IconButton>
+                      )}
+                    </Box>
+                  ))}
+              </Box>
+
               {stampPlacements.length === 0 ? (
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
                   No stamp placements configured.
                   {isDraft && ' Click “Add Placement” to mark stamp positions.'}
                 </Typography>
               ) : (
-                <Stack spacing={0}>
-                  {stampPlacements.map((sp) => (
+                <Stack spacing={0} sx={{ mt: 1.5 }}>
+                  {stampPlacements.map((sp, idx) => (
                     <Box
                       key={sp.id}
                       sx={{
@@ -1069,9 +1192,20 @@ export default function NdaDetailsPage({ params }) {
                         borderColor: 'divider',
                       }}
                     >
-                      <Typography variant="body2">
-                        Page {sp.page} — Position ({sp.xPct}%, {sp.yPct}%) — Width {sp.widthPct}%
-                      </Typography>
+                      <Stack direction="row" alignItems="center" spacing={1}>
+                        <Box
+                          component="img"
+                          src="/logo/iota-stamp.png"
+                          alt="IOTA Stamp"
+                          sx={{ height: 28, opacity: 0.85 }}
+                        />
+                        <Typography variant="body2">
+                          Stamp {idx + 1} — Page {sp.page}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          (drag on preview to reposition)
+                        </Typography>
+                      </Stack>
                       {isDraft && (
                         <IconButton
                           size="small"
@@ -1192,89 +1326,6 @@ export default function NdaDetailsPage({ params }) {
           >
             Save
           </LoadingButton>
-        </DialogActions>
-      </Dialog>
-
-      {/* ── Stamp placement dialog ── */}
-      <Dialog
-        open={stampDialogOpen}
-        onClose={() => setStampDialogOpen(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle>Add IOTA Stamp Placement</DialogTitle>
-        <DialogContent>
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-            Specify the page and position as a percentage of the page dimensions (0–100). Place the
-            IOTA stamp PNG at <code>/public/logo/iota-stamp.png</code>.
-          </Typography>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            <TextField
-              label="Page Number"
-              type="number"
-              fullWidth
-              size="small"
-              value={stampForm.page}
-              onChange={(e) =>
-                setStampForm((prev) => ({
-                  ...prev,
-                  page: Math.max(1, parseInt(e.target.value) || 1),
-                }))
-              }
-              InputProps={{ inputProps: { min: 1 } }}
-            />
-            <TextField
-              label="X Position (% from left)"
-              type="number"
-              fullWidth
-              size="small"
-              value={stampForm.xPct}
-              onChange={(e) =>
-                setStampForm((prev) => ({
-                  ...prev,
-                  xPct: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)),
-                }))
-              }
-              helperText="0 = left edge, 100 = right edge"
-              InputProps={{ inputProps: { min: 0, max: 100, step: 0.5 } }}
-            />
-            <TextField
-              label="Y Position (% from top)"
-              type="number"
-              fullWidth
-              size="small"
-              value={stampForm.yPct}
-              onChange={(e) =>
-                setStampForm((prev) => ({
-                  ...prev,
-                  yPct: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)),
-                }))
-              }
-              helperText="0 = top, 100 = bottom"
-              InputProps={{ inputProps: { min: 0, max: 100, step: 0.5 } }}
-            />
-            <TextField
-              label="Stamp Width (% of page width)"
-              type="number"
-              fullWidth
-              size="small"
-              value={stampForm.widthPct}
-              onChange={(e) =>
-                setStampForm((prev) => ({
-                  ...prev,
-                  widthPct: Math.min(100, Math.max(1, parseFloat(e.target.value) || 15)),
-                }))
-              }
-              helperText="e.g. 15 = stamp is 15% of the page width"
-              InputProps={{ inputProps: { min: 1, max: 100, step: 0.5 } }}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setStampDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={handleAddStampPlacement}>
-            Add
-          </Button>
         </DialogActions>
       </Dialog>
 
