@@ -163,11 +163,15 @@ export default function NdaDetailsPage({ params }) {
   const [stampPreviewPage, setStampPreviewPage] = useState(1);
   const [draggingStamp, setDraggingStamp] = useState(null); // { id } during drag, null otherwise
   const stampPreviewRef = useRef(null);
+  const stampCanvasRef = useRef(null);
   const [signatureZones, setSignatureZones] = useState([]);
   const [sigZoneSaving, setSigZoneSaving] = useState(false);
   const [sigZonePreviewPage, setSigZonePreviewPage] = useState(1);
   const [draggingSigZone, setDraggingSigZone] = useState(null);
   const sigZonePreviewRef = useRef(null);
+  const sigZoneCanvasRef = useRef(null);
+  const [pdfJsDoc, setPdfJsDoc] = useState(null);
+  const [downloadProcessing, setDownloadProcessing] = useState(false);
   const [docBlobUrl, setDocBlobUrl] = useState(null);
   const [docUploading, setDocUploading] = useState(false);
 
@@ -215,6 +219,69 @@ export default function NdaDetailsPage({ params }) {
     }
     setDocBlobUrl(null);
   }, [nda?.uploadedDocumentBase64, nda?.uploadedDocumentName]);
+
+  // Load pdfjs document whenever the blob URL changes
+  useEffect(() => {
+    if (!docBlobUrl) {
+      setPdfJsDoc(null);
+      return;
+    }
+    let cancelled = false;
+    import('pdfjs-dist').then(async (pdfjsLib) => {
+      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+      try {
+        const doc = await pdfjsLib.getDocument(docBlobUrl).promise;
+        if (!cancelled) setPdfJsDoc(doc);
+      } catch (e) {
+        console.error('pdfjs load error', e);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [docBlobUrl]);
+
+  // Render stamp preview canvas whenever the page or loaded doc changes
+  useEffect(() => {
+    if (!pdfJsDoc || !stampCanvasRef.current) return;
+    const canvas = stampCanvasRef.current;
+    const pageNum = Math.min(stampPreviewPage, pdfJsDoc.numPages);
+    let cancelled = false;
+    pdfJsDoc.getPage(pageNum).then((page) => {
+      if (cancelled) return;
+      const viewport = page.getViewport({ scale: 1 });
+      const containerWidth = canvas.parentElement?.offsetWidth || viewport.width;
+      const scale = containerWidth / viewport.width;
+      const scaledVp = page.getViewport({ scale });
+      canvas.width = scaledVp.width;
+      canvas.height = scaledVp.height;
+      page.render({ canvasContext: canvas.getContext('2d'), viewport: scaledVp });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pdfJsDoc, stampPreviewPage]);
+
+  // Render sig zone preview canvas whenever the page or loaded doc changes
+  useEffect(() => {
+    if (!pdfJsDoc || !sigZoneCanvasRef.current) return;
+    const canvas = sigZoneCanvasRef.current;
+    const pageNum = Math.min(sigZonePreviewPage, pdfJsDoc.numPages);
+    let cancelled = false;
+    pdfJsDoc.getPage(pageNum).then((page) => {
+      if (cancelled) return;
+      const viewport = page.getViewport({ scale: 1 });
+      const containerWidth = canvas.parentElement?.offsetWidth || viewport.width;
+      const scale = containerWidth / viewport.width;
+      const scaledVp = page.getViewport({ scale });
+      canvas.width = scaledVp.width;
+      canvas.height = scaledVp.height;
+      page.render({ canvasContext: canvas.getContext('2d'), viewport: scaledVp });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pdfJsDoc, sigZonePreviewPage]);
 
   const handleSubmitForSigning = async () => {
     try {
@@ -623,6 +690,128 @@ export default function NdaDetailsPage({ params }) {
       setSigZoneSaving(false);
     }
   };
+
+  // Download the uploaded document with stamps + signature zones embedded
+  const handleDownloadProcessed = async () => {
+    const uint8ToBase64 = (bytes) => {
+      let binary = '';
+      const chunk = 8192;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+      }
+      return btoa(binary);
+    };
+
+    if (!nda.uploadedDocumentBase64) {
+      toast.error('No document available to download.');
+      return;
+    }
+
+    const isUploadedPdf = nda.uploadedDocumentName?.toLowerCase().endsWith('.pdf');
+    if (!isUploadedPdf || (stampPlacements.length === 0 && signatureZones.length === 0)) {
+      // No processing needed — just download the raw file
+      const a = document.createElement('a');
+      a.href = `data:application/octet-stream;base64,${nda.uploadedDocumentBase64}`;
+      a.download = nda.uploadedDocumentName;
+      a.click();
+      return;
+    }
+
+    try {
+      setDownloadProcessing(true);
+      const { PDFDocument, rgb } = await import('pdf-lib');
+      const pdfBytes = Uint8Array.from(atob(nda.uploadedDocumentBase64), (c) => c.charCodeAt(0));
+      const pdfDoc = await PDFDocument.load(pdfBytes);
+      const pages = pdfDoc.getPages();
+
+      // Embed IOTA signature zones
+      if (signatureZones.length > 0) {
+        const signatories = Array.isArray(nda?.iotaSignatories) ? nda.iotaSignatories : [];
+        for (const zone of signatureZones) {
+          const pageIdx = Math.max(0, (zone.page || 1) - 1);
+          const page = pages[pageIdx];
+          if (!page) continue;
+          const { width: pw, height: ph } = page.getSize();
+          const zoneX = (zone.xPct / 100) * pw;
+          const zoneY = ph - (zone.yPct / 100) * ph;
+          const zoneW = (zone.widthPct / 100) * pw;
+          const zoneH = (zone.heightPct / 100) * ph;
+          const signatory = signatories[zone.iotaSignatoryIndex ?? 0];
+          const sigData = signatory?.signatureData || null;
+          if (sigData && sigData.startsWith('data:image')) {
+            try {
+              const base64 = sigData.split(',')[1];
+              const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+              const sigImage = sigData.includes('image/png')
+                ? await pdfDoc.embedPng(sigBytes)
+                : await pdfDoc.embedJpg(sigBytes);
+              page.drawImage(sigImage, {
+                x: zoneX,
+                y: zoneY - zoneH,
+                width: zoneW,
+                height: zoneH,
+                opacity: 1,
+              });
+            } catch {
+              page.drawRectangle({
+                x: zoneX,
+                y: zoneY - zoneH,
+                width: zoneW,
+                height: zoneH,
+                borderColor: rgb(0.2, 0.2, 0.7),
+                borderWidth: 1,
+                opacity: 0.5,
+              });
+            }
+          } else {
+            page.drawRectangle({
+              x: zoneX,
+              y: zoneY - zoneH,
+              width: zoneW,
+              height: zoneH,
+              borderColor: rgb(0.2, 0.2, 0.7),
+              borderWidth: 1,
+              opacity: 0.5,
+            });
+          }
+        }
+      }
+
+      // Embed IOTA stamp
+      if (stampPlacements.length > 0) {
+        const stampRes = await fetch('/logo/iota-stamp.png');
+        if (stampRes.ok) {
+          const stampImage = await pdfDoc.embedPng(new Uint8Array(await stampRes.arrayBuffer()));
+          for (const placement of stampPlacements) {
+            const pageIdx = Math.max(0, (placement.page || 1) - 1);
+            const page = pages[pageIdx];
+            if (!page) continue;
+            const { width: pw, height: ph } = page.getSize();
+            const stampW = (placement.widthPct / 100) * pw;
+            const stampH = stampW * (stampImage.height / stampImage.width);
+            page.drawImage(stampImage, {
+              x: (placement.xPct / 100) * pw - stampW / 2,
+              y: ph - (placement.yPct / 100) * ph - stampH / 2,
+              width: stampW,
+              height: stampH,
+              opacity: 0.85,
+            });
+          }
+        }
+      }
+
+      const processed = uint8ToBase64(await pdfDoc.save());
+      const a = document.createElement('a');
+      a.href = `data:application/pdf;base64,${processed}`;
+      a.download = nda.uploadedDocumentName;
+      a.click();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to process document for download');
+    } finally {
+      setDownloadProcessing(false);
+    }
+  };
   // ── Render ────────────────────────────────────────────────────────────────
 
   if (loading) {
@@ -945,11 +1134,20 @@ export default function NdaDetailsPage({ params }) {
                         review it.
                       </Alert>
                     )}
-                    <Box>
+                    <Stack direction="row" spacing={1} flexWrap="wrap">
+                      <LoadingButton
+                        size="small"
+                        variant="contained"
+                        startIcon={<Iconify icon="solar:download-bold" />}
+                        loading={downloadProcessing}
+                        onClick={handleDownloadProcessed}
+                      >
+                        Download with Stamp &amp; Signatures
+                      </LoadingButton>
                       <Button
                         size="small"
                         variant="outlined"
-                        startIcon={<Iconify icon="solar:download-bold" />}
+                        startIcon={<Iconify icon="solar:document-bold" />}
                         onClick={() => {
                           const a = document.createElement('a');
                           a.href = `data:application/octet-stream;base64,${nda.uploadedDocumentBase64}`;
@@ -957,9 +1155,9 @@ export default function NdaDetailsPage({ params }) {
                           a.click();
                         }}
                       >
-                        Download {nda.uploadedDocumentName}
+                        Download Original
                       </Button>
-                    </Box>
+                    </Stack>
                   </Stack>
                 ) : (
                   <Stack spacing={1}>
@@ -1239,9 +1437,18 @@ export default function NdaDetailsPage({ params }) {
                       <Iconify icon="solar:arrow-left-bold" width={16} />
                     </IconButton>
                     <Typography variant="body2">{sigZonePreviewPage}</Typography>
-                    <IconButton size="small" onClick={() => setSigZonePreviewPage((p) => p + 1)}>
+                    <IconButton
+                      size="small"
+                      onClick={() => setSigZonePreviewPage((p) => p + 1)}
+                      disabled={pdfJsDoc ? sigZonePreviewPage >= pdfJsDoc.numPages : false}
+                    >
                       <Iconify icon="solar:arrow-right-bold" width={16} />
                     </IconButton>
+                    {pdfJsDoc && (
+                      <Typography variant="caption" color="text.secondary">
+                        / {pdfJsDoc.numPages}
+                      </Typography>
+                    )}
                   </Stack>
 
                   {/* Visual page preview */}
@@ -1262,20 +1469,35 @@ export default function NdaDetailsPage({ params }) {
                       userSelect: 'none',
                     }}
                   >
-                    <Box sx={{ position: 'absolute', inset: 0, p: '8%' }}>
-                      {[...Array(14)].map((_, i) => (
-                        <Box
-                          key={i}
-                          sx={{
-                            height: 8,
-                            bgcolor: 'grey.200',
-                            borderRadius: 0.5,
-                            mb: 1,
-                            width: i % 3 === 0 ? '60%' : '100%',
-                          }}
-                        />
-                      ))}
-                    </Box>
+                    {/* Actual PDF page rendering via pdfjs */}
+                    <canvas
+                      ref={sigZoneCanvasRef}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        display: 'block',
+                      }}
+                    />
+                    {/* Fallback placeholder when no PDF is loaded */}
+                    {!pdfJsDoc && (
+                      <Box sx={{ position: 'absolute', inset: 0, p: '8%' }}>
+                        {[...Array(14)].map((_, i) => (
+                          <Box
+                            key={i}
+                            sx={{
+                              height: 8,
+                              bgcolor: 'grey.200',
+                              borderRadius: 0.5,
+                              mb: 1,
+                              width: i % 3 === 0 ? '60%' : '100%',
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    )}
 
                     {/* Render signature zone overlays for current page */}
                     {signatureZones
@@ -1427,9 +1649,18 @@ export default function NdaDetailsPage({ params }) {
                 <Typography variant="body2" fontWeight={600}>
                   {stampPreviewPage}
                 </Typography>
-                <IconButton size="small" onClick={() => setStampPreviewPage((p) => p + 1)}>
+                <IconButton
+                  size="small"
+                  onClick={() => setStampPreviewPage((p) => p + 1)}
+                  disabled={pdfJsDoc ? stampPreviewPage >= pdfJsDoc.numPages : false}
+                >
                   <Iconify icon="solar:arrow-right-bold" width={16} />
                 </IconButton>
+                {pdfJsDoc && (
+                  <Typography variant="body2" color="text.secondary">
+                    / {pdfJsDoc.numPages}
+                  </Typography>
+                )}
               </Stack>
 
               {/* Visual page preview with stamp overlay */}
@@ -1450,15 +1681,30 @@ export default function NdaDetailsPage({ params }) {
                   userSelect: 'none',
                 }}
               >
-                <Box sx={{ position: 'absolute', inset: 0, p: '8%' }}>
-                  {[...Array(14)].map((_, i) => (
-                    // eslint-disable-next-line react/no-array-index-key
-                    <Box
-                      key={i}
-                      sx={{ height: 8, bgcolor: 'grey.100', borderRadius: 0.5, mb: 1.2 }}
-                    />
-                  ))}
-                </Box>
+                {/* Actual PDF page rendering via pdfjs */}
+                <canvas
+                  ref={stampCanvasRef}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    display: 'block',
+                  }}
+                />
+                {/* Fallback placeholder when no PDF is loaded */}
+                {!pdfJsDoc && (
+                  <Box sx={{ position: 'absolute', inset: 0, p: '8%' }}>
+                    {[...Array(14)].map((_, i) => (
+                      // eslint-disable-next-line react/no-array-index-key
+                      <Box
+                        key={i}
+                        sx={{ height: 8, bgcolor: 'grey.100', borderRadius: 0.5, mb: 1.2 }}
+                      />
+                    ))}
+                  </Box>
+                )}
                 <Box
                   sx={{
                     position: 'absolute',
@@ -1471,6 +1717,7 @@ export default function NdaDetailsPage({ params }) {
                 >
                   <Typography variant="caption" color="text.disabled">
                     Page {stampPreviewPage}
+                    {pdfJsDoc ? ` / ${pdfJsDoc.numPages}` : ''}
                   </Typography>
                 </Box>
                 {stampPlacements
