@@ -2376,6 +2376,18 @@ export async function setNdaSignatureZones(id, signatureZones) {
   }
 }
 
+export async function remindPartnerSignatories(id, requestedBy) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}ndas/${id}/remindPartner`, {
+      requestedBy,
+    });
+    return response.data.nda;
+  } catch (error) {
+    console.error('Error sending partner reminder:', error);
+    throw error;
+  }
+}
+
 // ============================================================================
 // WEBHOOK EVENTS API FUNCTIONS
 // ============================================================================

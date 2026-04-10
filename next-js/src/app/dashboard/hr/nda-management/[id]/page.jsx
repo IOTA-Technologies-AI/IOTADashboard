@@ -24,6 +24,7 @@ import Select from '@mui/material/Select';
 import MenuItem from '@mui/material/MenuItem';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
+import Paper from '@mui/material/Paper';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
@@ -39,6 +40,7 @@ import {
   setNdaSignatureZones,
   submitNdaForIotaSigning,
   uploadExternalNdaDocument,
+  remindPartnerSignatories,
 } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -76,6 +78,7 @@ const ACTION_LABEL = {
   iota_signed: 'IOTA Signed',
   partner_signing_tokens_issued: 'Partner Signing Links Issued',
   partner_signed: 'Partner Signed',
+  partner_reminder_sent: 'Partner Reminder Sent',
   document_uploaded: 'Document Uploaded',
   pdf_uploaded_to_onedrive: 'PDF Uploaded to OneDrive',
   cancelled: 'Cancelled',
@@ -188,6 +191,7 @@ export default function NdaDetailsPage({ params }) {
   ];
   const [pdfJsDoc, setPdfJsDoc] = useState(null);
   const [downloadProcessing, setDownloadProcessing] = useState(false);
+  const [remindPartnerLoading, setRemindPartnerLoading] = useState(false);
   const [docBlobUrl, setDocBlobUrl] = useState(null);
   const [docUploading, setDocUploading] = useState(false);
 
@@ -310,6 +314,20 @@ export default function NdaDetailsPage({ params }) {
       toast.error('Failed to submit for signing');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleRemindPartner = async () => {
+    try {
+      setRemindPartnerLoading(true);
+      const updated = await remindPartnerSignatories(id, userEmail);
+      setNda(updated);
+      toast.success('Reminder emails sent to unsigned partner signatories.');
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to send reminder');
+    } finally {
+      setRemindPartnerLoading(false);
     }
   };
 
@@ -1150,45 +1168,15 @@ export default function NdaDetailsPage({ params }) {
             </Card>
 
             {/* Action buttons */}
-            <Card sx={{ p: 3 }}>
-              <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                Actions
-              </Typography>
-              <Stack spacing={1.5}>
-                {isDraft && (
-                  <LoadingButton
-                    variant="contained"
-                    loading={actionLoading}
-                    startIcon={<Iconify icon="solar:pen-bold" />}
-                    onClick={handleSubmitForSigning}
-                    fullWidth
-                  >
-                    Submit for IOTA Signing
-                  </LoadingButton>
-                )}
-
-                {isFullyExecuted && !nda.onedriveFileId && (
-                  <LoadingButton
-                    variant="contained"
-                    color="success"
-                    loading={actionLoading}
-                    startIcon={<Iconify icon="logos:microsoft-onedrive" />}
-                    onClick={handleFinalize}
-                    fullWidth
-                  >
-                    Upload to OneDrive
-                  </LoadingButton>
-                )}
-
-                {(isDraft || isPendingIota || isPendingPartner) && (
-                  <Typography variant="caption" color="text.secondary" textAlign="center">
-                    {isDraft && 'NDA is in draft. Submit to begin signing.'}
-                    {isPendingIota && 'Waiting for IOTA signatories to sign.'}
-                    {isPendingPartner && 'Waiting for partner signatories to sign.'}
-                  </Typography>
-                )}
-              </Stack>
-            </Card>
+            {(isDraft || isPendingIota || isPendingPartner) && (
+              <Card sx={{ p: 2 }}>
+                <Typography variant="caption" color="text.secondary">
+                  {isDraft && 'NDA is in draft. Use the action panel → to submit for signing.'}
+                  {isPendingIota && 'Waiting for IOTA signatories to sign.'}
+                  {isPendingPartner && 'Waiting for partner signatories to sign.'}
+                </Typography>
+              </Card>
+            )}
 
             {/* Audit Log */}
             {nda.auditLog?.length > 0 && (
@@ -2210,6 +2198,112 @@ export default function NdaDetailsPage({ params }) {
           </LoadingButton>
         </DialogActions>
       </Dialog>
+
+      {/* ── Floating Action Panel ── */}
+      {(isDraft ||
+        isFullyExecuted ||
+        isPendingPartner ||
+        nda.documentSource === 'external_upload') && (
+        <Paper
+          elevation={4}
+          sx={{
+            position: 'fixed',
+            right: 24,
+            top: 88,
+            zIndex: 1200,
+            width: 214,
+            p: 1.5,
+            borderRadius: 2,
+          }}
+        >
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{
+              display: 'block',
+              mb: 1,
+              fontWeight: 700,
+              textTransform: 'uppercase',
+              letterSpacing: 0.5,
+            }}
+          >
+            Actions
+          </Typography>
+          <Stack spacing={1}>
+            {isDraft && (
+              <LoadingButton
+                variant="contained"
+                size="small"
+                fullWidth
+                loading={actionLoading}
+                startIcon={<Iconify icon="solar:pen-bold" />}
+                onClick={handleSubmitForSigning}
+              >
+                Submit for IOTA Signing
+              </LoadingButton>
+            )}
+
+            {isPendingPartner &&
+              nda.partnerSigningMethod !== 'manual' &&
+              Array.isArray(nda.partnerSignatories) &&
+              nda.partnerSignatories.some((s) => !s.signedAt) && (
+                <LoadingButton
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  loading={remindPartnerLoading}
+                  startIcon={<Iconify icon="solar:bell-bing-bold" />}
+                  onClick={handleRemindPartner}
+                >
+                  Remind Partner
+                </LoadingButton>
+              )}
+
+            {isFullyExecuted && !nda.onedriveFileId && (
+              <LoadingButton
+                variant="contained"
+                color="success"
+                size="small"
+                fullWidth
+                loading={actionLoading}
+                startIcon={<Iconify icon="logos:microsoft-onedrive" />}
+                onClick={handleFinalize}
+              >
+                Upload to OneDrive
+              </LoadingButton>
+            )}
+
+            {nda.documentSource === 'external_upload' && nda.uploadedDocumentBase64 && (
+              <>
+                <LoadingButton
+                  variant="contained"
+                  size="small"
+                  fullWidth
+                  loading={downloadProcessing}
+                  startIcon={<Iconify icon="solar:download-bold" />}
+                  onClick={handleDownloadProcessed}
+                >
+                  Download with Stamps
+                </LoadingButton>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  startIcon={<Iconify icon="solar:document-bold" />}
+                  onClick={() => {
+                    const a = document.createElement('a');
+                    a.href = `data:application/octet-stream;base64,${nda.uploadedDocumentBase64}`;
+                    a.download = nda.uploadedDocumentName;
+                    a.click();
+                  }}
+                >
+                  Download Original
+                </Button>
+              </>
+            )}
+          </Stack>
+        </Paper>
+      )}
     </DashboardContent>
   );
 }
