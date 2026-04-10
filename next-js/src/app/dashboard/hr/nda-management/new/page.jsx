@@ -291,13 +291,9 @@ export default function NdaNewPage() {
               </Typography>
               <Stack spacing={2}>
                 <TextField
-                  label="Partner Company Name"
+                  label="Partner Company Name (optional)"
                   fullWidth
-                  {...register('partnerCompanyName', {
-                    required: 'Partner company name is required',
-                  })}
-                  error={!!errors.partnerCompanyName}
-                  helperText={errors.partnerCompanyName?.message}
+                  {...register('partnerCompanyName')}
                 />
                 <TextField
                   label="Partner Address (optional)"
@@ -453,8 +449,7 @@ export default function NdaNewPage() {
                           label="Full Name"
                           fullWidth
                           size="small"
-                          {...register(`partnerSignatories.${i}.name`, { required: 'Required' })}
-                          error={!!errors.partnerSignatories?.[i]?.name}
+                          {...register(`partnerSignatories.${i}.name`)}
                         />
                       </Grid>
                       <Grid item xs={12} sm={4}>
@@ -463,8 +458,7 @@ export default function NdaNewPage() {
                           fullWidth
                           size="small"
                           type="email"
-                          {...register(`partnerSignatories.${i}.email`, { required: 'Required' })}
-                          error={!!errors.partnerSignatories?.[i]?.email}
+                          {...register(`partnerSignatories.${i}.email`)}
                         />
                       </Grid>
                       <Grid item xs={12} sm={4}>
@@ -472,10 +466,7 @@ export default function NdaNewPage() {
                           label="Job Title"
                           fullWidth
                           size="small"
-                          {...register(`partnerSignatories.${i}.jobTitle`, {
-                            required: 'Required',
-                          })}
-                          error={!!errors.partnerSignatories?.[i]?.jobTitle}
+                          {...register(`partnerSignatories.${i}.jobTitle`)}
                         />
                       </Grid>
                     </Grid>

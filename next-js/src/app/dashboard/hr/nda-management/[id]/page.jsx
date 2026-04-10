@@ -20,6 +20,10 @@ import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import Select from '@mui/material/Select';
+import MenuItem from '@mui/material/MenuItem';
+import InputLabel from '@mui/material/InputLabel';
+import FormControl from '@mui/material/FormControl';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
@@ -171,6 +175,17 @@ export default function NdaDetailsPage({ params }) {
   const sigZonePreviewRef = useRef(null);
   const sigZoneCanvasRef = useRef(null);
   const sigZoneDragMovedRef = useRef(false); // true when a drag move occurred — suppresses next click
+  const [selectedSigZoneSignatory, setSelectedSigZoneSignatory] = useState(0); // index of IOTA signatory to assign to new zones
+
+  // Colors for signature zone overlays per signatory (up to 6)
+  const SIG_ZONE_COLORS = [
+    { border: '#1565c0', bg: 'rgba(21,101,192,0.12)' }, // blue
+    { border: '#2e7d32', bg: 'rgba(46,125,50,0.12)' }, // green
+    { border: '#6a1b9a', bg: 'rgba(106,27,154,0.12)' }, // purple
+    { border: '#e65100', bg: 'rgba(230,81,0,0.12)' }, // orange
+    { border: '#00838f', bg: 'rgba(0,131,143,0.12)' }, // teal
+    { border: '#558b2f', bg: 'rgba(85,139,47,0.12)' }, // lime
+  ];
   const [pdfJsDoc, setPdfJsDoc] = useState(null);
   const [downloadProcessing, setDownloadProcessing] = useState(false);
   const [docBlobUrl, setDocBlobUrl] = useState(null);
@@ -508,7 +523,123 @@ export default function NdaDetailsPage({ params }) {
     }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
+    const isExternalPdf =
+      nda.documentSource === 'external_upload' &&
+      nda.uploadedDocumentName?.toLowerCase().endsWith('.pdf') &&
+      nda.uploadedDocumentBase64;
+
+    if (isExternalPdf) {
+      // For external PDFs: embed current stamps + sig zones inline, open in new tab and print
+      const uint8ToBase64 = (bytes) => {
+        let binary = '';
+        const chunk = 8192;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+        }
+        return btoa(binary);
+      };
+      try {
+        const { PDFDocument, rgb } = await import('pdf-lib');
+        const pdfBytes = Uint8Array.from(atob(nda.uploadedDocumentBase64), (c) => c.charCodeAt(0));
+        const pdfDoc = await PDFDocument.load(pdfBytes);
+        const pages = pdfDoc.getPages();
+
+        // Embed signature zones (with actual sig data if available)
+        const signatories = Array.isArray(nda?.iotaSignatories) ? nda.iotaSignatories : [];
+        for (const zone of signatureZones) {
+          const pageIdx = Math.max(0, (zone.page || 1) - 1);
+          const page = pages[pageIdx];
+          if (!page) continue;
+          const { width: pw, height: ph } = page.getSize();
+          const zoneX = (zone.xPct / 100) * pw;
+          const zoneY = ph - (zone.yPct / 100) * ph;
+          const zoneW = (zone.widthPct / 100) * pw;
+          const zoneH = (zone.heightPct / 100) * ph;
+          const signatory = signatories[zone.iotaSignatoryIndex ?? 0];
+          const sigData = signatory?.signatureData || null;
+          if (sigData && sigData.startsWith('data:image')) {
+            try {
+              const base64 = sigData.split(',')[1];
+              const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+              const sigImage = sigData.includes('image/png')
+                ? await pdfDoc.embedPng(sigBytes)
+                : await pdfDoc.embedJpg(sigBytes);
+              page.drawImage(sigImage, {
+                x: zoneX,
+                y: zoneY - zoneH,
+                width: zoneW,
+                height: zoneH,
+                opacity: 1,
+              });
+            } catch {
+              page.drawRectangle({
+                x: zoneX,
+                y: zoneY - zoneH,
+                width: zoneW,
+                height: zoneH,
+                borderColor: rgb(0.2, 0.2, 0.7),
+                borderWidth: 1,
+                opacity: 0.4,
+              });
+            }
+          } else {
+            page.drawRectangle({
+              x: zoneX,
+              y: zoneY - zoneH,
+              width: zoneW,
+              height: zoneH,
+              borderColor: rgb(0.2, 0.2, 0.7),
+              borderWidth: 1,
+              opacity: 0.4,
+            });
+          }
+        }
+
+        // Embed stamp placements
+        if (stampPlacements.length > 0) {
+          const stampRes = await fetch('/logo/iota-stamp.png');
+          if (stampRes.ok) {
+            const stampImage = await pdfDoc.embedPng(new Uint8Array(await stampRes.arrayBuffer()));
+            for (const placement of stampPlacements) {
+              const pageIdx = Math.max(0, (placement.page || 1) - 1);
+              const page = pages[pageIdx];
+              if (!page) continue;
+              const { width: pw, height: ph } = page.getSize();
+              const stampW = (placement.widthPct / 100) * pw;
+              const stampH = stampW * (stampImage.height / stampImage.width);
+              page.drawImage(stampImage, {
+                x: (placement.xPct / 100) * pw - stampW / 2,
+                y: ph - (placement.yPct / 100) * ph - stampH / 2,
+                width: stampW,
+                height: stampH,
+                opacity: 0.85,
+              });
+            }
+          }
+        }
+
+        const processed = uint8ToBase64(await pdfDoc.save());
+        const bytes = Uint8Array.from(atob(processed), (c) => c.charCodeAt(0));
+        const blob = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+        const printWindow = window.open(blob, '_blank');
+        if (printWindow) {
+          printWindow.addEventListener('load', () => {
+            printWindow.print();
+            printWindow.addEventListener('afterprint', () => {
+              printWindow.close();
+              URL.revokeObjectURL(blob);
+            });
+          });
+        }
+      } catch (err) {
+        console.error('Print failed', err);
+        toast.error('Failed to prepare document for printing');
+      }
+      return;
+    }
+
+    // IOTA-generated NDA: print the HTML render
     const content = printRef.current;
     if (!content) return;
 
@@ -533,9 +664,7 @@ export default function NdaDetailsPage({ params }) {
     `);
     printWindow.document.close();
     printWindow.focus();
-    // Close the window only after the print dialog is dismissed
     printWindow.addEventListener('afterprint', () => printWindow.close());
-    // Wait for images (signatures) to load, then open print dialog
     printWindow.onload = () => printWindow.print();
   };
   const handleUploadDocument = async (e) => {
@@ -666,9 +795,6 @@ export default function NdaDetailsPage({ params }) {
     const rect = container.getBoundingClientRect();
     const xPct = Math.round(((e.clientX - rect.left) / rect.width) * 1000) / 10;
     const yPct = Math.round(((e.clientY - rect.top) / rect.height) * 1000) / 10;
-    const nextIdx = Array.isArray(nda?.iotaSignatories)
-      ? nda.iotaSignatories.findIndex((s) => !s.signedAt)
-      : 0;
     setSignatureZones((prev) => [
       ...prev,
       {
@@ -678,7 +804,7 @@ export default function NdaDetailsPage({ params }) {
         yPct,
         widthPct: 25,
         heightPct: 8,
-        iotaSignatoryIndex: nextIdx >= 0 ? nextIdx : 0,
+        iotaSignatoryIndex: selectedSigZoneSignatory,
         label: null,
       },
     ]);
@@ -865,7 +991,7 @@ export default function NdaDetailsPage({ params }) {
               startIcon={<Iconify icon="solar:printer-minimalistic-bold" />}
               onClick={handlePrint}
             >
-              Print / Download
+              Print
             </Button>
             {isCancellable && (
               <Button
@@ -1063,6 +1189,46 @@ export default function NdaDetailsPage({ params }) {
                 )}
               </Stack>
             </Card>
+
+            {/* Audit Log */}
+            {nda.auditLog?.length > 0 && (
+              <Card sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Audit Log
+                </Typography>
+                <Stack spacing={1.5}>
+                  {[...nda.auditLog].reverse().map((entry, i) => (
+                    <Box key={i} sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
+                      <Iconify
+                        icon="solar:clock-circle-bold"
+                        color="text.secondary"
+                        width={16}
+                        sx={{ mt: 0.5, flexShrink: 0 }}
+                      />
+                      <Box>
+                        <Typography variant="body2">{formatAction(entry.action)}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {entry.performedBy}
+                          {' · '}
+                          {(() => {
+                            const raw = entry.performedAt || entry.timestamp;
+                            if (!raw) return '—';
+                            const d = new Date(raw);
+                            return isNaN(d.getTime()) ? raw : d.toLocaleString();
+                          })()}
+                          {entry.ipAddress && ` · IP: ${entry.ipAddress}`}
+                        </Typography>
+                        {entry.notes && (
+                          <Typography variant="caption" color="text.disabled" display="block">
+                            {entry.notes}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
+                  ))}
+                </Stack>
+              </Card>
+            )}
           </Stack>
         </Grid>
 
@@ -1207,7 +1373,7 @@ export default function NdaDetailsPage({ params }) {
                   }}
                 >
                   <Typography variant="subtitle1">Document Preview</Typography>
-                  <Tooltip title="Use Print / Download button above for a clean print">
+                  <Tooltip title="Use the Print button above for a clean print">
                     <Iconify icon="solar:info-circle-bold" color="text.secondary" />
                   </Tooltip>
                 </Box>
@@ -1431,6 +1597,41 @@ export default function NdaDetailsPage({ params }) {
                     </Typography>
                   </Box>
 
+                  {/* Signatory selector (draft only) */}
+                  {isDraft &&
+                    Array.isArray(nda?.iotaSignatories) &&
+                    nda.iotaSignatories.length > 1 && (
+                      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                          Drawing for:
+                        </Typography>
+                        <Stack direction="row" spacing={0.75} flexWrap="wrap">
+                          {nda.iotaSignatories.map((sig, idx) => {
+                            const color = SIG_ZONE_COLORS[idx % SIG_ZONE_COLORS.length];
+                            const isSelected = selectedSigZoneSignatory === idx;
+                            return (
+                              <Chip
+                                key={idx}
+                                label={sig.name || sig.email || `Signatory ${idx + 1}`}
+                                size="small"
+                                onClick={() => setSelectedSigZoneSignatory(idx)}
+                                sx={{
+                                  cursor: 'pointer',
+                                  borderWidth: 2,
+                                  borderStyle: 'solid',
+                                  borderColor: color.border,
+                                  bgcolor: isSelected ? color.border : 'transparent',
+                                  color: isSelected ? '#fff' : color.border,
+                                  fontWeight: isSelected ? 700 : 400,
+                                  '&:hover': { bgcolor: color.bg },
+                                }}
+                              />
+                            );
+                          })}
+                        </Stack>
+                      </Stack>
+                    )}
+
                   {/* Page selector */}
                   <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
                     <Typography variant="caption" color="text.secondary">
@@ -1510,12 +1711,12 @@ export default function NdaDetailsPage({ params }) {
                     {signatureZones
                       .filter((z) => (z.page || 1) === sigZonePreviewPage)
                       .map((zone) => {
+                        const sigIdx = zone.iotaSignatoryIndex ?? 0;
+                        const zoneColor = SIG_ZONE_COLORS[sigIdx % SIG_ZONE_COLORS.length];
                         const signatoryLabel =
-                          Array.isArray(nda?.iotaSignatories) &&
-                          nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0]
-                            ? nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0].name ||
-                              nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0].email
-                            : `Signatory ${(zone.iotaSignatoryIndex ?? 0) + 1}`;
+                          Array.isArray(nda?.iotaSignatories) && nda.iotaSignatories[sigIdx]
+                            ? nda.iotaSignatories[sigIdx].name || nda.iotaSignatories[sigIdx].email
+                            : `Signatory ${sigIdx + 1}`;
                         return (
                           <Box
                             key={zone.id}
@@ -1534,9 +1735,9 @@ export default function NdaDetailsPage({ params }) {
                               width: `${zone.widthPct}%`,
                               height: `${zone.heightPct}%`,
                               border: '2px dashed',
-                              borderColor: 'primary.main',
-                              bgcolor: 'primary.lighter',
-                              opacity: 0.75,
+                              borderColor: zoneColor.border,
+                              bgcolor: zoneColor.bg,
+                              opacity: 0.85,
                               borderRadius: 0.5,
                               cursor: isDraft ? 'move' : 'default',
                               display: 'flex',
@@ -1549,9 +1750,10 @@ export default function NdaDetailsPage({ params }) {
                               variant="caption"
                               sx={{
                                 fontSize: '0.55rem',
-                                color: 'primary.dark',
+                                color: zoneColor.border,
                                 textAlign: 'center',
                                 px: 0.5,
+                                fontWeight: 600,
                               }}
                             >
                               {signatoryLabel}
@@ -1565,12 +1767,12 @@ export default function NdaDetailsPage({ params }) {
                   {signatureZones.length > 0 && (
                     <Stack spacing={1} sx={{ mt: 2 }}>
                       {signatureZones.map((zone, idx) => {
+                        const sigIdx = zone.iotaSignatoryIndex ?? 0;
+                        const zoneColor = SIG_ZONE_COLORS[sigIdx % SIG_ZONE_COLORS.length];
                         const signatoryLabel =
-                          Array.isArray(nda?.iotaSignatories) &&
-                          nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0]
-                            ? nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0].name ||
-                              nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0].email
-                            : `Signatory ${(zone.iotaSignatoryIndex ?? 0) + 1}`;
+                          Array.isArray(nda?.iotaSignatories) && nda.iotaSignatories[sigIdx]
+                            ? nda.iotaSignatories[sigIdx].name || nda.iotaSignatories[sigIdx].email
+                            : `Signatory ${sigIdx + 1}`;
                         return (
                           <Stack
                             key={zone.id}
@@ -1585,14 +1787,47 @@ export default function NdaDetailsPage({ params }) {
                               borderColor: 'divider',
                             }}
                           >
-                            <Iconify
-                              icon="solar:pen-bold"
-                              width={16}
-                              sx={{ color: 'primary.main' }}
+                            <Box
+                              sx={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: '50%',
+                                bgcolor: zoneColor.border,
+                                flexShrink: 0,
+                              }}
                             />
                             <Typography variant="caption" sx={{ flex: 1 }}>
-                              Zone {idx + 1} — Page {zone.page}, {signatoryLabel}
+                              Zone {idx + 1} — Page {zone.page}
                             </Typography>
+                            {isDraft &&
+                            Array.isArray(nda?.iotaSignatories) &&
+                            nda.iotaSignatories.length > 1 ? (
+                              <FormControl size="small" sx={{ minWidth: 140 }}>
+                                <Select
+                                  value={zone.iotaSignatoryIndex ?? 0}
+                                  onChange={(e) =>
+                                    setSignatureZones((prev) =>
+                                      prev.map((z) =>
+                                        z.id === zone.id
+                                          ? { ...z, iotaSignatoryIndex: e.target.value }
+                                          : z
+                                      )
+                                    )
+                                  }
+                                  sx={{ fontSize: '0.75rem' }}
+                                >
+                                  {nda.iotaSignatories.map((sig, sIdx) => (
+                                    <MenuItem key={sIdx} value={sIdx} sx={{ fontSize: '0.75rem' }}>
+                                      {sig.name || sig.email || `Signatory ${sIdx + 1}`}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            ) : (
+                              <Typography variant="caption" color="text.secondary">
+                                {signatoryLabel}
+                              </Typography>
+                            )}
                             {isDraft && (
                               <IconButton
                                 size="small"
@@ -1783,12 +2018,12 @@ export default function NdaDetailsPage({ params }) {
                 {signatureZones
                   .filter((z) => (z.page || 1) === stampPreviewPage)
                   .map((zone) => {
+                    const sigIdx = zone.iotaSignatoryIndex ?? 0;
+                    const zoneColor = SIG_ZONE_COLORS[sigIdx % SIG_ZONE_COLORS.length];
                     const signatoryLabel =
-                      Array.isArray(nda?.iotaSignatories) &&
-                      nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0]
-                        ? nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0].name ||
-                          nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0].email
-                        : `Sig ${(zone.iotaSignatoryIndex ?? 0) + 1}`;
+                      Array.isArray(nda?.iotaSignatories) && nda.iotaSignatories[sigIdx]
+                        ? nda.iotaSignatories[sigIdx].name || nda.iotaSignatories[sigIdx].email
+                        : `Sig ${sigIdx + 1}`;
                     return (
                       <Box
                         key={zone.id}
@@ -1799,9 +2034,9 @@ export default function NdaDetailsPage({ params }) {
                           width: `${zone.widthPct}%`,
                           height: `${zone.heightPct}%`,
                           border: '2px dashed',
-                          borderColor: 'info.main',
-                          bgcolor: 'info.lighter',
-                          opacity: 0.55,
+                          borderColor: zoneColor.border,
+                          bgcolor: zoneColor.bg,
+                          opacity: 0.65,
                           borderRadius: 0.5,
                           pointerEvents: 'none',
                           display: 'flex',
@@ -1815,9 +2050,10 @@ export default function NdaDetailsPage({ params }) {
                           variant="caption"
                           sx={{
                             fontSize: '0.5rem',
-                            color: 'info.dark',
+                            color: zoneColor.border,
                             textAlign: 'center',
                             px: 0.5,
+                            fontWeight: 600,
                           }}
                         >
                           {signatoryLabel}
@@ -1890,46 +2126,6 @@ export default function NdaDetailsPage({ params }) {
                 </Box>
               )}
             </Card>
-
-            {/* Audit Log */}
-            {nda.auditLog?.length > 0 && (
-              <Card sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ mb: 2 }}>
-                  Audit Log
-                </Typography>
-                <Stack spacing={1.5}>
-                  {[...nda.auditLog].reverse().map((entry, i) => (
-                    <Box key={i} sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
-                      <Iconify
-                        icon="solar:clock-circle-bold"
-                        color="text.secondary"
-                        width={16}
-                        sx={{ mt: 0.5, flexShrink: 0 }}
-                      />
-                      <Box>
-                        <Typography variant="body2">{formatAction(entry.action)}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {entry.performedBy}
-                          {' · '}
-                          {(() => {
-                            const raw = entry.performedAt || entry.timestamp;
-                            if (!raw) return '—';
-                            const d = new Date(raw);
-                            return isNaN(d.getTime()) ? raw : d.toLocaleString();
-                          })()}
-                          {entry.ipAddress && ` · IP: ${entry.ipAddress}`}
-                        </Typography>
-                        {entry.notes && (
-                          <Typography variant="caption" color="text.disabled" display="block">
-                            {entry.notes}
-                          </Typography>
-                        )}
-                      </Box>
-                    </Box>
-                  ))}
-                </Stack>
-              </Card>
-            )}
           </Stack>
         </Grid>
       </Grid>
