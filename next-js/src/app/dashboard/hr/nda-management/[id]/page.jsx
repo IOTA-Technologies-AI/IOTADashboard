@@ -432,11 +432,16 @@ export default function NdaDetailsPage({ params }) {
         fileBase64 = uint8ToBase64(new Uint8Array(arrayBuffer));
       }
 
-      // Apply IOTA signature zones + stamp placements when the document is a PDF
+      // Apply IOTA signature zones, partner signature zones + stamp placements when the document is a PDF
       const isPdf =
         !isExternalUpload ||
         (nda.uploadedDocumentName && nda.uploadedDocumentName.toLowerCase().endsWith('.pdf'));
-      if (isPdf && (stampPlacements.length > 0 || signatureZones.length > 0)) {
+      if (
+        isPdf &&
+        (stampPlacements.length > 0 ||
+          signatureZones.length > 0 ||
+          partnerSignatureZones.length > 0)
+      ) {
         const { PDFDocument, rgb } = await import('pdf-lib');
         const pdfBytes = Uint8Array.from(atob(fileBase64), (c) => c.charCodeAt(0));
         const pdfDoc = await PDFDocument.load(pdfBytes);
@@ -461,7 +466,6 @@ export default function NdaDetailsPage({ params }) {
 
             if (sigData && sigData.startsWith('data:image')) {
               try {
-                // Strip data URI prefix
                 const base64 = sigData.split(',')[1];
                 const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
                 const sigImage = sigData.includes('image/png')
@@ -475,7 +479,6 @@ export default function NdaDetailsPage({ params }) {
                   opacity: 1,
                 });
               } catch {
-                // Fallback: draw a placeholder box if signature image fails
                 page.drawRectangle({
                   x: zoneX,
                   y: zoneY - zoneH,
@@ -487,13 +490,67 @@ export default function NdaDetailsPage({ params }) {
                 });
               }
             } else {
-              // No signature data: draw a placeholder box
               page.drawRectangle({
                 x: zoneX,
                 y: zoneY - zoneH,
                 width: zoneW,
                 height: zoneH,
                 borderColor: rgb(0.2, 0.2, 0.7),
+                borderWidth: 1,
+                opacity: 0.5,
+              });
+            }
+          }
+        }
+
+        // Embed partner signature zones
+        if (partnerSignatureZones.length > 0) {
+          const partnerSignatories = Array.isArray(nda?.partnerSignatories)
+            ? nda.partnerSignatories
+            : [];
+          for (const zone of partnerSignatureZones) {
+            const pageIdx = Math.max(0, (zone.page || 1) - 1);
+            const page = pages[pageIdx];
+            if (!page) continue;
+            const { width: pw, height: ph } = page.getSize();
+            const zoneX = (zone.xPct / 100) * pw;
+            const zoneY = ph - (zone.yPct / 100) * ph;
+            const zoneW = (zone.widthPct / 100) * pw;
+            const zoneH = (zone.heightPct / 100) * ph;
+            const signatory = partnerSignatories[zone.partnerSignatoryIndex ?? 0];
+            const sigData = signatory?.signatureData || null;
+            if (sigData && sigData.startsWith('data:image')) {
+              try {
+                const base64 = sigData.split(',')[1];
+                const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+                const sigImage = sigData.includes('image/png')
+                  ? await pdfDoc.embedPng(sigBytes)
+                  : await pdfDoc.embedJpg(sigBytes);
+                page.drawImage(sigImage, {
+                  x: zoneX,
+                  y: zoneY - zoneH,
+                  width: zoneW,
+                  height: zoneH,
+                  opacity: 1,
+                });
+              } catch {
+                page.drawRectangle({
+                  x: zoneX,
+                  y: zoneY - zoneH,
+                  width: zoneW,
+                  height: zoneH,
+                  borderColor: rgb(0.7, 0.3, 0.1),
+                  borderWidth: 1,
+                  opacity: 0.5,
+                });
+              }
+            } else {
+              page.drawRectangle({
+                x: zoneX,
+                y: zoneY - zoneH,
+                width: zoneW,
+                height: zoneH,
+                borderColor: rgb(0.7, 0.3, 0.1),
                 borderWidth: 1,
                 opacity: 0.5,
               });
