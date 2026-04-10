@@ -32,6 +32,7 @@ import {
   finalizeNda,
   iotaSignNda,
   setNdaStampPlacements,
+  setNdaSignatureZones,
   submitNdaForIotaSigning,
   uploadExternalNdaDocument,
 } from 'src/utils/apiHelper';
@@ -162,6 +163,11 @@ export default function NdaDetailsPage({ params }) {
   const [stampPreviewPage, setStampPreviewPage] = useState(1);
   const [draggingStamp, setDraggingStamp] = useState(null); // { id } during drag, null otherwise
   const stampPreviewRef = useRef(null);
+  const [signatureZones, setSignatureZones] = useState([]);
+  const [sigZoneSaving, setSigZoneSaving] = useState(false);
+  const [sigZonePreviewPage, setSigZonePreviewPage] = useState(1);
+  const [draggingSigZone, setDraggingSigZone] = useState(null);
+  const sigZonePreviewRef = useRef(null);
   const [docBlobUrl, setDocBlobUrl] = useState(null);
   const [docUploading, setDocUploading] = useState(false);
 
@@ -194,6 +200,10 @@ export default function NdaDetailsPage({ params }) {
       setStampPlacements(nda.stampPlacements);
     }
   }, [nda?.stampPlacements]);
+
+  useEffect(() => {
+    if (nda?.signatureZones) setSignatureZones(nda.signatureZones);
+  }, [nda?.signatureZones]);
 
   useEffect(() => {
     if (nda?.uploadedDocumentBase64 && nda.uploadedDocumentName?.toLowerCase().endsWith('.pdf')) {
@@ -244,6 +254,16 @@ export default function NdaDetailsPage({ params }) {
   };
 
   const handleFinalize = async () => {
+    // Chunked btoa to avoid call-stack overflow on large PDFs
+    const uint8ToBase64 = (bytes) => {
+      let binary = '';
+      const chunk = 8192;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+      }
+      return btoa(binary);
+    };
+
     try {
       setActionLoading(true);
 
@@ -261,40 +281,104 @@ export default function NdaDetailsPage({ params }) {
         // Generate PDF from react-pdf template
         const blob = await pdf(<NdaPdfDocument nda={nda} />).toBlob();
         const arrayBuffer = await blob.arrayBuffer();
-        fileBase64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+        fileBase64 = uint8ToBase64(new Uint8Array(arrayBuffer));
       }
 
-      // Apply IOTA stamp placements when the document is a PDF
+      // Apply IOTA signature zones + stamp placements when the document is a PDF
       const isPdf =
         !isExternalUpload ||
         (nda.uploadedDocumentName && nda.uploadedDocumentName.toLowerCase().endsWith('.pdf'));
-      if (isPdf && stampPlacements.length > 0) {
-        const { PDFDocument } = await import('pdf-lib');
+      if (isPdf && (stampPlacements.length > 0 || signatureZones.length > 0)) {
+        const { PDFDocument, rgb } = await import('pdf-lib');
         const pdfBytes = Uint8Array.from(atob(fileBase64), (c) => c.charCodeAt(0));
         const pdfDoc = await PDFDocument.load(pdfBytes);
-        const stampRes = await fetch('/logo/iota-stamp.png');
-        if (stampRes.ok) {
-          const stampArrayBuffer = await stampRes.arrayBuffer();
-          const stampImage = await pdfDoc.embedPng(new Uint8Array(stampArrayBuffer));
-          const pages = pdfDoc.getPages();
-          for (const placement of stampPlacements) {
-            const pageIdx = Math.max(0, (placement.page || 1) - 1);
+        const pages = pdfDoc.getPages();
+
+        // Embed IOTA signature zones first
+        if (signatureZones.length > 0) {
+          const signatories = Array.isArray(nda?.iotaSignatories) ? nda.iotaSignatories : [];
+          for (const zone of signatureZones) {
+            const pageIdx = Math.max(0, (zone.page || 1) - 1);
             const page = pages[pageIdx];
             if (!page) continue;
             const { width: pw, height: ph } = page.getSize();
-            const stampW = (placement.widthPct / 100) * pw;
-            const stampH = stampW * (stampImage.height / stampImage.width);
-            page.drawImage(stampImage, {
-              x: (placement.xPct / 100) * pw - stampW / 2,
-              y: ph - (placement.yPct / 100) * ph - stampH / 2,
-              width: stampW,
-              height: stampH,
-              opacity: 0.85,
-            });
+            const zoneX = (zone.xPct / 100) * pw;
+            const zoneY = ph - (zone.yPct / 100) * ph;
+            const zoneW = (zone.widthPct / 100) * pw;
+            const zoneH = (zone.heightPct / 100) * ph;
+
+            const signatoryIdx = zone.iotaSignatoryIndex ?? 0;
+            const signatory = signatories[signatoryIdx];
+            const sigData = signatory?.signatureData || null;
+
+            if (sigData && sigData.startsWith('data:image')) {
+              try {
+                // Strip data URI prefix
+                const base64 = sigData.split(',')[1];
+                const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+                const sigImage = sigData.includes('image/png')
+                  ? await pdfDoc.embedPng(sigBytes)
+                  : await pdfDoc.embedJpg(sigBytes);
+                page.drawImage(sigImage, {
+                  x: zoneX,
+                  y: zoneY - zoneH,
+                  width: zoneW,
+                  height: zoneH,
+                  opacity: 1,
+                });
+              } catch {
+                // Fallback: draw a placeholder box if signature image fails
+                page.drawRectangle({
+                  x: zoneX,
+                  y: zoneY - zoneH,
+                  width: zoneW,
+                  height: zoneH,
+                  borderColor: rgb(0.2, 0.2, 0.7),
+                  borderWidth: 1,
+                  opacity: 0.5,
+                });
+              }
+            } else {
+              // No signature data: draw a placeholder box
+              page.drawRectangle({
+                x: zoneX,
+                y: zoneY - zoneH,
+                width: zoneW,
+                height: zoneH,
+                borderColor: rgb(0.2, 0.2, 0.7),
+                borderWidth: 1,
+                opacity: 0.5,
+              });
+            }
           }
-          const saved = await pdfDoc.save();
-          fileBase64 = btoa(String.fromCharCode(...saved));
         }
+
+        // Embed IOTA stamp
+        if (stampPlacements.length > 0) {
+          const stampRes = await fetch('/logo/iota-stamp.png');
+          if (stampRes.ok) {
+            const stampArrayBuffer = await stampRes.arrayBuffer();
+            const stampImage = await pdfDoc.embedPng(new Uint8Array(stampArrayBuffer));
+            for (const placement of stampPlacements) {
+              const pageIdx = Math.max(0, (placement.page || 1) - 1);
+              const page = pages[pageIdx];
+              if (!page) continue;
+              const { width: pw, height: ph } = page.getSize();
+              const stampW = (placement.widthPct / 100) * pw;
+              const stampH = stampW * (stampImage.height / stampImage.width);
+              page.drawImage(stampImage, {
+                x: (placement.xPct / 100) * pw - stampW / 2,
+                y: ph - (placement.yPct / 100) * ph - stampH / 2,
+                width: stampW,
+                height: stampH,
+                opacity: 0.85,
+              });
+            }
+          }
+        }
+
+        const saved = await pdfDoc.save();
+        fileBase64 = uint8ToBase64(saved);
       }
 
       const updated = await finalizeNda(id, fileBase64);
@@ -430,24 +514,61 @@ export default function NdaDetailsPage({ params }) {
     ]);
   };
 
-  // While dragging an existing stamp, update its position live
-  const handleStampMouseMove = (e) => {
+  // Document-level drag for stamp (fixes onMouseLeave early-cancel on fast movement)
+  useEffect(() => {
     if (!draggingStamp) return;
-    const container = stampPreviewRef.current;
-    if (!container) return;
-    const rect = container.getBoundingClientRect();
-    const xPct = Math.min(
-      100,
-      Math.max(0, Math.round(((e.clientX - rect.left) / rect.width) * 100 * 10) / 10)
-    );
-    const yPct = Math.min(
-      100,
-      Math.max(0, Math.round(((e.clientY - rect.top) / rect.height) * 100 * 10) / 10)
-    );
-    setStampPlacements((prev) =>
-      prev.map((p) => (p.id === draggingStamp ? { ...p, xPct, yPct } : p))
-    );
-  };
+    const handleMove = (e) => {
+      const container = stampPreviewRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const xPct = Math.min(
+        100,
+        Math.max(0, Math.round(((e.clientX - rect.left) / rect.width) * 1000) / 10)
+      );
+      const yPct = Math.min(
+        100,
+        Math.max(0, Math.round(((e.clientY - rect.top) / rect.height) * 1000) / 10)
+      );
+      setStampPlacements((prev) =>
+        prev.map((p) => (p.id === draggingStamp ? { ...p, xPct, yPct } : p))
+      );
+    };
+    const handleUp = () => setDraggingStamp(null);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleUp);
+    };
+  }, [draggingStamp]);
+
+  // Document-level drag for signature zones
+  useEffect(() => {
+    if (!draggingSigZone) return;
+    const handleMove = (e) => {
+      const container = sigZonePreviewRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const xPct = Math.min(
+        100,
+        Math.max(0, Math.round(((e.clientX - rect.left) / rect.width) * 1000) / 10)
+      );
+      const yPct = Math.min(
+        100,
+        Math.max(0, Math.round(((e.clientY - rect.top) / rect.height) * 1000) / 10)
+      );
+      setSignatureZones((prev) =>
+        prev.map((z) => (z.id === draggingSigZone ? { ...z, xPct, yPct } : z))
+      );
+    };
+    const handleUp = () => setDraggingSigZone(null);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleUp);
+    };
+  }, [draggingSigZone]);
 
   const handleSaveStampPlacements = async () => {
     try {
@@ -460,6 +581,46 @@ export default function NdaDetailsPage({ params }) {
       toast.error('Failed to save stamp placements');
     } finally {
       setStampSaving(false);
+    }
+  };
+
+  // Click on sig zone preview to place a new zone
+  const handleSigZonePreviewClick = (e) => {
+    if (!isDraft) return;
+    const container = sigZonePreviewRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const xPct = Math.round(((e.clientX - rect.left) / rect.width) * 1000) / 10;
+    const yPct = Math.round(((e.clientY - rect.top) / rect.height) * 1000) / 10;
+    const nextIdx = Array.isArray(nda?.iotaSignatories)
+      ? nda.iotaSignatories.findIndex((s) => !s.signedAt)
+      : 0;
+    setSignatureZones((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        page: sigZonePreviewPage,
+        xPct,
+        yPct,
+        widthPct: 25,
+        heightPct: 8,
+        iotaSignatoryIndex: nextIdx >= 0 ? nextIdx : 0,
+        label: null,
+      },
+    ]);
+  };
+
+  const handleSaveSignatureZones = async () => {
+    try {
+      setSigZoneSaving(true);
+      const updated = await setNdaSignatureZones(id, signatureZones);
+      setNda(updated);
+      toast.success('Signature zones saved');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save signature zones');
+    } finally {
+      setSigZoneSaving(false);
     }
   };
   // ── Render ────────────────────────────────────────────────────────────────
@@ -577,6 +738,14 @@ export default function NdaDetailsPage({ params }) {
                     nda.documentSource === 'external_upload'
                       ? 'External Upload'
                       : 'Generated Template'
+                  }
+                />
+                <DetailRow
+                  label="Partner Signing"
+                  value={
+                    nda.partnerSigningMethod === 'manual'
+                      ? 'Manual (Wet Signature)'
+                      : 'Digital (Email Link)'
                   }
                 />
                 {nda.onedriveWebUrl && (
@@ -1044,6 +1213,194 @@ export default function NdaDetailsPage({ params }) {
                 </Card>
               )}
 
+            {/* IOTA Signature Zones — mark where each IOTA rep signs on the vendor-uploaded PDF */}
+            {nda.documentSource === 'external_upload' &&
+              (nda.status === 'draft' || nda.status === 'pending_iota_signatures') && (
+                <Card sx={{ p: 3 }}>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="h6">IOTA Signature Zones</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {isDraft
+                        ? 'Click on the page preview to mark where each IOTA representative should sign. Drag zones to reposition.'
+                        : 'Signature zones are locked once the NDA leaves draft status.'}
+                    </Typography>
+                  </Box>
+
+                  {/* Page selector */}
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Page:
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={() => setSigZonePreviewPage((p) => Math.max(1, p - 1))}
+                      disabled={sigZonePreviewPage <= 1}
+                    >
+                      <Iconify icon="solar:arrow-left-bold" width={16} />
+                    </IconButton>
+                    <Typography variant="body2">{sigZonePreviewPage}</Typography>
+                    <IconButton size="small" onClick={() => setSigZonePreviewPage((p) => p + 1)}>
+                      <Iconify icon="solar:arrow-right-bold" width={16} />
+                    </IconButton>
+                  </Stack>
+
+                  {/* Visual page preview */}
+                  <Box
+                    ref={sigZonePreviewRef}
+                    onClick={isDraft ? handleSigZonePreviewClick : undefined}
+                    sx={{
+                      position: 'relative',
+                      width: '100%',
+                      paddingTop: '141.4%',
+                      bgcolor: 'common.white',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      overflow: 'hidden',
+                      cursor: isDraft ? 'crosshair' : 'default',
+                      boxShadow: 2,
+                      userSelect: 'none',
+                    }}
+                  >
+                    <Box sx={{ position: 'absolute', inset: 0, p: '8%' }}>
+                      {[...Array(14)].map((_, i) => (
+                        <Box
+                          key={i}
+                          sx={{
+                            height: 8,
+                            bgcolor: 'grey.200',
+                            borderRadius: 0.5,
+                            mb: 1,
+                            width: i % 3 === 0 ? '60%' : '100%',
+                          }}
+                        />
+                      ))}
+                    </Box>
+
+                    {/* Render signature zone overlays for current page */}
+                    {signatureZones
+                      .filter((z) => (z.page || 1) === sigZonePreviewPage)
+                      .map((zone) => {
+                        const signatoryLabel =
+                          Array.isArray(nda?.iotaSignatories) &&
+                          nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0]
+                            ? nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0].name ||
+                              nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0].email
+                            : `Signatory ${(zone.iotaSignatoryIndex ?? 0) + 1}`;
+                        return (
+                          <Box
+                            key={zone.id}
+                            onMouseDown={
+                              isDraft
+                                ? (e) => {
+                                    e.stopPropagation();
+                                    setDraggingSigZone(zone.id);
+                                  }
+                                : undefined
+                            }
+                            sx={{
+                              position: 'absolute',
+                              left: `${zone.xPct}%`,
+                              top: `${zone.yPct}%`,
+                              width: `${zone.widthPct}%`,
+                              height: `${zone.heightPct}%`,
+                              border: '2px dashed',
+                              borderColor: 'primary.main',
+                              bgcolor: 'primary.lighter',
+                              opacity: 0.75,
+                              borderRadius: 0.5,
+                              cursor: isDraft ? 'move' : 'default',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontSize: '0.55rem',
+                                color: 'primary.dark',
+                                textAlign: 'center',
+                                px: 0.5,
+                              }}
+                            >
+                              {signatoryLabel}
+                            </Typography>
+                          </Box>
+                        );
+                      })}
+                  </Box>
+
+                  {/* Zone list */}
+                  {signatureZones.length > 0 && (
+                    <Stack spacing={1} sx={{ mt: 2 }}>
+                      {signatureZones.map((zone, idx) => {
+                        const signatoryLabel =
+                          Array.isArray(nda?.iotaSignatories) &&
+                          nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0]
+                            ? nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0].name ||
+                              nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0].email
+                            : `Signatory ${(zone.iotaSignatoryIndex ?? 0) + 1}`;
+                        return (
+                          <Stack
+                            key={zone.id}
+                            direction="row"
+                            alignItems="center"
+                            spacing={1}
+                            sx={{
+                              p: 1,
+                              bgcolor: 'background.neutral',
+                              borderRadius: 1,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                            }}
+                          >
+                            <Iconify
+                              icon="solar:pen-bold"
+                              width={16}
+                              sx={{ color: 'primary.main' }}
+                            />
+                            <Typography variant="caption" sx={{ flex: 1 }}>
+                              Zone {idx + 1} — Page {zone.page}, {signatoryLabel}
+                            </Typography>
+                            {isDraft && (
+                              <IconButton
+                                size="small"
+                                onClick={() =>
+                                  setSignatureZones((prev) => prev.filter((z) => z.id !== zone.id))
+                                }
+                              >
+                                <Iconify icon="solar:trash-bin-minimalistic-bold" width={14} />
+                              </IconButton>
+                            )}
+                          </Stack>
+                        );
+                      })}
+                    </Stack>
+                  )}
+
+                  {signatureZones.length === 0 && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                      No signature zones placed. Click the preview to add zones.
+                    </Typography>
+                  )}
+
+                  {isDraft && (
+                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                      <LoadingButton
+                        size="small"
+                        variant="contained"
+                        loading={sigZoneSaving}
+                        onClick={handleSaveSignatureZones}
+                      >
+                        Save Signature Zones
+                      </LoadingButton>
+                    </Box>
+                  )}
+                </Card>
+              )}
+
             {/* IOTA Stamp Placements — drag-and-drop visual placer */}
             <Card sx={{ p: 3 }}>
               <Box sx={{ mb: 2 }}>
@@ -1079,9 +1436,6 @@ export default function NdaDetailsPage({ params }) {
               <Box
                 ref={stampPreviewRef}
                 onClick={isDraft ? handleStampPreviewClick : undefined}
-                onMouseMove={handleStampMouseMove}
-                onMouseUp={() => setDraggingStamp(null)}
-                onMouseLeave={() => setDraggingStamp(null)}
                 sx={{
                   position: 'relative',
                   width: '100%',

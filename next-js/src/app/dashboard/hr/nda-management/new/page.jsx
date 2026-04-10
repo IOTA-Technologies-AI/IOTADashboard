@@ -41,6 +41,7 @@ export default function NdaNewPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
   const [documentSource, setDocumentSource] = useState('iota_generated');
+  const [partnerSigningMethod, setPartnerSigningMethod] = useState('digital');
   const [uploadedFile, setUploadedFile] = useState(null); // { name, base64 }
   const newDocFileRef = useRef(null);
 
@@ -131,6 +132,7 @@ export default function NdaNewPage() {
         durationYears: Number(data.durationYears),
         createdBy: user?.email || 'unknown',
         documentSource,
+        partnerSigningMethod,
         uploadedDocumentName: uploadedFile?.name ?? null,
         uploadedDocumentBase64: uploadedFile?.base64 ?? null,
       });
@@ -185,6 +187,31 @@ export default function NdaNewPage() {
                 <ToggleButton value="external_upload">
                   <Iconify icon="solar:upload-bold" sx={{ mr: 1 }} />
                   Upload External Document
+                </ToggleButton>
+              </ToggleButtonGroup>
+
+              <Typography variant="subtitle2" sx={{ mt: 3, mb: 1 }}>
+                Partner Signing Method
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                Digital sends the partner a secure signing link by email. Manual means IOTA will
+                share the finalized PDF for a wet or offline signature.
+              </Typography>
+              <ToggleButtonGroup
+                value={partnerSigningMethod}
+                exclusive
+                onChange={(_, val) => {
+                  if (val) setPartnerSigningMethod(val);
+                }}
+                size="small"
+              >
+                <ToggleButton value="digital">
+                  <Iconify icon="solar:letter-bold" sx={{ mr: 1 }} />
+                  Digital (Email Link)
+                </ToggleButton>
+                <ToggleButton value="manual">
+                  <Iconify icon="solar:pen-new-round-bold" sx={{ mr: 1 }} />
+                  Manual (Wet Signature)
                 </ToggleButton>
               </ToggleButtonGroup>
 

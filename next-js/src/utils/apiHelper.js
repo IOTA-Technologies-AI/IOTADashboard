@@ -2363,6 +2363,19 @@ export async function setNdaStampPlacements(id, stampPlacements) {
   }
 }
 
+export async function setNdaSignatureZones(id, signatureZones) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}ndas/${id}/signature-zones`, {
+      id,
+      signatureZones,
+    });
+    return response.data.nda;
+  } catch (error) {
+    console.error('Error saving NDA signature zones:', error);
+    throw error;
+  }
+}
+
 // ============================================================================
 // WEBHOOK EVENTS API FUNCTIONS
 // ============================================================================
