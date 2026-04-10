@@ -170,6 +170,7 @@ export default function NdaDetailsPage({ params }) {
   const [draggingSigZone, setDraggingSigZone] = useState(null);
   const sigZonePreviewRef = useRef(null);
   const sigZoneCanvasRef = useRef(null);
+  const sigZoneDragMovedRef = useRef(false); // true when a drag move occurred — suppresses next click
   const [pdfJsDoc, setPdfJsDoc] = useState(null);
   const [downloadProcessing, setDownloadProcessing] = useState(false);
   const [docBlobUrl, setDocBlobUrl] = useState(null);
@@ -615,6 +616,7 @@ export default function NdaDetailsPage({ params }) {
     const handleMove = (e) => {
       const container = sigZonePreviewRef.current;
       if (!container) return;
+      sigZoneDragMovedRef.current = true; // mark that actual movement happened
       const rect = container.getBoundingClientRect();
       const xPct = Math.min(
         100,
@@ -654,6 +656,11 @@ export default function NdaDetailsPage({ params }) {
   // Click on sig zone preview to place a new zone
   const handleSigZonePreviewClick = (e) => {
     if (!isDraft) return;
+    // Suppress click that is the tail end of a drag operation
+    if (sigZoneDragMovedRef.current) {
+      sigZoneDragMovedRef.current = false;
+      return;
+    }
     const container = sigZonePreviewRef.current;
     if (!container) return;
     const rect = container.getBoundingClientRect();
@@ -1772,6 +1779,52 @@ export default function NdaDetailsPage({ params }) {
                       )}
                     </Box>
                   ))}
+                {/* Read-only sig zone overlays so user knows where signatures go */}
+                {signatureZones
+                  .filter((z) => (z.page || 1) === stampPreviewPage)
+                  .map((zone) => {
+                    const signatoryLabel =
+                      Array.isArray(nda?.iotaSignatories) &&
+                      nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0]
+                        ? nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0].name ||
+                          nda.iotaSignatories[zone.iotaSignatoryIndex ?? 0].email
+                        : `Sig ${(zone.iotaSignatoryIndex ?? 0) + 1}`;
+                    return (
+                      <Box
+                        key={zone.id}
+                        sx={{
+                          position: 'absolute',
+                          left: `${zone.xPct}%`,
+                          top: `${zone.yPct}%`,
+                          width: `${zone.widthPct}%`,
+                          height: `${zone.heightPct}%`,
+                          border: '2px dashed',
+                          borderColor: 'info.main',
+                          bgcolor: 'info.lighter',
+                          opacity: 0.55,
+                          borderRadius: 0.5,
+                          pointerEvents: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          overflow: 'hidden',
+                          zIndex: 5,
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontSize: '0.5rem',
+                            color: 'info.dark',
+                            textAlign: 'center',
+                            px: 0.5,
+                          }}
+                        >
+                          {signatoryLabel}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
               </Box>
 
               {stampPlacements.length === 0 ? (

@@ -1,6 +1,6 @@
 'use client';
 
-import { use, useState, useEffect } from 'react';
+import { use, useState, useEffect, useMemo } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -29,6 +29,26 @@ export default function PartnerNdaSignPage({ params }) {
   const [signatureData, setSignatureData] = useState('');
   const [signing, setSigning] = useState(false);
   const [done, setDone] = useState(false);
+
+  // For external_upload NDAs: create a blob URL to show the uploaded PDF in an iframe
+  const uploadedDocBlobUrl = useMemo(() => {
+    if (
+      nda?.documentSource === 'external_upload' &&
+      nda?.uploadedDocumentBase64 &&
+      nda?.uploadedDocumentName?.toLowerCase().endsWith('.pdf')
+    ) {
+      const bytes = Uint8Array.from(atob(nda.uploadedDocumentBase64), (c) => c.charCodeAt(0));
+      return URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+    }
+    return null;
+  }, [nda?.documentSource, nda?.uploadedDocumentBase64, nda?.uploadedDocumentName]);
+
+  // Revoke blob URL on unmount / change
+  useEffect(() => {
+    return () => {
+      if (uploadedDocBlobUrl) URL.revokeObjectURL(uploadedDocBlobUrl);
+    };
+  }, [uploadedDocBlobUrl]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -192,8 +212,19 @@ export default function PartnerNdaSignPage({ params }) {
                 Agreement Document — Please read in full before signing
               </Typography>
             </Box>
-            <Box sx={{ p: 3, maxHeight: 700, overflowY: 'auto' }}>
-              <NdaHtmlTemplate nda={nda} showSignatures showAuditTrail={false} />
+            <Box sx={{ p: uploadedDocBlobUrl ? 0 : 3, maxHeight: 700, overflowY: 'auto' }}>
+              {uploadedDocBlobUrl ? (
+                /* External upload: show the actual vendor-uploaded PDF */
+                <Box
+                  component="iframe"
+                  src={uploadedDocBlobUrl}
+                  title="Agreement Document"
+                  sx={{ width: '100%', height: 700, border: 'none', display: 'block' }}
+                />
+              ) : (
+                /* IOTA-generated template */
+                <NdaHtmlTemplate nda={nda} showSignatures showAuditTrail={false} />
+              )}
             </Box>
           </Card>
 
