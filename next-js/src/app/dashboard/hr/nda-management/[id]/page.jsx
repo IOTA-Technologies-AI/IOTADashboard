@@ -38,6 +38,7 @@ import {
   iotaSignNda,
   setNdaStampPlacements,
   setNdaSignatureZones,
+  setNdaPartnerSignatureZones,
   submitNdaForIotaSigning,
   uploadExternalNdaDocument,
   remindPartnerSignatories,
@@ -180,6 +181,16 @@ export default function NdaDetailsPage({ params }) {
   const sigZoneDragMovedRef = useRef(false); // true when a drag move occurred — suppresses next click
   const [selectedSigZoneSignatory, setSelectedSigZoneSignatory] = useState(0); // index of IOTA signatory to assign to new zones
 
+  // Partner signature zones state
+  const [partnerSignatureZones, setPartnerSignatureZones] = useState([]);
+  const [partnerSigZoneSaving, setPartnerSigZoneSaving] = useState(false);
+  const [partnerSigZonePreviewPage, setPartnerSigZonePreviewPage] = useState(1);
+  const [draggingPartnerSigZone, setDraggingPartnerSigZone] = useState(null);
+  const [selectedPartnerSigZoneSignatory, setSelectedPartnerSigZoneSignatory] = useState(0);
+  const partnerSigZonePreviewRef = useRef(null);
+  const partnerSigZoneCanvasRef = useRef(null);
+  const partnerSigZoneDragMovedRef = useRef(false);
+
   // Colors for signature zone overlays per signatory (up to 6)
   const SIG_ZONE_COLORS = [
     { border: '#1565c0', bg: 'rgba(21,101,192,0.12)' }, // blue
@@ -188,6 +199,16 @@ export default function NdaDetailsPage({ params }) {
     { border: '#e65100', bg: 'rgba(230,81,0,0.12)' }, // orange
     { border: '#00838f', bg: 'rgba(0,131,143,0.12)' }, // teal
     { border: '#558b2f', bg: 'rgba(85,139,47,0.12)' }, // lime
+  ];
+
+  // Colors for partner signature zone overlays per signatory (warm palette)
+  const PARTNER_SIG_ZONE_COLORS = [
+    { border: '#b71c1c', bg: 'rgba(183,28,28,0.10)' }, // red
+    { border: '#e65100', bg: 'rgba(230,81,0,0.10)' }, // deep-orange
+    { border: '#827717', bg: 'rgba(130,119,23,0.10)' }, // yellow-dark
+    { border: '#ad1457', bg: 'rgba(173,20,87,0.10)' }, // pink
+    { border: '#4527a0', bg: 'rgba(69,39,160,0.10)' }, // deep-purple
+    { border: '#00695c', bg: 'rgba(0,105,92,0.10)' }, // teal-green
   ];
   const [pdfJsDoc, setPdfJsDoc] = useState(null);
   const [downloadProcessing, setDownloadProcessing] = useState(false);
@@ -302,6 +323,32 @@ export default function NdaDetailsPage({ params }) {
       cancelled = true;
     };
   }, [pdfJsDoc, sigZonePreviewPage]);
+
+  // Load partnerSignatureZones from NDA data
+  useEffect(() => {
+    if (nda?.partnerSignatureZones) setPartnerSignatureZones(nda.partnerSignatureZones);
+  }, [nda?.partnerSignatureZones]);
+
+  // Render partner sig zone preview canvas
+  useEffect(() => {
+    if (!pdfJsDoc || !partnerSigZoneCanvasRef.current) return;
+    const canvas = partnerSigZoneCanvasRef.current;
+    const pageNum = Math.min(partnerSigZonePreviewPage, pdfJsDoc.numPages);
+    let cancelled = false;
+    pdfJsDoc.getPage(pageNum).then((page) => {
+      if (cancelled) return;
+      const viewport = page.getViewport({ scale: 1 });
+      const containerWidth = canvas.parentElement?.offsetWidth || viewport.width;
+      const scale = containerWidth / viewport.width;
+      const scaledVp = page.getViewport({ scale });
+      canvas.width = scaledVp.width;
+      canvas.height = scaledVp.height;
+      page.render({ canvasContext: canvas.getContext('2d'), viewport: scaledVp });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pdfJsDoc, partnerSigZonePreviewPage]);
 
   const handleSubmitForSigning = async () => {
     try {
@@ -637,6 +684,61 @@ export default function NdaDetailsPage({ params }) {
           }
         }
 
+        // Embed partner signature zones
+        if (partnerSignatureZones.length > 0) {
+          const partnerSignatories = Array.isArray(nda?.partnerSignatories)
+            ? nda.partnerSignatories
+            : [];
+          for (const zone of partnerSignatureZones) {
+            const pageIdx = Math.max(0, (zone.page || 1) - 1);
+            const page = pages[pageIdx];
+            if (!page) continue;
+            const { width: pw, height: ph } = page.getSize();
+            const zoneX = (zone.xPct / 100) * pw;
+            const zoneY = ph - (zone.yPct / 100) * ph;
+            const zoneW = (zone.widthPct / 100) * pw;
+            const zoneH = (zone.heightPct / 100) * ph;
+            const signatory = partnerSignatories[zone.partnerSignatoryIndex ?? 0];
+            const sigData = signatory?.signatureData || null;
+            if (sigData && sigData.startsWith('data:image')) {
+              try {
+                const base64 = sigData.split(',')[1];
+                const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+                const sigImage = sigData.includes('image/png')
+                  ? await pdfDoc.embedPng(sigBytes)
+                  : await pdfDoc.embedJpg(sigBytes);
+                page.drawImage(sigImage, {
+                  x: zoneX,
+                  y: zoneY - zoneH,
+                  width: zoneW,
+                  height: zoneH,
+                  opacity: 1,
+                });
+              } catch {
+                page.drawRectangle({
+                  x: zoneX,
+                  y: zoneY - zoneH,
+                  width: zoneW,
+                  height: zoneH,
+                  borderColor: rgb(0.7, 0.3, 0.1),
+                  borderWidth: 1,
+                  opacity: 0.4,
+                });
+              }
+            } else {
+              page.drawRectangle({
+                x: zoneX,
+                y: zoneY - zoneH,
+                width: zoneW,
+                height: zoneH,
+                borderColor: rgb(0.7, 0.3, 0.1),
+                borderWidth: 1,
+                opacity: 0.4,
+              });
+            }
+          }
+        }
+
         const processed = uint8ToBase64(await pdfDoc.save());
         const bytes = Uint8Array.from(atob(processed), (c) => c.charCodeAt(0));
         const blob = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
@@ -786,6 +888,35 @@ export default function NdaDetailsPage({ params }) {
     };
   }, [draggingSigZone]);
 
+  // Document-level drag for partner signature zones
+  useEffect(() => {
+    if (!draggingPartnerSigZone) return;
+    const handleMove = (e) => {
+      const container = partnerSigZonePreviewRef.current;
+      if (!container) return;
+      partnerSigZoneDragMovedRef.current = true;
+      const rect = container.getBoundingClientRect();
+      const xPct = Math.min(
+        100,
+        Math.max(0, Math.round(((e.clientX - rect.left) / rect.width) * 1000) / 10)
+      );
+      const yPct = Math.min(
+        100,
+        Math.max(0, Math.round(((e.clientY - rect.top) / rect.height) * 1000) / 10)
+      );
+      setPartnerSignatureZones((prev) =>
+        prev.map((z) => (z.id === draggingPartnerSigZone ? { ...z, xPct, yPct } : z))
+      );
+    };
+    const handleUp = () => setDraggingPartnerSigZone(null);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleUp);
+    return () => {
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleUp);
+    };
+  }, [draggingPartnerSigZone]);
+
   const handleSaveStampPlacements = async () => {
     try {
       setStampSaving(true);
@@ -842,6 +973,46 @@ export default function NdaDetailsPage({ params }) {
     }
   };
 
+  const handlePartnerSigZonePreviewClick = (e) => {
+    if (!isDraft) return;
+    if (partnerSigZoneDragMovedRef.current) {
+      partnerSigZoneDragMovedRef.current = false;
+      return;
+    }
+    const container = partnerSigZonePreviewRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    const xPct = Math.round(((e.clientX - rect.left) / rect.width) * 1000) / 10;
+    const yPct = Math.round(((e.clientY - rect.top) / rect.height) * 1000) / 10;
+    setPartnerSignatureZones((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        page: partnerSigZonePreviewPage,
+        xPct,
+        yPct,
+        widthPct: 25,
+        heightPct: 8,
+        partnerSignatoryIndex: selectedPartnerSigZoneSignatory,
+        label: null,
+      },
+    ]);
+  };
+
+  const handleSavePartnerSignatureZones = async () => {
+    try {
+      setPartnerSigZoneSaving(true);
+      const updated = await setNdaPartnerSignatureZones(id, partnerSignatureZones);
+      setNda(updated);
+      toast.success('Partner signature zones saved');
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to save partner signature zones');
+    } finally {
+      setPartnerSigZoneSaving(false);
+    }
+  };
+
   // Download the uploaded document with stamps + signature zones embedded
   const handleDownloadProcessed = async () => {
     const uint8ToBase64 = (bytes) => {
@@ -859,7 +1030,12 @@ export default function NdaDetailsPage({ params }) {
     }
 
     const isUploadedPdf = nda.uploadedDocumentName?.toLowerCase().endsWith('.pdf');
-    if (!isUploadedPdf || (stampPlacements.length === 0 && signatureZones.length === 0)) {
+    if (
+      !isUploadedPdf ||
+      (stampPlacements.length === 0 &&
+        signatureZones.length === 0 &&
+        partnerSignatureZones.length === 0)
+    ) {
       // No processing needed — just download the raw file
       const a = document.createElement('a');
       a.href = `data:application/octet-stream;base64,${nda.uploadedDocumentBase64}`;
@@ -921,6 +1097,61 @@ export default function NdaDetailsPage({ params }) {
               width: zoneW,
               height: zoneH,
               borderColor: rgb(0.2, 0.2, 0.7),
+              borderWidth: 1,
+              opacity: 0.5,
+            });
+          }
+        }
+      }
+
+      // Embed partner signature zones
+      if (partnerSignatureZones.length > 0) {
+        const partnerSignatories = Array.isArray(nda?.partnerSignatories)
+          ? nda.partnerSignatories
+          : [];
+        for (const zone of partnerSignatureZones) {
+          const pageIdx = Math.max(0, (zone.page || 1) - 1);
+          const page = pages[pageIdx];
+          if (!page) continue;
+          const { width: pw, height: ph } = page.getSize();
+          const zoneX = (zone.xPct / 100) * pw;
+          const zoneY = ph - (zone.yPct / 100) * ph;
+          const zoneW = (zone.widthPct / 100) * pw;
+          const zoneH = (zone.heightPct / 100) * ph;
+          const signatory = partnerSignatories[zone.partnerSignatoryIndex ?? 0];
+          const sigData = signatory?.signatureData || null;
+          if (sigData && sigData.startsWith('data:image')) {
+            try {
+              const base64 = sigData.split(',')[1];
+              const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+              const sigImage = sigData.includes('image/png')
+                ? await pdfDoc.embedPng(sigBytes)
+                : await pdfDoc.embedJpg(sigBytes);
+              page.drawImage(sigImage, {
+                x: zoneX,
+                y: zoneY - zoneH,
+                width: zoneW,
+                height: zoneH,
+                opacity: 1,
+              });
+            } catch {
+              page.drawRectangle({
+                x: zoneX,
+                y: zoneY - zoneH,
+                width: zoneW,
+                height: zoneH,
+                borderColor: rgb(0.7, 0.3, 0.1),
+                borderWidth: 1,
+                opacity: 0.5,
+              });
+            }
+          } else {
+            page.drawRectangle({
+              x: zoneX,
+              y: zoneY - zoneH,
+              width: zoneW,
+              height: zoneH,
+              borderColor: rgb(0.7, 0.3, 0.1),
               borderWidth: 1,
               opacity: 0.5,
             });
@@ -1847,6 +2078,323 @@ export default function NdaDetailsPage({ params }) {
                         onClick={handleSaveSignatureZones}
                       >
                         Save Signature Zones
+                      </LoadingButton>
+                    </Box>
+                  )}
+                </Card>
+              )}
+
+            {/* Partner Signature Zones — mark where each partner rep signs on the uploaded PDF */}
+            {nda.documentSource === 'external_upload' &&
+              (nda.status === 'draft' ||
+                nda.status === 'pending_partner_signatures' ||
+                nda.status === 'pending_iota_signatures' ||
+                nda.status === 'fully_signed') && (
+                <Card sx={{ p: 3 }}>
+                  <Box sx={{ mb: 2 }}>
+                    <Typography variant="h6">Partner Signature Zones</Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {isDraft
+                        ? 'Click on the page preview to mark where each partner representative should sign. Drag zones to reposition.'
+                        : 'Click to view where partner signatures will be placed in the document.'}
+                    </Typography>
+                  </Box>
+
+                  {/* Signatory selector (draft only) */}
+                  {isDraft &&
+                    Array.isArray(nda?.partnerSignatories) &&
+                    nda.partnerSignatories.length > 1 && (
+                      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+                        <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                          Drawing for:
+                        </Typography>
+                        <Stack direction="row" spacing={0.75} flexWrap="wrap">
+                          {nda.partnerSignatories.map((sig, idx) => {
+                            const color =
+                              PARTNER_SIG_ZONE_COLORS[idx % PARTNER_SIG_ZONE_COLORS.length];
+                            const isSelected = selectedPartnerSigZoneSignatory === idx;
+                            return (
+                              <Chip
+                                key={idx}
+                                label={sig.name || sig.email || `Partner ${idx + 1}`}
+                                size="small"
+                                onClick={() => setSelectedPartnerSigZoneSignatory(idx)}
+                                sx={{
+                                  cursor: 'pointer',
+                                  borderWidth: 2,
+                                  borderStyle: 'solid',
+                                  borderColor: color.border,
+                                  bgcolor: isSelected ? color.border : 'transparent',
+                                  color: isSelected ? '#fff' : color.border,
+                                  fontWeight: isSelected ? 700 : 400,
+                                  '&:hover': { bgcolor: color.bg },
+                                }}
+                              />
+                            );
+                          })}
+                        </Stack>
+                      </Stack>
+                    )}
+
+                  {/* Page selector */}
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                    <Typography variant="caption" color="text.secondary">
+                      Page:
+                    </Typography>
+                    <IconButton
+                      size="small"
+                      onClick={() => setPartnerSigZonePreviewPage((p) => Math.max(1, p - 1))}
+                      disabled={partnerSigZonePreviewPage <= 1}
+                    >
+                      <Iconify icon="solar:arrow-left-bold" width={16} />
+                    </IconButton>
+                    <Typography variant="body2">{partnerSigZonePreviewPage}</Typography>
+                    <IconButton
+                      size="small"
+                      onClick={() => setPartnerSigZonePreviewPage((p) => p + 1)}
+                      disabled={pdfJsDoc ? partnerSigZonePreviewPage >= pdfJsDoc.numPages : false}
+                    >
+                      <Iconify icon="solar:arrow-right-bold" width={16} />
+                    </IconButton>
+                    {pdfJsDoc && (
+                      <Typography variant="caption" color="text.secondary">
+                        / {pdfJsDoc.numPages}
+                      </Typography>
+                    )}
+                  </Stack>
+
+                  {/* Visual page preview */}
+                  <Box
+                    ref={partnerSigZonePreviewRef}
+                    onClick={isDraft ? handlePartnerSigZonePreviewClick : undefined}
+                    sx={{
+                      position: 'relative',
+                      width: '100%',
+                      paddingTop: '141.4%',
+                      bgcolor: 'common.white',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      overflow: 'hidden',
+                      cursor: isDraft ? 'crosshair' : 'default',
+                      boxShadow: 2,
+                      userSelect: 'none',
+                    }}
+                  >
+                    <canvas
+                      ref={partnerSigZoneCanvasRef}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        display: 'block',
+                      }}
+                    />
+                    {!pdfJsDoc && (
+                      <Box sx={{ position: 'absolute', inset: 0, p: '8%' }}>
+                        {[...Array(14)].map((_, i) => (
+                          <Box
+                            key={i}
+                            sx={{
+                              height: 8,
+                              bgcolor: 'grey.200',
+                              borderRadius: 0.5,
+                              mb: 1,
+                              width: i % 3 === 0 ? '60%' : '100%',
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    )}
+
+                    {/* Render partner signature zone overlays for current page */}
+                    {partnerSignatureZones
+                      .filter((z) => (z.page || 1) === partnerSigZonePreviewPage)
+                      .map((zone) => {
+                        const sigIdx = zone.partnerSignatoryIndex ?? 0;
+                        const zoneColor =
+                          PARTNER_SIG_ZONE_COLORS[sigIdx % PARTNER_SIG_ZONE_COLORS.length];
+                        const signatoryLabel =
+                          Array.isArray(nda?.partnerSignatories) && nda.partnerSignatories[sigIdx]
+                            ? nda.partnerSignatories[sigIdx].name ||
+                              nda.partnerSignatories[sigIdx].email
+                            : `Partner ${sigIdx + 1}`;
+                        const signatory =
+                          Array.isArray(nda?.partnerSignatories) && nda.partnerSignatories[sigIdx];
+                        const hasSigned = !!signatory?.signatureData;
+                        return (
+                          <Box
+                            key={zone.id}
+                            onMouseDown={
+                              isDraft
+                                ? (e) => {
+                                    e.stopPropagation();
+                                    setDraggingPartnerSigZone(zone.id);
+                                  }
+                                : undefined
+                            }
+                            sx={{
+                              position: 'absolute',
+                              left: `${zone.xPct}%`,
+                              top: `${zone.yPct}%`,
+                              width: `${zone.widthPct}%`,
+                              height: `${zone.heightPct}%`,
+                              border: '2px dashed',
+                              borderColor: zoneColor.border,
+                              bgcolor: hasSigned ? 'rgba(76,175,80,0.12)' : zoneColor.bg,
+                              opacity: 0.9,
+                              borderRadius: 0.5,
+                              cursor: isDraft ? 'move' : 'default',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              overflow: 'hidden',
+                            }}
+                          >
+                            {hasSigned ? (
+                              <img
+                                src={signatory.signatureData}
+                                alt="signature"
+                                style={{
+                                  maxWidth: '100%',
+                                  maxHeight: '100%',
+                                  objectFit: 'contain',
+                                }}
+                              />
+                            ) : (
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  fontSize: '0.55rem',
+                                  color: zoneColor.border,
+                                  textAlign: 'center',
+                                  px: 0.5,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {signatoryLabel}
+                              </Typography>
+                            )}
+                          </Box>
+                        );
+                      })}
+                  </Box>
+
+                  {/* Zone list */}
+                  {partnerSignatureZones.length > 0 && (
+                    <Stack spacing={1} sx={{ mt: 2 }}>
+                      {partnerSignatureZones.map((zone, idx) => {
+                        const sigIdx = zone.partnerSignatoryIndex ?? 0;
+                        const zoneColor =
+                          PARTNER_SIG_ZONE_COLORS[sigIdx % PARTNER_SIG_ZONE_COLORS.length];
+                        const signatoryLabel =
+                          Array.isArray(nda?.partnerSignatories) && nda.partnerSignatories[sigIdx]
+                            ? nda.partnerSignatories[sigIdx].name ||
+                              nda.partnerSignatories[sigIdx].email
+                            : `Partner ${sigIdx + 1}`;
+                        const hasSigned =
+                          Array.isArray(nda?.partnerSignatories) &&
+                          !!nda.partnerSignatories[sigIdx]?.signatureData;
+                        return (
+                          <Stack
+                            key={zone.id}
+                            direction="row"
+                            alignItems="center"
+                            spacing={1}
+                            sx={{
+                              p: 1,
+                              bgcolor: 'background.neutral',
+                              borderRadius: 1,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: 10,
+                                height: 10,
+                                borderRadius: '50%',
+                                bgcolor: hasSigned ? '#4caf50' : zoneColor.border,
+                                flexShrink: 0,
+                              }}
+                            />
+                            <Typography variant="caption" sx={{ flex: 1 }}>
+                              Zone {idx + 1} — Page {zone.page}
+                              {hasSigned && (
+                                <Typography
+                                  component="span"
+                                  variant="caption"
+                                  sx={{ color: 'success.main', ml: 0.5 }}
+                                >
+                                  ✓ Signed
+                                </Typography>
+                              )}
+                            </Typography>
+                            {isDraft &&
+                            Array.isArray(nda?.partnerSignatories) &&
+                            nda.partnerSignatories.length > 1 ? (
+                              <FormControl size="small" sx={{ minWidth: 140 }}>
+                                <Select
+                                  value={zone.partnerSignatoryIndex ?? 0}
+                                  onChange={(e) =>
+                                    setPartnerSignatureZones((prev) =>
+                                      prev.map((z) =>
+                                        z.id === zone.id
+                                          ? { ...z, partnerSignatoryIndex: e.target.value }
+                                          : z
+                                      )
+                                    )
+                                  }
+                                  sx={{ fontSize: '0.75rem' }}
+                                >
+                                  {nda.partnerSignatories.map((sig, sIdx) => (
+                                    <MenuItem key={sIdx} value={sIdx} sx={{ fontSize: '0.75rem' }}>
+                                      {sig.name || sig.email || `Partner ${sIdx + 1}`}
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              </FormControl>
+                            ) : (
+                              <Typography variant="caption" color="text.secondary">
+                                {signatoryLabel}
+                              </Typography>
+                            )}
+                            {isDraft && (
+                              <IconButton
+                                size="small"
+                                onClick={() =>
+                                  setPartnerSignatureZones((prev) =>
+                                    prev.filter((z) => z.id !== zone.id)
+                                  )
+                                }
+                              >
+                                <Iconify icon="solar:trash-bin-minimalistic-bold" width={14} />
+                              </IconButton>
+                            )}
+                          </Stack>
+                        );
+                      })}
+                    </Stack>
+                  )}
+
+                  {partnerSignatureZones.length === 0 && (
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                      No partner signature zones placed.
+                      {isDraft && ' Click the preview to add zones.'}
+                    </Typography>
+                  )}
+
+                  {isDraft && (
+                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                      <LoadingButton
+                        size="small"
+                        variant="contained"
+                        loading={partnerSigZoneSaving}
+                        onClick={handleSavePartnerSignatureZones}
+                      >
+                        Save Partner Zones
                       </LoadingButton>
                     </Box>
                   )}

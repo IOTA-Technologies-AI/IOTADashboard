@@ -2388,6 +2388,19 @@ export async function remindPartnerSignatories(id, requestedBy) {
   }
 }
 
+export async function setNdaPartnerSignatureZones(id, partnerSignatureZones) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}ndas/${id}/partner-signature-zones`, {
+      id,
+      partnerSignatureZones,
+    });
+    return response.data.nda;
+  } catch (error) {
+    console.error('Error saving partner signature zones:', error);
+    throw error;
+  }
+}
+
 // ============================================================================
 // WEBHOOK EVENTS API FUNCTIONS
 // ============================================================================
