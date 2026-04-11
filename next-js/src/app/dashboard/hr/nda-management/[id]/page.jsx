@@ -799,16 +799,12 @@ export default function NdaDetailsPage({ params }) {
         const processed = uint8ToBase64(await pdfDoc.save());
         const bytes = Uint8Array.from(atob(processed), (c) => c.charCodeAt(0));
         const blob = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-        const printWindow = window.open(blob, '_blank');
-        if (printWindow) {
-          printWindow.addEventListener('load', () => {
-            printWindow.print();
-            printWindow.addEventListener('afterprint', () => {
-              printWindow.close();
-              URL.revokeObjectURL(blob);
-            });
-          });
-        }
+        // Open the processed PDF in a new tab — the browser PDF viewer has its own
+        // print button. Calling window.print() programmatically on a native PDF viewer
+        // window is unreliable across browsers and produces blank pages.
+        window.open(blob, '_blank');
+        // Revoke after a generous delay so the tab has time to receive the blob data
+        setTimeout(() => URL.revokeObjectURL(blob), 60000);
       } catch (err) {
         console.error('Print failed', err);
         toast.error('Failed to prepare document for printing');
@@ -821,28 +817,36 @@ export default function NdaDetailsPage({ params }) {
     if (!content) return;
 
     const printWindow = window.open('', '_blank', 'width=900,height=700');
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>${nda?.ndaNumber || 'NDA'}</title>
-          <style>
-            * { box-sizing: border-box; margin: 0; padding: 0; }
-            body { font-family: Georgia, 'Times New Roman', serif; color: #000; background: #fff; }
-            @page { size: A4; margin: 20mm 18mm; }
-            @media print {
-              body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-            }
-          </style>
-        </head>
-        <body>${content.innerHTML}</body>
-      </html>
-    `);
+    if (!printWindow) {
+      toast.error('Popup blocked — please allow popups for this site and try again.');
+      return;
+    }
+    // Write content with an inline script so print() fires reliably after the
+    // document finishes loading (setting printWindow.onload after document.close()
+    // is too late — the load event may already have fired).
+    printWindow.document.write(`<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>${nda?.ndaNumber || 'NDA'}</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { font-family: Georgia, 'Times New Roman', serif; color: #000; background: #fff; }
+      @page { size: A4; margin: 20mm 18mm; }
+      @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+    </style>
+  </head>
+  <body>
+    ${content.innerHTML}
+    <script>
+      window.addEventListener('load', function () {
+        window.print();
+        window.addEventListener('afterprint', function () { window.close(); });
+      });
+    </script>
+  </body>
+</html>`);
     printWindow.document.close();
-    printWindow.focus();
-    printWindow.addEventListener('afterprint', () => printWindow.close());
-    printWindow.onload = () => printWindow.print();
   };
   const handleUploadDocument = async (e) => {
     const file = e.target.files?.[0];
