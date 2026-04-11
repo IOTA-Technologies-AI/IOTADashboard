@@ -316,11 +316,12 @@ export default function OfferManagementDetailsPage({ params }) {
         isEmployee: selectedZoneIsEmployee,
         label: selectedZoneIsEmployee
           ? 'Employee'
-          : (offer?.iotaSignatories?.[selectedSigZoneSignatory]?.name || `Signatory ${selectedSigZoneSignatory + 1}`),
+          : offer?.iotaSignatories?.[selectedSigZoneSignatory]?.name ||
+            `Signatory ${selectedSigZoneSignatory + 1}`,
       };
       setSignatureZones((prev) => [...prev, newZone]);
     },
-    [sigZonePreviewPage, selectedSigZoneSignatory, selectedZoneIsEmployee, offer?.iotaSignatories],
+    [sigZonePreviewPage, selectedSigZoneSignatory, selectedZoneIsEmployee, offer?.iotaSignatories]
   );
 
   // Sig zone drag
@@ -344,7 +345,9 @@ export default function OfferManagementDetailsPage({ params }) {
     };
     const onUp = () => {
       setDraggingSigZone(null);
-      setTimeout(() => { sigZoneDragMovedRef.current = false; }, 0);
+      setTimeout(() => {
+        sigZoneDragMovedRef.current = false;
+      }, 0);
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('touchmove', onMove);
@@ -380,7 +383,10 @@ export default function OfferManagementDetailsPage({ params }) {
   }, [id, user, approveComment, offer?.currentApprovalStage]);
 
   const handleReject = useCallback(async () => {
-    if (!rejectReason.trim()) { toast.error('Please provide a rejection reason'); return; }
+    if (!rejectReason.trim()) {
+      toast.error('Please provide a rejection reason');
+      return;
+    }
     try {
       setActionLoading(true);
       const updated = await rejectOffer(id, user?.displayName || user?.email, rejectReason);
@@ -396,7 +402,10 @@ export default function OfferManagementDetailsPage({ params }) {
   }, [id, user, rejectReason]);
 
   const handleComment = useCallback(async () => {
-    if (!reviewComment.trim()) { toast.error('Please enter a comment'); return; }
+    if (!reviewComment.trim()) {
+      toast.error('Please enter a comment');
+      return;
+    }
     try {
       setActionLoading(true);
       const updated = await commentOnOffer(id, user?.displayName || user?.email, reviewComment);
@@ -413,7 +422,10 @@ export default function OfferManagementDetailsPage({ params }) {
 
   const handleSendForSigning = async () => {
     const valid = newIotaSignatories.filter((s) => s.name.trim() && s.email.trim());
-    if (valid.length === 0) { toast.error('Add at least one signatory with name and email'); return; }
+    if (valid.length === 0) {
+      toast.error('Add at least one signatory with name and email');
+      return;
+    }
     try {
       setActionLoading(true);
       const updated = await sendOfferForSigning(id, valid, userEmail);
@@ -429,7 +441,10 @@ export default function OfferManagementDetailsPage({ params }) {
   };
 
   const handleIotaSign = async () => {
-    if (!signatureData) { toast.error('Please draw your signature first'); return; }
+    if (!signatureData) {
+      toast.error('Please draw your signature first');
+      return;
+    }
     try {
       setSigning(true);
       const updated = await iotaSignOffer(id, signatureData, userEmail);
@@ -476,7 +491,8 @@ export default function OfferManagementDetailsPage({ params }) {
   const uint8ToBase64 = (bytes) => {
     let binary = '';
     const chunk = 8192;
-    for (let i = 0; i < bytes.length; i += chunk) binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
+    for (let i = 0; i < bytes.length; i += chunk)
+      binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
     return btoa(binary);
   };
 
@@ -541,7 +557,15 @@ export default function OfferManagementDetailsPage({ params }) {
               : await pdfDoc.embedJpg(sigBytes);
             page.drawImage(sigImage, { x: zX, y: zY - zH, width: zW, height: zH, opacity: 1 });
           } catch {
-            page.drawRectangle({ x: zX, y: zY - zH, width: zW, height: zH, borderColor: rgb(0.2, 0.2, 0.7), borderWidth: 1, opacity: 0.5 });
+            page.drawRectangle({
+              x: zX,
+              y: zY - zH,
+              width: zW,
+              height: zH,
+              borderColor: rgb(0.2, 0.2, 0.7),
+              borderWidth: 1,
+              opacity: 0.5,
+            });
           }
         }
       }
@@ -640,7 +664,9 @@ export default function OfferManagementDetailsPage({ params }) {
     );
   }
 
-  const statusLabel = STATUS_LABEL[offer.status] || (offer.status || 'draft').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  const statusLabel =
+    STATUS_LABEL[offer.status] ||
+    (offer.status || 'draft').replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
   const iotaSignatories = Array.isArray(offer.iotaSignatories) ? offer.iotaSignatories : [];
   const auditLog = Array.isArray(offer.auditLog) ? offer.auditLog : [];
 
@@ -660,17 +686,61 @@ export default function OfferManagementDetailsPage({ params }) {
           <Stack direction="row" spacing={1} flexWrap="wrap">
             {canAct && (
               <>
-                <Button variant="contained" color="success" startIcon={<Iconify icon="eva:checkmark-circle-2-fill" />} onClick={() => setApproveOpen(true)}>Approve</Button>
-                <Button variant="outlined" color="warning" startIcon={<Iconify icon="eva:message-circle-fill" />} onClick={() => setCommentOpen(true)}>Comment</Button>
-                <Button variant="outlined" color="error" startIcon={<Iconify icon="eva:close-circle-fill" />} onClick={() => setRejectOpen(true)}>Reject</Button>
+                <Button
+                  variant="contained"
+                  color="success"
+                  startIcon={<Iconify icon="eva:checkmark-circle-2-fill" />}
+                  onClick={() => setApproveOpen(true)}
+                >
+                  Approve
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  startIcon={<Iconify icon="eva:message-circle-fill" />}
+                  onClick={() => setCommentOpen(true)}
+                >
+                  Comment
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<Iconify icon="eva:close-circle-fill" />}
+                  onClick={() => setRejectOpen(true)}
+                >
+                  Reject
+                </Button>
               </>
             )}
             {offer.status === 'approved' && isAdminOrSuperAdmin && (
-              <Button variant="contained" color="primary" startIcon={<Iconify icon="solar:pen-bold" />} onClick={() => setSendForSigningOpen(true)}>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<Iconify icon="solar:pen-bold" />}
+                onClick={() => {
+                  // Pre-populate from any signatories already saved on the offer
+                  if (Array.isArray(offer.iotaSignatories) && offer.iotaSignatories.length > 0) {
+                    setNewIotaSignatories(
+                      offer.iotaSignatories.map((s) => ({
+                        name: s.name || '',
+                        email: s.email || '',
+                        title: s.title || '',
+                      }))
+                    );
+                  } else {
+                    setNewIotaSignatories([{ name: '', email: '', title: '' }]);
+                  }
+                  setSendForSigningOpen(true);
+                }}
+              >
                 Set Up Signing
               </Button>
             )}
-            <Button variant="outlined" startIcon={<Iconify icon="solar:printer-bold" />} onClick={handlePrint}>
+            <Button
+              variant="outlined"
+              startIcon={<Iconify icon="solar:printer-bold" />}
+              onClick={handlePrint}
+            >
               Print
             </Button>
             <LoadingButton
@@ -701,31 +771,43 @@ export default function OfferManagementDetailsPage({ params }) {
         {/* ── Left column ─────────────────────────────────── */}
         <Grid size={{ xs: 12, md: 8 }}>
           <Stack spacing={3}>
-
             {/* Status banner */}
             <Alert
               severity={
-                ['approved', 'fully_signed'].includes(offer.status) ? 'success'
-                  : offer.status === 'rejected' ? 'error'
-                  : ['pending_approval', 'pending_iota_signatures'].includes(offer.status) ? 'warning'
-                  : 'info'
+                ['approved', 'fully_signed'].includes(offer.status)
+                  ? 'success'
+                  : offer.status === 'rejected'
+                    ? 'error'
+                    : ['pending_approval', 'pending_iota_signatures'].includes(offer.status)
+                      ? 'warning'
+                      : 'info'
               }
               icon={false}
             >
               <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
-                <Chip size="small" label={statusLabel} color={STATUS_COLOR[offer.status] || 'default'} />
+                <Chip
+                  size="small"
+                  label={statusLabel}
+                  color={STATUS_COLOR[offer.status] || 'default'}
+                />
                 {offer.status === 'approved' && offer.approvedBy && (
-                  <Typography variant="body2">Approved by <strong>{offer.approvedBy}</strong></Typography>
+                  <Typography variant="body2">
+                    Approved by <strong>{offer.approvedBy}</strong>
+                  </Typography>
                 )}
                 {offer.status === 'rejected' && offer.rejectedBy && (
-                  <Typography variant="body2">Rejected by <strong>{offer.rejectedBy}</strong>: {offer.rejectionReason}</Typography>
+                  <Typography variant="body2">
+                    Rejected by <strong>{offer.rejectedBy}</strong>: {offer.rejectionReason}
+                  </Typography>
                 )}
                 {offer.status === 'fully_signed' && offer.employeeSignedAt && (
                   <Typography variant="body2">
                     Employee signed on{' '}
                     <strong>
                       {new Date(offer.employeeSignedAt).toLocaleDateString('en-GB', {
-                        day: '2-digit', month: 'short', year: 'numeric',
+                        day: '2-digit',
+                        month: 'short',
+                        year: 'numeric',
                       })}
                     </strong>
                   </Typography>
@@ -738,14 +820,24 @@ export default function OfferManagementDetailsPage({ params }) {
               <Alert severity="success" icon={<Iconify icon="solar:cloud-check-bold" />}>
                 <Stack direction="row" alignItems="center" spacing={1}>
                   <Typography variant="body2">Signed offer uploaded to OneDrive.</Typography>
-                  <Button size="small" variant="outlined" href={offer.onedriveWebUrl} target="_blank" rel="noopener">Open in OneDrive</Button>
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    href={offer.onedriveWebUrl}
+                    target="_blank"
+                    rel="noopener"
+                  >
+                    Open in OneDrive
+                  </Button>
                 </Stack>
               </Alert>
             )}
 
             {/* Candidate Information */}
             <Card sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Candidate Information</Typography>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Candidate Information
+              </Typography>
               <Divider sx={{ mb: 2 }} />
               <DetailRow label="Full Name" value={offer.candidateName} />
               <DetailRow label="Email" value={offer.candidateEmail} />
@@ -756,32 +848,54 @@ export default function OfferManagementDetailsPage({ params }) {
 
             {/* Role & Contract */}
             <Card sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Position &amp; Contract</Typography>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Position &amp; Contract
+              </Typography>
               <Divider sx={{ mb: 2 }} />
               <DetailRow label="Position" value={offer.position} />
               <DetailRow label="Department" value={offer.department} />
               <DetailRow label="Contract Number" value={offer.contractNumber} />
               <DetailRow label="Contract Type" value={offer.contractType} />
               <DetailRow label="Start Date" value={offer.startDate} />
-              <DetailRow label="Contract Duration" value={offer.contractDuration ? `${offer.contractDuration} months` : null} />
-              <DetailRow label="Probation Period" value={offer.probationPeriod ? `${offer.probationPeriod} months` : null} />
+              <DetailRow
+                label="Contract Duration"
+                value={offer.contractDuration ? `${offer.contractDuration} months` : null}
+              />
+              <DetailRow
+                label="Probation Period"
+                value={offer.probationPeriod ? `${offer.probationPeriod} months` : null}
+              />
             </Card>
 
             {/* Employment Terms */}
             <Card sx={{ p: 3 }}>
-              <Typography variant="h6" sx={{ mb: 2 }}>Employment Terms</Typography>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Employment Terms
+              </Typography>
               <Divider sx={{ mb: 2 }} />
-              <DetailRow label="Working Hours" value={offer.workingHours ? `${offer.workingHours} hrs/day` : null} />
-              <DetailRow label="Annual Leave" value={offer.annualLeaveDays ? `${offer.annualLeaveDays} days/year` : null} />
-              <DetailRow label="Notice Period" value={offer.noticePeriod ? `${offer.noticePeriod} days` : null} />
+              <DetailRow
+                label="Working Hours"
+                value={offer.workingHours ? `${offer.workingHours} hrs/day` : null}
+              />
+              <DetailRow
+                label="Annual Leave"
+                value={offer.annualLeaveDays ? `${offer.annualLeaveDays} days/year` : null}
+              />
+              <DetailRow
+                label="Notice Period"
+                value={offer.noticePeriod ? `${offer.noticePeriod} days` : null}
+              />
             </Card>
 
             {/* IOTA Sign card */}
             {pendingIotaSignature && (
               <Card sx={{ p: 3, border: '2px solid', borderColor: 'primary.main' }}>
-                <Typography variant="h6" sx={{ mb: 1 }}>Sign Offer Letter</Typography>
+                <Typography variant="h6" sx={{ mb: 1 }}>
+                  Sign Offer Letter
+                </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  You are listed as an IOTA signatory on this offer letter. Please draw your signature below to proceed.
+                  You are listed as an IOTA signatory on this offer letter. Please draw your
+                  signature below to proceed.
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
                 <NdaSignatureCanvas onSave={setSignatureData} label="Draw your signature" />
@@ -803,20 +917,40 @@ export default function OfferManagementDetailsPage({ params }) {
             {/* IOTA signatories status */}
             {iotaSignatories.length > 0 && (
               <Card sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ mb: 2 }}>IOTA Signatories</Typography>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  IOTA Signatories
+                </Typography>
                 <Divider sx={{ mb: 2 }} />
                 <Stack spacing={1.5}>
                   {iotaSignatories.map((s, i) => (
                     <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                      <Box sx={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: s.signedAt ? 'success.main' : 'action.disabledBackground', color: s.signedAt ? 'common.white' : 'text.disabled', fontSize: 14, fontWeight: 700 }}>
+                      <Box
+                        sx={{
+                          width: 28,
+                          height: 28,
+                          borderRadius: '50%',
+                          flexShrink: 0,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          bgcolor: s.signedAt ? 'success.main' : 'action.disabledBackground',
+                          color: s.signedAt ? 'common.white' : 'text.disabled',
+                          fontSize: 14,
+                          fontWeight: 700,
+                        }}
+                      >
                         {s.signedAt ? '✓' : i + 1}
                       </Box>
                       <Box>
-                        <Typography variant="body2" fontWeight={600}>{s.name}</Typography>
+                        <Typography variant="body2" fontWeight={600}>
+                          {s.name}
+                        </Typography>
                         <Typography variant="caption" color="text.secondary">
                           {s.email}
                           {s.title ? ` — ${s.title}` : ''}
-                          {s.signedAt ? ` · Signed ${new Date(s.signedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}` : ' · Awaiting signature'}
+                          {s.signedAt
+                            ? ` · Signed ${new Date(s.signedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`
+                            : ' · Awaiting signature'}
                         </Typography>
                       </Box>
                     </Box>
@@ -828,7 +962,12 @@ export default function OfferManagementDetailsPage({ params }) {
             {/* Employee signing status */}
             {(offer.status === 'pending_employee_signature' || offer.status === 'fully_signed') && (
               <Card sx={{ p: 3 }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 2 }}>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  sx={{ mb: 2 }}
+                >
                   <Typography variant="h6">Employee Signature</Typography>
                   {offer.status === 'pending_employee_signature' && (
                     <LoadingButton
@@ -849,147 +988,321 @@ export default function OfferManagementDetailsPage({ params }) {
                   <>
                     <DetailRow label="Status" value="Awaiting signature" />
                     {offer.employeeTokenExpiresAt && (
-                      <DetailRow label="Link Expires" value={new Date(offer.employeeTokenExpiresAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })} />
+                      <DetailRow
+                        label="Link Expires"
+                        value={new Date(offer.employeeTokenExpiresAt).toLocaleDateString('en-GB', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      />
                     )}
                   </>
                 ) : (
-                  <DetailRow label="Signed At" value={offer.employeeSignedAt ? new Date(offer.employeeSignedAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : null} />
+                  <DetailRow
+                    label="Signed At"
+                    value={
+                      offer.employeeSignedAt
+                        ? new Date(offer.employeeSignedAt).toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : null
+                    }
+                  />
                 )}
               </Card>
             )}
 
             {/* Signature zones drag-to-place */}
-            {(offer.status === 'pending_iota_signatures' || offer.status === 'approved') && isAdminOrSuperAdmin && pdfJsDoc && (
-              <Card sx={{ p: 3 }}>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
-                  <Typography variant="h6">Signature Zone Placement</Typography>
-                  <LoadingButton
-                    size="small"
-                    variant="contained"
-                    loading={sigZoneSaving}
-                    onClick={handleSaveSignatureZones}
-                    disabled={signatureZones.length === 0}
+            {(offer.status === 'pending_iota_signatures' || offer.status === 'approved') &&
+              isAdminOrSuperAdmin &&
+              pdfJsDoc && (
+                <Card sx={{ p: 3 }}>
+                  <Stack
+                    direction="row"
+                    alignItems="center"
+                    justifyContent="space-between"
+                    sx={{ mb: 1 }}
                   >
-                    Save Zones
-                  </LoadingButton>
-                </Stack>
-                <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-                  Select a signatory type and click the document to place a signature zone. Drag to reposition.
-                </Typography>
-
-                {/* Signatory / employee selector */}
-                <Stack direction="row" spacing={1} sx={{ mb: 2 }} flexWrap="wrap">
-                  <Chip
-                    label="Employee"
-                    variant={selectedZoneIsEmployee ? 'filled' : 'outlined'}
-                    sx={{ borderColor: EMP_ZONE_COLOR.border, color: selectedZoneIsEmployee ? 'common.white' : EMP_ZONE_COLOR.border, bgcolor: selectedZoneIsEmployee ? EMP_ZONE_COLOR.border : undefined }}
-                    onClick={() => { setSelectedZoneIsEmployee(true); }}
-                  />
-                  {iotaSignatories.map((s, i) => (
-                    <Chip
-                      key={i}
-                      label={`${s.name || `Signatory ${i + 1}`}`}
-                      variant={!selectedZoneIsEmployee && selectedSigZoneSignatory === i ? 'filled' : 'outlined'}
-                      sx={{ borderColor: SIG_ZONE_COLORS[i % SIG_ZONE_COLORS.length].border, color: (!selectedZoneIsEmployee && selectedSigZoneSignatory === i) ? 'common.white' : SIG_ZONE_COLORS[i % SIG_ZONE_COLORS.length].border, bgcolor: (!selectedZoneIsEmployee && selectedSigZoneSignatory === i) ? SIG_ZONE_COLORS[i % SIG_ZONE_COLORS.length].border : undefined }}
-                      onClick={() => { setSelectedZoneIsEmployee(false); setSelectedSigZoneSignatory(i); }}
-                    />
-                  ))}
-                </Stack>
-
-                {/* Page navigation */}
-                {pdfJsDoc.numPages > 1 && (
-                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
-                    <Typography variant="caption" color="text.secondary">Page:</Typography>
-                    <IconButton size="small" onClick={() => setSigZonePreviewPage((p) => Math.max(1, p - 1))} disabled={sigZonePreviewPage <= 1}><Iconify icon="solar:arrow-left-bold" width={16} /></IconButton>
-                    <Typography variant="body2">{sigZonePreviewPage}</Typography>
-                    <IconButton size="small" onClick={() => setSigZonePreviewPage((p) => p + 1)} disabled={sigZonePreviewPage >= pdfJsDoc.numPages}><Iconify icon="solar:arrow-right-bold" width={16} /></IconButton>
-                    <Typography variant="caption" color="text.secondary">/ {pdfJsDoc.numPages}</Typography>
+                    <Typography variant="h6">Signature Zone Placement</Typography>
+                    <LoadingButton
+                      size="small"
+                      variant="contained"
+                      loading={sigZoneSaving}
+                      onClick={handleSaveSignatureZones}
+                      disabled={signatureZones.length === 0}
+                    >
+                      Save Zones
+                    </LoadingButton>
                   </Stack>
-                )}
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ mb: 2, display: 'block' }}
+                  >
+                    Select a signatory type and click the document to place a signature zone. Drag
+                    to reposition.
+                  </Typography>
 
-                {/* Canvas */}
-                <Box
-                  ref={sigZonePreviewRef}
-                  onClick={handleSigZonePreviewClick}
-                  sx={{ position: 'relative', width: '100%', paddingTop: '141.4%', bgcolor: 'common.white', border: '1px solid', borderColor: 'divider', borderRadius: 1, overflow: 'hidden', boxShadow: 2, cursor: 'crosshair' }}
-                >
-                  <canvas ref={sigZoneCanvasRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'block' }} />
-                  {signatureZones
-                    .filter((z) => (z.page || 1) === sigZonePreviewPage)
-                    .map((zone) => {
-                      const isEmp = zone.isEmployee;
-                      const color = isEmp ? EMP_ZONE_COLOR : SIG_ZONE_COLORS[(zone.iotaSignatoryIndex ?? 0) % SIG_ZONE_COLORS.length];
-                      return (
-                        <Box
-                          key={zone.id}
-                          onMouseDown={(e) => { e.stopPropagation(); sigZoneDragMovedRef.current = false; setDraggingSigZone(zone.id); }}
-                          onTouchStart={(e) => { e.stopPropagation(); sigZoneDragMovedRef.current = false; setDraggingSigZone(zone.id); }}
-                          sx={{ position: 'absolute', left: `${zone.xPct}%`, top: `${zone.yPct}%`, width: `${zone.widthPct}%`, height: `${zone.heightPct}%`, border: '2px dashed', borderColor: color.border, bgcolor: color.bg, borderRadius: 0.5, cursor: 'move', display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 0.5 }}
-                        >
-                          <Typography variant="caption" sx={{ fontSize: '0.55rem', fontWeight: 700, color: color.border, letterSpacing: 0.4, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
-                            {zone.label || (isEmp ? 'Employee' : `S${(zone.iotaSignatoryIndex ?? 0) + 1}`)}
-                          </Typography>
-                          <Tooltip title="Remove zone">
-                            <IconButton
-                              size="small"
-                              sx={{ p: 0, minWidth: 0 }}
-                              onClick={(e) => { e.stopPropagation(); setSignatureZones((prev) => prev.filter((z) => z.id !== zone.id)); }}
+                  {/* Signatory / employee selector */}
+                  <Stack direction="row" spacing={1} sx={{ mb: 2 }} flexWrap="wrap">
+                    <Chip
+                      label="Employee"
+                      variant={selectedZoneIsEmployee ? 'filled' : 'outlined'}
+                      sx={{
+                        borderColor: EMP_ZONE_COLOR.border,
+                        color: selectedZoneIsEmployee ? 'common.white' : EMP_ZONE_COLOR.border,
+                        bgcolor: selectedZoneIsEmployee ? EMP_ZONE_COLOR.border : undefined,
+                      }}
+                      onClick={() => {
+                        setSelectedZoneIsEmployee(true);
+                      }}
+                    />
+                    {iotaSignatories.map((s, i) => (
+                      <Chip
+                        key={i}
+                        label={`${s.name || `Signatory ${i + 1}`}`}
+                        variant={
+                          !selectedZoneIsEmployee && selectedSigZoneSignatory === i
+                            ? 'filled'
+                            : 'outlined'
+                        }
+                        sx={{
+                          borderColor: SIG_ZONE_COLORS[i % SIG_ZONE_COLORS.length].border,
+                          color:
+                            !selectedZoneIsEmployee && selectedSigZoneSignatory === i
+                              ? 'common.white'
+                              : SIG_ZONE_COLORS[i % SIG_ZONE_COLORS.length].border,
+                          bgcolor:
+                            !selectedZoneIsEmployee && selectedSigZoneSignatory === i
+                              ? SIG_ZONE_COLORS[i % SIG_ZONE_COLORS.length].border
+                              : undefined,
+                        }}
+                        onClick={() => {
+                          setSelectedZoneIsEmployee(false);
+                          setSelectedSigZoneSignatory(i);
+                        }}
+                      />
+                    ))}
+                  </Stack>
+
+                  {/* Page navigation */}
+                  {pdfJsDoc.numPages > 1 && (
+                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Page:
+                      </Typography>
+                      <IconButton
+                        size="small"
+                        onClick={() => setSigZonePreviewPage((p) => Math.max(1, p - 1))}
+                        disabled={sigZonePreviewPage <= 1}
+                      >
+                        <Iconify icon="solar:arrow-left-bold" width={16} />
+                      </IconButton>
+                      <Typography variant="body2">{sigZonePreviewPage}</Typography>
+                      <IconButton
+                        size="small"
+                        onClick={() => setSigZonePreviewPage((p) => p + 1)}
+                        disabled={sigZonePreviewPage >= pdfJsDoc.numPages}
+                      >
+                        <Iconify icon="solar:arrow-right-bold" width={16} />
+                      </IconButton>
+                      <Typography variant="caption" color="text.secondary">
+                        / {pdfJsDoc.numPages}
+                      </Typography>
+                    </Stack>
+                  )}
+
+                  {/* Canvas */}
+                  <Box
+                    ref={sigZonePreviewRef}
+                    onClick={handleSigZonePreviewClick}
+                    sx={{
+                      position: 'relative',
+                      width: '100%',
+                      paddingTop: '141.4%',
+                      bgcolor: 'common.white',
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                      overflow: 'hidden',
+                      boxShadow: 2,
+                      cursor: 'crosshair',
+                    }}
+                  >
+                    <canvas
+                      ref={sigZoneCanvasRef}
+                      style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        display: 'block',
+                      }}
+                    />
+                    {signatureZones
+                      .filter((z) => (z.page || 1) === sigZonePreviewPage)
+                      .map((zone) => {
+                        const isEmp = zone.isEmployee;
+                        const color = isEmp
+                          ? EMP_ZONE_COLOR
+                          : SIG_ZONE_COLORS[
+                              (zone.iotaSignatoryIndex ?? 0) % SIG_ZONE_COLORS.length
+                            ];
+                        return (
+                          <Box
+                            key={zone.id}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              sigZoneDragMovedRef.current = false;
+                              setDraggingSigZone(zone.id);
+                            }}
+                            onTouchStart={(e) => {
+                              e.stopPropagation();
+                              sigZoneDragMovedRef.current = false;
+                              setDraggingSigZone(zone.id);
+                            }}
+                            sx={{
+                              position: 'absolute',
+                              left: `${zone.xPct}%`,
+                              top: `${zone.yPct}%`,
+                              width: `${zone.widthPct}%`,
+                              height: `${zone.heightPct}%`,
+                              border: '2px dashed',
+                              borderColor: color.border,
+                              bgcolor: color.bg,
+                              borderRadius: 0.5,
+                              cursor: 'move',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              px: 0.5,
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontSize: '0.55rem',
+                                fontWeight: 700,
+                                color: color.border,
+                                letterSpacing: 0.4,
+                                overflow: 'hidden',
+                                whiteSpace: 'nowrap',
+                                textOverflow: 'ellipsis',
+                              }}
                             >
-                              <Iconify icon="eva:close-fill" width={12} sx={{ color: color.border }} />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      );
-                    })}
-                </Box>
+                              {zone.label ||
+                                (isEmp ? 'Employee' : `S${(zone.iotaSignatoryIndex ?? 0) + 1}`)}
+                            </Typography>
+                            <Tooltip title="Remove zone">
+                              <IconButton
+                                size="small"
+                                sx={{ p: 0, minWidth: 0 }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSignatureZones((prev) => prev.filter((z) => z.id !== zone.id));
+                                }}
+                              >
+                                <Iconify
+                                  icon="eva:close-fill"
+                                  width={12}
+                                  sx={{ color: color.border }}
+                                />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        );
+                      })}
+                  </Box>
 
-                {signatureZones.length > 0 && (
-                  <Button size="small" color="error" sx={{ mt: 1 }} onClick={() => setSignatureZones([])}>Clear All Zones</Button>
-                )}
-              </Card>
-            )}
+                  {signatureZones.length > 0 && (
+                    <Button
+                      size="small"
+                      color="error"
+                      sx={{ mt: 1 }}
+                      onClick={() => setSignatureZones([])}
+                    >
+                      Clear All Zones
+                    </Button>
+                  )}
+                </Card>
+              )}
 
             {/* Review Notes */}
             {(offer.approvalComments || offer.rejectionReason) && (
               <Card sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ mb: 2 }}>Review Notes</Typography>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Review Notes
+                </Typography>
                 <Divider sx={{ mb: 2 }} />
-                {offer.approvalComments && <DetailRow label="Comments" value={offer.approvalComments} />}
-                {offer.rejectionReason && <DetailRow label="Rejection Reason" value={offer.rejectionReason} />}
+                {offer.approvalComments && (
+                  <DetailRow label="Comments" value={offer.approvalComments} />
+                )}
+                {offer.rejectionReason && (
+                  <DetailRow label="Rejection Reason" value={offer.rejectionReason} />
+                )}
               </Card>
             )}
 
             {/* Audit Log */}
             {auditLog.length > 0 && (
               <Card sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ mb: 2 }}>Audit Log</Typography>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Audit Log
+                </Typography>
                 <Divider sx={{ mb: 2 }} />
                 <Stack spacing={1.5}>
                   {[...auditLog].reverse().map((entry, i) => (
                     <Box key={i} sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
-                      <Iconify icon="solar:clock-circle-bold" width={16} sx={{ color: 'text.disabled', mt: 0.25, flexShrink: 0 }} />
+                      <Iconify
+                        icon="solar:clock-circle-bold"
+                        width={16}
+                        sx={{ color: 'text.disabled', mt: 0.25, flexShrink: 0 }}
+                      />
                       <Box>
-                        <Typography variant="body2" fontWeight={600}>{formatAction(entry.action)}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {entry.performedBy} · {new Date(entry.performedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                        <Typography variant="body2" fontWeight={600}>
+                          {formatAction(entry.action)}
                         </Typography>
-                        {entry.notes && <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>{entry.notes}</Typography>}
+                        <Typography variant="caption" color="text.secondary">
+                          {entry.performedBy} ·{' '}
+                          {new Date(entry.performedAt).toLocaleString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </Typography>
+                        {entry.notes && (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: 'block' }}
+                          >
+                            {entry.notes}
+                          </Typography>
+                        )}
                       </Box>
                     </Box>
                   ))}
                 </Stack>
               </Card>
             )}
-
           </Stack>
         </Grid>
 
         {/* ── Right column ─────────────────────────────────── */}
         <Grid size={{ xs: 12, md: 4 }}>
-
           {/* Salary Package */}
           <Card sx={{ p: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>Salary Package</Typography>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Salary Package
+            </Typography>
             <Divider sx={{ mb: 2 }} />
             <Stack spacing={1.5}>
               {[
@@ -999,52 +1312,130 @@ export default function OfferManagementDetailsPage({ params }) {
                 ['Other Allowances', offer.otherAllowances],
               ].map(([label, val]) => (
                 <Box key={label} sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <Typography variant="body2" color="text.secondary">{label}</Typography>
-                  <Typography variant="body2" fontWeight={600}>{offer.currency || 'SAR'} {Number(val || 0).toLocaleString()}</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {label}
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    {offer.currency || 'SAR'} {Number(val || 0).toLocaleString()}
+                  </Typography>
                 </Box>
               ))}
               <Divider />
               <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                 <Typography variant="subtitle1">Total Package</Typography>
-                <Typography variant="subtitle1" color="primary" fontWeight={700}>{offer.currency || 'SAR'} {Number(offer.totalSalary || 0).toLocaleString()}</Typography>
+                <Typography variant="subtitle1" color="primary" fontWeight={700}>
+                  {offer.currency || 'SAR'} {Number(offer.totalSalary || 0).toLocaleString()}
+                </Typography>
               </Box>
             </Stack>
           </Card>
 
           {/* Meta info */}
           <Card sx={{ p: 3, mt: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>Offer Info</Typography>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Offer Info
+            </Typography>
             <Divider sx={{ mb: 2 }} />
             <DetailRow label="Created By" value={offer.createdBy} />
-            <DetailRow label="Created At" value={offer.createdAt ? new Date(offer.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : null} />
+            <DetailRow
+              label="Created At"
+              value={
+                offer.createdAt
+                  ? new Date(offer.createdAt).toLocaleDateString('en-GB', {
+                      day: '2-digit',
+                      month: 'short',
+                      year: 'numeric',
+                    })
+                  : null
+              }
+            />
           </Card>
 
           {/* Approval chain */}
           <Card sx={{ p: 3, mt: 3 }}>
-            <Typography variant="h6" sx={{ mb: 2 }}>Approval Chain</Typography>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              Approval Chain
+            </Typography>
             <Divider sx={{ mb: 2 }} />
             <Stack spacing={2}>
               {APPROVAL_CHAIN.map((stage, idx) => {
-                const isCurrent = offer.status === 'pending_approval' && offer.currentApprovalStage === stage;
+                const isCurrent =
+                  offer.status === 'pending_approval' && offer.currentApprovalStage === stage;
                 const isRejected = offer.status === 'rejected';
-                let isDone = false, doneBy = null, doneAt = null;
-                if (stage === 'manager' && offer.managerApprovedBy) { isDone = true; doneBy = offer.managerApprovedBy; doneAt = offer.managerApprovedAt; }
-                else if (stage === 'admin' && offer.adminApprovedBy) { isDone = true; doneBy = offer.adminApprovedBy; doneAt = offer.adminApprovedAt; }
-                else if (stage === 'superAdmin' && offer.approvedBy) { isDone = true; doneBy = offer.approvedBy; doneAt = offer.approvedAt; }
-                const isPending = !isDone && !isCurrent && offer.status !== 'approved' && !isRejected;
+                let isDone = false,
+                  doneBy = null,
+                  doneAt = null;
+                if (stage === 'manager' && offer.managerApprovedBy) {
+                  isDone = true;
+                  doneBy = offer.managerApprovedBy;
+                  doneAt = offer.managerApprovedAt;
+                } else if (stage === 'admin' && offer.adminApprovedBy) {
+                  isDone = true;
+                  doneBy = offer.adminApprovedBy;
+                  doneAt = offer.adminApprovedAt;
+                } else if (stage === 'superAdmin' && offer.approvedBy) {
+                  isDone = true;
+                  doneBy = offer.approvedBy;
+                  doneAt = offer.approvedAt;
+                }
+                const isPending =
+                  !isDone && !isCurrent && offer.status !== 'approved' && !isRejected;
                 return (
-                  <Box key={stage} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, opacity: isPending ? 0.4 : 1 }}>
-                    <Box sx={{ width: 28, height: 28, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: isDone ? 'success.main' : isCurrent ? 'warning.main' : 'action.disabledBackground', color: isDone || isCurrent ? 'common.white' : 'text.disabled', fontSize: 14, fontWeight: 700 }}>
+                  <Box
+                    key={stage}
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'flex-start',
+                      gap: 1.5,
+                      opacity: isPending ? 0.4 : 1,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: '50%',
+                        flexShrink: 0,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: isDone
+                          ? 'success.main'
+                          : isCurrent
+                            ? 'warning.main'
+                            : 'action.disabledBackground',
+                        color: isDone || isCurrent ? 'common.white' : 'text.disabled',
+                        fontSize: 14,
+                        fontWeight: 700,
+                      }}
+                    >
                       {isDone ? '✓' : idx + 1}
                     </Box>
                     <Box>
-                      <Typography variant="body2" fontWeight={600} color={isCurrent ? 'warning.main' : isDone ? 'success.main' : 'text.primary'}>
+                      <Typography
+                        variant="body2"
+                        fontWeight={600}
+                        color={
+                          isCurrent ? 'warning.main' : isDone ? 'success.main' : 'text.primary'
+                        }
+                      >
                         {STAGE_LABEL[stage]}
-                        {isCurrent && <Typography component="span" variant="caption" sx={{ ml: 1, color: 'warning.main' }}>(Awaiting)</Typography>}
+                        {isCurrent && (
+                          <Typography
+                            component="span"
+                            variant="caption"
+                            sx={{ ml: 1, color: 'warning.main' }}
+                          >
+                            (Awaiting)
+                          </Typography>
+                        )}
                       </Typography>
                       {isDone && doneBy && (
                         <Typography variant="caption" color="text.secondary">
-                          {doneBy}{doneAt ? ` · ${new Date(doneAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}` : ''}
+                          {doneBy}
+                          {doneAt
+                            ? ` · ${new Date(doneAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`
+                            : ''}
                         </Typography>
                       )}
                     </Box>
@@ -1053,7 +1444,6 @@ export default function OfferManagementDetailsPage({ params }) {
               })}
             </Stack>
           </Card>
-
         </Grid>
       </Grid>
 
@@ -1062,13 +1452,29 @@ export default function OfferManagementDetailsPage({ params }) {
         <DialogTitle>Approve Offer Letter</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            {offer.currentApprovalStage === 'superAdmin' ? `Final approval. This will mark the offer as approved and email the candidate.` : `This will forward the offer to the next reviewer.`}
+            {offer.currentApprovalStage === 'superAdmin'
+              ? `Final approval. This will mark the offer as approved and email the candidate.`
+              : `This will forward the offer to the next reviewer.`}
           </Typography>
-          <TextField fullWidth multiline rows={3} label="Approval Comments (optional)" value={approveComment} onChange={(e) => setApproveComment(e.target.value)} />
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label="Approval Comments (optional)"
+            value={approveComment}
+            onChange={(e) => setApproveComment(e.target.value)}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setApproveOpen(false)}>Cancel</Button>
-          <LoadingButton variant="contained" color="success" loading={actionLoading} onClick={handleApprove}>Confirm Approval</LoadingButton>
+          <LoadingButton
+            variant="contained"
+            color="success"
+            loading={actionLoading}
+            onClick={handleApprove}
+          >
+            Confirm Approval
+          </LoadingButton>
         </DialogActions>
       </Dialog>
 
@@ -1076,12 +1482,29 @@ export default function OfferManagementDetailsPage({ params }) {
       <Dialog open={rejectOpen} onClose={() => setRejectOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Reject Offer Letter</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Provide a reason so the HR team can make changes.</Typography>
-          <TextField fullWidth required multiline rows={3} label="Rejection Reason" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Provide a reason so the HR team can make changes.
+          </Typography>
+          <TextField
+            fullWidth
+            required
+            multiline
+            rows={3}
+            label="Rejection Reason"
+            value={rejectReason}
+            onChange={(e) => setRejectReason(e.target.value)}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setRejectOpen(false)}>Cancel</Button>
-          <LoadingButton variant="contained" color="error" loading={actionLoading} onClick={handleReject}>Confirm Rejection</LoadingButton>
+          <LoadingButton
+            variant="contained"
+            color="error"
+            loading={actionLoading}
+            onClick={handleReject}
+          >
+            Confirm Rejection
+          </LoadingButton>
         </DialogActions>
       </Dialog>
 
@@ -1089,17 +1512,34 @@ export default function OfferManagementDetailsPage({ params }) {
       <Dialog open={commentOpen} onClose={() => setCommentOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Request Modification</DialogTitle>
         <DialogContent>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>Add a comment requesting changes before approval.</Typography>
-          <TextField fullWidth required multiline rows={3} label="Your Comments" value={reviewComment} onChange={(e) => setReviewComment(e.target.value)} />
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Add a comment requesting changes before approval.
+          </Typography>
+          <TextField
+            fullWidth
+            required
+            multiline
+            rows={3}
+            label="Your Comments"
+            value={reviewComment}
+            onChange={(e) => setReviewComment(e.target.value)}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setCommentOpen(false)}>Cancel</Button>
-          <LoadingButton variant="contained" loading={actionLoading} onClick={handleComment}>Save Comment</LoadingButton>
+          <LoadingButton variant="contained" loading={actionLoading} onClick={handleComment}>
+            Save Comment
+          </LoadingButton>
         </DialogActions>
       </Dialog>
 
       {/* ── Send for Signing Dialog ────────────────────────────────────── */}
-      <Dialog open={sendForSigningOpen} onClose={() => setSendForSigningOpen(false)} maxWidth="sm" fullWidth>
+      <Dialog
+        open={sendForSigningOpen}
+        onClose={() => setSendForSigningOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Set Up IOTA Signing</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
@@ -1108,22 +1548,65 @@ export default function OfferManagementDetailsPage({ params }) {
           <Stack spacing={2}>
             {newIotaSignatories.map((s, i) => (
               <Stack key={i} direction="row" spacing={1} alignItems="center">
-                <TextField size="small" label="Full Name" value={s.name} onChange={(e) => setNewIotaSignatories((prev) => prev.map((x, j) => j === i ? { ...x, name: e.target.value } : x))} sx={{ flex: 2 }} />
-                <TextField size="small" label="Email" value={s.email} onChange={(e) => setNewIotaSignatories((prev) => prev.map((x, j) => j === i ? { ...x, email: e.target.value } : x))} sx={{ flex: 2 }} />
-                <TextField size="small" label="Title" value={s.title} onChange={(e) => setNewIotaSignatories((prev) => prev.map((x, j) => j === i ? { ...x, title: e.target.value } : x))} sx={{ flex: 1.5 }} />
+                <TextField
+                  size="small"
+                  label="Full Name"
+                  value={s.name}
+                  onChange={(e) =>
+                    setNewIotaSignatories((prev) =>
+                      prev.map((x, j) => (j === i ? { ...x, name: e.target.value } : x))
+                    )
+                  }
+                  sx={{ flex: 2 }}
+                />
+                <TextField
+                  size="small"
+                  label="Email"
+                  value={s.email}
+                  onChange={(e) =>
+                    setNewIotaSignatories((prev) =>
+                      prev.map((x, j) => (j === i ? { ...x, email: e.target.value } : x))
+                    )
+                  }
+                  sx={{ flex: 2 }}
+                />
+                <TextField
+                  size="small"
+                  label="Title"
+                  value={s.title}
+                  onChange={(e) =>
+                    setNewIotaSignatories((prev) =>
+                      prev.map((x, j) => (j === i ? { ...x, title: e.target.value } : x))
+                    )
+                  }
+                  sx={{ flex: 1.5 }}
+                />
                 {newIotaSignatories.length > 1 && (
-                  <IconButton size="small" onClick={() => setNewIotaSignatories((prev) => prev.filter((_, j) => j !== i))}><Iconify icon="eva:close-fill" /></IconButton>
+                  <IconButton
+                    size="small"
+                    onClick={() => setNewIotaSignatories((prev) => prev.filter((_, j) => j !== i))}
+                  >
+                    <Iconify icon="eva:close-fill" />
+                  </IconButton>
                 )}
               </Stack>
             ))}
-            <Button size="small" startIcon={<Iconify icon="eva:plus-fill" />} onClick={() => setNewIotaSignatories((prev) => [...prev, { name: '', email: '', title: '' }])}>
+            <Button
+              size="small"
+              startIcon={<Iconify icon="eva:plus-fill" />}
+              onClick={() =>
+                setNewIotaSignatories((prev) => [...prev, { name: '', email: '', title: '' }])
+              }
+            >
               Add Signatory
             </Button>
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setSendForSigningOpen(false)}>Cancel</Button>
-          <LoadingButton variant="contained" loading={actionLoading} onClick={handleSendForSigning}>Send for Signing</LoadingButton>
+          <LoadingButton variant="contained" loading={actionLoading} onClick={handleSendForSigning}>
+            Send for Signing
+          </LoadingButton>
         </DialogActions>
       </Dialog>
     </DashboardContent>
