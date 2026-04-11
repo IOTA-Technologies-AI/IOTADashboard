@@ -2226,6 +2226,98 @@ export async function deleteOffer(id) {
   }
 }
 
+export async function sendOfferForSigning(id, iotaSignatories, requestedBy) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/offers/${id}/send-for-signing`, {
+      id,
+      iotaSignatories,
+      requestedBy,
+    });
+    return response.data.offer;
+  } catch (error) {
+    console.error('Error sending offer for signing:', error);
+    throw error;
+  }
+}
+
+export async function iotaSignOffer(id, signatureData, signerEmail, ipAddress) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/offers/${id}/iotaSign`, {
+      id,
+      signatureData,
+      signerEmail,
+      ipAddress: ipAddress || '',
+    });
+    return response.data.offer;
+  } catch (error) {
+    console.error('Error submitting IOTA signature on offer:', error);
+    throw error;
+  }
+}
+
+export async function getOfferByToken(token) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/offers/sign/${token}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching offer by token:', error);
+    throw error;
+  }
+}
+
+export async function employeeSignOffer(token, signatureData, ipAddress) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/offers/employee-sign`, {
+      token,
+      signatureData,
+      ipAddress: ipAddress || '',
+    });
+    return response.data.offer;
+  } catch (error) {
+    console.error('Error submitting employee signature on offer:', error);
+    throw error;
+  }
+}
+
+export async function setOfferSignatureZones(id, signatureZones) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/offers/${id}/signature-zones`, {
+      id,
+      signatureZones,
+    });
+    return response.data.offer;
+  } catch (error) {
+    console.error('Error saving offer signature zones:', error);
+    throw error;
+  }
+}
+
+export async function remindEmployeeToSign(id, requestedBy) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/offers/${id}/remind-employee`, {
+      id,
+      requestedBy,
+    });
+    return response.data.offer;
+  } catch (error) {
+    console.error('Error sending employee reminder:', error);
+    throw error;
+  }
+}
+
+export async function finalizeOffer(id, pdfBase64) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/offers/${id}/finalize`, {
+      id,
+      pdfBase64,
+    });
+    return response.data.offer;
+  } catch (error) {
+    console.error('Error finalizing offer:', error);
+    throw error;
+  }
+}
+
 // ============================================================================
 // NDA MANAGEMENT API FUNCTIONS
 // ============================================================================

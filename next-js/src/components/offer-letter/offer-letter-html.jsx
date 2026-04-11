@@ -101,7 +101,7 @@ const styles = {
   },
 };
 
-export function OfferLetterHTML({ data }) {
+export function OfferLetterHTML({ data, showSignatures, iotaSignatories, employeeSignatureData }) {
   const {
     employeeName = '',
     passportNumber = '',
@@ -455,15 +455,37 @@ export function OfferLetterHTML({ data }) {
               <Typography variant="caption" color="text.secondary">
                 Authorized Signatory
               </Typography>
-              <Typography sx={{ mt: 2 }}>_________________________</Typography>
+              {showSignatures && iotaSignatories?.[0]?.signatureData ? (
+                <Box
+                  component="img"
+                  src={iotaSignatories[0].signatureData}
+                  alt="IOTA Signature"
+                  sx={{ display: 'block', maxHeight: 48, maxWidth: '80%', mt: 1, mb: 1 }}
+                />
+              ) : (
+                <Typography sx={{ mt: 2 }}>_________________________</Typography>
+              )}
               <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-                Name & Title
+                Name &amp; Title
               </Typography>
-              <Typography>_________________________</Typography>
+              {showSignatures && iotaSignatories?.[0] ? (
+                <Typography fontWeight="bold">
+                  {iotaSignatories[0].name}
+                  {iotaSignatories[0].title ? ` — ${iotaSignatories[0].title}` : ''}
+                </Typography>
+              ) : (
+                <Typography>_________________________</Typography>
+              )}
               <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
                 Date
               </Typography>
-              <Typography>_________________________</Typography>
+              {showSignatures && iotaSignatories?.[0]?.signedAt ? (
+                <Typography>
+                  {new Date(iotaSignatories[0].signedAt).toLocaleDateString('en-GB')}
+                </Typography>
+              ) : (
+                <Typography>_________________________</Typography>
+              )}
             </Box>
             <Typography
               variant="caption"
@@ -482,7 +504,16 @@ export function OfferLetterHTML({ data }) {
               <Typography variant="caption" color="text.secondary">
                 Employee Signature
               </Typography>
-              <Typography sx={{ mt: 2 }}>_________________________</Typography>
+              {showSignatures && employeeSignatureData ? (
+                <Box
+                  component="img"
+                  src={employeeSignatureData}
+                  alt="Employee Signature"
+                  sx={{ display: 'block', maxHeight: 48, maxWidth: '80%', mt: 1, mb: 1 }}
+                />
+              ) : (
+                <Typography sx={{ mt: 2 }}>_________________________</Typography>
+              )}
               <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
                 Name
               </Typography>
