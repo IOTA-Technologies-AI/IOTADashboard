@@ -673,7 +673,7 @@ export default function OfferManagementNewPage() {
 
                 {showHtmlZonePreview && (
                   <>
-                    {/* Signatory selector */
+                    {/* Signatory selector */}
                     <Stack direction="row" spacing={1} sx={{ mb: 1.5 }} flexWrap="wrap">
                       <Chip
                         label="Employee"
