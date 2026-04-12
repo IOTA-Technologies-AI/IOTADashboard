@@ -32,7 +32,6 @@ function SignatureBlock({ name, jobTitle, company, signedAt, signatureData, inde
   return (
     <div className="sig-block" style={sigBlock}>
       {signatureData ? (
-        // eslint-disable-next-line @next/next/no-img-element
         <img src={signatureData} alt={`Signature of ${name}`} style={sigImage} />
       ) : (
         <div style={sigPlaceholder} />
@@ -70,7 +69,6 @@ export default function OfferLetterHtmlTemplate({
         <div style={coverPage}>
           {/* Logo */}
           <div style={coverLogoRow}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo/logo-full.png" alt="IOTA Technologies" style={coverLogoImg} />
           </div>
 
@@ -551,6 +549,7 @@ const pageHeader = {
 };
 
 const pageHeaderTitle = { fontWeight: 600 };
+const pageHeaderRight = {};
 
 // Cover page styles
 const coverAccentBar = {
