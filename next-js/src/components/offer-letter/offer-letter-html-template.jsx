@@ -150,10 +150,9 @@ export default function OfferLetterHtmlTemplate({
           Employment Offer Letter (&ldquo;<strong>the Agreement</strong>&rdquo;).
         </p>
         <p style={body}>
-          This offer is subject to satisfactory completion of all required documentation,
-          background verification, and immigration formalities (where applicable). Employment shall
-          commence on <strong>{startDateStr}</strong>, or on such other date as mutually agreed in
-          writing.
+          This offer is subject to satisfactory completion of all required documentation, background
+          verification, and immigration formalities (where applicable). Employment shall commence on{' '}
+          <strong>{startDateStr}</strong>, or on such other date as mutually agreed in writing.
         </p>
 
         <h2 style={sectionHeading}>2. Candidate Information</h2>
@@ -302,8 +301,8 @@ export default function OfferLetterHtmlTemplate({
           </li>
           <li style={listItem}>
             <strong>GOSI:</strong> The Company shall make the required employer contributions to the
-            General Organization for Social Insurance (GOSI) on behalf of the Employee as
-            prescribed by applicable regulations.
+            General Organization for Social Insurance (GOSI) on behalf of the Employee as prescribed
+            by applicable regulations.
           </li>
         </ol>
       </div>
@@ -327,8 +326,8 @@ export default function OfferLetterHtmlTemplate({
         </p>
         <p style={body}>
           During the Holy Month of Ramadan, working hours shall be reduced as required by Saudi
-          Labor Law. Overtime, if required, shall be compensated in accordance with the Labor Law
-          of the Kingdom of Saudi Arabia.
+          Labor Law. Overtime, if required, shall be compensated in accordance with the Labor Law of
+          the Kingdom of Saudi Arabia.
         </p>
 
         <h2 style={sectionHeading}>8. Annual Leave</h2>
@@ -338,8 +337,8 @@ export default function OfferLetterHtmlTemplate({
             {offer.annualLeaveDays ? `${offer.annualLeaveDays} working days` : '21 working days'}
           </strong>{' '}
           of paid annual leave per year of service, accruing from the date of joining. Annual leave
-          entitlement increases to 30 days per year upon completion of five (5) consecutive years
-          of service with the Company, in accordance with Saudi Labor Law.
+          entitlement increases to 30 days per year upon completion of five (5) consecutive years of
+          service with the Company, in accordance with Saudi Labor Law.
         </p>
         <p style={body}>
           Annual leave must be taken at a time agreed with the Employee&apos;s line manager and
@@ -355,8 +354,8 @@ export default function OfferLetterHtmlTemplate({
               ? `${offer.probationPeriod} month${offer.probationPeriod !== 1 ? 's' : ''}`
               : '3 months'}
           </strong>{' '}
-          commencing on the start date. During the probation period, either party may terminate
-          the employment with one (1) week&apos;s written notice. Upon satisfactory completion of
+          commencing on the start date. During the probation period, either party may terminate the
+          employment with one (1) week&apos;s written notice. Upon satisfactory completion of
           probation, the Employee&apos;s employment shall be confirmed.
         </p>
 
@@ -364,12 +363,8 @@ export default function OfferLetterHtmlTemplate({
         <p style={body}>
           Following successful completion of the probation period, either party may terminate this
           Agreement by giving{' '}
-          <strong>
-            {offer.noticePeriod
-              ? `${offer.noticePeriod} days`
-              : '30 days'}
-          </strong>{' '}
-          written notice to the other party, or by payment in lieu of notice at the Company&apos;s
+          <strong>{offer.noticePeriod ? `${offer.noticePeriod} days` : '30 days'}</strong> written
+          notice to the other party, or by payment in lieu of notice at the Company&apos;s
           discretion. Termination for gross misconduct may be effected immediately without notice,
           in accordance with Saudi Labor Law.
         </p>
@@ -378,9 +373,9 @@ export default function OfferLetterHtmlTemplate({
         <p style={body}>
           The Employee agrees to maintain strict confidentiality with respect to all proprietary
           information, trade secrets, business strategies, client data, and other confidential
-          information of the Company, both during and after the term of employment. Any
-          intellectual property created by the Employee in the course of their duties shall belong
-          exclusively to the Company.
+          information of the Company, both during and after the term of employment. Any intellectual
+          property created by the Employee in the course of their duties shall belong exclusively to
+          the Company.
         </p>
 
         <h2 style={sectionHeading}>12. Governing Law</h2>
@@ -516,8 +511,8 @@ export default function OfferLetterHtmlTemplate({
           </table>
 
           <p style={{ ...body, marginTop: 24, fontSize: 11, color: '#888' }}>
-            This audit trail was generated automatically by IOTA Technologies&apos; Offer
-            Management system. Contract Reference: {offer.contractNumber}.
+            This audit trail was generated automatically by IOTA Technologies&apos; Offer Management
+            system. Contract Reference: {offer.contractNumber}.
           </p>
         </div>
       )}

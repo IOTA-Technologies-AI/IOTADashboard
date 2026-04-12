@@ -31,7 +31,11 @@ import { toast } from 'src/components/snackbar';
 import { createOffer } from 'src/utils/apiHelper';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
-import { OfferLetterPDF, OfferLetterHTML, OfferLetterHtmlTemplate } from 'src/components/offer-letter';
+import {
+  OfferLetterPDF,
+  OfferLetterHTML,
+  OfferLetterHtmlTemplate,
+} from 'src/components/offer-letter';
 
 // ----------------------------------------------------------------------
 
@@ -965,9 +969,7 @@ export default function OfferManagementNewPage() {
                         value={clause.title}
                         onChange={(e) =>
                           setClauses((prev) =>
-                            prev.map((c, idx) =>
-                              idx === i ? { ...c, title: e.target.value } : c
-                            )
+                            prev.map((c, idx) => (idx === i ? { ...c, title: e.target.value } : c))
                           )
                         }
                         sx={{ mb: 1 }}
