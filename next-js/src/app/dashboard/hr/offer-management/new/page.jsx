@@ -31,7 +31,7 @@ import { toast } from 'src/components/snackbar';
 import { createOffer } from 'src/utils/apiHelper';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
-import { OfferLetterPDF, OfferLetterHTML } from 'src/components/offer-letter';
+import { OfferLetterPDF, OfferLetterHTML, OfferLetterHtmlTemplate } from 'src/components/offer-letter';
 
 // ----------------------------------------------------------------------
 
@@ -82,6 +82,9 @@ export default function OfferManagementNewPage() {
 
   // IOTA Signatories
   const [iotaSignatories, setIotaSignatories] = useState([{ name: '', email: '', title: '' }]);
+
+  // Additional clauses
+  const [clauses, setClauses] = useState([]);
 
   // Signature zones
   const [signatureZones, setSignatureZones] = useState([]);
@@ -187,6 +190,11 @@ export default function OfferManagementNewPage() {
       }
       if (signatureZones.length > 0) {
         offerPayload.signatureZones = signatureZones;
+      }
+
+      const validClauses = clauses.filter((c) => c.title.trim() || c.content.trim());
+      if (validClauses.length > 0) {
+        offerPayload.clauses = validClauses;
       }
 
       await createOffer(offerPayload);
@@ -918,6 +926,79 @@ export default function OfferManagementNewPage() {
                   </>
                 )}
               </Card>
+
+              {/* ── Additional Clauses ──────────────────────────────────── */}
+              <Card sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ mb: 0.5 }}>
+                  Additional Clauses
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Optional — add custom or country-specific terms that will appear in the offer
+                  letter before the signature pages.
+                </Typography>
+
+                <Stack spacing={2}>
+                  {clauses.map((clause, i) => (
+                    <Box
+                      key={i}
+                      sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}
+                    >
+                      <Stack
+                        direction="row"
+                        alignItems="center"
+                        justifyContent="space-between"
+                        sx={{ mb: 1 }}
+                      >
+                        <Typography variant="subtitle2">Clause {i + 1}</Typography>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => setClauses((prev) => prev.filter((_, idx) => idx !== i))}
+                        >
+                          <Iconify icon="eva:close-fill" />
+                        </IconButton>
+                      </Stack>
+                      <TextField
+                        label="Clause Title"
+                        size="small"
+                        fullWidth
+                        value={clause.title}
+                        onChange={(e) =>
+                          setClauses((prev) =>
+                            prev.map((c, idx) =>
+                              idx === i ? { ...c, title: e.target.value } : c
+                            )
+                          )
+                        }
+                        sx={{ mb: 1 }}
+                      />
+                      <TextField
+                        label="Clause Content"
+                        size="small"
+                        fullWidth
+                        multiline
+                        rows={3}
+                        value={clause.content}
+                        onChange={(e) =>
+                          setClauses((prev) =>
+                            prev.map((c, idx) =>
+                              idx === i ? { ...c, content: e.target.value } : c
+                            )
+                          )
+                        }
+                      />
+                    </Box>
+                  ))}
+                  <Button
+                    size="small"
+                    variant="outlined"
+                    startIcon={<Iconify icon="eva:plus-fill" />}
+                    onClick={() => setClauses((prev) => [...prev, { title: '', content: '' }])}
+                  >
+                    Add Clause
+                  </Button>
+                </Stack>
+              </Card>
             </Stack>
           </Grid>
 
@@ -1073,7 +1154,42 @@ export default function OfferManagementNewPage() {
         <DialogContent>
           {formData && (
             <Box sx={{ maxHeight: '70vh', overflow: 'auto' }}>
-              <OfferLetterHTML data={formData} />
+              <OfferLetterHtmlTemplate
+                offer={{
+                  contractNumber: formData.contractNumber || '—',
+                  candidateName: formData.employeeName || '',
+                  candidateEmail: formData.candidateEmail || '',
+                  passportNumber: formData.passportNumber || null,
+                  dateOfBirth: formData.dateOfBirth || null,
+                  nationality: formData.nationality || null,
+                  position: formData.position || '',
+                  department: formData.department || '',
+                  contractType: formData.contractType || 'Limited',
+                  startDate: formData.startDate || null,
+                  contractDuration: formData.contractDuration
+                    ? Number(formData.contractDuration)
+                    : null,
+                  probationPeriod: formData.probationPeriod
+                    ? Number(formData.probationPeriod)
+                    : null,
+                  currency: formData.currency || 'SAR',
+                  basicSalary: Number(formData.basicSalary) || 0,
+                  housingAllowance: Number(formData.housingAllowance) || 0,
+                  transportationAllowance: Number(formData.transportationAllowance) || 0,
+                  otherAllowances: Number(formData.otherAllowances) || 0,
+                  totalSalary: formData.totalSalary || 0,
+                  workingHours: formData.workingHours ? Number(formData.workingHours) : null,
+                  annualLeaveDays: formData.annualLeaveDays
+                    ? Number(formData.annualLeaveDays)
+                    : null,
+                  noticePeriod: formData.noticePeriod ? Number(formData.noticePeriod) : null,
+                  iotaSignatories: iotaSignatories.filter((s) => s.name.trim() && s.email.trim()),
+                  clauses: clauses.filter((c) => c.title.trim() || c.content.trim()),
+                  auditLog: [],
+                }}
+                showSignatures={false}
+                showAuditTrail={false}
+              />
             </Box>
           )}
         </DialogContent>

@@ -76,11 +76,10 @@ const STATUS_LABEL = {
 
 const STAGE_LABEL = {
   manager: 'Manager',
-  admin: 'Admin',
-  superAdmin: 'Super Admin',
+  admin: 'Admin or Super Admin',
 };
 
-const APPROVAL_CHAIN = ['manager', 'admin', 'superAdmin'];
+const APPROVAL_CHAIN = ['manager', 'admin'];
 
 const ACTION_LABEL = {
   sent_for_iota_signing: 'Sent for IOTA Signing',
@@ -174,7 +173,8 @@ export default function OfferManagementDetailsPage({ params }) {
   const canAct =
     offer?.status === 'pending_approval' &&
     offer?.currentApprovalStage &&
-    offer.currentApprovalStage === user?.role;
+    (offer.currentApprovalStage === user?.role ||
+      (offer.currentApprovalStage === 'admin' && user?.role === 'superAdmin'));
 
   const pendingIotaSignature =
     offer?.status === 'pending_iota_signatures' &&
@@ -1369,11 +1369,7 @@ export default function OfferManagementDetailsPage({ params }) {
                   isDone = true;
                   doneBy = offer.managerApprovedBy;
                   doneAt = offer.managerApprovedAt;
-                } else if (stage === 'admin' && offer.adminApprovedBy) {
-                  isDone = true;
-                  doneBy = offer.adminApprovedBy;
-                  doneAt = offer.adminApprovedAt;
-                } else if (stage === 'superAdmin' && offer.approvedBy) {
+                } else if (stage === 'admin' && offer.approvedBy) {
                   isDone = true;
                   doneBy = offer.approvedBy;
                   doneAt = offer.approvedAt;
