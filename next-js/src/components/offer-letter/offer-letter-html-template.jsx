@@ -1,51 +1,112 @@
 /**
  * Offer Letter HTML Template — styled for Paged.js / browser print-to-PDF.
  *
- * Inject `<link rel="stylesheet">` for pagedjs/paged.polyfill.css
- * or call `Paged.preview()` from the page component.
+ * Design based on IOTA branded Canva template:
+ *  Page 1  — Dark hero cover + blue bottom panel
+ *  Page 2  — Welcome message (bilingual EN/AR)
+ *  Page 3  — Company Overview (About IOTA)
+ *  Page 4  — Employment Terms bilingual (EN | AR) part 1
+ *  Page 5  — Employment Terms bilingual (EN | AR) part 2
+ *  Page 6  — Employee Acknowledgment (salary table + signatures)
+ *  Page 7  — Agreement (contract details + signature blocks)
+ *  Page 8  — Mission & Values (English)
+ *  Page 9  — Mission & Values (Arabic)
+ *  Last    — Contact / back cover (solid blue)
+ *  Audit   — Audit trail (optional, print-hidden)
  *
- * Props accepted by <OfferLetterHtmlTemplate />:
+ * Props:
  *  offer          — full Offer object from the backend
- *  showSignatures — whether to render embedded signature images (default true)
- *  showAuditTrail — whether to render the audit trail page (default true)
+ *  showSignatures — render embedded signature images (default true)
+ *  showAuditTrail — render audit trail page (default true)
  */
 
 'use client';
 
-// ----------------------------------------------------------------------
+// ── Brand colours ──────────────────────────────────────────────────────────
+const BLUE = '#1a3fe0';
+const ORANGE = '#e8480a';
+const DARK_BLUE = '#1a3c7a';
+const BG_PAGE = '#e8edf4';
+const TEXT = '#1a1a1a';
+
+// ── Helpers ────────────────────────────────────────────────────────────────
 
 const fmt = (dateStr) => {
   if (!dateStr) return '___________';
   return new Date(dateStr).toLocaleDateString('en-GB', {
     day: '2-digit',
-    month: 'long',
+    month: 'short',
     year: 'numeric',
   });
 };
 
 const fmtCurrency = (amount, currency = 'SAR') => {
   if (amount === undefined || amount === null) return '—';
-  return `${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
+  return `${currency} ${Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-function SignatureBlock({ name, jobTitle, company, signedAt, signatureData, index }) {
+const numberToWords = (n) => {
+  if (!n && n !== 0) return '';
+  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+    'Seventeen', 'Eighteen', 'Nineteen'];
+  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+  const num = Math.round(Number(n));
+  if (num === 0) return 'Zero';
+  if (num < 20) return ones[num];
+  if (num < 100) return tens[Math.floor(num / 10)] + (num % 10 ? ' ' + ones[num % 10] : '');
+  if (num < 1000) return ones[Math.floor(num / 100)] + ' Hundred' + (num % 100 ? ' ' + numberToWords(num % 100) : '');
+  if (num < 1000000) return numberToWords(Math.floor(num / 1000)) + ' Thousand' + (num % 1000 ? ' ' + numberToWords(num % 1000) : '');
+  return numberToWords(Math.floor(num / 1000000)) + ' Million' + (num % 1000000 ? ' ' + numberToWords(num % 1000000) : '');
+};
+
+// ── Sub-components ─────────────────────────────────────────────────────────
+
+function PageHeader({ section, contractNumber }) {
   return (
-    <div className="sig-block" style={sigBlock}>
-      {signatureData ? (
-        <img src={signatureData} alt={`Signature of ${name}`} style={sigImage} />
-      ) : (
-        <div style={sigPlaceholder} />
-      )}
-      <div style={sigLine} />
-      <p style={sigName}>{name || `Signatory ${index + 1}`}</p>
-      {jobTitle && <p style={sigMeta}>{jobTitle}</p>}
-      {company && <p style={sigMeta}>{company}</p>}
-      <p style={sigMeta}>Date: {signedAt ? fmt(signedAt) : '___________'}</p>
+    <div style={pageHeaderStyle}>
+      <span style={{ fontWeight: 600, letterSpacing: '0.08em' }}>{section}</span>
+      <span>{contractNumber}</span>
     </div>
   );
 }
 
-// ----------------------------------------------------------------------
+function PageFooter({ pageNum }) {
+  return (
+    <div style={pageFooterStyle}>
+      <span style={footerBarStyle} />
+      <span style={{ marginLeft: 8, fontSize: 10, color: '#6b7a8d' }}>{pageNum}</span>
+    </div>
+  );
+}
+
+function TermRow({ en, ar }) {
+  return (
+    <div style={termRowStyle}>
+      <div style={termColStyle}>{en}</div>
+      <div style={{ ...termColStyle, textAlign: 'right', direction: 'rtl', fontFamily: "'Noto Sans Arabic', Arial, sans-serif" }}>{ar}</div>
+      <div style={termDividerStyle} />
+    </div>
+  );
+}
+
+function SigLine({ label, name, title, signatureData, signedAt, orange }) {
+  return (
+    <div style={sigLineWrap}>
+      {signatureData
+        ? <img src={signatureData} alt={`Signature of ${name}`} style={sigImageStyle} />
+        : <div style={{ ...sigUnderline, borderColor: orange ? ORANGE : '#999' }} />
+      }
+      <div style={{ ...sigUnderline, borderColor: orange ? ORANGE : '#999', marginTop: 4 }} />
+      {label && <p style={sigLabelStyle}>{label}</p>}
+      <p style={{ ...sigNameStyle, color: orange ? ORANGE : DARK_BLUE }}>{name}</p>
+      {title && <p style={sigTitleStyle}>{title}</p>}
+      {signedAt && <p style={sigTitleStyle}>Date: {fmt(signedAt)}</p>}
+    </div>
+  );
+}
+
+// ── Main component ─────────────────────────────────────────────────────────
 
 export default function OfferLetterHtmlTemplate({
   offer,
@@ -55,463 +116,454 @@ export default function OfferLetterHtmlTemplate({
   if (!offer) return null;
 
   const cur = offer.currency || 'SAR';
-  const startDateStr = fmt(offer.startDate);
+  const candidateFirstName = (offer.candidateName || '').split(' ')[0];
+  const probDays = offer.probationPeriod ? offer.probationPeriod * 30 : 90;
+  const hoursPerDay = offer.workingHours ? Math.round(offer.workingHours / 5) : 8;
+  const leaveDays = offer.annualLeaveDays || 21;
+  const noticeDays = offer.noticePeriod || 30;
+  const totalWords = numberToWords(Math.round(offer.totalSalary || 0));
+  const currencyLabel = cur === 'SAR' ? 'Saudi Arabian Riyal' : cur;
+  const primarySig = offer.iotaSignatories && offer.iotaSignatories.length > 0
+    ? offer.iotaSignatories[0]
+    : null;
 
   return (
     <div className="offer-document" style={documentWrap}>
       <style>{pagedCss}</style>
 
-      {/* ── PAGE 1: COVER ── */}
-      <div style={page}>
-        {/* Top accent bar */}
-        <div style={coverAccentBar} />
-
-        <div style={coverPage}>
-          {/* Logo */}
-          <div style={coverLogoRow}>
-            <img src="/logo/logo-full.png" alt="IOTA Technologies" style={coverLogoImg} />
-          </div>
-
-          {/* Document type badge */}
-          <div style={coverBadgeWrap}>
-            <span style={coverBadge}>OFFER OF EMPLOYMENT</span>
-          </div>
-
-          {/* Title block */}
-          <div style={coverTitleBlock}>
-            <h1 style={coverH1}>Offer of Employment</h1>
-            <p style={coverSubtitle}>Employment Agreement</p>
-          </div>
-
-          {/* Divider */}
-          <div style={coverDivider} />
-
-          {/* Meta table */}
-          <div style={coverMeta}>
-            <table style={coverTable}>
-              <tbody>
-                <tr>
-                  <td style={coverTdLabel}>Contract No.</td>
-                  <td style={coverTdValue}>
-                    <strong>{offer.contractNumber}</strong>
-                  </td>
-                </tr>
-                <tr>
-                  <td style={coverTdLabel}>Candidate Name</td>
-                  <td style={coverTdValue}>{offer.candidateName}</td>
-                </tr>
-                <tr>
-                  <td style={coverTdLabel}>Position</td>
-                  <td style={coverTdValue}>{offer.position}</td>
-                </tr>
-                <tr>
-                  <td style={coverTdLabel}>Department</td>
-                  <td style={coverTdValue}>{offer.department}</td>
-                </tr>
-                <tr>
-                  <td style={coverTdLabel}>Contract Type</td>
-                  <td style={coverTdValue}>{offer.contractType}</td>
-                </tr>
-                <tr>
-                  <td style={coverTdLabel}>Start Date</td>
-                  <td style={coverTdValue}>{startDateStr}</td>
-                </tr>
-                <tr>
-                  <td style={coverTdLabel}>Currency</td>
-                  <td style={coverTdValue}>{cur}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+      {/* ═══════════════════════════════════════════════════════════════
+          PAGE 1 — COVER
+      ════════════════════════════════════════════════════════════════ */}
+      <div style={pageCover}>
+        {/* Hero — dark navy radial gradient */}
+        <div style={coverHero}>
+          <img src="/logo/logo-single.png" alt="IOTA" style={coverLogoStyle} />
+          <span style={coverContractNum}>{offer.contractNumber}</span>
+          <div style={coverOrangeStripe} />
         </div>
 
-        {/* Bottom footer strip */}
-        <div style={coverFooter}>
-          <span>IOTA Technologies Company · Confidential &amp; Proprietary</span>
-          <span>{new Date().getFullYear()}</span>
+        {/* Blue bottom panel */}
+        <div style={coverBluePanel}>
+          <div style={coverBluePanelOrange} />
+          <div style={{ flex: 1 }}>
+            <h1 style={coverTitle}>{'Employee\nOffer Letter'}</h1>
+            <div style={coverMeta2Col}>
+              <div>
+                <p style={coverMetaLabel}>Prepared for</p>
+                <p style={coverMetaValue}>{(offer.candidateName || '').toUpperCase()}</p>
+              </div>
+              <div>
+                <p style={coverMetaLabel}>Prepared by</p>
+                <p style={coverMetaValue}>{'HR & PEOPLE MANAGEMENT,\nIOTA TECHNOLOGIES'}</p>
+              </div>
+            </div>
+          </div>
+          <div style={coverDocLabel}>
+            <span style={{ transform: 'rotate(90deg)', whiteSpace: 'nowrap', fontSize: 9, letterSpacing: '0.1em', color: 'rgba(255,255,255,0.45)' }}>
+              DOCUMENT # {offer.contractNumber}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* ── PAGE 2: PARTIES & POSITION ── */}
-      <div style={page}>
-        <div style={pageHeader}>
-          <span style={pageHeaderTitle}>Offer of Employment</span>
-          <span style={pageHeaderRight}>{offer.contractNumber}</span>
+      {/* ═══════════════════════════════════════════════════════════════
+          PAGE 2 — WELCOME MESSAGE
+      ════════════════════════════════════════════════════════════════ */}
+      <div style={pageLight}>
+        <PageHeader section="WELCOME MESSAGE" contractNumber={offer.contractNumber} />
+        <h1 style={bigOrangeHeading}>{`Hi ${candidateFirstName},\nWelcome to\nIOTA!`}</h1>
+        <div style={twoColLayout}>
+          <div style={twoColLeft}>
+            <p style={leadBlue}>
+              Hello there! You&apos;re now part of our team, and we&apos;re very excited to have
+              you onboard.
+            </p>
+            <p style={bodyText}>
+              We are delighted to welcome you to IOTA Technologies. You are now part of a team
+              driven by innovation, excellence, and global ambition. We believe your skills and
+              dedication will contribute meaningfully to our journey toward becoming the
+              world&apos;s leading IT services company. We wish you a successful, rewarding, and
+              inspiring career with us.
+            </p>
+            <p style={{ ...bodyText, textAlign: 'right', direction: 'rtl', fontFamily: "'Noto Sans Arabic', Arial, sans-serif", marginTop: 16 }}>
+              يسرّنا أن نرحب بكم في شركة IOTA Technologies. أنتم الآن جزء من فريق يقوده الابتكار والتميّز والطموح العالمي. نثق بأن مهاراتكم والتزامكم سيكون لهما دور مؤثر في رحلتنا نحو أن تصبح الشركة الرائدة عالمياً في خدمات تقنية المعلومات. نتمنى لكم مسيرة مهنية ناجحة ومثمرة وملهمة معنا.
+            </p>
+            <p style={signOffStyle}>Best regards,</p>
+            <p style={{ ...signOffName, color: ORANGE }}>Mohammed Zakiuddin</p>
+          </div>
         </div>
-
-        <h2 style={sectionHeading}>1. The Offer</h2>
-        <p style={body}>
-          IOTA Technologies Company (&ldquo;<strong>IOTA</strong>&rdquo; or &ldquo;
-          <strong>the Company</strong>&rdquo;), a company registered in the Kingdom of Saudi Arabia,
-          is pleased to offer employment to <strong>{offer.candidateName}</strong> (&ldquo;
-          <strong>the Employee</strong>&rdquo;) on the terms and conditions set out in this
-          Employment Offer Letter (&ldquo;<strong>the Agreement</strong>&rdquo;).
-        </p>
-        <p style={body}>
-          This offer is subject to satisfactory completion of all required documentation, background
-          verification, and immigration formalities (where applicable). Employment shall commence on{' '}
-          <strong>{startDateStr}</strong>, or on such other date as mutually agreed in writing.
-        </p>
-
-        <h2 style={sectionHeading}>2. Candidate Information</h2>
-        <table style={detailTable}>
-          <tbody>
-            <tr>
-              <td style={detailTdLabel}>Full Name</td>
-              <td style={detailTdValue}>{offer.candidateName}</td>
-            </tr>
-            {offer.passportNumber && (
-              <tr>
-                <td style={detailTdLabel}>Passport No.</td>
-                <td style={detailTdValue}>{offer.passportNumber}</td>
-              </tr>
-            )}
-            {offer.dateOfBirth && (
-              <tr>
-                <td style={detailTdLabel}>Date of Birth</td>
-                <td style={detailTdValue}>{fmt(offer.dateOfBirth)}</td>
-              </tr>
-            )}
-            {offer.nationality && (
-              <tr>
-                <td style={detailTdLabel}>Nationality</td>
-                <td style={detailTdValue}>{offer.nationality}</td>
-              </tr>
-            )}
-            <tr>
-              <td style={detailTdLabel}>Email Address</td>
-              <td style={detailTdValue}>{offer.candidateEmail}</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <h2 style={sectionHeading}>3. Position &amp; Duties</h2>
-        <p style={body}>
-          The Employee shall be employed in the position of <strong>{offer.position}</strong> within
-          the <strong>{offer.department}</strong> department. The Employee agrees to diligently
-          perform all duties and responsibilities assigned by the Company from time to time, and to
-          comply with the Company&apos;s policies, procedures, and applicable regulations.
-        </p>
-        <p style={body}>
-          The Employee shall carry out such duties as are reasonably required by the Company and
-          shall devote their full working time and attention to the business of the Company. The
-          Employee shall not undertake any other paid employment or consultancy without prior
-          written consent from the Company.
-        </p>
-
-        <h2 style={sectionHeading}>4. Contract Type &amp; Duration</h2>
-        <p style={body}>
-          This is a <strong>{offer.contractType}</strong> contract
-          {offer.contractType === 'Limited' && offer.contractDuration
-            ? ` with an initial term of ${offer.contractDuration} month${offer.contractDuration !== 1 ? 's' : ''} commencing on ${startDateStr}`
-            : ' with no fixed end date'}
-          . The contract is subject to the Labor Law of the Kingdom of Saudi Arabia and the
-          Company&apos;s internal regulations.
-        </p>
-        {offer.contractType === 'Limited' && (
-          <p style={body}>
-            Upon expiry of the initial term, the contract may be renewed by mutual written
-            agreement. If the contract is renewed twice or the combined duration exceeds four years,
-            it shall be deemed an unlimited contract under applicable law.
-          </p>
-        )}
+        <PageFooter pageNum={1} />
       </div>
 
-      {/* ── PAGE 3: COMPENSATION & BENEFITS ── */}
-      <div style={page}>
-        <div style={pageHeader}>
-          <span style={pageHeaderTitle}>Offer of Employment</span>
-          <span style={pageHeaderRight}>{offer.contractNumber}</span>
-        </div>
-
-        <h2 style={sectionHeading}>5. Compensation</h2>
-        <p style={body}>
-          The Employee shall receive the following monthly compensation, payable in{' '}
-          <strong>{cur}</strong> on the last working day of each calendar month:
+      {/* ═══════════════════════════════════════════════════════════════
+          PAGE 3 — COMPANY OVERVIEW
+      ════════════════════════════════════════════════════════════════ */}
+      <div style={pageLight}>
+        <PageHeader section="ABOUT IOTA" contractNumber={offer.contractNumber} />
+        <h1 style={bigOrangeHeading}>Company Overview</h1>
+        <p style={leadBlue}>
+          At IOTA, we strive to make a difference through cutting-edge solutions and unparalleled
+          service.
         </p>
+        <div style={twoColLayout}>
+          <div style={twoColLeft}>
+            <h3 style={columnHeading}>About IOTA Technologies</h3>
+            <p style={bodyText}>
+              IOTA Technologies is a forward-thinking IT services and consulting company
+              specialising in Artificial Intelligence (AI) solutions for the Banking and Financial
+              Services industry. With deep expertise in financial domain processes, we are
+              dedicated to transforming how banks, financial institutions, and fintech
+              organisations operate, unlocking new levels of efficiency, intelligence, and
+              innovation.
+            </p>
+            <p style={{ ...bodyText, fontWeight: 600 }}>Financial Domain Mastery:</p>
+            <ul style={ulStyle}>
+              <li style={liStyle}>
+                IOTA Technologies focuses exclusively on the banking sector, ensuring its AI
+                solutions are context-aware and tailored to industry-specific requirements such as
+                fraud detection, credit risk modelling, transaction monitoring, and regulatory
+                reporting.
+              </li>
+            </ul>
+            <p style={{ ...bodyText, fontWeight: 600 }}>AI-Driven Transformation:</p>
+            <ul style={ulStyle}>
+              <li style={liStyle}>
+                Their solutions streamline traditional processes using robotic process automation
+                (RPA) and deep learning, automating repetitive tasks like data entry, compliance
+                checks, account reconciliation, and document review.
+              </li>
+            </ul>
+          </div>
+          <div style={twoColRight}>
+            <ul style={{ ...ulStyle, marginTop: 48 }}>
+              <li style={liStyle}>
+                By optimising AI for financial applications, IOTA Technologies helps banks unlock
+                significant value — according to industry analysis, AI innovations in banking can
+                generate up to $1 trillion in annual value globally, through operational savings
+                and new revenue opportunities.
+              </li>
+            </ul>
+          </div>
+        </div>
+        <PageFooter pageNum={2} />
+      </div>
 
-        <table style={salaryTable}>
+      {/* ═══════════════════════════════════════════════════════════════
+          PAGE 4 — EMPLOYMENT TERMS (part 1)
+      ════════════════════════════════════════════════════════════════ */}
+      <div style={pageLight}>
+        <PageHeader section="EMPLOYMENT TERMS" contractNumber={offer.contractNumber} />
+        <h1 style={{ ...bigOrangeHeading, fontSize: 52 }}>Terms</h1>
+        <div style={bilingualHeader}>
+          <h2 style={bilingualTitle}>English</h2>
+          <h2 style={bilingualTitle}>Arabic</h2>
+        </div>
+        <TermRow
+          en={`We are pleased to offer you the position of ${offer.position || '___'} with IOTA Technologies, reporting to ${primarySig ? primarySig.name : 'Management'}.`}
+          ar={`يسرّنا أن نقدم لكم عرض وظيفة بمسمى ${offer.position || '___'} لدى شركة تقنيات إيوتا، تحت إشراف ${primarySig ? primarySig.name : 'الإدارة'}.`}
+        />
+        <TermRow
+          en={`Your employment will commence on ${fmt(offer.startDate)}.`}
+          ar={`يبدأ عملكم بتاريخ ${fmt(offer.startDate)}.`}
+        />
+        <TermRow
+          en={`You will be subject to a probation period of ${probDays} days, which may be extended as per Saudi Labor Law.`}
+          ar={`تخضعون لفترة تجربة مدتها ${probDays} يوماً قابلة للتمديد وفقاً لنظام العمل السعودي.`}
+        />
+        <TermRow
+          en={`Working hours will be ${hoursPerDay} hours per day, 5 days per week, as per company policy and Saudi Labor Law.`}
+          ar={`تكون ساعات العمل ${hoursPerDay} ساعات يومياً، 5 أيام في الأسبوع، وفقاً لسياسة الشركة ونظام العمل السعودي.`}
+        />
+        <TermRow
+          en="The company will register you under GOSI and contribute as per Saudi regulations. Employee contribution will be deducted from salary as applicable."
+          ar="سيتم تسجيلكم في التأمينات الاجتماعية، وتتحمل الشركة حصتها حسب الأنظمة، ويتم خصم نسبة الموظف من الراتب وفقاً للنظام."
+        />
+        <TermRow
+          en="You will be provided with medical insurance coverage as per company policy."
+          ar="سيتم توفير تأمين طبي لكم حسب سياسة الشركة."
+        />
+        <PageFooter pageNum={3} />
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          PAGE 5 — EMPLOYMENT TERMS (part 2)
+      ════════════════════════════════════════════════════════════════ */}
+      <div style={pageLight}>
+        <PageHeader section="EMPLOYMENT TERMS" contractNumber={offer.contractNumber} />
+        <div style={{ ...bilingualHeader, marginTop: 28 }}>
+          <h2 style={bilingualTitle}>English</h2>
+          <h2 style={bilingualTitle}>Arabic</h2>
+        </div>
+        <TermRow
+          en={`You are entitled to ${leaveDays} days annual leave, increasing to 30 days after 5 years of service, as per Saudi Labor Law.`}
+          ar={`تستحقون ${leaveDays} يوم إجازة سنوية، وتزيد إلى 30 يوماً بعد 5 سنوات خدمة وفقاً لنظام العمل السعودي.`}
+        />
+        <TermRow
+          en="Official public holidays will be granted as declared by the Kingdom of Saudi Arabia."
+          ar="تُمنح الإجازات الرسمية حسب ما تعلنه المملكة العربية السعودية."
+        />
+        <TermRow
+          en="End of Service Benefits will be calculated and paid as per Saudi Labor Law."
+          ar="يتم احتساب وصرف مكافأة نهاية الخدمة وفقاً لنظام العمل السعودي."
+        />
+        <TermRow
+          en={`Either party may terminate the contract by providing ${noticeDays} days written notice as per Saudi Labor Law.`}
+          ar={`يحق لأي من الطرفين إنهاء العقد بإشعار كتابي ${noticeDays} يوماً وفقاً لنظام العمل السعودي.`}
+        />
+        <TermRow
+          en="You are required to maintain confidentiality of company information during and after employment."
+          ar="يجب المحافظة على سرية معلومات الشركة أثناء وبعد فترة العمل."
+        />
+        {offer.clauses && offer.clauses.length > 0 && offer.clauses.map((clause, i) => (
+          <TermRow key={i} en={`${clause.title ? clause.title + ': ' : ''}${clause.content}`} ar="" />
+        ))}
+        <PageFooter pageNum={4} />
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          PAGE 6 — EMPLOYEE ACKNOWLEDGMENT
+      ════════════════════════════════════════════════════════════════ */}
+      <div style={pageLight}>
+        <PageHeader section="ACKNOWLEDGMENT" contractNumber={offer.contractNumber} />
+        <h1 style={{ ...bigOrangeHeading, fontSize: 48 }}>{'Employee\nAcknowledgment'}</h1>
+        <table style={salaryTableStyle}>
           <thead>
             <tr>
-              <th style={salaryTh}>Component</th>
-              <th style={{ ...salaryTh, textAlign: 'right' }}>Monthly Amount ({cur})</th>
+              <th style={salaryThStyle}>Component</th>
+              <th style={salaryThStyle}>Compensation</th>
             </tr>
           </thead>
           <tbody>
-            <tr style={salaryRowEven}>
-              <td style={salaryTd}>Basic Salary</td>
-              <td style={{ ...salaryTd, textAlign: 'right' }}>
-                {fmtCurrency(offer.basicSalary, cur)}
+            <tr style={salaryRowStyle}>
+              <td style={salaryTdStyle}>Basic Salary</td>
+              <td style={salaryTdStyle}>{fmtCurrency(offer.basicSalary, cur)}</td>
+            </tr>
+            <tr style={salaryRowStyle}>
+              <td style={salaryTdStyle}>House Rent Allowance</td>
+              <td style={salaryTdStyle}>{fmtCurrency(offer.housingAllowance, cur)}</td>
+            </tr>
+            <tr style={salaryRowStyle}>
+              <td style={salaryTdStyle}>Transport &amp; Other Allowance</td>
+              <td style={salaryTdStyle}>
+                {fmtCurrency((offer.transportationAllowance || 0) + (offer.otherAllowances || 0), cur)}
               </td>
             </tr>
-            <tr style={salaryRowOdd}>
-              <td style={salaryTd}>Housing Allowance</td>
-              <td style={{ ...salaryTd, textAlign: 'right' }}>
-                {fmtCurrency(offer.housingAllowance, cur)}
-              </td>
-            </tr>
-            <tr style={salaryRowEven}>
-              <td style={salaryTd}>Transportation Allowance</td>
-              <td style={{ ...salaryTd, textAlign: 'right' }}>
-                {fmtCurrency(offer.transportationAllowance, cur)}
-              </td>
-            </tr>
-            {Number(offer.otherAllowances) > 0 && (
-              <tr style={salaryRowOdd}>
-                <td style={salaryTd}>Other Allowances</td>
-                <td style={{ ...salaryTd, textAlign: 'right' }}>
-                  {fmtCurrency(offer.otherAllowances, cur)}
-                </td>
-              </tr>
-            )}
             <tr>
-              <td style={salaryTotalTd}>
-                <strong>Total Monthly Package</strong>
-              </td>
-              <td style={{ ...salaryTotalTd, textAlign: 'right' }}>
-                <strong>{fmtCurrency(offer.totalSalary, cur)}</strong>
-              </td>
+              <td style={salaryTotalCellStyle}><strong>Total</strong></td>
+              <td style={salaryTotalCellStyle}><strong>{fmtCurrency(offer.totalSalary, cur)}</strong></td>
             </tr>
           </tbody>
         </table>
-
-        <p style={{ ...body, marginTop: 16 }}>
-          The above compensation is inclusive of all legally mandated allowances and is subject to
-          applicable deductions under Saudi Labor Law, including contributions to the General
-          Organization for Social Insurance (GOSI) where required.
+        <p style={{ ...bodyText, textAlign: 'right', fontSize: 11, color: '#555', marginBottom: 32 }}>
+          {currencyLabel} {totalWords} only per month
         </p>
-
-        <h2 style={sectionHeading}>6. Benefits</h2>
-        <ol style={orderedList}>
-          <li style={listItem}>
-            <strong>Annual Air Ticket:</strong> The Employee is entitled to one round-trip air
-            ticket to their home country per year of service, in accordance with Company policy.
-          </li>
-          <li style={listItem}>
-            <strong>Medical Insurance:</strong> The Employee and eligible dependents shall be
-            covered under the Company&apos;s group medical insurance plan in accordance with the
-            applicable policy terms and conditions.
-          </li>
-          <li style={listItem}>
-            <strong>End of Service Gratuity:</strong> Upon completion of one or more full years of
-            service, the Employee shall be entitled to an end-of-service gratuity calculated in
-            accordance with the Saudi Labor Law.
-          </li>
-          <li style={listItem}>
-            <strong>GOSI:</strong> The Company shall make the required employer contributions to the
-            General Organization for Social Insurance (GOSI) on behalf of the Employee as prescribed
-            by applicable regulations.
-          </li>
-        </ol>
-      </div>
-
-      {/* ── PAGE 4: EMPLOYMENT CONDITIONS ── */}
-      <div style={page}>
-        <div style={pageHeader}>
-          <span style={pageHeaderTitle}>Offer of Employment</span>
-          <span style={pageHeaderRight}>{offer.contractNumber}</span>
-        </div>
-
-        <h2 style={sectionHeading}>7. Working Hours</h2>
-        <p style={body}>
-          The Employee&apos;s standard working hours shall be{' '}
-          <strong>
-            {offer.workingHours ? `${offer.workingHours} hours per week` : '48 hours per week'}
-          </strong>
-          , distributed over five working days (Sunday through Thursday unless otherwise stated),
-          subject to the Company&apos;s operational requirements. The Company reserves the right to
-          adjust working hours in accordance with operational needs and applicable law.
-        </p>
-        <p style={body}>
-          During the Holy Month of Ramadan, working hours shall be reduced as required by Saudi
-          Labor Law. Overtime, if required, shall be compensated in accordance with the Labor Law of
-          the Kingdom of Saudi Arabia.
-        </p>
-
-        <h2 style={sectionHeading}>8. Annual Leave</h2>
-        <p style={body}>
-          The Employee shall be entitled to{' '}
-          <strong>
-            {offer.annualLeaveDays ? `${offer.annualLeaveDays} working days` : '21 working days'}
-          </strong>{' '}
-          of paid annual leave per year of service, accruing from the date of joining. Annual leave
-          entitlement increases to 30 days per year upon completion of five (5) consecutive years of
-          service with the Company, in accordance with Saudi Labor Law.
-        </p>
-        <p style={body}>
-          Annual leave must be taken at a time agreed with the Employee&apos;s line manager and
-          approved in advance. Unused annual leave may be carried forward or encashed at the
-          Company&apos;s discretion and in accordance with Company policy.
-        </p>
-
-        <h2 style={sectionHeading}>9. Probation Period</h2>
-        <p style={body}>
-          The Employee&apos;s employment is subject to a probation period of{' '}
-          <strong>
-            {offer.probationPeriod
-              ? `${offer.probationPeriod} month${offer.probationPeriod !== 1 ? 's' : ''}`
-              : '3 months'}
-          </strong>{' '}
-          commencing on the start date. During the probation period, either party may terminate the
-          employment with one (1) week&apos;s written notice. Upon satisfactory completion of
-          probation, the Employee&apos;s employment shall be confirmed.
-        </p>
-
-        <h2 style={sectionHeading}>10. Notice Period</h2>
-        <p style={body}>
-          Following successful completion of the probation period, either party may terminate this
-          Agreement by giving{' '}
-          <strong>{offer.noticePeriod ? `${offer.noticePeriod} days` : '30 days'}</strong> written
-          notice to the other party, or by payment in lieu of notice at the Company&apos;s
-          discretion. Termination for gross misconduct may be effected immediately without notice,
-          in accordance with Saudi Labor Law.
-        </p>
-
-        <h2 style={sectionHeading}>11. Confidentiality &amp; Intellectual Property</h2>
-        <p style={body}>
-          The Employee agrees to maintain strict confidentiality with respect to all proprietary
-          information, trade secrets, business strategies, client data, and other confidential
-          information of the Company, both during and after the term of employment. Any intellectual
-          property created by the Employee in the course of their duties shall belong exclusively to
-          the Company.
-        </p>
-
-        <h2 style={sectionHeading}>12. Governing Law</h2>
-        <p style={body}>
-          This Agreement shall be governed by and construed in accordance with the Labor Law of the
-          Kingdom of Saudi Arabia and all applicable regulations issued thereunder. Any dispute
-          arising out of or in connection with this Agreement shall be referred to the competent
-          Labor Courts of the Kingdom of Saudi Arabia.
-        </p>
-        <p style={body}>
-          By accepting this offer, the Employee acknowledges that they have read, understood, and
-          agree to all the terms and conditions set out in this Agreement.
-        </p>
-      </div>
-
-      {/* ── ADDITIONAL CLAUSES (rendered only if custom clauses exist) ── */}
-      {offer.clauses && offer.clauses.length > 0 && (
-        <div style={page}>
-          <div style={pageHeader}>
-            <span style={pageHeaderTitle}>Offer of Employment</span>
-            <span style={pageHeaderRight}>{offer.contractNumber}</span>
-          </div>
-          <h2 style={sectionHeading}>Additional Terms &amp; Conditions</h2>
-          <p style={body}>
-            The following provisions form an integral part of this Agreement and supplement the
-            standard terms set out above.
-          </p>
-          {offer.clauses.map((clause, i) => (
-            <div key={i}>
-              <h3 style={clauseHeading}>{clause.title || `Clause ${i + 1}`}</h3>
-              <p style={body}>{clause.content}</p>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* ── IOTA SIGNATURES PAGE ── */}
-      <div style={page}>
-        <div style={pageHeader}>
-          <span style={pageHeaderTitle}>Offer of Employment</span>
-          <span style={pageHeaderRight}>{offer.contractNumber}</span>
-        </div>
-
-        <h2 style={sectionHeading}>Signatures — IOTA Technologies Company</h2>
-        <p style={body}>
-          In witness whereof, the authorised representatives of IOTA Technologies Company have
-          executed this Offer of Employment on behalf of the Company as of the dates indicated
-          below.
-        </p>
-
-        {offer.iotaSignatories && offer.iotaSignatories.length > 0 ? (
-          <div style={sigGrid}>
-            {offer.iotaSignatories.map((s, i) => (
-              <SignatureBlock
-                key={i}
-                name={s.name}
-                jobTitle={s.title}
-                company="IOTA Technologies Company"
-                signedAt={showSignatures ? s.signedAt : null}
-                signatureData={showSignatures ? s.signatureData : null}
-                index={i}
-              />
-            ))}
-          </div>
-        ) : (
-          <p style={{ ...body, color: '#888', fontStyle: 'italic' }}>
-            No IOTA signatories configured for this offer.
-          </p>
-        )}
-      </div>
-
-      {/* ── EMPLOYEE SIGNATURE PAGE ── */}
-      <div style={page}>
-        <div style={pageHeader}>
-          <span style={pageHeaderTitle}>Offer of Employment</span>
-          <span style={pageHeaderRight}>{offer.contractNumber}</span>
-        </div>
-
-        <h2 style={sectionHeading}>Acceptance — {offer.candidateName}</h2>
-        <p style={body}>
-          I, <strong>{offer.candidateName}</strong>, hereby confirm that I have read, understood,
-          and accept all the terms and conditions of this Offer of Employment. I agree to commence
-          employment with IOTA Technologies Company on <strong>{startDateStr}</strong>, subject to
-          the completion of all required pre-employment formalities.
-        </p>
-
-        <div style={sigGrid}>
-          <SignatureBlock
+        <div style={sigRowStyle}>
+          {primarySig && (
+            <SigLine
+              name={primarySig.name}
+              title={primarySig.title || 'Head of HR Department'}
+              signatureData={showSignatures ? primarySig.signatureData : null}
+              signedAt={showSignatures ? primarySig.signedAt : null}
+              orange
+            />
+          )}
+          <SigLine
             name={offer.candidateName}
-            jobTitle={offer.position}
-            company={null}
-            signedAt={showSignatures ? offer.employeeSignedAt : null}
+            title={offer.position}
             signatureData={showSignatures ? offer.employeeSignatureData : null}
-            index={0}
+            signedAt={showSignatures ? offer.employeeSignedAt : null}
           />
         </div>
+        <PageFooter pageNum={5} />
       </div>
 
-      {/* ── AUDIT TRAIL ── */}
-      {showAuditTrail && showSignatures && offer.auditLog && offer.auditLog.length > 0 && (
-        <div className="offer-audit-trail" style={page}>
-          <div style={pageHeader}>
-            <span style={pageHeaderTitle}>Offer of Employment</span>
-            <span style={pageHeaderRight}>{offer.contractNumber}</span>
+      {/* ═══════════════════════════════════════════════════════════════
+          PAGE 7 — AGREEMENT
+      ════════════════════════════════════════════════════════════════ */}
+      <div style={pageLight}>
+        <PageHeader section="AGREEMENT" contractNumber={offer.contractNumber} />
+        <h1 style={{ ...bigOrangeHeading, fontSize: 56 }}>Agreement</h1>
+        <table style={agreementTableStyle}>
+          <tbody>
+            <tr style={agreementFirstRowStyle}>
+              <td style={agreementTdLabelStyle}>Date</td>
+              <td style={agreementTdValueStyle}>{fmt(offer.startDate)}</td>
+            </tr>
+            <tr style={agreementRowStyle}>
+              <td style={agreementTdLabelStyle}>Contract No.</td>
+              <td style={agreementTdValueStyle}>{offer.contractNumber}</td>
+            </tr>
+            <tr style={agreementRowStyle}>
+              <td style={agreementTdLabelStyle}>Between</td>
+              <td style={agreementTdValueStyle}>{`IOTA Technologies and\n${offer.candidateName || ''}`}</td>
+            </tr>
+            {primarySig && (
+              <tr style={agreementRowStyle}>
+                <td style={agreementTdLabelStyle}>Authorised Signatory of IOTA Technologies</td>
+                <td style={agreementTdValueStyle}>{primarySig.name}</td>
+              </tr>
+            )}
+            {offer.passportNumber && (
+              <tr style={agreementRowStyle}>
+                <td style={agreementTdLabelStyle}>Passport / Government ID #</td>
+                <td style={agreementTdValueStyle}>{offer.passportNumber}</td>
+              </tr>
+            )}
+            <tr style={agreementRowStyle}>
+              <td style={agreementTdLabelStyle}>Employee Name (As per legal document)</td>
+              <td style={agreementTdValueStyle}>{(offer.candidateName || '').toUpperCase()}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style={{ ...sigRowStyle, marginTop: 36 }}>
+          <div style={{ flex: 1 }}>
+            <p style={nameDateLabel}>NAME:&nbsp;<span style={nameDateLine} /></p>
+            <p style={nameDateSub}>(for and on behalf of IOTA Technologies)</p>
+            <p style={{ ...nameDateLabel, marginTop: 24 }}>DATE:&nbsp;<span style={nameDateLine} /></p>
           </div>
+          <div style={{ flex: 1 }}>
+            <p style={nameDateLabel}>NAME:&nbsp;<span style={nameDateLine} /></p>
+            <p style={nameDateSub}>(Employee)</p>
+            <p style={{ ...nameDateLabel, marginTop: 24 }}>DATE:&nbsp;<span style={nameDateLine} /></p>
+          </div>
+        </div>
+        <div style={{ ...sigRowStyle, marginTop: 32 }}>
+          {primarySig && (
+            <SigLine
+              name={primarySig.name}
+              title={primarySig.title || 'Head of HR Department'}
+              signatureData={showSignatures ? primarySig.signatureData : null}
+              signedAt={showSignatures ? primarySig.signedAt : null}
+              orange
+            />
+          )}
+          <SigLine
+            name={offer.candidateName}
+            title={offer.position}
+            signatureData={showSignatures ? offer.employeeSignatureData : null}
+            signedAt={showSignatures ? offer.employeeSignedAt : null}
+          />
+        </div>
+        <PageFooter pageNum={6} />
+      </div>
 
-          <h2 style={sectionHeading}>Audit Trail &amp; Certificate of Execution</h2>
-          <p style={body}>
-            The following log records all significant events in the lifecycle of this Agreement,
-            constituting a legally admissible audit trail under applicable electronic signature
-            regulations.
+      {/* ═══════════════════════════════════════════════════════════════
+          PAGE 8 — MISSION & VALUES (English)
+      ════════════════════════════════════════════════════════════════ */}
+      <div style={pageLight}>
+        <PageHeader section="ABOUT IOTA" contractNumber={String(new Date().getFullYear())} />
+        <h2 style={columnHeading}>Our Mission</h2>
+        <p style={bodyText}>
+          Our mission is to leverage AI to disrupt traditional banking by enabling partners and
+          customers to access next-generation, data-driven solutions that deliver unmatched value.
+          Through a combination of domain knowledge and cutting-edge AI technologies, we help our
+          clients stay ahead of the digital curve.
+        </p>
+        {[
+          { num: '01', title: 'Innovative Excellence', text: 'At IOTA Technologies, we drive continuous innovation by delivering cutting-edge IT solutions that solve complex business challenges. We embrace emerging technologies including AI, Cloud, Cybersecurity, and Data to create transformative value. Our commitment to excellence ensures high-quality delivery, precision, and measurable impact.' },
+          { num: '02', title: 'Sustainable Leadership', text: 'We lead with integrity, accountability, and long-term vision. Our strategies focus on sustainable growth, ethical governance, and industry leadership. We invest in people, partnerships, and innovation to build lasting value.' },
+          { num: '03', title: 'Teamwork and Collaboration', text: 'We believe success is built on trust, respect, and collective strength. Our teams collaborate across borders, disciplines, and cultures to deliver unified solutions. We foster an inclusive environment where every voice contributes to innovation.' },
+          { num: '04', title: 'Exceptional Customer Service', text: "Our customers are at the heart of everything we do. We deliver responsive, reliable, and value-driven services that exceed expectations. Through strategic partnerships, we act as trusted advisors in our clients' digital transformation journey." },
+        ].map((v) => (
+          <div key={v.num}>
+            <h3 style={valueTitle}>{v.title}</h3>
+            <p style={bodyText}>{v.text}</p>
+            <p style={valueNum}>{v.num}</p>
+            <hr style={valueDivider} />
+          </div>
+        ))}
+        <PageFooter pageNum={7} />
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          PAGE 9 — MISSION & VALUES (Arabic)
+      ════════════════════════════════════════════════════════════════ */}
+      <div style={{ ...pageLight, direction: 'rtl' }}>
+        <PageHeader section="ABOUT IOTA" contractNumber={String(new Date().getFullYear())} />
+        <h2 style={{ ...columnHeading, textAlign: 'right', fontFamily: "'Noto Sans Arabic', Arial, sans-serif" }}>مهمتنا</h2>
+        <p style={{ ...bodyText, textAlign: 'right', fontFamily: "'Noto Sans Arabic', Arial, sans-serif" }}>
+          تتمثل مهمتنا في تسخير الذكاء الاصطناعي لإحداث نقلة نوعية في القطاع المصرفي التقليدي، وذلك بتمكين شركائنا وعملائنا من الوصول إلى حلول منظورة تعتمد على البيانات، وتقدم قيمة لا مثيل لها.
+        </p>
+        {[
+          { num: '01', title: 'التميّز الابتكاري', text: 'نلتزم بدفع عجلة الابتكار المستمر من خلال تقديم حلول تقنية تعالج التحديات المعقدة للأعمال. نتبنى أحدث التقنيات مثل الذكاء الاصطناعي والسحابية والأمن السيبراني وتحليلات البيانات لتحقيق قيمة حقيقية ومستدامة.' },
+          { num: '02', title: 'القيادة المستدامة', text: 'نقود أعمالنا بنزاهة ومسؤولية ورؤية استراتيجية طويلة المدى. تركز استراتيجياتنا على النمو المستدام والحوكمة الرشيدة والريادة في القطاع. نستثمر في الكفاءات والشراكات والابتكار لبناء قيمة طويلة الأجل.' },
+          { num: '03', title: 'العمل الجماعي والتعاون', text: 'نؤمن بأن النجاح يتحقق من خلال الثقة والاحترام والعمل بروح الفريق الواحد. تتعاون فرقنا عبر الحدود والتخصصات والثقافات لتقديم حلول متكاملة وفعّالة.' },
+          { num: '04', title: 'خدمة عملاء استثنائية', text: 'عملاؤنا هم محور اهتمامنا وأساس نجاحنا. نقدم خدمات موثوقة وسريعة الاستجابة ومبنية على تحقيق قيمة مضافة تفوق التوقعات. نحرص على بناء شراكات استراتيجية طويلة الأمد ونكون مستشاراً موثوقاً في رحلة التحول الرقمي لعملائنا.' },
+        ].map((v) => (
+          <div key={v.num}>
+            <h3 style={{ ...valueTitle, textAlign: 'right', fontFamily: "'Noto Sans Arabic', Arial, sans-serif" }}>{v.title}</h3>
+            <p style={{ ...bodyText, textAlign: 'right', fontFamily: "'Noto Sans Arabic', Arial, sans-serif" }}>{v.text}</p>
+            <p style={{ ...valueNum, textAlign: 'right' }}>{v.num}</p>
+            <hr style={valueDivider} />
+          </div>
+        ))}
+        <PageFooter pageNum={8} />
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          LAST PAGE — CONTACT / BACK COVER
+      ════════════════════════════════════════════════════════════════ */}
+      <div style={pageBackCover}>
+        <div style={{ ...pageHeaderStyle, borderBottom: 'none', color: 'rgba(255,255,255,0.55)' }}>
+          <span style={{ fontWeight: 600, letterSpacing: '0.08em' }}>CONTACT</span>
+          <span>{offer.contractNumber}</span>
+        </div>
+        <div style={{ flex: 1 }} />
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+            <img src="/logo/logo-single.png" alt="IOTA" style={{ height: 34, filter: 'brightness(0) invert(1)' }} />
+            <span style={{ color: '#fff', fontSize: 20, fontWeight: 700, letterSpacing: '0.05em', fontFamily: "'Inter', Arial, sans-serif" }}>IOTA</span>
+          </div>
+          <h2 style={getInTouchHeading}>Get in touch</h2>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 12 }}>
+            <span style={contactIcon}>📍</span>
+            <span style={contactText}>Office #9, 1st Floor, Jarir Street, AlMalaz, Riyadh, KSA - 12836</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+            <span style={contactIcon}>✉</span>
+            <span style={contactText}>hr@iotatechnologies.ai</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={contactIcon}>🌐</span>
+            <span style={contactText}>iotatechnologies.ai</span>
+          </div>
+        </div>
+        <div style={{ borderTop: '1px solid rgba(255,255,255,0.2)', marginTop: 32, paddingTop: 10 }}>
+          <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: 10 }}>{new Date().getFullYear()}</span>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════
+          AUDIT TRAIL (optional, hidden from print)
+      ════════════════════════════════════════════════════════════════ */}
+      {showAuditTrail && offer.auditLog && offer.auditLog.length > 0 && (
+        <div className="offer-audit-trail" style={pageLight}>
+          <PageHeader section="AUDIT TRAIL" contractNumber={offer.contractNumber} />
+          <h2 style={columnHeading}>Audit Trail &amp; Certificate of Execution</h2>
+          <p style={bodyText}>
+            The following log records all significant events in the lifecycle of this Agreement.
           </p>
-
-          <table style={auditTable}>
+          <table style={auditTableStyle}>
             <thead>
               <tr>
-                <th style={auditTh}>Timestamp (UTC)</th>
-                <th style={auditTh}>Action</th>
-                <th style={auditTh}>Performed By</th>
-                <th style={auditTh}>Notes</th>
+                <th style={auditThStyle}>Timestamp (UTC)</th>
+                <th style={auditThStyle}>Action</th>
+                <th style={auditThStyle}>Performed By</th>
+                <th style={auditThStyle}>Notes</th>
               </tr>
             </thead>
             <tbody>
               {offer.auditLog.map((entry, i) => (
-                <tr key={i} style={i % 2 === 0 ? auditRowEven : auditRowOdd}>
-                  <td style={auditTd}>{new Date(entry.performedAt).toUTCString()}</td>
-                  <td style={auditTd}>{entry.action.replace(/_/g, ' ')}</td>
-                  <td style={auditTd}>{entry.performedBy}</td>
-                  <td style={auditTd}>{entry.notes || '—'}</td>
+                <tr key={i} style={{ background: i % 2 === 0 ? '#f0f3f8' : '#fff' }}>
+                  <td style={auditTdStyle}>{new Date(entry.performedAt).toUTCString()}</td>
+                  <td style={auditTdStyle}>{entry.action.replace(/_/g, ' ')}</td>
+                  <td style={auditTdStyle}>{entry.performedBy}</td>
+                  <td style={auditTdStyle}>{entry.notes || '—'}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-
-          <p style={{ ...body, marginTop: 24, fontSize: 11, color: '#888' }}>
-            This audit trail was generated automatically by IOTA Technologies&apos; Offer Management
-            system. Contract Reference: {offer.contractNumber}.
-          </p>
+          <PageFooter pageNum="" />
         </div>
       )}
     </div>
@@ -521,354 +573,448 @@ export default function OfferLetterHtmlTemplate({
 // ── Inline styles ──────────────────────────────────────────────────────────
 
 const documentWrap = {
-  fontFamily: "'Georgia', 'Times New Roman', serif",
-  color: '#1a1a1a',
+  fontFamily: "'Inter', Arial, sans-serif",
+  color: TEXT,
   background: '#fff',
 };
 
-const page = {
+const pageBase = {
   width: '210mm',
   minHeight: '297mm',
   margin: '0 auto',
-  padding: '20mm 22mm',
   boxSizing: 'border-box',
   pageBreakAfter: 'always',
-  background: '#fff',
+  position: 'relative',
+  display: 'flex',
+  flexDirection: 'column',
+};
+
+const pageCover = { ...pageBase, padding: 0, background: '#000510' };
+
+const pageLight = {
+  ...pageBase,
+  background: BG_PAGE,
+  padding: '14mm 16mm 10mm',
+};
+
+const pageBackCover = {
+  ...pageBase,
+  background: BLUE,
+  padding: '14mm 16mm 10mm',
+};
+
+const coverHero = {
+  flex: '0 0 58%',
+  background: 'radial-gradient(ellipse at 60% 40%, #0d2a6e 0%, #061030 40%, #000510 100%)',
+  position: 'relative',
+  overflow: 'hidden',
+  display: 'flex',
+  alignItems: 'flex-start',
+  justifyContent: 'flex-start',
+  padding: '18px 18px 0',
+};
+
+const coverLogoStyle = { height: 32, filter: 'brightness(0) invert(1)', zIndex: 2 };
+
+const coverContractNum = {
+  position: 'absolute',
+  top: 14,
+  right: 16,
+  color: 'rgba(255,255,255,0.65)',
+  fontSize: 10,
+  letterSpacing: '0.06em',
+  fontFamily: "'Inter', Arial, sans-serif",
+};
+
+const coverOrangeStripe = {
+  position: 'absolute',
+  left: 0,
+  top: 0,
+  bottom: 0,
+  width: 5,
+  background: ORANGE,
+};
+
+const coverBluePanel = {
+  flex: '0 0 42%',
+  background: BLUE,
+  padding: '20px 20px 20px 28px',
+  display: 'flex',
+  alignItems: 'flex-end',
   position: 'relative',
 };
 
-const pageHeader = {
-  display: 'flex',
-  justifyContent: 'space-between',
-  borderBottom: '1px solid #c0ccd7',
-  paddingBottom: 8,
-  marginBottom: 24,
-  fontSize: 10,
-  color: '#888',
-  fontFamily: "'Inter', Arial, sans-serif",
+const coverBluePanelOrange = {
+  position: 'absolute',
+  left: 0,
+  top: 0,
+  bottom: 0,
+  width: 5,
+  background: ORANGE,
 };
 
-const pageHeaderTitle = { fontWeight: 600 };
-const pageHeaderRight = {};
-
-// Cover page styles
-const coverAccentBar = {
-  height: 6,
-  background: 'linear-gradient(90deg, #1a3c5e 0%, #2e6da4 60%, #4a9fd4 100%)',
-  borderRadius: '2px 2px 0 0',
-  marginBottom: 0,
-};
-
-const coverPage = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'center',
-  minHeight: 'calc(100% - 60px)',
-  gap: 28,
-  textAlign: 'center',
-  padding: '40px 0 20px',
-};
-
-const coverLogoRow = {
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  gap: 14,
-  marginBottom: 4,
-};
-
-const coverLogoImg = {
-  height: 52,
-  objectFit: 'contain',
-};
-
-const coverBadgeWrap = {
-  display: 'flex',
-  justifyContent: 'center',
-};
-
-const coverBadge = {
-  display: 'inline-block',
-  padding: '4px 18px',
-  background: '#1a5c2a',
-  color: '#fff',
-  fontSize: 10,
-  letterSpacing: '0.18em',
-  textTransform: 'uppercase',
-  fontFamily: "'Inter', Arial, sans-serif",
-  fontWeight: 700,
-  borderRadius: 2,
-};
-
-const coverTitleBlock = {
-  display: 'flex',
-  flexDirection: 'column',
-  alignItems: 'center',
-  gap: 6,
-};
-
-const coverDivider = {
-  width: 80,
-  height: 3,
-  background: 'linear-gradient(90deg, #1a3c5e, #4a9fd4)',
-  borderRadius: 2,
-  margin: '0 auto',
-};
-
-const coverH1 = {
-  fontSize: 30,
+const coverTitle = {
+  fontSize: 44,
   fontWeight: 800,
-  color: '#0d1b2a',
+  color: '#fff',
+  margin: '0 0 28px 0',
+  lineHeight: 1.1,
+  fontFamily: "'Inter', Arial, sans-serif",
+  whiteSpace: 'pre-line',
+};
+
+const coverMeta2Col = { display: 'flex', gap: 24, marginBottom: 8 };
+
+const coverMetaLabel = {
   margin: 0,
-  letterSpacing: '-0.5px',
+  fontSize: 9.5,
+  color: 'rgba(255,255,255,0.6)',
   fontFamily: "'Inter', Arial, sans-serif",
+  marginBottom: 3,
 };
 
-const coverSubtitle = {
-  fontSize: 13,
-  color: '#5a7a96',
+const coverMetaValue = {
   margin: 0,
+  fontSize: 11,
+  fontWeight: 700,
+  color: '#fff',
   fontFamily: "'Inter', Arial, sans-serif",
-  fontWeight: 500,
+  whiteSpace: 'pre-line',
 };
 
-const coverMeta = { width: '100%', maxWidth: 460 };
-
-const coverTable = {
-  width: '100%',
-  borderCollapse: 'collapse',
-  fontFamily: "'Inter', Arial, sans-serif",
-  fontSize: 13,
-  boxShadow: '0 1px 4px rgba(0,0,0,0.07)',
-  borderRadius: 6,
-  overflow: 'hidden',
+const coverDocLabel = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  width: 20,
+  alignSelf: 'stretch',
 };
 
-const coverTdLabel = {
-  padding: '10px 18px',
-  color: '#5a7a96',
-  fontWeight: 600,
-  width: '38%',
-  borderBottom: '1px solid #e8edf2',
-  background: '#f5f8fb',
-  textAlign: 'left',
-  fontSize: 12,
-};
-
-const coverTdValue = {
-  padding: '10px 18px',
-  color: '#0d1b2a',
-  borderBottom: '1px solid #e8edf2',
-  textAlign: 'left',
-  background: '#fff',
-  fontSize: 13,
-};
-
-const coverFooter = {
+const pageHeaderStyle = {
   display: 'flex',
   justifyContent: 'space-between',
-  alignItems: 'center',
-  borderTop: '1px solid #e0e6ed',
-  paddingTop: 12,
-  fontSize: 10,
-  color: '#999',
+  paddingBottom: 8,
+  marginBottom: 4,
+  fontSize: 9,
+  color: '#6b7a8d',
   fontFamily: "'Inter', Arial, sans-serif",
+  textTransform: 'uppercase',
+  letterSpacing: '0.09em',
+};
+
+const pageFooterStyle = {
+  display: 'flex',
+  alignItems: 'center',
+  borderTop: '1px solid #c8d0db',
+  paddingTop: 8,
   marginTop: 'auto',
 };
 
-// Body content styles
-const sectionHeading = {
-  fontSize: 15,
-  fontWeight: 700,
-  color: '#0d1b2a',
-  marginTop: 28,
-  marginBottom: 10,
-  fontFamily: "'Inter', Arial, sans-serif",
-  borderBottom: '1px solid #e8ecf0',
-  paddingBottom: 4,
+const footerBarStyle = {
+  display: 'inline-block',
+  width: 4,
+  height: 14,
+  background: DARK_BLUE,
+  borderRadius: 1,
+  flexShrink: 0,
 };
 
-const clauseHeading = {
-  fontSize: 13,
+const bigOrangeHeading = {
+  fontSize: 60,
+  fontWeight: 800,
+  color: ORANGE,
+  margin: '12px 0 18px',
+  lineHeight: 1.05,
+  fontFamily: "'Inter', Arial, sans-serif",
+  whiteSpace: 'pre-line',
+};
+
+const twoColLayout = { display: 'flex', gap: 20, flex: 1 };
+const twoColLeft = { flex: 1 };
+const twoColRight = { flex: 1 };
+
+const leadBlue = {
+  fontSize: 12.5,
+  color: DARK_BLUE,
+  fontWeight: 600,
+  lineHeight: 1.6,
+  marginBottom: 12,
+  fontFamily: "'Inter', Arial, sans-serif",
+};
+
+const bodyText = {
+  fontSize: 11.5,
+  lineHeight: 1.7,
+  color: '#2a2a2a',
+  marginBottom: 10,
+  textAlign: 'justify',
+  fontFamily: "'Inter', Arial, sans-serif",
+};
+
+const columnHeading = {
+  fontSize: 14,
   fontWeight: 700,
-  color: '#1a3c5e',
-  marginTop: 20,
+  color: DARK_BLUE,
+  marginTop: 0,
+  marginBottom: 8,
+  fontFamily: "'Inter', Arial, sans-serif",
+};
+
+const ulStyle = { paddingLeft: 16, marginBottom: 8 };
+const liStyle = {
+  fontSize: 11.5,
+  lineHeight: 1.65,
+  color: '#2a2a2a',
   marginBottom: 6,
   fontFamily: "'Inter', Arial, sans-serif",
 };
 
-const body = {
-  fontSize: 12.5,
-  lineHeight: 1.75,
-  color: '#333',
-  marginBottom: 12,
+const signOffStyle = {
+  fontSize: 11.5,
+  color: '#555',
+  marginBottom: 2,
+  marginTop: 16,
+  fontFamily: "'Inter', Arial, sans-serif",
+};
+
+const signOffName = {
+  fontSize: 13,
+  fontWeight: 700,
+  margin: 0,
+  fontFamily: "'Inter', Arial, sans-serif",
+};
+
+const bilingualHeader = { display: 'flex', marginBottom: 4 };
+
+const bilingualTitle = {
+  flex: 1,
+  fontSize: 24,
+  fontWeight: 700,
+  color: DARK_BLUE,
+  margin: 0,
+  fontFamily: "'Inter', Arial, sans-serif",
+};
+
+const termRowStyle = {
+  display: 'flex',
+  gap: 24,
+  paddingTop: 10,
+  paddingBottom: 10,
+  position: 'relative',
+};
+
+const termColStyle = {
+  flex: 1,
+  fontSize: 11,
+  lineHeight: 1.65,
+  color: '#2a2a2a',
+  fontFamily: "'Inter', Arial, sans-serif",
   textAlign: 'justify',
 };
 
-const orderedList = {
-  paddingLeft: 20,
-  marginBottom: 12,
+const termDividerStyle = {
+  position: 'absolute',
+  bottom: 0,
+  left: 0,
+  right: 0,
+  height: 1,
+  background: ORANGE,
+  opacity: 0.3,
 };
 
-const listItem = {
-  fontSize: 12.5,
-  lineHeight: 1.75,
-  color: '#333',
-  marginBottom: 8,
-};
-
-// Detail table (candidate info)
-const detailTable = {
+const salaryTableStyle = {
   width: '100%',
   borderCollapse: 'collapse',
-  fontFamily: "'Inter', Arial, sans-serif",
-  fontSize: 12.5,
-  marginBottom: 16,
-  border: '1px solid #e8edf2',
-};
-
-const detailTdLabel = {
-  padding: '8px 14px',
-  color: '#5a7a96',
-  fontWeight: 600,
-  width: '35%',
-  borderBottom: '1px solid #e8edf2',
-  background: '#f5f8fb',
   fontSize: 12,
-};
-
-const detailTdValue = {
-  padding: '8px 14px',
-  color: '#0d1b2a',
-  borderBottom: '1px solid #e8edf2',
-  background: '#fff',
-  fontSize: 12.5,
-};
-
-// Salary table
-const salaryTable = {
-  width: '100%',
-  borderCollapse: 'collapse',
   fontFamily: "'Inter', Arial, sans-serif",
-  fontSize: 12.5,
-  marginBottom: 16,
-  border: '1px solid #e8edf2',
+  marginBottom: 6,
 };
 
-const salaryTh = {
-  background: '#0d1b2a',
+const salaryThStyle = {
+  background: '#2952a3',
   color: '#fff',
-  padding: '9px 14px',
-  fontWeight: 600,
+  padding: '10px 14px',
+  fontWeight: 700,
+  textAlign: 'left',
+  fontSize: 12,
+};
+
+const salaryRowStyle = { background: '#c2d4e8' };
+
+const salaryTdStyle = {
+  padding: '10px 14px',
+  color: '#1a2a4a',
+  borderBottom: '2px solid #fff',
+  fontSize: 12,
+};
+
+const salaryTotalCellStyle = {
+  padding: '10px 14px',
+  color: '#1a2a4a',
+  background: '#a8c0d8',
+  fontSize: 12.5,
+};
+
+const agreementTableStyle = {
+  width: '100%',
+  borderCollapse: 'collapse',
   fontFamily: "'Inter', Arial, sans-serif",
   fontSize: 12,
 };
 
-const salaryTd = {
-  padding: '8px 14px',
-  verticalAlign: 'middle',
-  color: '#333',
-  borderBottom: '1px solid #e8edf2',
+const agreementFirstRowStyle = {
+  borderTop: `2px solid ${ORANGE}`,
+  borderBottom: '1px solid #c8d0db',
 };
 
-const salaryRowEven = { background: '#f8f9fb' };
-const salaryRowOdd = { background: '#fff' };
+const agreementRowStyle = { borderBottom: '1px solid #c8d0db' };
 
-const salaryTotalTd = {
-  padding: '10px 14px',
-  verticalAlign: 'middle',
-  color: '#0d1b2a',
-  borderTop: '2px solid #1a3c5e',
-  background: '#eef3f8',
+const agreementTdLabelStyle = {
+  padding: '10px 12px 10px 0',
+  color: DARK_BLUE,
+  fontSize: 11.5,
+  width: '42%',
+  verticalAlign: 'top',
 };
 
-// Signature block styles
-const sigGrid = {
-  display: 'grid',
-  gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-  gap: 32,
-  marginTop: 32,
+const agreementTdValueStyle = {
+  padding: '10px 0',
+  color: TEXT,
+  fontSize: 11.5,
+  verticalAlign: 'top',
+  whiteSpace: 'pre-line',
 };
 
-const sigBlock = {
-  minWidth: 180,
+const nameDateLabel = {
+  fontSize: 11,
+  color: TEXT,
+  margin: '0 0 2px',
+  display: 'flex',
+  alignItems: 'center',
+  fontFamily: "'Inter', Arial, sans-serif",
 };
 
-const sigImage = {
-  maxWidth: 180,
-  maxHeight: 64,
+const nameDateLine = {
+  display: 'inline-block',
+  flex: 1,
+  borderBottom: `1.5px solid ${ORANGE}`,
+  height: 14,
+  marginLeft: 6,
+};
+
+const nameDateSub = {
+  fontSize: 9.5,
+  color: '#666',
+  margin: 0,
+  fontFamily: "'Inter', Arial, sans-serif",
+};
+
+const sigRowStyle = { display: 'flex', gap: 32 };
+
+const sigLineWrap = { flex: 1 };
+
+const sigImageStyle = {
+  maxWidth: 160,
+  maxHeight: 52,
   display: 'block',
   marginBottom: 4,
 };
 
-const sigPlaceholder = {
-  width: 180,
-  height: 64,
-  borderBottom: '1px solid #999',
+const sigUnderline = {
+  width: '80%',
+  borderBottom: '1px solid #ccc',
   marginBottom: 4,
+  minWidth: 120,
 };
 
-const sigLine = {
-  borderTop: '1px solid #333',
-  marginBottom: 6,
-  width: '100%',
+const sigLabelStyle = {
+  fontSize: 10,
+  color: '#666',
+  margin: '0 0 2px',
+  fontFamily: "'Inter', Arial, sans-serif",
 };
 
-const sigName = {
-  margin: '0 0 2px 0',
-  fontSize: 12,
+const sigNameStyle = {
+  fontSize: 13,
   fontWeight: 700,
+  margin: '4px 0 2px',
   fontFamily: "'Inter', Arial, sans-serif",
 };
 
-const sigMeta = {
-  margin: '0 0 2px 0',
-  fontSize: 11,
+const sigTitleStyle = {
+  fontSize: 10.5,
   color: '#555',
+  margin: 0,
   fontFamily: "'Inter', Arial, sans-serif",
 };
 
-// Audit table
-const auditTable = {
+const valueTitle = {
+  fontSize: 13,
+  fontWeight: 700,
+  color: DARK_BLUE,
+  marginTop: 12,
+  marginBottom: 4,
+  fontFamily: "'Inter', Arial, sans-serif",
+};
+
+const valueNum = {
+  fontSize: 11,
+  fontWeight: 700,
+  color: ORANGE,
+  margin: '6px 0 2px',
+  fontFamily: "'Inter', Arial, sans-serif",
+};
+
+const valueDivider = {
+  border: 'none',
+  borderTop: '1px solid #c8d0db',
+  margin: '4px 0 0',
+};
+
+const auditTableStyle = {
   width: '100%',
   borderCollapse: 'collapse',
-  fontSize: 11,
+  fontSize: 10.5,
   fontFamily: "'Inter', Arial, sans-serif",
-  marginTop: 16,
+  marginTop: 12,
 };
 
-const auditTh = {
-  background: '#0d1b2a',
+const auditThStyle = {
+  background: DARK_BLUE,
   color: '#fff',
-  padding: '8px 10px',
+  padding: '7px 10px',
   textAlign: 'left',
   fontWeight: 600,
 };
 
-const auditTd = {
-  padding: '7px 10px',
+const auditTdStyle = {
+  padding: '6px 10px',
   verticalAlign: 'top',
+  borderBottom: '1px solid #dde3ec',
 };
 
-const auditRowEven = { background: '#f8f9fb' };
-const auditRowOdd = { background: '#fff' };
+const getInTouchHeading = {
+  fontSize: 40,
+  fontWeight: 700,
+  color: '#fff',
+  margin: '0 0 20px',
+  fontFamily: "'Inter', Arial, sans-serif",
+};
 
-// Paged.js print CSS rules (injected via <style>)
+const contactIcon = { color: ORANGE, fontSize: 14, flexShrink: 0, marginTop: 1 };
+
+const contactText = {
+  fontSize: 12.5,
+  color: '#fff',
+  fontFamily: "'Inter', Arial, sans-serif",
+};
+
 const pagedCss = `
 @page {
   size: A4;
-  margin: 20mm 22mm;
-  @top-center {
-    content: "IOTA Technologies — Offer of Employment";
-    font-size: 9pt;
-    color: #888;
-  }
-  @bottom-right {
-    content: counter(page) " / " counter(pages);
-    font-size: 9pt;
-    color: #888;
-  }
+  margin: 0;
+  @top-center { content: none; }
+  @bottom-right { content: none; }
 }
 @media print {
   body { margin: 0; }
