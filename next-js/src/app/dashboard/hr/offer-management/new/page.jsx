@@ -92,15 +92,12 @@ export default function OfferManagementNewPage() {
 
   // Signature zones
   const [signatureZones, setSignatureZones] = useState([]);
-  const [sigZonePreviewPage, setSigZonePreviewPage] = useState(1);
   const [draggingSigZone, setDraggingSigZone] = useState(null);
   const [selectedSigZoneSignatory, setSelectedSigZoneSignatory] = useState(0);
   const [selectedZoneIsEmployee, setSelectedZoneIsEmployee] = useState(false);
-  const [offerPdfBlobUrl, setOfferPdfBlobUrl] = useState(null);
-  const [pdfJsDoc, setPdfJsDoc] = useState(null);
-  const [loadingZonePreview, setLoadingZonePreview] = useState(false);
+  const [showHtmlZonePreview, setShowHtmlZonePreview] = useState(false);
+  const [zonePreviewOffer, setZonePreviewOffer] = useState(null);
   const sigZonePreviewRef = useRef(null);
-  const sigZoneCanvasRef = useRef(null);
   const sigZoneDragMovedRef = useRef(false);
 
   const {
@@ -233,48 +230,6 @@ export default function OfferManagementNewPage() {
     setHtmlPreviewOpen(false);
   }, []);
 
-  // ── Zone preview — load pdfjs from blob URL ─────────────────────────────
-  useEffect(() => {
-    if (!offerPdfBlobUrl) {
-      setPdfJsDoc(null);
-      return;
-    }
-    let cancelled = false;
-    import('pdfjs-dist').then(async (pdfjsLib) => {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
-      try {
-        const doc = await pdfjsLib.getDocument(offerPdfBlobUrl).promise;
-        if (!cancelled) setPdfJsDoc(doc);
-      } catch (e) {
-        console.error(e);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [offerPdfBlobUrl]);
-
-  // Render canvas page
-  useEffect(() => {
-    if (!pdfJsDoc || !sigZoneCanvasRef.current) return;
-    const canvas = sigZoneCanvasRef.current;
-    const pageNum = Math.min(sigZonePreviewPage, pdfJsDoc.numPages);
-    let cancelled = false;
-    pdfJsDoc.getPage(pageNum).then((page) => {
-      if (cancelled) return;
-      const viewport = page.getViewport({ scale: 1 });
-      const containerWidth = canvas.parentElement?.offsetWidth || viewport.width;
-      const scale = containerWidth / viewport.width;
-      const scaledVp = page.getViewport({ scale });
-      canvas.width = scaledVp.width;
-      canvas.height = scaledVp.height;
-      page.render({ canvasContext: canvas.getContext('2d'), viewport: scaledVp });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [pdfJsDoc, sigZonePreviewPage]);
-
   // Drag zone
   useEffect(() => {
     if (!draggingSigZone) return;
@@ -312,54 +267,36 @@ export default function OfferManagementNewPage() {
     };
   }, [draggingSigZone]);
 
-  // Revoke blob on unmount
-  useEffect(
-    () => () => {
-      if (offerPdfBlobUrl) URL.revokeObjectURL(offerPdfBlobUrl);
-    },
-    [offerPdfBlobUrl]
-  ); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleLoadZonePreview = useCallback(async () => {
+  const handleLoadZonePreview = useCallback(() => {
     const data = getValues();
-    setLoadingZonePreview(true);
-    try {
-      const offerFields = {
-        employeeName: data.employeeName || '',
-        passportNumber: data.passportNumber || '',
-        dateOfBirth: data.dateOfBirth || '',
-        nationality: data.nationality || '',
-        position: data.position || '',
-        department: data.department || '',
-        contractNumber: data.contractNumber || '',
-        contractType: data.contractType || 'Limited',
-        startDate: data.startDate || '',
-        contractDuration: data.contractDuration || '',
-        probationPeriod: data.probationPeriod || '',
-        basicSalary: parseFloat(data.basicSalary) || 0,
-        housingAllowance: parseFloat(data.housingAllowance) || 0,
-        transportationAllowance: parseFloat(data.transportationAllowance) || 0,
-        otherAllowances: parseFloat(data.otherAllowances) || 0,
-        totalSalary:
-          (parseFloat(data.basicSalary) || 0) +
-          (parseFloat(data.housingAllowance) || 0) +
-          (parseFloat(data.transportationAllowance) || 0) +
-          (parseFloat(data.otherAllowances) || 0),
-        workingHours: data.workingHours || '',
-        annualLeaveDays: data.annualLeaveDays || '',
-        noticePeriod: data.noticePeriod || '',
-        currency: data.currency || 'SAR',
-      };
-      const blob = await pdf(<OfferLetterPDF data={offerFields} />).toBlob();
-      if (offerPdfBlobUrl) URL.revokeObjectURL(offerPdfBlobUrl);
-      setOfferPdfBlobUrl(URL.createObjectURL(blob));
-    } catch (e) {
-      console.error('Zone preview generation failed:', e);
-      toast.error('Failed to generate PDF preview');
-    } finally {
-      setLoadingZonePreview(false);
-    }
-  }, [getValues, offerPdfBlobUrl]); // eslint-disable-line react-hooks/exhaustive-deps
+    const cal =
+      (parseFloat(data.basicSalary) || 0) +
+      (parseFloat(data.housingAllowance) || 0) +
+      (parseFloat(data.transportationAllowance) || 0) +
+      (parseFloat(data.otherAllowances) || 0);
+    setZonePreviewOffer({
+      contractNumber: data.contractNumber || '—',
+      candidateName: data.employeeName || '',
+      passportNumber: data.passportNumber || null,
+      position: data.position || '',
+      department: data.department || '',
+      startDate: data.startDate || null,
+      probationPeriod: data.probationPeriod ? Number(data.probationPeriod) : null,
+      currency: data.currency || 'SAR',
+      basicSalary: parseFloat(data.basicSalary) || 0,
+      housingAllowance: parseFloat(data.housingAllowance) || 0,
+      transportationAllowance: parseFloat(data.transportationAllowance) || 0,
+      otherAllowances: parseFloat(data.otherAllowances) || 0,
+      totalSalary: cal,
+      workingHours: data.workingHours ? Number(data.workingHours) : null,
+      annualLeaveDays: data.annualLeaveDays ? Number(data.annualLeaveDays) : null,
+      noticePeriod: data.noticePeriod ? Number(data.noticePeriod) : null,
+      iotaSignatories: iotaSignatories.filter((s) => s.name.trim() && s.email.trim()),
+      clauses: clauses.filter((c) => c.title.trim() || c.content.trim()),
+      auditLog: [],
+    });
+    setShowHtmlZonePreview(true);
+  }, [getValues, iotaSignatories, clauses]);
 
   const handleSigZonePreviewClick = useCallback(
     (e) => {
@@ -371,7 +308,7 @@ export default function OfferManagementNewPage() {
       const validSignatories = iotaSignatories.filter((s) => s.name.trim() || s.email.trim());
       const newZone = {
         id: `zone-${Date.now()}`,
-        page: sigZonePreviewPage,
+        page: 1,
         xPct: Math.max(0, Math.min(86, xPct)),
         yPct: Math.max(0, Math.min(94, yPct)),
         widthPct: 14,
@@ -385,7 +322,7 @@ export default function OfferManagementNewPage() {
       };
       setSignatureZones((prev) => [...prev, newZone]);
     },
-    [sigZonePreviewPage, selectedSigZoneSignatory, selectedZoneIsEmployee, iotaSignatories]
+    [selectedSigZoneSignatory, selectedZoneIsEmployee, iotaSignatories]
   );
 
   return (
@@ -724,20 +661,19 @@ export default function OfferManagementNewPage() {
                   appear. First load a PDF preview, then click to place zones. Drag to reposition.
                 </Typography>
 
-                <LoadingButton
+                <Button
                   variant="outlined"
                   size="small"
-                  loading={loadingZonePreview}
                   startIcon={<Iconify icon="solar:refresh-bold" />}
                   onClick={handleLoadZonePreview}
                   sx={{ mb: 2 }}
                 >
-                  {pdfJsDoc ? 'Refresh Preview' : 'Load PDF Preview'}
-                </LoadingButton>
+                  {showHtmlZonePreview ? 'Refresh Preview' : 'Load Preview'}
+                </Button>
 
-                {pdfJsDoc && (
+                {showHtmlZonePreview && (
                   <>
-                    {/* Signatory selector */}
+                    {/* Signatory selector */
                     <Stack direction="row" spacing={1} sx={{ mb: 1.5 }} flexWrap="wrap">
                       <Chip
                         label="Employee"
@@ -781,64 +717,31 @@ export default function OfferManagementNewPage() {
                         ))}
                     </Stack>
 
-                    {/* Page nav */}
-                    {pdfJsDoc.numPages > 1 && (
-                      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
-                        <Typography variant="caption" color="text.secondary">
-                          Page:
-                        </Typography>
-                        <IconButton
-                          size="small"
-                          onClick={() => setSigZonePreviewPage((p) => Math.max(1, p - 1))}
-                          disabled={sigZonePreviewPage <= 1}
-                        >
-                          <Iconify icon="solar:arrow-left-bold" width={16} />
-                        </IconButton>
-                        <Typography variant="body2">{sigZonePreviewPage}</Typography>
-                        <IconButton
-                          size="small"
-                          onClick={() => setSigZonePreviewPage((p) => p + 1)}
-                          disabled={sigZonePreviewPage >= pdfJsDoc.numPages}
-                        >
-                          <Iconify icon="solar:arrow-right-bold" width={16} />
-                        </IconButton>
-                        <Typography variant="caption" color="text.secondary">
-                          / {pdfJsDoc.numPages}
-                        </Typography>
-                      </Stack>
-                    )}
-
-                    {/* Canvas */}
+                    {/* Scrollable HTML template preview with zone overlays */}
                     <Box
-                      ref={sigZonePreviewRef}
-                      onClick={handleSigZonePreviewClick}
                       sx={{
-                        position: 'relative',
                         width: '100%',
-                        paddingTop: '141.4%',
-                        bgcolor: 'common.white',
+                        maxHeight: 640,
+                        overflow: 'auto',
                         border: '1px solid',
                         borderColor: 'divider',
                         borderRadius: 1,
-                        overflow: 'hidden',
                         boxShadow: 2,
-                        cursor: 'crosshair',
+                        bgcolor: 'grey.200',
+                        mb: 1,
                       }}
                     >
-                      <canvas
-                        ref={sigZoneCanvasRef}
-                        style={{
-                          position: 'absolute',
-                          top: 0,
-                          left: 0,
-                          width: '100%',
-                          height: '100%',
-                          display: 'block',
-                        }}
-                      />
-                      {signatureZones
-                        .filter((z) => (z.page || 1) === sigZonePreviewPage)
-                        .map((zone) => {
+                      <Box
+                        ref={sigZonePreviewRef}
+                        onClick={handleSigZonePreviewClick}
+                        sx={{ position: 'relative', cursor: 'crosshair' }}
+                      >
+                        <OfferLetterHtmlTemplate
+                          offer={zonePreviewOffer}
+                          showSignatures={false}
+                          showAuditTrail={false}
+                        />
+                        {signatureZones.map((zone) => {
                           const isEmp = zone.isEmployee;
                           const color = isEmp
                             ? EMP_ZONE_COLOR
@@ -909,6 +812,7 @@ export default function OfferManagementNewPage() {
                             </Box>
                           );
                         })}
+                      </Box>
                     </Box>
 
                     {signatureZones.length > 0 && (
