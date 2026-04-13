@@ -20,37 +20,32 @@ import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import InputLabel from '@mui/material/InputLabel';
-import FormControl from '@mui/material/FormControl';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
-import { useRouter } from 'src/routes/hooks';
 
-import { useAuthContext } from 'src/auth/hooks';
+import {
+  getOffer,
+  rejectOffer,
+  approveOffer,
+  iotaSignOffer,
+  finalizeOffer,
+  commentOnOffer,
+  sendOfferForSigning,
+  remindEmployeeToSign,
+  setOfferSignatureZones,
+} from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
-import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { NdaSignatureCanvas } from 'src/components/nda';
-
+import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { OfferLetterHtmlTemplate } from 'src/components/offer-letter';
 import { OfferLetterPDF } from 'src/components/offer-letter/offer-letter-pdf';
 
-import {
-  getOffer,
-  approveOffer,
-  rejectOffer,
-  commentOnOffer,
-  iotaSignOffer,
-  finalizeOffer,
-  setOfferSignatureZones,
-  sendOfferForSigning,
-  remindEmployeeToSign,
-} from 'src/utils/apiHelper';
+import { useAuthContext } from 'src/auth/hooks';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -123,7 +118,6 @@ function DetailRow({ label, value }) {
 export default function OfferManagementDetailsPage({ params }) {
   const { id } = use(params);
   const { user } = useAuthContext();
-  const router = useRouter();
 
   const [offer, setOffer] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -161,6 +155,8 @@ export default function OfferManagementDetailsPage({ params }) {
   // PDF generation for zone preview (IOTA-generated offer PDF)
   const [offerPdfBlobUrl, setOfferPdfBlobUrl] = useState(null);
   const [pdfJsDoc, setPdfJsDoc] = useState(null);
+
+  const printRef = useRef(null);
 
   // Download / finalize
   const [downloadProcessing, setDownloadProcessing] = useState(false);
@@ -207,7 +203,7 @@ export default function OfferManagementDetailsPage({ params }) {
 
   // Generate PDF blob for zone preview
   useEffect(() => {
-    if (!offer) return;
+    if (!offer) return undefined;
     let cancelled = false;
     const generate = async () => {
       try {
@@ -248,17 +244,18 @@ export default function OfferManagementDetailsPage({ params }) {
   }, [offer?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Revoke blob URL on unmount
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (offerPdfBlobUrl) URL.revokeObjectURL(offerPdfBlobUrl);
-    };
-  }, [offerPdfBlobUrl]);
+    },
+    [offerPdfBlobUrl]
+  );
 
   // Load pdfjs from blob URL
   useEffect(() => {
     if (!offerPdfBlobUrl) {
       setPdfJsDoc(null);
-      return;
+      return undefined;
     }
     let cancelled = false;
     import('pdfjs-dist').then(async (pdfjsLib) => {
@@ -277,7 +274,7 @@ export default function OfferManagementDetailsPage({ params }) {
 
   // Render sig zone preview canvas
   useEffect(() => {
-    if (!pdfJsDoc || !sigZoneCanvasRef.current) return;
+    if (!pdfJsDoc || !sigZoneCanvasRef.current) return undefined;
     const canvas = sigZoneCanvasRef.current;
     const pageNum = Math.min(sigZonePreviewPage, pdfJsDoc.numPages);
     let cancelled = false;
@@ -326,7 +323,7 @@ export default function OfferManagementDetailsPage({ params }) {
 
   // Sig zone drag
   useEffect(() => {
-    if (!draggingSigZone) return;
+    if (!draggingSigZone) return undefined;
     const onMove = (e) => {
       sigZoneDragMovedRef.current = true;
       if (!sigZonePreviewRef.current) return;
@@ -375,7 +372,7 @@ export default function OfferManagementDetailsPage({ params }) {
       } else {
         toast.success('Approved and forwarded to next reviewer.');
       }
-    } catch (err) {
+    } catch {
       toast.error('Failed to approve offer');
     } finally {
       setActionLoading(false);
@@ -394,7 +391,7 @@ export default function OfferManagementDetailsPage({ params }) {
       setRejectOpen(false);
       setRejectReason('');
       toast.success('Offer rejected.');
-    } catch (err) {
+    } catch {
       toast.error('Failed to reject offer');
     } finally {
       setActionLoading(false);
@@ -413,7 +410,7 @@ export default function OfferManagementDetailsPage({ params }) {
       setCommentOpen(false);
       setReviewComment('');
       toast.success('Comment saved.');
-    } catch (err) {
+    } catch {
       toast.error('Failed to save comment');
     } finally {
       setActionLoading(false);
@@ -468,7 +465,7 @@ export default function OfferManagementDetailsPage({ params }) {
       const updated = await setOfferSignatureZones(id, signatureZones);
       setOffer(updated);
       toast.success('Signature zones saved.');
-    } catch (err) {
+    } catch {
       toast.error('Failed to save signature zones');
     } finally {
       setSigZoneSaving(false);
@@ -611,37 +608,17 @@ export default function OfferManagementDetailsPage({ params }) {
     }
   };
 
-  const handlePrint = async () => {
-    try {
-      const offerData = {
-        employeeName: offer.candidateName,
-        passportNumber: offer.passportNumber || '',
-        dateOfBirth: offer.dateOfBirth || '',
-        nationality: offer.nationality || '',
-        position: offer.position,
-        department: offer.department,
-        contractNumber: offer.contractNumber,
-        contractType: offer.contractType,
-        startDate: offer.startDate,
-        contractDuration: offer.contractDuration || '',
-        probationPeriod: offer.probationPeriod || '',
-        basicSalary: offer.basicSalary,
-        housingAllowance: offer.housingAllowance,
-        transportationAllowance: offer.transportationAllowance,
-        otherAllowances: offer.otherAllowances,
-        totalSalary: offer.totalSalary,
-        workingHours: offer.workingHours || '',
-        annualLeaveDays: offer.annualLeaveDays || '',
-        noticePeriod: offer.noticePeriod || '',
-        currency: offer.currency || 'SAR',
-      };
-      const blob = await pdf(<OfferLetterPDF data={offerData} />).toBlob();
-      const url = URL.createObjectURL(blob);
-      window.open(url, '_blank');
-      setTimeout(() => URL.revokeObjectURL(url), 60000);
-    } catch (err) {
-      toast.error('Failed to generate PDF for printing');
+  const handlePrint = () => {
+    const templateUrl = '/assets/template/IOTA%20Offer%20Letter%20Template.html';
+    const printWindow = window.open(templateUrl, '_blank', 'width=900,height=700');
+    if (!printWindow) {
+      toast.error('Popup blocked — please allow popups for this site and try again.');
+      return;
     }
+    printWindow.onload = () => {
+      printWindow.print();
+      printWindow.addEventListener('afterprint', () => printWindow.close());
+    };
   };
 
   // ── Loading / not-found states ─────────────────────────────────────────────
@@ -832,6 +809,27 @@ export default function OfferManagementDetailsPage({ params }) {
                 </Stack>
               </Alert>
             )}
+
+            {/* Offer Letter Document Preview */}
+            <Card sx={{ p: 3 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                <Typography variant="subtitle1">Document Preview</Typography>
+                <Tooltip title="Use the Print button above for a clean print">
+                  <Iconify icon="solar:info-circle-bold" color="text.secondary" />
+                </Tooltip>
+              </Box>
+              <Box
+                ref={printRef}
+                sx={{
+                  maxHeight: 900,
+                  overflowY: 'auto',
+                  p: 2,
+                  bgcolor: 'background.default',
+                }}
+              >
+                <OfferLetterHtmlTemplate offer={offer} showSignatures />
+              </Box>
+            </Card>
 
             {/* Candidate Information */}
             <Card sx={{ p: 3 }}>
