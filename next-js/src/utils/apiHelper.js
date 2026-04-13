@@ -2541,6 +2541,30 @@ export async function toggleLogDrain(enabled) {
   }
 }
 
+const QURAN_API_BASE = 'https://quranapi.pages.dev/api';
+
+async function fetchQuranVerse(surahNo, ayahNo) {
+  try {
+    const response = await fetch(`${QURAN_API_BASE}/${surahNo}/${ayahNo}.json`);
+    if (!response.ok) throw new Error(`Quran verse fetch failed: ${response.status}`);
+    return response.json();
+  } catch (error) {
+    console.error('Failed to fetch Quran verse:', error);
+    throw error;
+  }
+}
+
+async function fetchQuranTafsir(surahNo, ayahNo) {
+  try {
+    const response = await fetch(`${QURAN_API_BASE}/tafsir/${surahNo}_${ayahNo}.json`);
+    if (!response.ok) throw new Error(`Quran tafsir fetch failed: ${response.status}`);
+    return response.json();
+  } catch (error) {
+    console.error('Failed to fetch Quran tafsir:', error);
+    throw error;
+  }
+}
+
 export const apiHelper = {
   fetchTotalIotaBilling,
   fetchTotalPartnerBilling,
@@ -2684,4 +2708,7 @@ export const apiHelper = {
   uploadDocument,
   generateSalaryCertificate,
   generateLetterDocument,
+  // Quran API
+  fetchQuranVerse,
+  fetchQuranTafsir,
 };

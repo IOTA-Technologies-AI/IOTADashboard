@@ -11,7 +11,7 @@ import { apiHelper } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import { SeoIllustration } from 'src/assets/illustrations';
-import { _appAuthors, _appRelated, _appFeatured, _appInvoices, _appInstalled } from 'src/_mock';
+import { _appAuthors, _appRelated, _appInvoices, _appInstalled } from 'src/_mock';
 
 import { svgColorClasses } from 'src/components/svg-color';
 
@@ -20,7 +20,7 @@ import { useAuthContext } from 'src/auth/hooks';
 
 import { AppWidget } from '../app-widget';
 import { AppWelcome } from '../app-welcome';
-import { AppFeatured } from '../app-featured';
+import { AppQuranVerse } from '../app-quran-verse';
 import { AppTopAuthors } from '../app-top-authors';
 import { AppTopRelated } from '../app-top-related';
 import { AppNewInvoices } from '../app-new-invoices';
@@ -95,7 +95,7 @@ export function OverviewAppView() {
         </Grid>
 
         <Grid size={{ xs: 12, md: 4 }}>
-          <AppFeatured list={_appFeatured} />
+          <AppQuranVerse />
         </Grid>
 
         <Grid size={{ xs: 12, md: 4 }}>
