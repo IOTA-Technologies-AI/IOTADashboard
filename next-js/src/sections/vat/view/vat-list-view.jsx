@@ -205,13 +205,20 @@ export function VATListView() {
         return;
       }
 
+      const selectedQuarterInfo = {
+        ...getQuarterDates(filters.year, filters.quarter),
+        year: filters.year,
+        quarter: filters.quarter,
+        label: `Q${filters.quarter}-${filters.year}`,
+      };
+
       try {
         if (format === 'pdf-en' || format === 'pdf-ar') {
           const pdfLocale = format === 'pdf-ar' ? 'ar' : 'en';
         } else if (format === 'excel') {
-          exportVATToExcel(vatData, currentQuarter);
+          exportVATToExcel(vatData, selectedQuarterInfo);
         } else if (format === 'json') {
-          exportVATToJSON(vatData, currentQuarter);
+          exportVATToJSON(vatData, selectedQuarterInfo);
         }
       } catch (error) {
         console.error('Export failed:', error);
@@ -219,7 +226,7 @@ export function VATListView() {
         setPopover({ open: false, anchorEl: null });
       }
     },
-    [vatData, currentQuarter]
+    [vatData, filters.year, filters.quarter]
   );
 
   // Handle Post VAT button click
@@ -379,7 +386,14 @@ export function VATListView() {
       <Box sx={{ mb: { xs: 3, md: 5 } }}>
         <VATSummaryCard
           quarterInfo={
-            filters.periodType === 'monthly' ? { label: getPeriodLabel() } : currentQuarter
+            filters.periodType === 'monthly'
+              ? { label: getPeriodLabel() }
+              : {
+                  ...getQuarterDates(filters.year, filters.quarter),
+                  year: filters.year,
+                  quarter: filters.quarter,
+                  label: `Q${filters.quarter}-${filters.year}`,
+                }
           }
           arVAT={arTotals.totalVAT}
           apVAT={apTotals.totalVAT}
