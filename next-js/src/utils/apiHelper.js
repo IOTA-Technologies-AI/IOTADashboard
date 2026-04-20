@@ -2656,6 +2656,16 @@ export async function seedPolicies() {
   }
 }
 
+export async function updatePolicy(id, data) {
+  try {
+    const response = await axios.put(`${API_BASE_URL}/policies/${id}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating policy:', error);
+    throw error;
+  }
+}
+
 export const apiHelper = {
   fetchTotalIotaBilling,
   fetchTotalPartnerBilling,
@@ -2811,4 +2821,5 @@ export const apiHelper = {
   getPolicyBySigningToken,
   signPolicy,
   seedPolicies,
+  updatePolicy,
 };

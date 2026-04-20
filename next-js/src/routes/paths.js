@@ -311,6 +311,7 @@ export const paths = {
     policies: {
       root: `${ROOTS.DASHBOARD}/policies`,
       details: (id) => `${ROOTS.DASHBOARD}/policies/${id}`,
+      edit: (id) => `${ROOTS.DASHBOARD}/policies/${id}/edit`,
     },
     order: {
       root: `${ROOTS.DASHBOARD}/order`,

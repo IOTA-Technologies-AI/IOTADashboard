@@ -22,7 +22,9 @@ import CircularProgress from '@mui/material/CircularProgress';
 import TableContainer from '@mui/material/TableContainer';
 
 import { paths } from 'src/routes/paths';
+import { RouterLink } from 'src/routes/components';
 
+import { useAuthContext } from 'src/auth/hooks';
 import { apiHelper } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -40,9 +42,15 @@ const STATUS_COLOR = {
   expired: 'error',
 };
 
+const roleIdToName = { 1: 'employee', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
+
 // ----------------------------------------------------------------------
 
 export function PolicyDetailView({ id }) {
+  const { user } = useAuthContext();
+  const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
+  const isSuperAdmin = normalizedRole === 'superAdmin';
+
   const [policy, setPolicy] = useState(null);
   const [acknowledgements, setAcknowledgements] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -117,6 +125,18 @@ export function PolicyDetailView({ id }) {
           { name: 'Policies', href: paths.dashboard.policies.root },
           { name: policy.policyNumber },
         ]}
+        action={
+          isSuperAdmin && (
+            <Button
+              component={RouterLink}
+              href={paths.dashboard.policies.edit(id)}
+              variant="contained"
+              startIcon={<Iconify icon="eva:edit-fill" />}
+            >
+              Edit Policy
+            </Button>
+          )
+        }
         sx={{ mb: { xs: 3, md: 5 } }}
       />
 
