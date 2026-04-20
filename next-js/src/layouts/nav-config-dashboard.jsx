@@ -273,15 +273,10 @@ export const navData = [
         ],
       },
       {
-        title: 'Blog',
-        path: paths.dashboard.post.root,
+        title: 'Policies',
+        path: paths.dashboard.policies.root,
         icon: ICONS.blog,
-        children: [
-          { title: 'List', path: paths.dashboard.post.root },
-          { title: 'Details', path: paths.dashboard.post.demo.details },
-          { title: 'Create', path: paths.dashboard.post.new },
-          { title: 'Edit', path: paths.dashboard.post.demo.edit },
-        ],
+        children: [{ title: 'All Policies', path: paths.dashboard.policies.root }],
       },
       {
         title: 'Job',

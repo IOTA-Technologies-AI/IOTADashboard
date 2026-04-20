@@ -2565,6 +2565,97 @@ async function fetchQuranTafsir(surahNo, ayahNo) {
   }
 }
 
+// ----------------------------------------------------------------------
+// Policy Management
+// ----------------------------------------------------------------------
+
+export async function getPolicies() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/policies`);
+    return response.data.policies;
+  } catch (error) {
+    console.error('Error fetching policies:', error);
+    throw error;
+  }
+}
+
+export async function getPolicyById(id) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/policies/${id}`);
+    return response.data.policy;
+  } catch (error) {
+    console.error('Error fetching policy:', error);
+    throw error;
+  }
+}
+
+export async function getPolicyAcknowledgements() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/policies/acknowledgements`);
+    return response.data.acknowledgements;
+  } catch (error) {
+    console.error('Error fetching policy acknowledgements:', error);
+    throw error;
+  }
+}
+
+export async function getPolicyAcknowledgementsByEmployee(employeeId) {
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}/policies/acknowledgements/employee/${employeeId}`
+    );
+    return response.data.acknowledgements;
+  } catch (error) {
+    console.error('Error fetching employee policy acknowledgements:', error);
+    throw error;
+  }
+}
+
+export async function sendPolicyLinksToEmployee(employeeId, employeeData) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/policies/send-to-employee`, {
+      employeeId,
+      employeeName:
+        employeeData.name || `${employeeData.firstName} ${employeeData.lastName}`.trim(),
+      employeeEmail: employeeData.email,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error sending policy links to employee:', error);
+    throw error;
+  }
+}
+
+export async function getPolicyBySigningToken(token) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/policies/sign/${token}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching policy by signing token:', error);
+    throw error;
+  }
+}
+
+export async function signPolicy(token, signatureData) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/policies/sign`, { token, ...signatureData });
+    return response.data;
+  } catch (error) {
+    console.error('Error signing policy:', error);
+    throw error;
+  }
+}
+
+export async function seedPolicies() {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/policies/seed`);
+    return response.data;
+  } catch (error) {
+    console.error('Error seeding policies:', error);
+    throw error;
+  }
+}
+
 export const apiHelper = {
   fetchTotalIotaBilling,
   fetchTotalPartnerBilling,
@@ -2711,4 +2802,13 @@ export const apiHelper = {
   // Quran API
   fetchQuranVerse,
   fetchQuranTafsir,
+  // Policy Management
+  getPolicies,
+  getPolicyById,
+  getPolicyAcknowledgements,
+  getPolicyAcknowledgementsByEmployee,
+  sendPolicyLinksToEmployee,
+  getPolicyBySigningToken,
+  signPolicy,
+  seedPolicies,
 };

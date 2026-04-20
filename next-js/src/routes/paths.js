@@ -308,6 +308,10 @@ export const paths = {
         edit: `${ROOTS.DASHBOARD}/post/${kebabCase(MOCK_TITLE)}/edit`,
       },
     },
+    policies: {
+      root: `${ROOTS.DASHBOARD}/policies`,
+      details: (id) => `${ROOTS.DASHBOARD}/policies/${id}`,
+    },
     order: {
       root: `${ROOTS.DASHBOARD}/order`,
       details: (id) => `${ROOTS.DASHBOARD}/order/${id}`,
