@@ -8,8 +8,14 @@ const PARTER_API_BASE_URL = 'https://staging-iwtapiserver-6x92.encr.app/getTotal
 const PARTER_AUTH_TOKEN = 'Bearer dGVzdEB0ZXN0LmNvbTpwYXN29yZDEyMyE=';
 
 /**
- * Get Authorization header with JWT token
- * Backend expects: Authorization: Bearer {jwt_token}
+ * @summary Builds the Authorization header containing the JWT bearer token.
+ * @description Extracts the current session JWT and returns an object suitable for
+ * passing as Axios `headers`. Returns an empty object when no token is found.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {{ Authorization?: string }} Header object with Bearer token, or empty object.
  */
 function getAuthHeaders() {
   const token = extractJWTFromSession();
@@ -23,9 +29,14 @@ function getAuthHeaders() {
 }
 
 /**
- * Get user context from localStorage (set by auth provider) or JWT fallback
- * Returns user email, role, and roleId for permission checks
- * Auth provider stores user context in localStorage with correct role/roleId
+ * @summary Retrieves the current user's context (email, role, roleId) for API permission checks.
+ * @description Reads from localStorage first (set by the auth provider on sign-in), then
+ * falls back to decoding the JWT directly. Returns null when running server-side (SSR).
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {{ userEmail: string, role: string, roleId: number } | null} User context or null.
  */
 function getUserContext() {
   if (typeof window === 'undefined') return null;
@@ -73,6 +84,15 @@ function getUserContext() {
   }
 }
 
+/**
+ * @summary Fetches a single expense record by its database row ID.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The expense's primary key (row ID).
+ * @returns {Promise<object|null>} The expense object, or null if not found or id is falsy.
+ */
 export async function getExpenseById(id) {
   if (!id) return null;
   try {
@@ -87,6 +107,15 @@ export async function getExpenseById(id) {
   }
 }
 
+/**
+ * @summary Fetches a single expense by its human-readable expenseId reference.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The human-readable expense reference ID.
+ * @returns {Promise<object|null>} The expense object, or null if not found or id is falsy.
+ */
 export async function getExpenseByExpenseId(id) {
   if (!id) return null;
   try {
@@ -101,7 +130,17 @@ export async function getExpenseByExpenseId(id) {
   }
 }
 
-// Get single expense by referenceId with permission check
+/**
+ * @summary Fetches a single expense by referenceId, enforcing user-level permission checks.
+ * @description Passes the authenticated user's context as query params so the backend can
+ * apply row-level security. Throws a PERMISSION_DENIED error on HTTP 403.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} referenceId - The expense's referenceId (e.g. "EXP-0001").
+ * @returns {Promise<object|null>} The expense object or null.
+ */
 export async function getExpense(referenceId) {
   if (!referenceId) return null;
 
@@ -138,6 +177,15 @@ export async function getExpense(referenceId) {
   }
 }
 
+/**
+ * @summary Calculates the total billing amount across all IOTA expenses.
+ * @description Fetches all expenses and sums `expenseAmount` (or `amount` as fallback).
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<number>} The total billing amount.
+ */
 async function fetchTotalIotaBilling() {
   try {
     const response = await axios.get(`${API_BASE_URL}expenses`);
@@ -152,6 +200,15 @@ async function fetchTotalIotaBilling() {
   }
 }
 
+/**
+ * @summary Fetches the total paid and pending billing amounts from the partner API.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} invoicePeriod - The billing period string (e.g. "2024-Q1").
+ * @returns {Promise<{ totalPaid: number, totalPending: number }>} Partner billing totals.
+ */
 async function fetchTotalPartnerBilling(invoicePeriod) {
   try {
     console.log(invoicePeriod);
@@ -171,6 +228,15 @@ async function fetchTotalPartnerBilling(invoicePeriod) {
   }
 }
 
+/**
+ * @summary Retrieves all invoices from the Zoho-integrated invoices endpoint.
+ * @description Non-critical: returns an empty structure on failure to avoid breaking the dashboard.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of invoice objects, or empty array on error.
+ */
 export async function fetchZohoInvoices() {
   try {
     let config = {
@@ -193,6 +259,14 @@ export async function fetchZohoInvoices() {
   }
 }
 
+/**
+ * @summary Retrieves all customer payment records.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of customer payment objects.
+ */
 export async function fetchCustomerPayments() {
   try {
     let config = {
@@ -214,6 +288,14 @@ export async function fetchCustomerPayments() {
   }
 }
 
+/**
+ * @summary Retrieves the full list of customers.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of customer objects.
+ */
 export async function getCustomers() {
   try {
     let config = {
@@ -235,6 +317,15 @@ export async function getCustomers() {
   }
 }
 
+/**
+ * @summary Creates a new customer record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} data - Customer fields to create.
+ * @returns {Promise<object>} The newly created customer object.
+ */
 export async function createCustomer(data) {
   try {
     const config = {
@@ -252,6 +343,15 @@ export async function createCustomer(data) {
   }
 }
 
+/**
+ * @summary Retrieves all vendor records, mapping backend field names to frontend aliases.
+ * @description Maps: phone→phoneNumber, primaryContactName→contactPerson, swiftCode→bankSwiftCode.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of vendor objects with mapped field names, or empty array on error.
+ */
 export async function getVendors() {
   try {
     let config = {
@@ -284,6 +384,14 @@ export async function getVendors() {
   }
 }
 
+/**
+ * @summary Fetches the list of cost centers. Uses a Next.js proxy route on the client to avoid CORS.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of cost center objects, or empty array on error.
+ */
 export async function getCostCenters() {
   try {
     // Use proxy route on client side to avoid CORS
@@ -298,6 +406,14 @@ export async function getCostCenters() {
   }
 }
 
+/**
+ * @summary Fetches the list of expense types. Uses a Next.js proxy route on the client to avoid CORS.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of expense type objects, or empty array on error.
+ */
 export async function getExpenseTypes() {
   try {
     const isClient = typeof window !== 'undefined';
@@ -311,6 +427,14 @@ export async function getExpenseTypes() {
   }
 }
 
+/**
+ * @summary Fetches the list of invoice types. Uses a Next.js proxy route on the client to avoid CORS.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of invoice type objects, or empty array on error.
+ */
 export async function getInvoiceTypes() {
   try {
     const isClient = typeof window !== 'undefined';
@@ -324,6 +448,14 @@ export async function getInvoiceTypes() {
   }
 }
 
+/**
+ * @summary Fetches the list of VAT rate configurations. Uses a Next.js proxy route on the client to avoid CORS.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of VAT config objects, or empty array on error.
+ */
 export async function getVatConfigs() {
   try {
     const isClient = typeof window !== 'undefined';
@@ -337,6 +469,15 @@ export async function getVatConfigs() {
   }
 }
 
+/**
+ * @summary Fetches office location configurations from the appconfigs table.
+ * @description Returns null on error so callers fall back to the hardcoded IOTA_OFFICES constant.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]|null>} Array of office config objects merged with configKey/label, or null on failure.
+ */
 export async function fetchOfficeConfigs() {
   try {
     const isClient = typeof window !== 'undefined';
@@ -353,32 +494,74 @@ export async function fetchOfficeConfigs() {
   }
 }
 
-// Payroll APIs
+/**
+ * @summary Fetches all payroll run records.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of payroll run objects.
+ */
 export async function fetchPayrollRuns() {
   const url = `${API_BASE_URL}/payroll/runs`;
   const response = await axios.get(url);
   return response.data?.payrollRuns || [];
 }
 
+/**
+ * @summary Fetches a single payroll run by its ID.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The payroll run ID.
+ * @returns {Promise<object>} The payroll run object.
+ */
 export async function fetchPayrollRun(id) {
   const url = `${API_BASE_URL}/payroll/runs/${id}`;
   const response = await axios.get(url);
   return response.data;
 }
 
+/**
+ * @summary Creates a new payroll run.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} body - Payroll run fields (pay period, employees, etc.).
+ * @returns {Promise<object>} The created payroll run object.
+ */
 export async function createPayrollRun(body) {
   const url = `${API_BASE_URL}/payroll/runs`;
   const response = await axios.post(url, body);
   return response.data;
 }
 
+/**
+ * @summary Triggers bank processing for a finalised payroll run.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The payroll run ID.
+ * @returns {Promise<object>} The updated payroll run object.
+ */
 export async function postPayrollToBank(id) {
   const url = `${API_BASE_URL}/payroll/runs/${id}/process`;
   const response = await axios.post(url);
   return response.data;
 }
 
-// Approve or reject a payroll run
+/**
+ * @summary Approves or rejects a payroll run.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ id: string|number, approvedBy: string, status: string, notes?: string }} params - Approval payload.
+ * @returns {Promise<object>} The updated payroll run object.
+ */
 export async function approvePayrollRun({ id, approvedBy, status, notes }) {
   const url = `${API_BASE_URL}/payroll/runs/${id}/approve`;
   const response = await axios.post(url, {
@@ -389,7 +572,16 @@ export async function approvePayrollRun({ id, approvedBy, status, notes }) {
   return response.data;
 }
 
-// Update manual deductions on a single payroll line item
+/**
+ * @summary Updates manual deduction amount and remarks on a single payroll line item.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The payroll line item ID.
+ * @param {{ manualDeductionAmount: number, manualDeductionRemarks: string }} params - Deduction update payload.
+ * @returns {Promise<object>} The updated line item.
+ */
 export async function updatePayrollLineItemDeductions(
   id,
   { manualDeductionAmount, manualDeductionRemarks }
@@ -399,6 +591,18 @@ export async function updatePayrollLineItemDeductions(
   return response.data;
 }
 
+/**
+ * @summary Updates an existing vendor record by ID.
+ * @description Sends a PATCH request with the vendor ID both in the URL path and the request body
+ * as required by the Encore backend.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The vendor's primary key.
+ * @param {object} vendorData - Vendor fields to update.
+ * @returns {Promise<object>} The updated vendor object.
+ */
 export async function updateVendor(id, vendorData) {
   try {
     // Encore expects id and body fields in one object
@@ -433,6 +637,16 @@ export async function updateVendor(id, vendorData) {
   }
 }
 
+/**
+ * @summary Creates a new vendor record, mapping frontend field aliases to backend column names.
+ * @description Maps: phoneNumber→phone, contactPerson→primaryContactName, bankSwiftCode→swiftCode.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} vendorData - Vendor fields to create (using frontend field names).
+ * @returns {Promise<object>} The newly created vendor object.
+ */
 export async function createVendor(vendorData) {
   try {
     // Map frontend field names to backend database names
@@ -523,7 +737,14 @@ export async function getExpenses() {
   }
 }
 
-// Get expenses with linked invoices (expenseType 18) - for deals
+/**
+ * @summary Retrieves expenses that are linked to invoices (expenseType 18 — Invoice Against Invoice).
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of linked expense objects, or empty array on error.
+ */
 export async function getExpensesWithLinkedInvoices() {
   try {
     const authHeaders = getAuthHeaders();
@@ -554,6 +775,16 @@ export async function getExpensesWithLinkedInvoices() {
   }
 }
 
+/**
+ * @summary Creates a new expense record, attaching user context for permission validation.
+ * @description Merges user context into the payload before sending. Throws if no user session exists.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} expenseData - Expense fields to create.
+ * @returns {Promise<object>} The newly created expense object.
+ */
 export async function createExpense(expenseData) {
   try {
     console.log('📤 Creating expense:', expenseData);
@@ -604,6 +835,17 @@ export async function createExpense(expenseData) {
   }
 }
 
+/**
+ * @summary Updates an existing expense record by referenceId.
+ * @description Merges user context into the payload for server-side permission checks.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} referenceId - The expense referenceId (e.g. "EXP-0001").
+ * @param {object} expenseData - Fields to update on the expense.
+ * @returns {Promise<object>} The updated expense object.
+ */
 export async function updateExpense(referenceId, expenseData) {
   try {
     console.log(`📤 Updating expense ${referenceId}:`, expenseData);
@@ -650,6 +892,15 @@ export async function updateExpense(referenceId, expenseData) {
   }
 }
 
+/**
+ * @summary Uploads an expense attachment file to OneDrive.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ folderPath: string, fileName: string, fileContent: string, userId: string }} params - Upload parameters.
+ * @returns {Promise<object>} Upload result containing the OneDrive file URL and path.
+ */
 export async function uploadExpenseAttachment({ folderPath, fileName, fileContent, userId }) {
   if (!fileName || !fileContent || !folderPath) {
     throw new Error('folderPath, fileName, and fileContent are required');
@@ -680,7 +931,14 @@ export async function uploadExpenseAttachment({ folderPath, fileName, fileConten
 
 const WALLET_API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
 
-/** Return all employee wallets (admin overview). */
+/**
+ * @summary Returns all employee wallets (admin-level overview).
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of wallet objects.
+ */
 export async function getWallets() {
   try {
     const response = await axios.get(`${WALLET_API_BASE_URL}/wallet`, {
@@ -693,7 +951,15 @@ export async function getWallets() {
   }
 }
 
-/** Return a single employee wallet by employeeId. */
+/**
+ * @summary Returns a single employee wallet by employee ID.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} employeeId - The employee's ID.
+ * @returns {Promise<object|null>} The wallet object, or null if not found.
+ */
 export async function getWallet(employeeId) {
   try {
     const response = await axios.get(
@@ -709,7 +975,15 @@ export async function getWallet(employeeId) {
   }
 }
 
-/** Return all wallet transactions for an employee, newest first. */
+/**
+ * @summary Returns all wallet transactions for an employee, ordered newest first.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} employeeId - The employee's ID.
+ * @returns {Promise<object[]>} Array of transaction objects.
+ */
 export async function getWalletTransactions(employeeId) {
   try {
     const response = await axios.get(
@@ -724,8 +998,13 @@ export async function getWalletTransactions(employeeId) {
 }
 
 /**
- * Credit funds to an employee wallet (auto-creates wallet on first top-up).
- * @param {{ employeeId: string, employeeName: string, employeeEmail: string, amount: number, currency?: string, description?: string, performedBy: string }} data
+ * @summary Credits funds to an employee wallet; auto-creates the wallet on first top-up.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ employeeId: string, employeeName: string, employeeEmail: string, amount: number, currency?: string, description?: string, performedBy: string }} data - Top-up payload.
+ * @returns {Promise<object>} The updated wallet and transaction record.
  */
 export async function topUpWallet(data) {
   try {
@@ -740,8 +1019,13 @@ export async function topUpWallet(data) {
 }
 
 /**
- * Deduct an approved wallet-payment expense from the employee's balance.
- * @param {{ employeeId: string, amount: number, currency?: string, description?: string, expenseReferenceId?: string, performedBy: string }} data
+ * @summary Deducts an approved wallet-payment expense from the employee's balance.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ employeeId: string, amount: number, currency?: string, description?: string, expenseReferenceId?: string, performedBy: string }} data - Deduction payload.
+ * @returns {Promise<object>} The updated wallet and transaction record.
  */
 export async function deductFromWallet(data) {
   try {
@@ -756,8 +1040,13 @@ export async function deductFromWallet(data) {
 }
 
 /**
- * Manually credit or debit an employee wallet (correction / adjustment).
- * @param {{ employeeId: string, direction: 'credit'|'debit', amount: number, currency?: string, description?: string, performedBy: string }} data
+ * @summary Manually credits or debits an employee wallet as a correction or adjustment.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ employeeId: string, direction: 'credit'|'debit', amount: number, currency?: string, description?: string, performedBy: string }} data - Adjustment payload.
+ * @returns {Promise<object>} The updated wallet and transaction record.
  */
 export async function adjustWallet(data) {
   try {
@@ -775,6 +1064,15 @@ export async function adjustWallet(data) {
 // Employee ID Management APIs
 // ============================================================================
 
+/**
+ * @summary Lists employee ID records, optionally filtered by country, status, or expiry window.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ country?: string, status?: string, expiringSoonDays?: number }} [params] - Optional filter parameters.
+ * @returns {Promise<object>} Paginated list response containing employee ID records.
+ */
 export async function listEmployeeIds(params = {}) {
   try {
     const query = new URLSearchParams();
@@ -792,6 +1090,15 @@ export async function listEmployeeIds(params = {}) {
   }
 }
 
+/**
+ * @summary Fetches a single employee ID record by its primary key.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The employee ID record's primary key.
+ * @returns {Promise<object>} The employee ID record.
+ */
 export async function getEmployeeIdRecord(id) {
   try {
     const response = await axios.get(`${API_BASE_URL}employee-ids/${id}`, {
@@ -804,6 +1111,16 @@ export async function getEmployeeIdRecord(id) {
   }
 }
 
+/**
+ * @summary Updates an employee ID record by its primary key.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The employee ID record's primary key.
+ * @param {object} data - Fields to update.
+ * @returns {Promise<object>} The updated employee ID record.
+ */
 export async function updateEmployeeId(id, data) {
   try {
     const response = await axios.patch(`${API_BASE_URL}employee-ids/${id}`, data, {
@@ -816,6 +1133,15 @@ export async function updateEmployeeId(id, data) {
   }
 }
 
+/**
+ * @summary Returns employee ID records expiring within the specified number of days.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {number} [days] - Look-ahead window in days (defaults to backend default if omitted).
+ * @returns {Promise<object>} Response containing expiring document records.
+ */
 export async function getExpiringDocuments(days) {
   try {
     const query = days ? `?days=${days}` : '';
@@ -829,6 +1155,14 @@ export async function getExpiringDocuments(days) {
   }
 }
 
+/**
+ * @summary Returns a compliance dashboard summary for employee ID documents.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object>} Dashboard summary including counts of valid, expiring, and expired documents.
+ */
 export async function getComplianceDashboard() {
   try {
     const response = await axios.get(`${API_BASE_URL}employee-ids/compliance-dashboard`, {
@@ -841,6 +1175,15 @@ export async function getComplianceDashboard() {
   }
 }
 
+/**
+ * @summary Fetches SCE (Saudi Council of Engineers) membership records for an employee.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} employeeId - The employee's ID.
+ * @returns {Promise<object[]>} Array of SCE membership objects.
+ */
 export async function getSceMemberships(employeeId) {
   try {
     const response = await axios.get(`${API_BASE_URL}employee-ids/${employeeId}/sce`, {
@@ -853,6 +1196,15 @@ export async function getSceMemberships(employeeId) {
   }
 }
 
+/**
+ * @summary Creates a new SCE membership record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} data - SCE membership fields.
+ * @returns {Promise<object>} The created membership record.
+ */
 export async function createSceMembership(data) {
   try {
     const response = await axios.post(`${API_BASE_URL}employee-ids/sce`, data, {
@@ -865,6 +1217,16 @@ export async function createSceMembership(data) {
   }
 }
 
+/**
+ * @summary Updates an existing SCE membership record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The SCE membership record ID.
+ * @param {object} data - Fields to update.
+ * @returns {Promise<object>} The updated membership record.
+ */
 export async function updateSceMembership(id, data) {
   try {
     const response = await axios.patch(`${API_BASE_URL}employee-ids/sce/${id}`, data, {
@@ -881,6 +1243,15 @@ export async function updateSceMembership(id, data) {
 // Insurance Management APIs
 // ============================================================================
 
+/**
+ * @summary Lists insurance records with optional filters for employee, status, provider, or expiry window.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ employeeId?: string, status?: string, providerId?: string, expiringSoonDays?: number }} [params] - Optional filter parameters.
+ * @returns {Promise<object>} Paginated list response containing insurance records.
+ */
 export async function listInsuranceRecords(params = {}) {
   try {
     const query = new URLSearchParams();
@@ -899,6 +1270,15 @@ export async function listInsuranceRecords(params = {}) {
   }
 }
 
+/**
+ * @summary Fetches a single insurance record by its primary key.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The insurance record ID.
+ * @returns {Promise<object>} The insurance record.
+ */
 export async function getInsuranceRecord(id) {
   try {
     const response = await axios.get(`${API_BASE_URL}insurance/records/${id}`, {
@@ -911,6 +1291,15 @@ export async function getInsuranceRecord(id) {
   }
 }
 
+/**
+ * @summary Creates a new insurance record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} data - Insurance record fields (employeeId, providerId, startDate, endDate, etc.).
+ * @returns {Promise<object>} The created insurance record.
+ */
 export async function createInsuranceRecord(data) {
   try {
     const response = await axios.post(`${API_BASE_URL}insurance/records`, data, {
@@ -923,6 +1312,16 @@ export async function createInsuranceRecord(data) {
   }
 }
 
+/**
+ * @summary Updates an existing insurance record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The insurance record ID.
+ * @param {object} data - Fields to update.
+ * @returns {Promise<object>} The updated insurance record.
+ */
 export async function updateInsuranceRecord(id, data) {
   try {
     const response = await axios.patch(`${API_BASE_URL}insurance/records/${id}`, data, {
@@ -935,6 +1334,15 @@ export async function updateInsuranceRecord(id, data) {
   }
 }
 
+/**
+ * @summary Fetches all dependents linked to a specific insurance record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} recordId - The insurance record ID.
+ * @returns {Promise<object[]>} Array of dependent objects.
+ */
 export async function listDependents(recordId) {
   try {
     const response = await axios.get(`${API_BASE_URL}insurance/records/${recordId}/dependents`, {
@@ -947,6 +1355,15 @@ export async function listDependents(recordId) {
   }
 }
 
+/**
+ * @summary Creates a new insurance dependent record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} data - Dependent fields including recordId, name, relationship, dateOfBirth, etc.
+ * @returns {Promise<object>} The created dependent record.
+ */
 export async function createDependent(data) {
   try {
     const response = await axios.post(`${API_BASE_URL}insurance/dependents`, data, {
@@ -959,6 +1376,16 @@ export async function createDependent(data) {
   }
 }
 
+/**
+ * @summary Updates an existing insurance dependent record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The dependent record ID.
+ * @param {object} data - Fields to update.
+ * @returns {Promise<object>} The updated dependent record.
+ */
 export async function updateDependent(id, data) {
   try {
     const response = await axios.patch(`${API_BASE_URL}insurance/dependents/${id}`, data, {
@@ -971,6 +1398,15 @@ export async function updateDependent(id, data) {
   }
 }
 
+/**
+ * @summary Fetches all insurance providers, optionally limited to active providers only.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {boolean} [activeOnly=false] - When true, only returns active providers.
+ * @returns {Promise<object[]>} Array of insurance provider objects.
+ */
 export async function listInsuranceProviders(activeOnly = false) {
   try {
     const query = activeOnly ? '?activeOnly=true' : '';
@@ -984,6 +1420,15 @@ export async function listInsuranceProviders(activeOnly = false) {
   }
 }
 
+/**
+ * @summary Creates a new insurance provider record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} data - Provider fields (name, contactEmail, phone, isActive, etc.).
+ * @returns {Promise<object>} The created insurance provider record.
+ */
 export async function createInsuranceProvider(data) {
   try {
     const response = await axios.post(`${API_BASE_URL}insurance/providers`, data, {
@@ -996,6 +1441,16 @@ export async function createInsuranceProvider(data) {
   }
 }
 
+/**
+ * @summary Updates an existing insurance provider record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The insurance provider record ID.
+ * @param {object} data - Fields to update.
+ * @returns {Promise<object>} The updated insurance provider record.
+ */
 export async function updateInsuranceProvider(id, data) {
   try {
     const response = await axios.patch(`${API_BASE_URL}insurance/providers/${id}`, data, {
@@ -1008,6 +1463,14 @@ export async function updateInsuranceProvider(id, data) {
   }
 }
 
+/**
+ * @summary Returns insurance dashboard statistics (coverage counts, expiring policies, etc.).
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object>} Insurance dashboard statistics object.
+ */
 export async function getInsuranceDashboard() {
   try {
     const response = await axios.get(`${API_BASE_URL}insurance/dashboard`, {
@@ -1024,6 +1487,15 @@ export async function getInsuranceDashboard() {
 // Employee Requests Management APIs
 // ============================================================================
 
+/**
+ * @summary Lists employee requests with optional filters for employee, status, type, and pagination.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ employeeId?: string, status?: string, requestTable?: string, limit?: number, offset?: number }} [params] - Optional filter and pagination parameters.
+ * @returns {Promise<object>} Paginated list response containing request records.
+ */
 export async function listRequests(params = {}) {
   try {
     const query = new URLSearchParams();
@@ -1043,6 +1515,16 @@ export async function listRequests(params = {}) {
   }
 }
 
+/**
+ * @summary Fetches a single request together with its full approvals chain.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} requestTable - The request type table name (e.g. "visa", "service").
+ * @param {string|number} id - The request record ID.
+ * @returns {Promise<object>} The request record with nested approvals.
+ */
 export async function getRequestWithApprovals(requestTable, id) {
   try {
     const response = await axios.get(`${API_BASE_URL}employee-requests/${requestTable}/${id}`, {
@@ -1055,6 +1537,15 @@ export async function getRequestWithApprovals(requestTable, id) {
   }
 }
 
+/**
+ * @summary Submits a new visa request for an employee.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} data - Visa request fields (employeeId, visaType, destination, etc.).
+ * @returns {Promise<object>} The created visa request record.
+ */
 export async function createVisaRequest(data) {
   try {
     const response = await axios.post(`${API_BASE_URL}employee-requests/visa`, data, {
@@ -1067,6 +1558,16 @@ export async function createVisaRequest(data) {
   }
 }
 
+/**
+ * @summary Updates an existing visa request.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The visa request ID.
+ * @param {object} data - Fields to update.
+ * @returns {Promise<object>} The updated visa request record.
+ */
 export async function updateVisaRequest(id, data) {
   try {
     const response = await axios.patch(`${API_BASE_URL}employee-requests/visa/${id}`, data, {
@@ -1079,6 +1580,15 @@ export async function updateVisaRequest(id, data) {
   }
 }
 
+/**
+ * @summary Submits a new service request for an employee.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} data - Service request fields (employeeId, serviceType, description, etc.).
+ * @returns {Promise<object>} The created service request record.
+ */
 export async function createServiceRequest(data) {
   try {
     const response = await axios.post(`${API_BASE_URL}employee-requests/service`, data, {
@@ -1091,6 +1601,16 @@ export async function createServiceRequest(data) {
   }
 }
 
+/**
+ * @summary Updates an existing service request.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The service request ID.
+ * @param {object} data - Fields to update.
+ * @returns {Promise<object>} The updated service request record.
+ */
 export async function updateServiceRequest(id, data) {
   try {
     const response = await axios.patch(`${API_BASE_URL}employee-requests/service/${id}`, data, {
@@ -1103,6 +1623,15 @@ export async function updateServiceRequest(id, data) {
   }
 }
 
+/**
+ * @summary Submits a new reimbursement request for an employee.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} data - Reimbursement request fields (employeeId, amount, category, receipts, etc.).
+ * @returns {Promise<object>} The created reimbursement request record.
+ */
 export async function createReimbursementRequest(data) {
   try {
     const response = await axios.post(`${API_BASE_URL}employee-requests/reimbursement`, data, {
@@ -1115,6 +1644,16 @@ export async function createReimbursementRequest(data) {
   }
 }
 
+/**
+ * @summary Updates an existing reimbursement request.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The reimbursement request ID.
+ * @param {object} data - Fields to update.
+ * @returns {Promise<object>} The updated reimbursement request record.
+ */
 export async function updateReimbursementRequest(id, data) {
   try {
     const response = await axios.patch(
@@ -1129,6 +1668,15 @@ export async function updateReimbursementRequest(id, data) {
   }
 }
 
+/**
+ * @summary Submits an approval decision (approve or reject) for a pending employee request.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ requestTable: string, requestId: string|number, approverEmail: string, decision: 'approved'|'rejected', comments?: string }} data - Approval payload.
+ * @returns {Promise<object>} The updated request record with new approval status.
+ */
 export async function submitApproval(data) {
   try {
     const response = await axios.post(`${API_BASE_URL}employee-requests/approve`, data, {
@@ -1141,6 +1689,15 @@ export async function submitApproval(data) {
   }
 }
 
+/**
+ * @summary Fetches all requests pending approval for a specific approver.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} approverEmail - The approver's email address.
+ * @returns {Promise<object>} Pending approvals list grouped by request type.
+ */
 export async function listPendingApprovals(approverEmail) {
   try {
     const response = await axios.get(
@@ -1154,6 +1711,15 @@ export async function listPendingApprovals(approverEmail) {
   }
 }
 
+/**
+ * @summary Retrieves the HR audit log, optionally scoped to a specific entity type and ID.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ entityType?: string, entityId?: string|number, limit?: number, offset?: number }} [params] - Filter and pagination options.
+ * @returns {Promise<object>} Audit log entries matching the given filters.
+ */
 export async function getAuditLog({ entityType, entityId, limit = 100, offset = 0 } = {}) {
   try {
     const params = new URLSearchParams();
@@ -1171,6 +1737,14 @@ export async function getAuditLog({ entityType, entityId, limit = 100, offset = 
   }
 }
 
+/**
+ * @summary Returns a dashboard summary of employee requests (counts by status and type).
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object>} Dashboard statistics for employee requests.
+ */
 export async function getRequestsDashboard() {
   try {
     const response = await axios.get(`${API_BASE_URL}employee-requests/dashboard`, {
@@ -1185,6 +1759,15 @@ export async function getRequestsDashboard() {
 
 // ─── Travel Ticket Requests ───────────────────────────────────────────────────
 
+/**
+ * @summary Submits a new travel ticket request for an employee.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} data - Travel request fields (employeeId, origin, destination, travelDate, etc.).
+ * @returns {Promise<object>} The created travel request record.
+ */
 export async function createTravelRequest(data) {
   try {
     const response = await axios.post(`${API_BASE_URL}employee-requests/travel`, data, {
@@ -1197,6 +1780,16 @@ export async function createTravelRequest(data) {
   }
 }
 
+/**
+ * @summary Updates an existing travel ticket request.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The travel request ID.
+ * @param {object} data - Fields to update.
+ * @returns {Promise<object>} The updated travel request record.
+ */
 export async function updateTravelRequest(id, data) {
   try {
     const response = await axios.patch(`${API_BASE_URL}employee-requests/travel/${id}`, data, {
@@ -1211,6 +1804,15 @@ export async function updateTravelRequest(id, data) {
 
 // ─── Letter Requests ─────────────────────────────────────────────────────────
 
+/**
+ * @summary Submits a new HR letter request (salary certificate, NOC, experience letter, etc.).
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} data - Letter request fields (employeeId, letterType, addressedTo, etc.).
+ * @returns {Promise<object>} The created letter request record.
+ */
 export async function createLetterRequest(data) {
   try {
     const response = await axios.post(`${API_BASE_URL}employee-requests/letter`, data, {
@@ -1223,6 +1825,16 @@ export async function createLetterRequest(data) {
   }
 }
 
+/**
+ * @summary Updates an existing HR letter request.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The letter request ID.
+ * @param {object} data - Fields to update.
+ * @returns {Promise<object>} The updated letter request record.
+ */
 export async function updateLetterRequest(id, data) {
   try {
     const response = await axios.patch(`${API_BASE_URL}employee-requests/letter/${id}`, data, {
@@ -1235,6 +1847,15 @@ export async function updateLetterRequest(id, data) {
   }
 }
 
+/**
+ * @summary Uploads a document file (base64-encoded) to cloud storage.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ fileBase64: string, fileName: string, mimeType: string, folder?: string }} params - Upload parameters.
+ * @returns {Promise<{ url: string, path: string }>} The uploaded file's URL and storage path.
+ */
 export async function uploadDocument({ fileBase64, fileName, mimeType, folder }) {
   try {
     const response = await axios.post(
@@ -1249,6 +1870,15 @@ export async function uploadDocument({ fileBase64, fileName, mimeType, folder })
   }
 }
 
+/**
+ * @summary Generates an HTML salary certificate document for the specified employee.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} employeeId - The employee's ID.
+ * @returns {Promise<{ html: string, fileName: string }>} The rendered HTML and suggested file name.
+ */
 export async function generateSalaryCertificate(employeeId) {
   try {
     const response = await axios.get(`${API_BASE_URL}documents/salary-certificate/${employeeId}`, {
@@ -1261,6 +1891,15 @@ export async function generateSalaryCertificate(employeeId) {
   }
 }
 
+/**
+ * @summary Generates an HTML document for a previously submitted letter request.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} letterId - The letter request ID.
+ * @returns {Promise<{ html: string, fileName: string }>} The rendered HTML and suggested file name.
+ */
 export async function generateLetterDocument(letterId) {
   try {
     const response = await axios.get(`${API_BASE_URL}documents/generate-letter/${letterId}`, {
@@ -1283,6 +1922,14 @@ const ENCORE_API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
 // Accounts Receivable APIs
 // ============================================================================
 
+/**
+ * @summary Fetches all accounts-receivable records.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object>} Accounts-receivable data from the Encore API.
+ */
 export async function fetchAccountsReceivable() {
   try {
     const response = await fetch(`${ENCORE_API_BASE_URL}/accountsReceivable`, {
@@ -1299,6 +1946,16 @@ export async function fetchAccountsReceivable() {
   }
 }
 
+/**
+ * @summary Fetches accounts-receivable records within a specified date range.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} startDate - ISO date string for the range start (e.g. "2024-01-01").
+ * @param {string} endDate - ISO date string for the range end (e.g. "2024-12-31").
+ * @returns {Promise<object>} Filtered accounts-receivable data.
+ */
 export async function fetchAccountsReceivableByDateRange(startDate, endDate) {
   try {
     const response = await fetch(`${ENCORE_API_BASE_URL}/accountsReceivable/daterange`, {
@@ -1320,6 +1977,14 @@ export async function fetchAccountsReceivableByDateRange(startDate, endDate) {
 // Accounts Payable APIs
 // ============================================================================
 
+/**
+ * @summary Fetches all accounts-payable records.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object>} Accounts-payable data from the Encore API.
+ */
 export async function fetchAccountsPayable() {
   try {
     const response = await fetch(`${ENCORE_API_BASE_URL}/accountsPayable`, {
@@ -1336,6 +2001,16 @@ export async function fetchAccountsPayable() {
   }
 }
 
+/**
+ * @summary Fetches accounts-payable records within a specified date range.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} startDate - ISO date string for the range start.
+ * @param {string} endDate - ISO date string for the range end.
+ * @returns {Promise<object>} Filtered accounts-payable data.
+ */
 export async function fetchAccountsPayableByDateRange(startDate, endDate) {
   try {
     const response = await fetch(`${ENCORE_API_BASE_URL}/accountsPayable/daterange`, {
@@ -1357,6 +2032,14 @@ export async function fetchAccountsPayableByDateRange(startDate, endDate) {
 // VAT Transactions APIs
 // ============================================================================
 
+/**
+ * @summary Fetches all VAT transaction records.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object>} All VAT transaction records from the Encore API.
+ */
 export async function fetchVATTransactions() {
   try {
     const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions`, {
@@ -1373,6 +2056,16 @@ export async function fetchVATTransactions() {
   }
 }
 
+/**
+ * @summary Fetches VAT transaction records within a specified date range.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} startDate - ISO date string for the range start.
+ * @param {string} endDate - ISO date string for the range end.
+ * @returns {Promise<object>} Filtered VAT transaction records.
+ */
 export async function fetchVATTransactionsByDateRange(startDate, endDate) {
   try {
     const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions/daterange`, {
@@ -1390,6 +2083,15 @@ export async function fetchVATTransactionsByDateRange(startDate, endDate) {
   }
 }
 
+/**
+ * @summary Fetches VAT transaction records for a specific tax period.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} taxPeriod - The ZATCA tax period identifier (e.g. "2024-Q1").
+ * @returns {Promise<object>} VAT transactions for the specified period.
+ */
 export async function fetchVATTransactionsByTaxPeriod(taxPeriod) {
   try {
     const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions/period/${taxPeriod}`, {
@@ -1406,7 +2108,18 @@ export async function fetchVATTransactionsByTaxPeriod(taxPeriod) {
   }
 }
 
-// Post VAT for a quarter - locks in VAT transactions for ZATCA filing
+/**
+ * @summary Posts (locks) VAT transactions for a given quarter for ZATCA filing.
+ * @description Once posted, VAT transactions for the period are immutable.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {number} year - The fiscal year (e.g. 2024).
+ * @param {number} quarter - The quarter number (1–4).
+ * @param {string} postedBy - Email address of the user posting the VAT.
+ * @returns {Promise<object>} Confirmation with the posting summary.
+ */
 export async function postQuarterlyVAT(year, quarter, postedBy) {
   try {
     console.log(`📤 Posting VAT for Q${quarter}-${year}`);
@@ -1428,7 +2141,16 @@ export async function postQuarterlyVAT(year, quarter, postedBy) {
   }
 }
 
-// Get VAT posting status for a quarter
+/**
+ * @summary Gets the VAT posting status (posted/unposted) for a given year and quarter.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {number} year - The fiscal year (e.g. 2024).
+ * @param {number} quarter - The quarter number (1–4).
+ * @returns {Promise<object>} Object containing the posting status for the period.
+ */
 export async function getVATPostingStatus(year, quarter) {
   try {
     const response = await fetch(
@@ -1448,7 +2170,16 @@ export async function getVATPostingStatus(year, quarter) {
   }
 }
 
-// Get VAT summary for a quarter (from posted VAT transactions)
+/**
+ * @summary Retrieves the VAT summary (totals, net VAT payable) for a given year and quarter.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {number} year - The fiscal year (e.g. 2024).
+ * @param {number} quarter - The quarter number (1–4).
+ * @returns {Promise<object>} VAT summary object including output/input VAT totals.
+ */
 export async function getVATSummaryByQuarter(year, quarter) {
   try {
     const response = await fetch(
@@ -1472,7 +2203,15 @@ export async function getVATSummaryByQuarter(year, quarter) {
 // VAT Returns API Functions - Store VAT Return summaries
 // ===========================================================================
 
-// Save VAT Return summary to database
+/**
+ * @summary Saves a completed VAT Return summary to the database for record-keeping.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} vatReturnData - The VAT return data including taxPeriod, totals, and submittedBy.
+ * @returns {Promise<object>} The saved VAT return record.
+ */
 export async function saveVATReturn(vatReturnData) {
   try {
     console.log('📤 Saving VAT Return:', vatReturnData.taxPeriod);
@@ -1494,7 +2233,14 @@ export async function saveVATReturn(vatReturnData) {
   }
 }
 
-// Get all VAT Returns
+/**
+ * @summary Fetches all saved VAT return records.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object>} All VAT return records.
+ */
 export async function getVATReturns() {
   try {
     const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns`, {
@@ -1511,7 +2257,15 @@ export async function getVATReturns() {
   }
 }
 
-// Get VAT Return by tax period
+/**
+ * @summary Fetches the VAT return record for a specific tax period.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} taxPeriod - The ZATCA tax period identifier (e.g. "2024-Q1").
+ * @returns {Promise<object>} The VAT return record for that period.
+ */
 export async function getVATReturnByPeriod(taxPeriod) {
   try {
     const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns/${taxPeriod}`, {
@@ -1528,7 +2282,18 @@ export async function getVATReturnByPeriod(taxPeriod) {
   }
 }
 
-// Update VAT Return status
+/**
+ * @summary Updates the status of a VAT return (e.g. submitted to ZATCA) and records the ZATCA reference number.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} taxPeriod - The ZATCA tax period identifier.
+ * @param {string} status - The new status (e.g. "submitted", "accepted").
+ * @param {string} zatcaReferenceNumber - The ZATCA submission reference number.
+ * @param {string} updatedBy - Email address of the user making the update.
+ * @returns {Promise<object>} The updated VAT return record.
+ */
 export async function updateVATReturnStatus(taxPeriod, status, zatcaReferenceNumber, updatedBy) {
   try {
     const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns/${taxPeriod}/status`, {
@@ -1550,6 +2315,15 @@ export async function updateVATReturnStatus(taxPeriod, status, zatcaReferenceNum
 // Invoice API Functions
 // ===========================================================================
 
+/**
+ * @summary Creates a new invoice record in the system.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} invoiceData - Invoice fields (customerId, lineItems, dueDate, currency, etc.).
+ * @returns {Promise<object>} The created invoice object.
+ */
 export async function createInvoice(invoiceData) {
   try {
     console.log('📤 Creating invoice:', invoiceData);
@@ -1580,6 +2354,14 @@ export async function createInvoice(invoiceData) {
   }
 }
 
+/**
+ * @summary Fetches all invoice records from the Supabase database.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of invoice objects, or empty array on error.
+ */
 // ✅ NEW: Fetch invoices from your Supabase database
 export async function fetchInvoices() {
   try {
@@ -1597,6 +2379,15 @@ export async function fetchInvoices() {
   }
 }
 
+/**
+ * @summary Fetches a single invoice record by its ID.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} invoiceId - The invoice's ID.
+ * @returns {Promise<object|null>} The invoice object, or null if not found.
+ */
 // Fetch single invoice by ID
 export async function fetchInvoice(invoiceId) {
   try {
@@ -1617,6 +2408,15 @@ export async function fetchInvoice(invoiceId) {
   }
 }
 
+/**
+ * @summary Permanently deletes an invoice by its ID.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} invoiceId - The invoice's ID.
+ * @returns {Promise<object>} Deletion confirmation response.
+ */
 export async function deleteInvoice(invoiceId) {
   try {
     const response = await axios.delete(
@@ -1636,6 +2436,16 @@ export async function deleteInvoice(invoiceId) {
   }
 }
 
+/**
+ * @summary Updates an existing invoice with new data.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} invoiceId - The invoice's ID.
+ * @param {object} invoiceData - Fields to update on the invoice.
+ * @returns {Promise<object>} The updated invoice object.
+ */
 // Update existing invoice
 export async function updateInvoice(invoiceId, invoiceData) {
   try {
@@ -1660,9 +2470,14 @@ export async function updateInvoice(invoiceId, invoiceData) {
 }
 
 /**
- * Approve or reject an invoice.
- * @param {string} invoiceId
- * @param {{ approved: boolean, approverName: string, approverEmail: string, rejectionReason?: string, pdfBase64?: string }} data
+ * @summary Approves or rejects an invoice, optionally attaching the PDF for audit trail.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} invoiceId - The invoice's invoiceId.
+ * @param {{ approved: boolean, approverName: string, approverEmail: string, rejectionReason?: string, pdfBase64?: string }} data - Approval payload.
+ * @returns {Promise<object>} The updated invoice record with approval status.
  */
 export async function approveInvoice(invoiceId, data) {
   try {
@@ -1679,9 +2494,14 @@ export async function approveInvoice(invoiceId, data) {
 }
 
 /**
- * Issue an invoice: upload the generated PDF to OneDrive and email it to the customer.
- * @param {string} invoiceId  - The invoice's invoiceId field
- * @param {string} pdfBase64  - Base64-encoded PDF content
+ * @summary Issues an invoice by uploading the generated PDF to OneDrive and emailing it to the customer.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} invoiceId - The invoice's invoiceId field.
+ * @param {string} pdfBase64 - Base64-encoded PDF content.
+ * @returns {Promise<object>} Issue confirmation with delivery details.
  */
 export async function issueInvoice(invoiceId, pdfBase64) {
   try {
@@ -1707,6 +2527,14 @@ export async function issueInvoice(invoiceId, pdfBase64) {
 // EMPLOYEE API FUNCTIONS
 // ============================================================================
 
+/**
+ * @summary Fetches all employee records.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of employee objects.
+ */
 export async function getEmployees() {
   try {
     const response = await axios.get(`${API_BASE_URL}/employees`);
@@ -1717,6 +2545,15 @@ export async function getEmployees() {
   }
 }
 
+/**
+ * @summary Fetches a single employee record by its ID.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The employee's ID.
+ * @returns {Promise<object>} The employee object.
+ */
 export async function getEmployeeById(id) {
   try {
     const response = await axios.get(`${API_BASE_URL}/employees/${id}`);
@@ -1727,6 +2564,15 @@ export async function getEmployeeById(id) {
   }
 }
 
+/**
+ * @summary Creates a new employee record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} employeeData - Employee fields (name, email, jobTitle, department, etc.).
+ * @returns {Promise<object>} The created employee object.
+ */
 export async function createEmployee(employeeData) {
   try {
     const response = await axios.post(`${API_BASE_URL}/employees`, employeeData);
@@ -1737,6 +2583,16 @@ export async function createEmployee(employeeData) {
   }
 }
 
+/**
+ * @summary Updates an existing employee record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The employee's ID.
+ * @param {object} employeeData - Fields to update.
+ * @returns {Promise<object>} The updated employee object.
+ */
 export async function updateEmployee(id, employeeData) {
   try {
     const response = await axios.patch(`${API_BASE_URL}/employees/${id}`, employeeData);
@@ -1751,6 +2607,15 @@ export async function updateEmployee(id, employeeData) {
   }
 }
 
+/**
+ * @summary Permanently deletes an employee record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The employee's ID.
+ * @returns {Promise<object>} Deletion confirmation response.
+ */
 export async function deleteEmployee(id) {
   try {
     const response = await axios.delete(`${API_BASE_URL}/employees/${id}`);
@@ -1765,6 +2630,14 @@ export async function deleteEmployee(id) {
 // BUSINESS VISA REQUEST API FUNCTIONS
 // ============================================================================
 
+/**
+ * @summary Fetches all business visa requests.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of business visa request objects.
+ */
 export async function getBusinessVisaRequests() {
   try {
     const response = await axios.get(`${API_BASE_URL}/businessVisaRequests`);
@@ -1775,6 +2648,15 @@ export async function getBusinessVisaRequests() {
   }
 }
 
+/**
+ * @summary Fetches a single business visa request by its ID.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The business visa request ID.
+ * @returns {Promise<object>} The business visa request object.
+ */
 export async function getBusinessVisaRequestById(id) {
   try {
     const response = await axios.get(`${API_BASE_URL}/businessVisaRequests/${id}`);
@@ -1785,6 +2667,15 @@ export async function getBusinessVisaRequestById(id) {
   }
 }
 
+/**
+ * @summary Creates a new business visa request.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} requestData - Visa request fields (employeeId, destination, purpose, travelDates, etc.).
+ * @returns {Promise<object>} The created business visa request object.
+ */
 export async function createBusinessVisaRequest(requestData) {
   try {
     const response = await axios.post(`${API_BASE_URL}/businessVisaRequests`, requestData);
@@ -1795,6 +2686,16 @@ export async function createBusinessVisaRequest(requestData) {
   }
 }
 
+/**
+ * @summary Updates an existing business visa request.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The business visa request ID.
+ * @param {object} requestData - Fields to update.
+ * @returns {Promise<object>} The updated business visa request object.
+ */
 export async function updateBusinessVisaRequest(id, requestData) {
   try {
     const response = await axios.patch(`${API_BASE_URL}/businessVisaRequests/${id}`, requestData);
@@ -1805,6 +2706,15 @@ export async function updateBusinessVisaRequest(id, requestData) {
   }
 }
 
+/**
+ * @summary Permanently deletes a business visa request.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The business visa request ID.
+ * @returns {Promise<object>} Deletion confirmation response.
+ */
 export async function deleteBusinessVisaRequest(id) {
   try {
     const response = await axios.delete(`${API_BASE_URL}/businessVisaRequests/${id}`);
@@ -1819,6 +2729,14 @@ export async function deleteBusinessVisaRequest(id) {
 // LEAVE REQUEST API FUNCTIONS
 // ============================================================================
 
+/**
+ * @summary Fetches all leave requests.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of leave request objects.
+ */
 export async function getLeaveRequests() {
   try {
     const response = await axios.get(`${API_BASE_URL}/leaveRequests`);
@@ -1829,6 +2747,15 @@ export async function getLeaveRequests() {
   }
 }
 
+/**
+ * @summary Fetches a single leave request by its ID.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The leave request ID.
+ * @returns {Promise<object>} The leave request object.
+ */
 export async function getLeaveRequestById(id) {
   try {
     const response = await axios.get(`${API_BASE_URL}/leaveRequests/${id}`);
@@ -1839,6 +2766,15 @@ export async function getLeaveRequestById(id) {
   }
 }
 
+/**
+ * @summary Creates a new leave request for an employee.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} requestData - Leave request fields (employeeId, leaveType, startDate, endDate, reason, etc.).
+ * @returns {Promise<object>} The created leave request object.
+ */
 export async function createLeaveRequest(requestData) {
   try {
     const response = await axios.post(`${API_BASE_URL}/leaveRequests`, requestData);
@@ -1849,6 +2785,16 @@ export async function createLeaveRequest(requestData) {
   }
 }
 
+/**
+ * @summary Updates an existing leave request.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The leave request ID.
+ * @param {object} requestData - Fields to update.
+ * @returns {Promise<object>} The updated leave request object.
+ */
 export async function updateLeaveRequest(id, requestData) {
   try {
     const response = await axios.patch(`${API_BASE_URL}/leaveRequests/${id}`, requestData);
@@ -1859,6 +2805,15 @@ export async function updateLeaveRequest(id, requestData) {
   }
 }
 
+/**
+ * @summary Permanently deletes a leave request.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The leave request ID.
+ * @returns {Promise<object>} Deletion confirmation response.
+ */
 export async function deleteLeaveRequest(id) {
   try {
     const response = await axios.delete(`${API_BASE_URL}/leaveRequests/${id}`);
@@ -1873,11 +2828,28 @@ export async function deleteLeaveRequest(id) {
 // RBAC
 // ---------------------------------------------------------------------------
 
+/**
+ * @summary Fetches all available roles for RBAC assignment.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of role objects.
+ */
 export async function fetchRoles() {
   const response = await axios.get(`${API_BASE_URL}roles`);
   return response.data?.roles || response.data || [];
 }
 
+/**
+ * @summary Assigns a role to a user by their ID.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ id: string, roleId: number }} params - The user's ID and the target role ID.
+ * @returns {Promise<object>} The updated user record.
+ */
 export async function setUserRoleApi({ id, roleId }) {
   if (!id || !roleId) throw new Error('id and roleId are required');
   const response = await axios.patch(
@@ -1888,6 +2860,15 @@ export async function setUserRoleApi({ id, roleId }) {
   return Array.isArray(response.data) ? response.data[0] : response.data;
 }
 
+/**
+ * @summary Links a user to a manager for delegation and approval chains.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ managerId: string, userId: string }} params - The manager and user IDs.
+ * @returns {Promise<object>} The created manager-user association record.
+ */
 export async function assignManagerApi({ managerId, userId }) {
   if (!managerId || !userId) throw new Error('managerId and userId are required');
   const response = await axios.post(
@@ -1898,6 +2879,15 @@ export async function assignManagerApi({ managerId, userId }) {
   return Array.isArray(response.data) ? response.data[0] : response.data;
 }
 
+/**
+ * @summary Fetches all users reporting to a given manager.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} managerId - The manager's user ID.
+ * @returns {Promise<object[]>} Array of user objects managed by the given manager.
+ */
 export async function fetchManagerUsers(managerId) {
   if (!managerId) return [];
   const response = await axios.get(
@@ -1910,11 +2900,28 @@ export async function fetchManagerUsers(managerId) {
 // User Nav Permissions (Per-User Access Control)
 // ---------------------------------------------------------------------------
 
+/**
+ * @summary Fetches the full list of navigation permission definitions.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of nav permission objects.
+ */
 export async function fetchNavPermissions() {
   const response = await axios.get(`${API_BASE_URL}nav-permissions`);
   return response.data?.permissions || [];
 }
 
+/**
+ * @summary Fetches the navigation permissions granted to a specific user.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} userId - The user's ID.
+ * @returns {Promise<object[]>} Array of permission objects enabled for the user.
+ */
 export async function fetchUserNavPermissions(userId) {
   if (!userId) return [];
   const response = await axios.get(
@@ -1923,6 +2930,15 @@ export async function fetchUserNavPermissions(userId) {
   return response.data?.permissions || [];
 }
 
+/**
+ * @summary Returns only the enabled URL paths for a specific user (for route guards).
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} userId - The user's ID.
+ * @returns {Promise<string[]>} Array of URL path strings the user is permitted to access.
+ */
 export async function fetchUserEnabledPaths(userId) {
   if (!userId) return [];
   const response = await axios.get(
@@ -1931,6 +2947,15 @@ export async function fetchUserEnabledPaths(userId) {
   return response.data?.paths || [];
 }
 
+/**
+ * @summary Sets (replaces) all navigation permissions for a specific user.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ userId: string, permissions: string[], grantedBy: string }} params - The user ID, new permission list, and the admin granting them.
+ * @returns {Promise<object>} Updated permission record.
+ */
 export async function setUserNavPermissions({ userId, permissions, grantedBy }) {
   if (!userId) throw new Error('userId is required');
   const response = await axios.post(`${API_BASE_URL}user-nav-permissions/set`, {
@@ -1941,6 +2966,15 @@ export async function setUserNavPermissions({ userId, permissions, grantedBy }) 
   return response.data;
 }
 
+/**
+ * @summary Grants the default set of navigation permissions for a user based on their role.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ userId: string, role: string, grantedBy: string }} params - The user ID, role name, and admin granting defaults.
+ * @returns {Promise<object>} The granted permissions record.
+ */
 export async function grantDefaultPermissions({ userId, role, grantedBy }) {
   if (!userId || !role) throw new Error('userId and role are required');
   const response = await axios.post(`${API_BASE_URL}user-nav-permissions/grant-defaults`, {
@@ -1955,6 +2989,15 @@ export async function grantDefaultPermissions({ userId, role, grantedBy }) {
 // Job Management API Functions
 // =============================================
 
+/**
+ * @summary Fetches job postings with optional filters for status, type, department, and remote/featured flags.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ page?: number, limit?: number, status?: string, jobType?: string, department?: string, isRemote?: boolean, isFeatured?: boolean }} [params] - Optional filter and pagination parameters.
+ * @returns {Promise<object>} Paginated list of job postings.
+ */
 export async function getJobs(params = {}) {
   try {
     const queryParams = new URLSearchParams();
@@ -1975,6 +3018,15 @@ export async function getJobs(params = {}) {
   }
 }
 
+/**
+ * @summary Fetches a single job posting by its ID.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The job posting ID.
+ * @returns {Promise<object|null>} The job posting object, or null if id is falsy.
+ */
 export async function getJobById(id) {
   if (!id) return null;
   try {
@@ -1986,6 +3038,15 @@ export async function getJobById(id) {
   }
 }
 
+/**
+ * @summary Creates a new job posting.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} jobData - Job posting fields (title, department, jobType, description, requirements, etc.).
+ * @returns {Promise<object>} The created job posting object.
+ */
 export async function createJob(jobData) {
   try {
     const response = await axios.post(`${API_BASE_URL}jobs`, jobData, {
@@ -1998,6 +3059,16 @@ export async function createJob(jobData) {
   }
 }
 
+/**
+ * @summary Updates an existing job posting.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The job posting ID.
+ * @param {object} jobData - Fields to update.
+ * @returns {Promise<object>} The updated job posting object.
+ */
 export async function updateJob(id, jobData) {
   try {
     const response = await axios.patch(
@@ -2014,6 +3085,15 @@ export async function updateJob(id, jobData) {
   }
 }
 
+/**
+ * @summary Permanently deletes a job posting.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The job posting ID.
+ * @returns {Promise<object>} Deletion confirmation response.
+ */
 export async function deleteJob(id) {
   try {
     const response = await axios.delete(`${API_BASE_URL}jobs/${id}`);
@@ -2024,6 +3104,16 @@ export async function deleteJob(id) {
   }
 }
 
+/**
+ * @summary Syncs a job posting to Webflow CMS, optionally publishing it immediately.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} jobId - The job posting ID to sync.
+ * @param {boolean} [publish=true] - Whether to publish the item in Webflow immediately after sync.
+ * @returns {Promise<object>} Sync result including the Webflow item ID.
+ */
 export async function syncJobToWebflow(jobId, publish = true) {
   try {
     const response = await axios.post(
@@ -2043,6 +3133,14 @@ export async function syncJobToWebflow(jobId, publish = true) {
   }
 }
 
+/**
+ * @summary Tests the Webflow API connection to verify credentials and site access.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object>} Connection test result with status details.
+ */
 export async function testWebflowConnection() {
   try {
     const response = await axios.get(`${API_BASE_URL}webflow/test`);
@@ -2053,6 +3151,14 @@ export async function testWebflowConnection() {
   }
 }
 
+/**
+ * @summary Publishes pending Webflow CMS changes to the live site.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object>} Publish confirmation response.
+ */
 export async function publishToWebflow() {
   try {
     const response = await axios.post(`${API_BASE_URL}webflow/publish`);
@@ -2063,6 +3169,16 @@ export async function publishToWebflow() {
   }
 }
 
+/**
+ * @summary Fetches a specific integration record by name and type.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} integrationName - The integration name (e.g. "zoho", "webflow").
+ * @param {string} integrationType - The integration type/subtype.
+ * @returns {Promise<object>} The integration configuration record.
+ */
 export async function getIntegration(integrationName, integrationType) {
   try {
     const response = await axios.get(
@@ -2075,6 +3191,17 @@ export async function getIntegration(integrationName, integrationType) {
   }
 }
 
+/**
+ * @summary Updates an existing integration's configuration.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} integrationName - The integration name.
+ * @param {string} integrationType - The integration type/subtype.
+ * @param {object} data - Configuration fields to update.
+ * @returns {Promise<object>} The updated integration record.
+ */
 export async function updateIntegration(integrationName, integrationType, data) {
   try {
     const response = await axios.patch(
@@ -2089,6 +3216,15 @@ export async function updateIntegration(integrationName, integrationType, data) 
   }
 }
 
+/**
+ * @summary Fetches all integration records, optionally filtered by params.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} [params] - Optional query parameters to filter integrations.
+ * @returns {Promise<object[]>} Array of integration objects, or empty array on error.
+ */
 export async function getIntegrations(params = {}) {
   try {
     const response = await axios.get(`${API_BASE_URL}integrations`, { params });
@@ -2099,6 +3235,15 @@ export async function getIntegrations(params = {}) {
   }
 }
 
+/**
+ * @summary Creates a new integration configuration record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} data - Integration fields (integrationName, integrationType, credentials, etc.).
+ * @returns {Promise<object>} The created integration record.
+ */
 export async function createIntegration(data) {
   try {
     const response = await axios.post(`${API_BASE_URL}integrations`, data, {
@@ -2111,6 +3256,16 @@ export async function createIntegration(data) {
   }
 }
 
+/**
+ * @summary Permanently deletes an integration record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} integrationName - The integration name.
+ * @param {string} integrationType - The integration type/subtype.
+ * @returns {Promise<{ success: boolean }>} Deletion confirmation.
+ */
 export async function deleteIntegration(integrationName, integrationType) {
   try {
     await axios.delete(`${API_BASE_URL}integrations/${integrationName}/${integrationType}`);
@@ -2121,6 +3276,16 @@ export async function deleteIntegration(integrationName, integrationType) {
   }
 }
 
+/**
+ * @summary Tests the live connection for a configured integration.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} integrationName - The integration name.
+ * @param {string} integrationType - The integration type/subtype.
+ * @returns {Promise<object>} Test result with connectivity status and details.
+ */
 export async function testIntegrationConnection(integrationName, integrationType) {
   try {
     const response = await axios.post(
@@ -2137,6 +3302,14 @@ export async function testIntegrationConnection(integrationName, integrationType
 // OFFER MANAGEMENT API FUNCTIONS
 // ============================================================================
 
+/**
+ * @summary Fetches all offer records.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of offer objects.
+ */
 export async function getOffers() {
   try {
     const response = await axios.get(`${API_BASE_URL}/offers`);
@@ -2147,6 +3320,15 @@ export async function getOffers() {
   }
 }
 
+/**
+ * @summary Fetches a single offer record by its ID.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The offer ID.
+ * @returns {Promise<object>} The offer object.
+ */
 export async function getOffer(id) {
   try {
     const response = await axios.get(`${API_BASE_URL}/offers/${id}`);
@@ -2157,6 +3339,15 @@ export async function getOffer(id) {
   }
 }
 
+/**
+ * @summary Creates a new offer record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} offerData - Offer fields (candidateName, position, salary, startDate, etc.).
+ * @returns {Promise<object>} The created offer object.
+ */
 export async function createOffer(offerData) {
   try {
     const response = await axios.post(`${API_BASE_URL}/offers`, offerData);
@@ -2167,6 +3358,16 @@ export async function createOffer(offerData) {
   }
 }
 
+/**
+ * @summary Updates an existing offer record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The offer ID.
+ * @param {object} offerData - Fields to update.
+ * @returns {Promise<object>} The updated offer object.
+ */
 export async function updateOffer(id, offerData) {
   try {
     const response = await axios.patch(`${API_BASE_URL}/offers/${id}`, offerData);
@@ -2177,6 +3378,17 @@ export async function updateOffer(id, offerData) {
   }
 }
 
+/**
+ * @summary Approves an offer, recording the approver and optional comments.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The offer ID.
+ * @param {string} approvedBy - Email of the approver.
+ * @param {string} [approvalComments] - Optional approval comments.
+ * @returns {Promise<object>} The approved offer object.
+ */
 export async function approveOffer(id, approvedBy, approvalComments) {
   try {
     const response = await axios.post(`${API_BASE_URL}/offers/${id}/approve`, {
@@ -2190,6 +3402,17 @@ export async function approveOffer(id, approvedBy, approvalComments) {
   }
 }
 
+/**
+ * @summary Rejects an offer with a mandatory rejection reason.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The offer ID.
+ * @param {string} rejectedBy - Email of the person rejecting the offer.
+ * @param {string} rejectionReason - Required explanation for rejection.
+ * @returns {Promise<object>} The rejected offer object.
+ */
 export async function rejectOffer(id, rejectedBy, rejectionReason) {
   try {
     const response = await axios.post(`${API_BASE_URL}/offers/${id}/reject`, {
@@ -2203,6 +3426,17 @@ export async function rejectOffer(id, rejectedBy, rejectionReason) {
   }
 }
 
+/**
+ * @summary Adds a review comment to an offer without changing its approval status.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The offer ID.
+ * @param {string} commentedBy - Email of the commenter.
+ * @param {string} comments - The comment text.
+ * @returns {Promise<object>} The updated offer object with the new comment.
+ */
 export async function commentOnOffer(id, commentedBy, comments) {
   try {
     const response = await axios.post(`${API_BASE_URL}/offers/${id}/comment`, {
@@ -2216,6 +3450,15 @@ export async function commentOnOffer(id, commentedBy, comments) {
   }
 }
 
+/**
+ * @summary Permanently deletes an offer record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The offer ID.
+ * @returns {Promise<object>} Deletion confirmation response.
+ */
 export async function deleteOffer(id) {
   try {
     const response = await axios.delete(`${API_BASE_URL}/offers/${id}`);
@@ -2226,6 +3469,17 @@ export async function deleteOffer(id) {
   }
 }
 
+/**
+ * @summary Sends an approved offer to IOTA signatories for digital signing.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The offer ID.
+ * @param {string[]} iotaSignatories - Array of IOTA signatory email addresses.
+ * @param {string} requestedBy - Email of the user triggering the send.
+ * @returns {Promise<object>} The updated offer object with signing status.
+ */
 export async function sendOfferForSigning(id, iotaSignatories, requestedBy) {
   try {
     const response = await axios.post(`${API_BASE_URL}/offers/${id}/send-for-signing`, {
@@ -2240,6 +3494,18 @@ export async function sendOfferForSigning(id, iotaSignatories, requestedBy) {
   }
 }
 
+/**
+ * @summary Submits an IOTA staff member's digital signature on an offer.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The offer ID.
+ * @param {string} signatureData - Base64-encoded signature image data.
+ * @param {string} signerEmail - Email address of the IOTA signatory.
+ * @param {string} [ipAddress] - IP address of the signer for audit trail.
+ * @returns {Promise<object>} The updated offer object.
+ */
 export async function iotaSignOffer(id, signatureData, signerEmail, ipAddress) {
   try {
     const response = await axios.post(`${API_BASE_URL}/offers/${id}/iotaSign`, {
@@ -2255,6 +3521,15 @@ export async function iotaSignOffer(id, signatureData, signerEmail, ipAddress) {
   }
 }
 
+/**
+ * @summary Fetches an offer using a one-time signing token (used by the candidate-facing signing page).
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} token - The JWT signing token sent in the offer email.
+ * @returns {Promise<object>} Offer data including the document for signing.
+ */
 export async function getOfferByToken(token) {
   try {
     const response = await axios.get(`${API_BASE_URL}/offers/sign/${token}`);
@@ -2265,6 +3540,17 @@ export async function getOfferByToken(token) {
   }
 }
 
+/**
+ * @summary Submits a candidate's digital signature on their offer letter.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} token - The JWT signing token from the candidate's email link.
+ * @param {string} signatureData - Base64-encoded signature image data.
+ * @param {string} [ipAddress] - IP address of the candidate for audit trail.
+ * @returns {Promise<object>} The updated offer object with the candidate's signature.
+ */
 export async function employeeSignOffer(token, signatureData, ipAddress) {
   try {
     const response = await axios.post(`${API_BASE_URL}/offers/employee-sign`, {
@@ -2279,6 +3565,16 @@ export async function employeeSignOffer(token, signatureData, ipAddress) {
   }
 }
 
+/**
+ * @summary Saves the signature zone positions on the offer PDF for each signatory.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The offer ID.
+ * @param {object[]} signatureZones - Array of signature zone definitions (page, x, y, width, height, signerEmail).
+ * @returns {Promise<object>} The updated offer object with saved signature zones.
+ */
 export async function setOfferSignatureZones(id, signatureZones) {
   try {
     const response = await axios.post(`${API_BASE_URL}/offers/${id}/signature-zones`, {
@@ -2292,6 +3588,16 @@ export async function setOfferSignatureZones(id, signatureZones) {
   }
 }
 
+/**
+ * @summary Sends a reminder email to the candidate prompting them to sign their offer letter.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The offer ID.
+ * @param {string} requestedBy - Email of the staff member sending the reminder.
+ * @returns {Promise<object>} The updated offer object.
+ */
 export async function remindEmployeeToSign(id, requestedBy) {
   try {
     const response = await axios.post(`${API_BASE_URL}/offers/${id}/remind-employee`, {
@@ -2305,6 +3611,16 @@ export async function remindEmployeeToSign(id, requestedBy) {
   }
 }
 
+/**
+ * @summary Finalizes an offer by embedding all signatures into the PDF and storing it.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The offer ID.
+ * @param {string} pdfBase64 - The unsigned PDF as a Base64-encoded string (signatures will be embedded server-side).
+ * @returns {Promise<object>} The finalized offer object with the signed document URL.
+ */
 export async function finalizeOffer(id, pdfBase64) {
   try {
     const response = await axios.post(`${API_BASE_URL}/offers/${id}/finalize`, {
@@ -2322,6 +3638,14 @@ export async function finalizeOffer(id, pdfBase64) {
 // NDA MANAGEMENT API FUNCTIONS
 // ============================================================================
 
+/**
+ * @summary Fetches all NDA records.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of NDA objects.
+ */
 export async function getNdas() {
   try {
     const response = await axios.get(`${API_BASE_URL}ndas`);
@@ -2332,6 +3656,15 @@ export async function getNdas() {
   }
 }
 
+/**
+ * @summary Fetches a single NDA record by its ID.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The NDA ID.
+ * @returns {Promise<object>} The NDA object.
+ */
 export async function getNda(id) {
   try {
     const response = await axios.get(`${API_BASE_URL}ndas/${id}`);
@@ -2342,6 +3675,15 @@ export async function getNda(id) {
   }
 }
 
+/**
+ * @summary Fetches an NDA using a one-time signing token (for the partner-facing signing page).
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} token - The JWT signing token sent in the NDA email.
+ * @returns {Promise<object>} NDA data including the document for signing.
+ */
 export async function getNdaByToken(token) {
   try {
     const response = await axios.get(`${API_BASE_URL}ndas/sign/${token}`);
@@ -2352,6 +3694,15 @@ export async function getNdaByToken(token) {
   }
 }
 
+/**
+ * @summary Creates a new NDA record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {object} ndaData - NDA fields (partnerName, partnerEmail, effectiveDate, template, etc.).
+ * @returns {Promise<object>} The created NDA object.
+ */
 export async function createNda(ndaData) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas`, ndaData);
@@ -2362,6 +3713,16 @@ export async function createNda(ndaData) {
   }
 }
 
+/**
+ * @summary Updates an existing NDA record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The NDA ID.
+ * @param {object} ndaData - Fields to update.
+ * @returns {Promise<object>} The updated NDA object.
+ */
 export async function updateNda(id, ndaData) {
   try {
     const response = await axios.patch(`${API_BASE_URL}ndas/${id}`, ndaData);
@@ -2372,6 +3733,16 @@ export async function updateNda(id, ndaData) {
   }
 }
 
+/**
+ * @summary Submits an NDA to the IOTA signing queue for internal signatory review.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The NDA ID.
+ * @param {string} submittedBy - Email of the user submitting the NDA for signing.
+ * @returns {Promise<object>} The updated NDA object with "pending_iota_signature" status.
+ */
 export async function submitNdaForIotaSigning(id, submittedBy) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/${id}/submit`, { submittedBy });
@@ -2382,6 +3753,17 @@ export async function submitNdaForIotaSigning(id, submittedBy) {
   }
 }
 
+/**
+ * @summary Submits an IOTA staff member's digital signature on an NDA.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The NDA ID.
+ * @param {string} signatureData - Base64-encoded signature image data.
+ * @param {string} signerEmail - Email of the IOTA signatory.
+ * @returns {Promise<object>} The updated NDA object with the IOTA signature recorded.
+ */
 export async function iotaSignNda(id, signatureData, signerEmail) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/${id}/iotaSign`, {
@@ -2395,6 +3777,17 @@ export async function iotaSignNda(id, signatureData, signerEmail) {
   }
 }
 
+/**
+ * @summary Submits a partner signatory's digital signature on an NDA via their secure signing link.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} token - The JWT signing token from the partner's email link.
+ * @param {string} signatureData - Base64-encoded signature image data.
+ * @param {string} [ipAddress] - IP address of the partner for audit trail.
+ * @returns {Promise<object>} The updated NDA object with the partner's signature recorded.
+ */
 export async function partnerSignNda(token, signatureData, ipAddress) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/sign/${token}`, {
@@ -2408,6 +3801,16 @@ export async function partnerSignNda(token, signatureData, ipAddress) {
   }
 }
 
+/**
+ * @summary Finalizes an NDA by embedding all signatures into the PDF and storing it permanently.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The NDA ID.
+ * @param {string} pdfBase64 - The unsigned PDF as a Base64-encoded string.
+ * @returns {Promise<object>} The finalized NDA object with the signed document URL.
+ */
 export async function finalizeNda(id, pdfBase64) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/${id}/finalize`, { pdfBase64 });
@@ -2418,6 +3821,17 @@ export async function finalizeNda(id, pdfBase64) {
   }
 }
 
+/**
+ * @summary Cancels an NDA, recording the reason and who cancelled it.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The NDA ID.
+ * @param {string} cancelledBy - Email of the user cancelling the NDA.
+ * @param {string} reason - Reason for cancellation.
+ * @returns {Promise<object>} The cancelled NDA object.
+ */
 export async function cancelNda(id, cancelledBy, reason) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/${id}/cancel`, { cancelledBy, reason });
@@ -2428,6 +3842,17 @@ export async function cancelNda(id, cancelledBy, reason) {
   }
 }
 
+/**
+ * @summary Uploads an externally signed NDA document (e.g. a pre-signed PDF scan) to attach to the record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The NDA ID.
+ * @param {string} fileName - The document file name (e.g. "signed-nda.pdf").
+ * @param {string} fileBase64 - The file content as a Base64-encoded string.
+ * @returns {Promise<object>} The updated NDA object with the document URL.
+ */
 export async function uploadExternalNdaDocument(id, fileName, fileBase64) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/${id}/upload-document`, {
@@ -2442,6 +3867,16 @@ export async function uploadExternalNdaDocument(id, fileName, fileBase64) {
   }
 }
 
+/**
+ * @summary Saves stamp placement positions on the NDA PDF for official stamp overlays.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The NDA ID.
+ * @param {object[]} stampPlacements - Array of stamp placement definitions (page, x, y, width, height).
+ * @returns {Promise<object>} The updated NDA object with saved stamp placements.
+ */
 export async function setNdaStampPlacements(id, stampPlacements) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/${id}/stamp-placements`, {
@@ -2455,6 +3890,16 @@ export async function setNdaStampPlacements(id, stampPlacements) {
   }
 }
 
+/**
+ * @summary Saves the IOTA-side signature zone positions on the NDA PDF.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The NDA ID.
+ * @param {object[]} signatureZones - Array of signature zone definitions for IOTA signatories.
+ * @returns {Promise<object>} The updated NDA object with saved IOTA signature zones.
+ */
 export async function setNdaSignatureZones(id, signatureZones) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/${id}/signature-zones`, {
@@ -2468,6 +3913,16 @@ export async function setNdaSignatureZones(id, signatureZones) {
   }
 }
 
+/**
+ * @summary Sends a reminder email to all outstanding partner signatories for an NDA.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The NDA ID.
+ * @param {string} requestedBy - Email of the staff member sending the reminder.
+ * @returns {Promise<object>} The updated NDA object.
+ */
 export async function remindPartnerSignatories(id, requestedBy) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/${id}/remindPartner`, {
@@ -2480,6 +3935,16 @@ export async function remindPartnerSignatories(id, requestedBy) {
   }
 }
 
+/**
+ * @summary Saves the partner-side signature zone positions on the NDA PDF.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string|number} id - The NDA ID.
+ * @param {object[]} partnerSignatureZones - Array of signature zone definitions for partner signatories.
+ * @returns {Promise<object>} The updated NDA object with saved partner signature zones.
+ */
 export async function setNdaPartnerSignatureZones(id, partnerSignatureZones) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/${id}/partner-signature-zones`, {
@@ -2497,6 +3962,15 @@ export async function setNdaPartnerSignatureZones(id, partnerSignatureZones) {
 // WEBHOOK EVENTS API FUNCTIONS
 // ============================================================================
 
+/**
+ * @summary Fetches webhook event records with optional filters for source, type, status, and date range.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {{ source?: string, eventType?: string, status?: string, fromDate?: string, toDate?: string, limit?: number, offset?: number }} [params] - Filter and pagination options.
+ * @returns {Promise<{ events: object[], total: number }>} Webhook events and total count; returns empty on error.
+ */
 export async function getWebhookEvents({
   source,
   eventType,
@@ -2521,6 +3995,14 @@ export async function getWebhookEvents({
   }
 }
 
+/**
+ * @summary Returns the current enable/disable state of the Vercel log drain integration.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<{ enabled: boolean }>} Status object; returns `{ enabled: false }` on error.
+ */
 export async function getLogDrainStatus() {
   try {
     const response = await axios.get(`${API_BASE_URL}webhook/log-drain/status`);
@@ -2531,6 +4013,15 @@ export async function getLogDrainStatus() {
   }
 }
 
+/**
+ * @summary Enables or disables the Vercel log drain integration.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {boolean} enabled - `true` to enable the log drain, `false` to disable.
+ * @returns {Promise<{ enabled: boolean }>} Updated status; returns `{ enabled: false }` on error.
+ */
 export async function toggleLogDrain(enabled) {
   try {
     const response = await axios.post(`${API_BASE_URL}webhook/log-drain/toggle`, { enabled });
@@ -2543,6 +4034,16 @@ export async function toggleLogDrain(enabled) {
 
 const QURAN_API_BASE = 'https://quranapi.pages.dev/api';
 
+/**
+ * @summary Fetches a specific Quranic verse (ayah) from the Quran API.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {number} surahNo - The Surah (chapter) number (1–114).
+ * @param {number} ayahNo - The Ayah (verse) number within the Surah.
+ * @returns {Promise<object>} Verse data including Arabic text, transliteration, and translation.
+ */
 async function fetchQuranVerse(surahNo, ayahNo) {
   try {
     const response = await fetch(`${QURAN_API_BASE}/${surahNo}/${ayahNo}.json`);
@@ -2554,6 +4055,16 @@ async function fetchQuranVerse(surahNo, ayahNo) {
   }
 }
 
+/**
+ * @summary Fetches the Tafsir (exegesis / scholarly commentary) for a specific Quranic verse.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {number} surahNo - The Surah (chapter) number (1–114).
+ * @param {number} ayahNo - The Ayah (verse) number within the Surah.
+ * @returns {Promise<object>} Tafsir data including the scholarly interpretation.
+ */
 async function fetchQuranTafsir(surahNo, ayahNo) {
   try {
     const response = await fetch(`${QURAN_API_BASE}/tafsir/${surahNo}_${ayahNo}.json`);
@@ -2569,6 +4080,14 @@ async function fetchQuranTafsir(surahNo, ayahNo) {
 // Policy Management
 // ----------------------------------------------------------------------
 
+/**
+ * @summary Fetches all company policy records.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of policy objects.
+ */
 export async function getPolicies() {
   try {
     const response = await axios.get(`${API_BASE_URL}/policies`);
@@ -2579,6 +4098,15 @@ export async function getPolicies() {
   }
 }
 
+/**
+ * @summary Fetches a single policy record by ID.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} id - The policy ID.
+ * @returns {Promise<object>} The policy object.
+ */
 export async function getPolicyById(id) {
   try {
     const response = await axios.get(`${API_BASE_URL}/policies/${id}`);
@@ -2589,6 +4117,14 @@ export async function getPolicyById(id) {
   }
 }
 
+/**
+ * @summary Fetches all employee policy acknowledgement records.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object[]>} Array of acknowledgement objects.
+ */
 export async function getPolicyAcknowledgements() {
   try {
     const response = await axios.get(`${API_BASE_URL}/policies/acknowledgements`);
@@ -2599,6 +4135,15 @@ export async function getPolicyAcknowledgements() {
   }
 }
 
+/**
+ * @summary Fetches policy acknowledgements filtered by a specific employee.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} employeeId - The employee's ID.
+ * @returns {Promise<object[]>} Array of acknowledgement objects for the employee.
+ */
 export async function getPolicyAcknowledgementsByEmployee(employeeId) {
   try {
     const response = await axios.get(
@@ -2611,6 +4156,16 @@ export async function getPolicyAcknowledgementsByEmployee(employeeId) {
   }
 }
 
+/**
+ * @summary Sends policy signing links to an employee via email.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} employeeId - The employee's ID.
+ * @param {object} employeeData - Employee details for the email ({ name|firstName, lastName, email }).
+ * @returns {Promise<object>} Response confirmation object.
+ */
 export async function sendPolicyLinksToEmployee(employeeId, employeeData) {
   try {
     const response = await axios.post(`${API_BASE_URL}/policies/send-to-employee`, {
@@ -2626,6 +4181,15 @@ export async function sendPolicyLinksToEmployee(employeeId, employeeData) {
   }
 }
 
+/**
+ * @summary Fetches a policy record via a one-time signing token (employee-facing).
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} token - The one-time signing token.
+ * @returns {Promise<object>} Policy data associated with the token.
+ */
 export async function getPolicyBySigningToken(token) {
   try {
     const response = await axios.get(`${API_BASE_URL}/policies/sign/${token}`);
@@ -2636,6 +4200,16 @@ export async function getPolicyBySigningToken(token) {
   }
 }
 
+/**
+ * @summary Submits an employee's policy acknowledgement and signature.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} token - The one-time signing token.
+ * @param {object} signatureData - Signature payload (e.g. drawn signature, timestamp).
+ * @returns {Promise<object>} Confirmation of the signed acknowledgement.
+ */
 export async function signPolicy(token, signatureData) {
   try {
     const response = await axios.post(`${API_BASE_URL}/policies/sign`, { token, ...signatureData });
@@ -2646,6 +4220,14 @@ export async function signPolicy(token, signatureData) {
   }
 }
 
+/**
+ * @summary Seeds default policy records into the system (admin/dev utility).
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @returns {Promise<object>} Result of the seed operation.
+ */
 export async function seedPolicies() {
   try {
     const response = await axios.post(`${API_BASE_URL}/policies/seed`);
@@ -2656,6 +4238,16 @@ export async function seedPolicies() {
   }
 }
 
+/**
+ * @summary Updates an existing policy record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-04-21
+ * @modified 2026-04-21
+ * @param {string} id - The policy ID to update.
+ * @param {object} data - Updated policy fields.
+ * @returns {Promise<object>} The updated policy object.
+ */
 export async function updatePolicy(id, data) {
   try {
     const response = await axios.put(`${API_BASE_URL}/policies/${id}`, data);
