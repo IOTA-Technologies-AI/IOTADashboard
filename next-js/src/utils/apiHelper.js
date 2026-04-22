@@ -4258,6 +4258,60 @@ export async function updatePolicy(id, data) {
   }
 }
 
+/**
+ * @summary Fetches all policy role assignments.
+ * @returns {Promise<Array>} List of role → policy assignment records.
+ */
+export async function getPolicyRoleAssignments() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/policies/role-assignments`);
+    return response.data?.assignments || [];
+  } catch (error) {
+    console.error('Error fetching policy role assignments:', error);
+    throw error;
+  }
+}
+
+/**
+ * @summary Assigns a set of policies to a role (replaces existing assignments for that role).
+ * @param {string} role - The role identifier (e.g. 'employee', 'manager').
+ * @param {number[]} policyIds - Array of policy IDs to assign.
+ * @param {string} [assignedBy] - Name or email of the HR user making the assignment.
+ * @returns {Promise<object>} Result with assigned/removed counts.
+ */
+export async function assignPoliciesToRole(role, policyIds, assignedBy) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/policies/role-assignments`, {
+      role,
+      policyIds,
+      assignedBy: assignedBy || null,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error assigning policies to role:', error);
+    throw error;
+  }
+}
+
+/**
+ * @summary Sends role-assigned policy emails to all employees with the given role.
+ * @param {string} role - The role identifier.
+ * @param {string} [assignedBy] - Name or email of the HR user triggering the send.
+ * @returns {Promise<object>} Result with employeesNotified, totalSent, totalFailed.
+ */
+export async function sendPoliciesByRole(role, assignedBy) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/policies/send-by-role`, {
+      role,
+      assignedBy: assignedBy || null,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error sending policies by role:', error);
+    throw error;
+  }
+}
+
 export const apiHelper = {
   fetchTotalIotaBilling,
   fetchTotalPartnerBilling,
@@ -4414,4 +4468,7 @@ export const apiHelper = {
   signPolicy,
   seedPolicies,
   updatePolicy,
+  getPolicyRoleAssignments,
+  assignPoliciesToRole,
+  sendPoliciesByRole,
 };

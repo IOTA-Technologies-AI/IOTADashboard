@@ -76,6 +76,16 @@ export function PoliciesListView() {
       <CustomBreadcrumbs
         heading="Policies"
         links={[{ name: 'Dashboard', href: paths.dashboard.root }, { name: 'Policies' }]}
+        action={
+          <Button
+            component={RouterLink}
+            href={paths.dashboard.policies.assignByRole}
+            variant="contained"
+            startIcon={<Iconify icon="solar:user-id-bold" />}
+          >
+            Assign by Role
+          </Button>
+        }
         sx={{ mb: { xs: 3, md: 5 } }}
       />
 

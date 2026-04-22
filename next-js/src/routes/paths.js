@@ -312,6 +312,7 @@ export const paths = {
       root: `${ROOTS.DASHBOARD}/policies`,
       details: (id) => `${ROOTS.DASHBOARD}/policies/${id}`,
       edit: (id) => `${ROOTS.DASHBOARD}/policies/${id}/edit`,
+      assignByRole: `${ROOTS.DASHBOARD}/policies/assign-by-role`,
     },
     order: {
       root: `${ROOTS.DASHBOARD}/order`,
