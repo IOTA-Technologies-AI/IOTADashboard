@@ -4182,6 +4182,29 @@ export async function sendPolicyLinksToEmployee(employeeId, employeeData) {
 }
 
 /**
+ * @summary Sends specific policy emails to one employee.
+ * @param {number} employeeId - The employee's ID.
+ * @param {object} employeeData - Employee name/email fields.
+ * @param {number[]} policyIds - Specific policy IDs to send.
+ * @returns {Promise<object>} Result with sent/failed counts.
+ */
+export async function sendPoliciesToSelectedEmployees(employeeId, employeeData, policyIds) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/policies/send-to-employee`, {
+      employeeId,
+      employeeName:
+        employeeData.name || `${employeeData.firstName} ${employeeData.lastName}`.trim(),
+      employeeEmail: employeeData.email,
+      policyIds,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error sending selected policies to employee:', error);
+    throw error;
+  }
+}
+
+/**
  * @summary Fetches a policy record via a one-time signing token (employee-facing).
  * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
  * @version 1.0.0
@@ -4464,6 +4487,7 @@ export const apiHelper = {
   getPolicyAcknowledgements,
   getPolicyAcknowledgementsByEmployee,
   sendPolicyLinksToEmployee,
+  sendPoliciesToSelectedEmployees,
   getPolicyBySigningToken,
   signPolicy,
   seedPolicies,

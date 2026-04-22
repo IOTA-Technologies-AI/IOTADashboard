@@ -83,7 +83,7 @@ export function PoliciesListView() {
             variant="contained"
             startIcon={<Iconify icon="solar:user-id-bold" />}
           >
-            Assign by Role
+            Assign to Employees
           </Button>
         }
         sx={{ mb: { xs: 3, md: 5 } }}
