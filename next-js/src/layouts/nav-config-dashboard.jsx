@@ -185,6 +185,14 @@ export const navData = [
                   { title: 'Expiring Documents', path: paths.dashboard.hr.idManagement.expiring },
                 ],
               },
+              {
+                title: 'Leave Management',
+                path: paths.dashboard.hr.leave.root,
+                children: [
+                  { title: 'Leave Summary', path: paths.dashboard.hr.leave.summary },
+                  { title: 'All Requests', path: paths.dashboard.hr.leave.root },
+                ],
+              },
             ],
           },
           { title: 'Employee Offer Management', path: paths.dashboard.hr.offerManagement.root },
@@ -195,15 +203,6 @@ export const navData = [
             info: <Label color="warning">Soon</Label>,
           },
           { title: 'Business Visa Requests', path: paths.dashboard.hr.businessVisa.root },
-          {
-            title: 'Leave Management',
-            path: paths.dashboard.hr.leave.root,
-            icon: ICONS.calendar,
-            children: [
-              { title: 'Leave Summary', path: paths.dashboard.hr.leave.summary },
-              { title: 'All Requests', path: paths.dashboard.hr.leave.root },
-            ],
-          },
           { title: 'Audit Log', path: paths.dashboard.hr.auditLog },
         ],
       },
