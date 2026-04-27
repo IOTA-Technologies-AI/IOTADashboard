@@ -29,6 +29,7 @@ import {
   fetchUserNavPermissions,
   grantDefaultPermissions,
 } from 'src/utils/apiHelper';
+import { clearPermissionCache } from 'src/auth/guard/permission-guard';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -272,6 +273,8 @@ export default function AccessControlPage() {
         response.message ||
           `Permissions saved successfully for ${selectedUser.name}. Saved ${response.count} permissions.`
       );
+      // Clear the PermissionGuard cache for this user so the change takes effect immediately.
+      clearPermissionCache(selectedUser.email);
       await loadUserPermissions(selectedUser.email);
     } catch (err) {
       console.error('[AccessControl] Save error:', err);
@@ -299,6 +302,8 @@ export default function AccessControlPage() {
         });
 
         setSuccessMessage(`Default ${role} permissions granted to ${selectedUser.name}`);
+        // Clear the PermissionGuard cache for this user so the change takes effect immediately.
+        clearPermissionCache(selectedUser.email);
         await loadUserPermissions(selectedUser.email);
       } catch (err) {
         setError(err?.message || 'Failed to grant default permissions');

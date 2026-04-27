@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 
 import { paths } from 'src/routes/paths';
 import { useRouter, usePathname } from 'src/routes/hooks';
@@ -25,6 +25,27 @@ const normalizeRole = (role, roleId) => {
   return 'regular';
 };
 
+// Module-level cache so navigating between pages doesn't make an API call every time.
+// TTL of 30 s — stale enough to be fast, fresh enough to catch revocations quickly.
+const _permCache = new Map(); // userEmail → { allowedPaths, fetchedAt }
+const PERM_CACHE_TTL = 30_000;
+
+const getCache = (email) => {
+  const entry = _permCache.get(email);
+  if (!entry) return null;
+  if (Date.now() - entry.fetchedAt > PERM_CACHE_TTL) {
+    _permCache.delete(email);
+    return null;
+  }
+  return entry;
+};
+const setCache = (email, allowedPaths) =>
+  _permCache.set(email, { allowedPaths, fetchedAt: Date.now() });
+export const clearPermissionCache = (email) => {
+  if (email) _permCache.delete(email);
+  else _permCache.clear();
+};
+
 /**
  * PermissionGuard - Blocks page rendering until permission check completes.
  *
@@ -33,6 +54,9 @@ const normalizeRole = (role, roleId) => {
  *   2. Per-user permissions from userNavPermissions table (set by admin)
  *   3. Role-default permissions from navPermissions boolean columns
  *   4. No match → redirect to 403
+ *
+ * Re-checks on every pathname change so direct URL access is always validated.
+ * Uses a 30-second in-memory cache to avoid an API call on every navigation.
  */
 export function PermissionGuard({ children }) {
   const router = useRouter();
@@ -42,8 +66,6 @@ export function PermissionGuard({ children }) {
   const [permissionsLoading, setPermissionsLoading] = useState(true);
   const [allowedPaths, setAllowedPaths] = useState([]);
   const [permissionCheckComplete, setPermissionCheckComplete] = useState(false);
-
-  const loadedUserRef = useRef(null);
 
   const role = useMemo(() => normalizeRole(user?.role, user?.roleId), [user?.role, user?.roleId]);
   const userEmail = user?.email;
@@ -57,6 +79,7 @@ export function PermissionGuard({ children }) {
     return baseAlwaysAllowed.some((p) => n(pathname) === n(p));
   }, [pathname, baseAlwaysAllowed]);
 
+  // Re-runs on every pathname change so URL-typed navigation is always checked.
   useEffect(() => {
     const loadPermissions = async () => {
       if (!user || authLoading) return;
@@ -64,32 +87,34 @@ export function PermissionGuard({ children }) {
       // 1. SuperAdmin: full access, no DB call needed
       if (role === 'superAdmin') {
         setAllowedPaths(['*']);
-        loadedUserRef.current = userEmail;
         setPermissionsLoading(false);
         setPermissionCheckComplete(true);
         return;
       }
 
-      // Already loaded for this user — skip refetch
-      if (loadedUserRef.current === userEmail && allowedPaths.length > 0) {
+      // 2. Serve from in-memory cache if still fresh (avoids SplashScreen flash on navigation)
+      const cached = getCache(userEmail);
+      if (cached) {
+        setAllowedPaths(cached.allowedPaths);
         setPermissionsLoading(false);
         setPermissionCheckComplete(true);
         return;
       }
 
+      // 3. Cache miss — fetch fresh permissions
       setPermissionsLoading(true);
 
       try {
-        // 2. Try per-user permissions first (admin-assigned overrides)
+        // Per-user permissions take priority (admin-assigned overrides)
         if (userEmail) {
           const { paths: enabledPaths, hasExplicitPermissions } =
             await fetchUserEnabledPaths(userEmail);
 
           if (hasExplicitPermissions) {
-            // Admin has explicitly configured this user — respect their decision exactly.
-            // enabledPaths may be [] if admin revoked everything (that's intentional).
+            // Admin has explicitly configured this user — respect exactly.
+            // enabledPaths may be [] if admin revoked everything (intentional).
+            setCache(userEmail, enabledPaths);
             setAllowedPaths(enabledPaths);
-            loadedUserRef.current = userEmail;
             setPermissionsLoading(false);
             setPermissionCheckComplete(true);
             return;
@@ -97,10 +122,11 @@ export function PermissionGuard({ children }) {
           // No rows yet — fall through to role-based defaults below
         }
 
-        // 3. Fall back to role-based defaults from navPermissions boolean columns
+        // Fall back to role-based defaults from navPermissions boolean columns
         const rolePaths = await fetchRoleBasedNavPermissions(role);
-        setAllowedPaths(rolePaths || []);
-        loadedUserRef.current = userEmail;
+        const resolved = rolePaths || [];
+        setCache(userEmail, resolved);
+        setAllowedPaths(resolved);
       } catch (error) {
         console.error('[PermissionGuard] Failed to load permissions:', error);
         setAllowedPaths([]);
@@ -111,7 +137,7 @@ export function PermissionGuard({ children }) {
     };
 
     loadPermissions();
-  }, [userEmail, authLoading, role]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [userEmail, authLoading, role, pathname]); // pathname ensures every URL change is checked
 
   const hasPermission = hasPathPermission(allowedPaths, pathname);
 
