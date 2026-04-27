@@ -1,68 +1,59 @@
 /**
- * Filter navigation items based on user permissions
- * Hides menu items that user doesn't have access to
+ * Filter navigation items based on user permissions.
+ * Nav items use `item.path` (not `item.href`).
+ * Sections use `item.items` as the children array.
  */
 export const filterNavByPermissions = (navItems, allowedPaths = []) => {
   if (!Array.isArray(navItems) || !Array.isArray(allowedPaths)) {
     return navItems;
   }
 
-  // Helper to check if a path is allowed
+  // SuperAdmin wildcard — show everything
+  if (allowedPaths.includes('*')) return navItems;
+
+  // Helper: normalise a path for comparison
+  const norm = (p) => (p && p.endsWith('/') && p !== '/' ? p.slice(0, -1) : p);
+
+  // Helper: is this specific path allowed?
   const isPathAllowed = (path) => {
-    if (!path) return true; // Items without path are always shown
-
-    // Normalize paths by removing trailing slash
-    const normalizedPath = path.endsWith('/') && path !== '/' ? path.slice(0, -1) : path;
-
-    return allowedPaths.some((allowedPath) => {
-      const normalizedAllowed =
-        allowedPath.endsWith('/') && allowedPath !== '/' ? allowedPath.slice(0, -1) : allowedPath;
-
-      // Exact match
-      if (normalizedPath === normalizedAllowed) return true;
-
-      // If item has children, parent is allowed if any child is allowed
-      return false;
+    if (!path) return true; // items without a path (labels/separators) are always shown
+    const n = norm(path);
+    return allowedPaths.some((ap) => {
+      const na = norm(ap);
+      return n === na || n.startsWith(na + '/');
     });
   };
 
-  // Helper to check if any child is allowed
-  const hasAllowedChild = (children = []) =>
-    children.some((child) => {
-      if (isPathAllowed(child.href)) return true;
-      if (child.children) return hasAllowedChild(child.children);
-      return false;
-    });
+  // Helper: does this item or any of its descendants have an allowed path?
+  const isItemAllowed = (item) => {
+    if (isPathAllowed(item.path)) return true;
+    if (Array.isArray(item.children)) return item.children.some(isItemAllowed);
+    return false;
+  };
 
-  // Recursively filter nav items
+  // Recursively filter an array of nav items (used for `children` arrays)
+  const filterItems = (items) =>
+    items
+      .map((item) => {
+        if (!Array.isArray(item.children)) return item;
+        const filteredChildren = filterItems(item.children);
+        return { ...item, children: filteredChildren };
+      })
+      .filter(isItemAllowed);
+
+  // Top-level navData is an array of *sections* with a `subheader` + `items` array
+  // Each section's items are the actual nav items
   return navItems
-    .map((item) => {
-      // If item has children, recursively filter them
-      if (item.children && Array.isArray(item.children)) {
-        const filteredChildren = filterNavByPermissions(item.children, allowedPaths);
-
-        return {
-          ...item,
-          children: filteredChildren.length > 0 ? filteredChildren : [],
-        };
+    .map((section) => {
+      // If it looks like a nav section (has `items`), filter its items
+      if (Array.isArray(section.items)) {
+        return { ...section, items: filterItems(section.items) };
       }
-
-      return item;
+      // Otherwise treat it as a plain nav item
+      return section;
     })
-    .filter((item) => {
-      // Always show items without a href (separators, labels, etc)
-      if (!item.href) return true;
-
-      // Always show dashboard home
-      if (item.href === '/dashboard' || item.href === '/dashboard/') return true;
-
-      // Show if path is allowed
-      if (isPathAllowed(item.href)) return true;
-
-      // Show if any child is allowed (parent menus)
-      if (item.children && hasAllowedChild(item.children)) return true;
-
-      // Hide if not allowed
-      return false;
+    .filter((section) => {
+      if (Array.isArray(section.items)) return section.items.length > 0;
+      return isItemAllowed(section);
     });
 };

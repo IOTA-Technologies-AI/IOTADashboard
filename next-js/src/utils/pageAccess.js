@@ -259,17 +259,25 @@ export const fetchUserNavPermissions = async (userId, forceRefresh = false) => {
     );
 
     const paths = response.data?.paths || [];
-    console.log('[pageAccess] Fetched', paths.length, 'permission paths:', paths);
+    const hasExplicitPermissions = response.data?.hasExplicitPermissions ?? false;
+    console.log(
+      '[pageAccess] Fetched',
+      paths.length,
+      'permission paths, hasExplicit:',
+      hasExplicitPermissions
+    );
 
-    // Always save to cache, even if empty (to know user has no permissions)
+    // Save enabled paths to cache
     saveUserNavPermissionPaths(userId, paths);
     setUserCacheTTL(userId);
 
-    return paths;
+    // Return both the paths and whether the user has been explicitly configured.
+    // Callers use hasExplicitPermissions to decide whether to fall back to role defaults.
+    return { paths, hasExplicitPermissions };
   } catch (error) {
     console.error('[pageAccess] Failed to fetch user nav permissions:', error.message);
-    // On error, return empty array to be safe (block access)
-    return [];
+    // On error, assume not configured → callers fall back to role defaults
+    return { paths: [], hasExplicitPermissions: false };
   }
 };
 

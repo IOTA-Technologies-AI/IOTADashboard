@@ -95,21 +95,22 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
 
       // Fetch user-specific permissions using email
       if (userEmailForPerms) {
-        const userPaths = await fetchUserNavPermissions(userEmailForPerms);
+        const { paths: userPaths, hasExplicitPermissions } =
+          await fetchUserNavPermissions(userEmailForPerms);
 
         // Clear the localStorage cache for this user to prevent stale data
         clearUserNavPermissionCache(userEmailForPerms);
 
-        if (userPaths && userPaths.length > 0) {
+        if (hasExplicitPermissions) {
+          // Admin has explicitly configured this user — respect their decision exactly.
+          // userPaths may be empty if admin revoked all access (that's intentional).
           setAllowedPaths(userPaths);
           setPermissionsLoaded(true);
           return;
         }
-        // If user has no permissions in DB, set empty array (don't fall back to role)
-        // This ensures admin can truly remove all permissions for a user
-        setAllowedPaths([]);
-        setPermissionsLoaded(true);
-        return;
+
+        // No rows in DB yet — user hasn't been configured.
+        // Fall back to role-based defaults so they have a working sidebar.
       }
 
       // Fall back to role-based permissions (only if no user email to check)
@@ -364,7 +365,11 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
   // Block access if user doesn't have permission
   const renderFooter = () => null;
 
-  const renderMain = () => <MainSection {...slotProps?.main}>{children}</MainSection>;
+  const renderMain = () => (
+    <PermissionGuard>
+      <MainSection {...slotProps?.main}>{children}</MainSection>
+    </PermissionGuard>
+  );
 
   return (
     <LayoutSection

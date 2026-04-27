@@ -2940,11 +2940,14 @@ export async function fetchUserNavPermissions(userId) {
  * @returns {Promise<string[]>} Array of URL path strings the user is permitted to access.
  */
 export async function fetchUserEnabledPaths(userId) {
-  if (!userId) return [];
+  if (!userId) return { paths: [], hasExplicitPermissions: false };
   const response = await axios.get(
     `${API_BASE_URL}user-nav-permissions/${encodeURIComponent(userId)}/paths`
   );
-  return response.data?.paths || [];
+  return {
+    paths: response.data?.paths || [],
+    hasExplicitPermissions: response.data?.hasExplicitPermissions ?? false,
+  };
 }
 
 /**
