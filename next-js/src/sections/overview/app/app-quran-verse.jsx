@@ -112,7 +112,7 @@ export function AppQuranVerse({ sx, ...other }) {
       </Tabs>
 
       {/* ── Content ── */}
-      <Box sx={{ flex: 1, overflow: 'auto', px: 2.5, py: 2 }}>
+      <Box sx={{ flex: 1, overflow: 'hidden', px: 2.5, py: 2 }}>
         {loading && (
           <>
             <Skeleton variant="text" width="85%" sx={{ bgcolor: 'grey.800', mb: 1 }} />
@@ -141,6 +141,10 @@ export function AppQuranVerse({ sx, ...other }) {
                   fontFamily:
                     '"Amiri", "Scheherazade New", "Traditional Arabic", "Arial Unicode MS", serif',
                   color: 'common.white',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 4,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
                 }}
               >
                 {verse?.arabic1}
@@ -151,7 +155,15 @@ export function AppQuranVerse({ sx, ...other }) {
             {tab === 1 && (
               <Typography
                 variant="body1"
-                sx={{ lineHeight: 1.9, color: 'grey.100', fontStyle: 'italic' }}
+                sx={{
+                  lineHeight: 1.9,
+                  color: 'grey.100',
+                  fontStyle: 'italic',
+                  display: '-webkit-box',
+                  WebkitLineClamp: 6,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                }}
               >
                 &ldquo;{verse?.english}&rdquo;
                 <Box
