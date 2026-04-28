@@ -29,7 +29,10 @@ import { fDate } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
 
 import { fetchBdmReport } from 'src/actions/reports';
+import { getBDMs } from 'src/actions/bdm';
 import { DashboardContent } from 'src/layouts/dashboard';
+
+import { useAuthContext } from 'src/auth/hooks';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
@@ -367,24 +370,54 @@ function BDMCard({ report, expanded, onToggle }) {
 
 // ----------------------------------------------------------------------
 
+const roleIdToName = { 1: 'regular', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
+
 export function BdmReportView() {
+  const { user } = useAuthContext();
+  const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
+  const isPrivileged = normalizedRole === 'superAdmin' || normalizedRole === 'admin';
+
   const [year, setYear] = useState(CURRENT_YEAR);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [expandedBdm, setExpandedBdm] = useState(null);
+  // null = not resolved yet, false = no BDM found, string = bdmId
+  const [ownBdmId, setOwnBdmId] = useState(null);
+
+  // Resolve the current user's BDM record (non-admin path only)
+  useEffect(() => {
+    if (isPrivileged) {
+      setOwnBdmId('*'); // sentinel: admin sees all
+      return;
+    }
+    let cancelled = false;
+    getBDMs().then((bdms) => {
+      if (cancelled) return;
+      const match = bdms.find((b) => b.email?.toLowerCase() === user?.email?.toLowerCase());
+      setOwnBdmId(match ? match.id : false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [isPrivileged, user?.email]);
 
   const fetchData = useCallback(async () => {
+    // Wait until BDM identity is resolved
+    if (ownBdmId === null) return;
+    // Non-admin with no BDM record — nothing to fetch
+    if (ownBdmId === false) return;
     setLoading(true);
     setError(null);
-    const result = await fetchBdmReport({ year: year || undefined });
+    const bdmFilter = ownBdmId === '*' ? undefined : ownBdmId;
+    const result = await fetchBdmReport({ bdmId: bdmFilter, year: year || undefined });
     if (result?.error) {
       setError(result.error);
     } else {
       setData(result);
     }
     setLoading(false);
-  }, [year]);
+  }, [year, ownBdmId]);
 
   useEffect(() => {
     fetchData();
@@ -421,6 +454,41 @@ export function BdmReportView() {
   const totalsCurrency = totals
     ? (Object.entries(totals.currencies).sort((a, b) => b[1] - a[1])[0]?.[0] ?? DEFAULT_CURRENCY)
     : DEFAULT_CURRENCY;
+
+  // ── Access control ─────────────────────────────────────────────────────────
+  // Still resolving which BDM this user is
+  if (ownBdmId === null) {
+    return (
+      <DashboardContent maxWidth="xl">
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+          <CircularProgress />
+        </Box>
+      </DashboardContent>
+    );
+  }
+
+  // Non-admin user with no matching BDM record → deny
+  if (ownBdmId === false) {
+    return (
+      <DashboardContent maxWidth="xl">
+        <CustomBreadcrumbs
+          heading="BDM Report"
+          links={[
+            { name: 'Dashboard', href: paths.dashboard.root },
+            { name: 'Reports', href: paths.dashboard.general.reports.root },
+            { name: 'BDM Report' },
+          ]}
+          sx={{ mb: { xs: 3, md: 5 } }}
+        />
+        <EmptyContent
+          filled
+          title="Access Restricted"
+          description="Your account is not linked to a BDM profile. Contact an administrator if you believe this is a mistake."
+          sx={{ py: 10 }}
+        />
+      </DashboardContent>
+    );
+  }
 
   return (
     <DashboardContent maxWidth="xl">
