@@ -589,7 +589,7 @@ export default function NdaNewPage() {
                   <MenuItem value="true">Perpetual</MenuItem>
                 </TextField>
 
-                {!isPerpetual && (
+                {isPerpetual !== 'true' && isPerpetual !== true && (
                   <TextField
                     label="Duration (years)"
                     type="number"
