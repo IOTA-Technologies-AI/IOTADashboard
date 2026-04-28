@@ -25,7 +25,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
-import { createNda } from 'src/utils/apiHelper';
+import { createNda, uploadExternalNdaDocument } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -126,6 +126,7 @@ export default function NdaNewPage() {
       const user =
         typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
 
+      // Step 1: create the NDA record without the file payload (avoids Encore body size limit)
       const nda = await createNda({
         ...data,
         isPerpetual: data.isPerpetual === 'true' || data.isPerpetual === true,
@@ -133,9 +134,12 @@ export default function NdaNewPage() {
         createdBy: user?.email || 'unknown',
         documentSource,
         partnerSigningMethod,
-        uploadedDocumentName: uploadedFile?.name ?? null,
-        uploadedDocumentBase64: uploadedFile?.base64 ?? null,
       });
+
+      // Step 2: if an external file was selected, upload it in a separate request
+      if (documentSource === 'external_upload' && uploadedFile) {
+        await uploadExternalNdaDocument(nda.id, uploadedFile.name, uploadedFile.base64);
+      }
 
       toast.success(`NDA ${nda.ndaNumber} created`);
       router.push(paths.dashboard.hr.ndaManagement.details(nda.id));
