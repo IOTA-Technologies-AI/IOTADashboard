@@ -85,7 +85,19 @@ export const navData = [
       { title: 'Booking', path: paths.dashboard.general.booking, icon: ICONS.booking },
       { title: 'Accounts', path: paths.dashboard.general.account, icon: ICONS.dashboard },
       { title: 'File', path: paths.dashboard.general.file, icon: ICONS.file },
-      { title: 'Sales', path: paths.dashboard.sales, icon: ICONS.sales },
+      {
+        title: 'Sales',
+        path: paths.dashboard.sales.root,
+        icon: ICONS.sales,
+        children: [
+          { title: 'Overview', path: paths.dashboard.sales.root },
+          { title: 'Pipeline', path: paths.dashboard.sales.pipeline },
+          { title: 'Deals', path: paths.dashboard.sales.deals.root },
+          { title: 'New Deal', path: paths.dashboard.sales.deals.new },
+          { title: 'Contacts', path: paths.dashboard.sales.contacts },
+          { title: 'Reports', path: paths.dashboard.sales.reports },
+        ],
+      },
       { title: 'To Do', path: paths.dashboard.todo, icon: ICONS.todo },
       {
         title: 'Reports',

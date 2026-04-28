@@ -4338,6 +4338,52 @@ export async function sendPoliciesByRole(role, assignedBy) {
   }
 }
 
+// ============================================================
+// Sales Pipeline Deals
+// ============================================================
+
+const SALES_API_URL = process.env.NEXT_PUBLIC_SERVER_URL;
+
+export async function listPipelineDeals() {
+  const response = await axios.get(`${SALES_API_URL}/sales/pipeline`);
+  return response.data;
+}
+
+export async function getPipelineDeal(id) {
+  const response = await axios.get(`${SALES_API_URL}/sales/pipeline/${id}`);
+  return response.data;
+}
+
+export async function createPipelineDeal(data) {
+  const response = await axios.post(`${SALES_API_URL}/sales/pipeline`, data);
+  return response.data;
+}
+
+export async function updatePipelineDeal(id, data) {
+  const response = await axios.patch(`${SALES_API_URL}/sales/pipeline/${id}`, { id, ...data });
+  return response.data;
+}
+
+export async function deletePipelineDeal(id) {
+  const response = await axios.delete(`${SALES_API_URL}/sales/pipeline/${id}`);
+  return response.data;
+}
+
+export async function updatePipelineDealStage(id, stage) {
+  const response = await axios.patch(`${SALES_API_URL}/sales/pipeline/${id}`, { id, stage });
+  return response.data;
+}
+
+export async function addPipelineActivity(id, type, content, performedBy) {
+  const response = await axios.post(`${SALES_API_URL}/sales/pipeline/${id}/activity`, {
+    id,
+    type,
+    content,
+    performedBy,
+  });
+  return response.data;
+}
+
 export const apiHelper = {
   fetchTotalIotaBilling,
   fetchTotalPartnerBilling,
@@ -4498,4 +4544,12 @@ export const apiHelper = {
   getPolicyRoleAssignments,
   assignPoliciesToRole,
   sendPoliciesByRole,
+  // Sales Pipeline
+  listPipelineDeals,
+  getPipelineDeal,
+  createPipelineDeal,
+  updatePipelineDeal,
+  deletePipelineDeal,
+  updatePipelineDealStage,
+  addPipelineActivity,
 };
