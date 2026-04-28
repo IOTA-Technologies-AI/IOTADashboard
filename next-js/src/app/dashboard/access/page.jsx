@@ -124,6 +124,7 @@ export default function AccessControlPage() {
 
   // UI state
   const [searchQuery, setSearchQuery] = useState('');
+  const [menuSearchQuery, setMenuSearchQuery] = useState('');
   const [expandedGroups, setExpandedGroups] = useState({});
   const [expandedMenus, setExpandedMenus] = useState({});
 
@@ -321,6 +322,27 @@ export default function AccessControlPage() {
   );
 
   const navGroups = useMemo(() => groupNavPermissions(navPermissions), [navPermissions]);
+
+  // Filtered nav groups based on menu search
+  const filteredNavGroups = useMemo(() => {
+    if (!menuSearchQuery.trim()) return navGroups;
+    const query = menuSearchQuery.toLowerCase();
+    return navGroups
+      .map((group) => {
+        const mainMenuMatches = group.mainMenu.toLowerCase().includes(query);
+        const matchingItems = mainMenuMatches
+          ? group.items
+          : group.items.filter(
+              (item) =>
+                item.subMenu1?.toLowerCase().includes(query) ||
+                item.subMenu2?.toLowerCase().includes(query) ||
+                item.subMenu3?.toLowerCase().includes(query) ||
+                item.path?.toLowerCase().includes(query)
+            );
+        return { ...group, items: matchingItems };
+      })
+      .filter((group) => group.items.length > 0);
+  }, [navGroups, menuSearchQuery]);
 
   // Filtered users based on search
   const filteredUserGroups = useMemo(() => {
@@ -611,6 +633,33 @@ export default function AccessControlPage() {
                     </Typography>
                   </Box>
 
+                  {/* Menu Search */}
+                  <Box sx={{ px: 2, py: 1.5, borderBottom: 1, borderColor: 'divider' }}>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      placeholder="Search menu items..."
+                      value={menuSearchQuery}
+                      onChange={(e) => setMenuSearchQuery(e.target.value)}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Iconify icon="eva:search-fill" />
+                          </InputAdornment>
+                        ),
+                        endAdornment: menuSearchQuery ? (
+                          <InputAdornment position="end">
+                            <Iconify
+                              icon="eva:close-fill"
+                              onClick={() => setMenuSearchQuery('')}
+                              sx={{ cursor: 'pointer', color: 'text.secondary' }}
+                            />
+                          </InputAdornment>
+                        ) : null,
+                      }}
+                    />
+                  </Box>
+
                   {/* Permissions List */}
                   {userPermsLoading ? (
                     <Stack alignItems="center" sx={{ py: 5, flex: 1 }}>
@@ -618,8 +667,22 @@ export default function AccessControlPage() {
                     </Stack>
                   ) : (
                     <List sx={{ flex: 1, overflow: 'auto' }}>
-                      {navGroups.map((group) => {
-                        const isExpanded = expandedMenus[group.mainMenu] !== false;
+                      {filteredNavGroups.length === 0 && menuSearchQuery ? (
+                        <Stack alignItems="center" sx={{ py: 6 }} spacing={1}>
+                          <Iconify
+                            icon="eva:search-fill"
+                            width={32}
+                            sx={{ color: 'text.disabled' }}
+                          />
+                          <Typography variant="body2" color="text.secondary">
+                            No menu items match &ldquo;{menuSearchQuery}&rdquo;
+                          </Typography>
+                        </Stack>
+                      ) : null}
+                      {filteredNavGroups.map((group) => {
+                        const isExpanded = menuSearchQuery
+                          ? true
+                          : expandedMenus[group.mainMenu] !== false;
                         const allEnabled = isMenuFullyEnabled(group.items);
                         const partialEnabled = isMenuPartiallyEnabled(group.items);
 
