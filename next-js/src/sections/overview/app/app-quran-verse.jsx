@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
@@ -8,6 +8,9 @@ import Card from '@mui/material/Card';
 import Tabs from '@mui/material/Tabs';
 import Skeleton from '@mui/material/Skeleton';
 import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
+
+import { Iconify } from 'src/components/iconify';
 
 import { apiHelper } from 'src/utils/apiHelper';
 
@@ -38,7 +41,10 @@ export function AppQuranVerse({ sx, ...other }) {
   const [tafsir, setTafsir] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [canScrollUp, setCanScrollUp] = useState(false);
+  const [canScrollDown, setCanScrollDown] = useState(false);
 
+  const scrollRef = useRef(null);
   const { surahNo, ayahNo } = getDailyVerse();
 
   useEffect(() => {
@@ -53,6 +59,26 @@ export function AppQuranVerse({ sx, ...other }) {
       .catch(() => setError(true))
       .finally(() => setLoading(false));
   }, [surahNo, ayahNo]);
+
+  const updateScrollState = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollUp(el.scrollTop > 4);
+    setCanScrollDown(el.scrollTop + el.clientHeight < el.scrollHeight - 4);
+  }, []);
+
+  // Reset scroll position and recheck arrows when tab or content changes
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTop = 0;
+    // Wait one frame for content to paint before measuring
+    const raf = requestAnimationFrame(updateScrollState);
+    return () => cancelAnimationFrame(raf);
+  }, [tab, loading, updateScrollState]);
+
+  const scrollUp = () => scrollRef.current?.scrollBy({ top: -80, behavior: 'smooth' });
+  const scrollDown = () => scrollRef.current?.scrollBy({ top: 80, behavior: 'smooth' });
 
   const tafsirEntry = tafsir?.tafsirs?.find((t) => t.author === 'Ibn Kathir');
   const tafsirText = tafsirEntry ? cleanTafsir(tafsirEntry.content) : '';
@@ -112,107 +138,156 @@ export function AppQuranVerse({ sx, ...other }) {
       </Tabs>
 
       {/* ── Content ── */}
-      <Box sx={{ flex: 1, overflow: 'hidden', px: 2.5, py: 2 }}>
-        {loading && (
-          <>
-            <Skeleton variant="text" width="85%" sx={{ bgcolor: 'grey.800', mb: 1 }} />
-            <Skeleton variant="text" width="65%" sx={{ bgcolor: 'grey.800', mb: 1 }} />
-            <Skeleton variant="text" width="75%" sx={{ bgcolor: 'grey.800' }} />
-          </>
-        )}
+      <Box sx={{ position: 'relative', flex: 1, overflow: 'hidden' }}>
+        {/* Scrollable inner — scrollbar hidden, arrows used instead */}
+        <Box
+          ref={scrollRef}
+          onScroll={updateScrollState}
+          sx={{
+            height: '100%',
+            overflowY: 'auto',
+            px: 2.5,
+            py: 1.5,
+            scrollbarWidth: 'none',
+            '&::-webkit-scrollbar': { display: 'none' },
+          }}
+        >
+          {loading && (
+            <>
+              <Skeleton variant="text" width="85%" sx={{ bgcolor: 'grey.800', mb: 1 }} />
+              <Skeleton variant="text" width="65%" sx={{ bgcolor: 'grey.800', mb: 1 }} />
+              <Skeleton variant="text" width="75%" sx={{ bgcolor: 'grey.800' }} />
+            </>
+          )}
 
-        {!loading && error && (
-          <Typography variant="body2" sx={{ color: 'warning.light' }}>
-            Unable to load verse. Please check your connection.
-          </Typography>
-        )}
+          {!loading && error && (
+            <Typography variant="body2" sx={{ color: 'warning.light' }}>
+              Unable to load verse. Please check your connection.
+            </Typography>
+          )}
 
-        {!loading && !error && (
-          <>
-            {/* Arabic */}
-            {tab === 0 && (
-              <Typography
-                dir="rtl"
-                lang="ar"
-                sx={{
-                  textAlign: 'right',
-                  fontSize: { xs: '1.3rem', xl: '1.5rem' },
-                  lineHeight: 2.4,
-                  fontFamily:
-                    '"Amiri", "Scheherazade New", "Traditional Arabic", "Arial Unicode MS", serif',
-                  color: 'common.white',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 4,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                }}
-              >
-                {verse?.arabic1}
-              </Typography>
-            )}
-
-            {/* English Translation */}
-            {tab === 1 && (
-              <Typography
-                variant="body1"
-                sx={{
-                  lineHeight: 1.9,
-                  color: 'grey.100',
-                  fontStyle: 'italic',
-                  display: '-webkit-box',
-                  WebkitLineClamp: 6,
-                  WebkitBoxOrient: 'vertical',
-                  overflow: 'hidden',
-                }}
-              >
-                &ldquo;{verse?.english}&rdquo;
-                <Box
-                  component="span"
+          {!loading && !error && (
+            <>
+              {/* Arabic */}
+              {tab === 0 && (
+                <Typography
+                  dir="rtl"
+                  lang="ar"
                   sx={{
-                    display: 'block',
-                    mt: 1.5,
-                    fontSize: 12,
-                    color: 'grey.500',
-                    fontStyle: 'normal',
+                    textAlign: 'right',
+                    fontSize: { xs: '1.2rem', xl: '1.3rem' },
+                    lineHeight: 2.2,
+                    fontFamily:
+                      '"Amiri", "Scheherazade New", "Traditional Arabic", "Arial Unicode MS", serif',
+                    color: 'common.white',
                   }}
                 >
-                  — {verse?.surahName} ({verse?.surahNameTranslation}) · {verse?.revelationPlace}
-                </Box>
-              </Typography>
-            )}
+                  {verse?.arabic1}
+                </Typography>
+              )}
 
-            {/* Tafsir */}
-            {tab === 2 && (
-              <Box>
-                {tafsirGroup && (
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      display: 'block',
-                      mb: 1,
-                      color: 'primary.light',
-                      fontStyle: 'italic',
-                    }}
-                  >
-                    {tafsirGroup}
-                  </Typography>
-                )}
-
+              {/* English Translation */}
+              {tab === 1 && (
                 <Typography
                   variant="body2"
-                  sx={{ lineHeight: 1.85, color: 'grey.300', whiteSpace: 'pre-line' }}
+                  sx={{ lineHeight: 1.9, color: 'grey.100', fontStyle: 'italic' }}
                 >
-                  {tafsirText.length > 560 ? `${tafsirText.slice(0, 560)}…` : tafsirText}
+                  &ldquo;{verse?.english}&rdquo;
+                  <Box
+                    component="span"
+                    sx={{
+                      display: 'block',
+                      mt: 1.5,
+                      fontSize: 12,
+                      color: 'grey.500',
+                      fontStyle: 'normal',
+                    }}
+                  >
+                    — {verse?.surahName} ({verse?.surahNameTranslation}) · {verse?.revelationPlace}
+                  </Box>
                 </Typography>
+              )}
 
-                <Typography variant="caption" sx={{ display: 'block', mt: 1.5, color: 'grey.600' }}>
-                  Source: Ibn Kathir Tafsir
-                </Typography>
-              </Box>
-            )}
-          </>
+              {/* Tafsir */}
+              {tab === 2 && (
+                <Box>
+                  {tafsirGroup && (
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        display: 'block',
+                        mb: 1,
+                        color: 'primary.light',
+                        fontStyle: 'italic',
+                      }}
+                    >
+                      {tafsirGroup}
+                    </Typography>
+                  )}
+
+                  <Typography
+                    variant="body2"
+                    sx={{ lineHeight: 1.85, color: 'grey.300', whiteSpace: 'pre-line' }}
+                  >
+                    {tafsirText.length > 560 ? `${tafsirText.slice(0, 560)}…` : tafsirText}
+                  </Typography>
+
+                  <Typography
+                    variant="caption"
+                    sx={{ display: 'block', mt: 1.5, color: 'grey.600' }}
+                  >
+                    Source: Ibn Kathir Tafsir
+                  </Typography>
+                </Box>
+              )}
+            </>
+          )}
+        </Box>
+        {/* end scrollable inner */}
+
+        {/* Up arrow */}
+        {canScrollUp && (
+          <IconButton
+            onClick={scrollUp}
+            size="small"
+            sx={{
+              position: 'absolute',
+              top: 4,
+              right: 4,
+              color: 'common.white',
+              opacity: 0.6,
+              bgcolor: 'grey.800',
+              width: 24,
+              height: 24,
+              '&:hover': { opacity: 1, bgcolor: 'grey.700' },
+            }}
+          >
+            <Iconify icon="eva:arrow-ios-upward-fill" width={14} />
+          </IconButton>
+        )}
+
+        {/* Down arrow */}
+        {canScrollDown && (
+          <IconButton
+            onClick={scrollDown}
+            size="small"
+            sx={{
+              position: 'absolute',
+              bottom: 4,
+              right: 4,
+              color: 'common.white',
+              opacity: 0.6,
+              bgcolor: 'grey.800',
+              width: 24,
+              height: 24,
+              '&:hover': { opacity: 1, bgcolor: 'grey.700' },
+            }}
+          >
+            <Iconify icon="eva:arrow-ios-downward-fill" width={14} />
+          </IconButton>
         )}
       </Box>
+      {/* end outer relative Box */}
     </Card>
   );
 }

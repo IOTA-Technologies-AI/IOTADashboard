@@ -4,6 +4,8 @@ import { useSetState } from 'minimal-shared/hooks';
 import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import { seedOneDriveToken } from 'src/utils/onedrive-helper';
+import { fetchUserEnabledPaths } from 'src/utils/apiHelper';
+import { fetchRoleBasedNavPermissions } from 'src/utils/pageAccess';
 
 import axios from 'src/lib/axios';
 import { supabase } from 'src/lib/supabase';
@@ -154,6 +156,8 @@ const normalizeRole = (role, roleId, metadata, appRoles, tokenRoles) => {
 export function AuthProvider({ children }) {
   const { state, setState } = useSetState({ user: null, loading: true });
   const [apiAppRoles, setApiAppRoles] = useState([]);
+  const [allowedPaths, setAllowedPaths] = useState([]);
+  const [permissionsLoading, setPermissionsLoading] = useState(false);
 
   const checkUserSession = useCallback(async () => {
     try {
@@ -261,6 +265,66 @@ export function AuthProvider({ children }) {
     fetchAppRoles();
   }, [state.user]);
 
+  // Fetch and store allowed paths once per login (or when role/user changes).
+  // PermissionGuard reads from context — no API call needed per navigation.
+  const refreshPermissions = useCallback(async () => {
+    if (!state.user) {
+      setAllowedPaths([]);
+      return;
+    }
+
+    const appRoles =
+      state.user?.app_metadata?.roles || state.user?.roles || state.user?.user_metadata?.roles;
+    const claims = decodeJwt(state.user?.access_token || state.user?.accessToken);
+    const inlineRoles = identityRoles(state.user);
+    const tokenRoles = inlineRoles.length ? inlineRoles : claims?.roles || claims?.wids || [];
+
+    const resolvedRole = normalizeRole(
+      state.user?.role,
+      state.user?.roleId,
+      state.user?.user_metadata,
+      [...(appRoles || []), ...apiAppRoles],
+      tokenRoles
+    );
+
+    if (resolvedRole === 'superAdmin') {
+      setAllowedPaths(['*']);
+      return;
+    }
+
+    const userEmail =
+      state.user?.email || state.user?.user_metadata?.email || azureIdentityData(state.user)?.email;
+
+    setPermissionsLoading(true);
+    try {
+      let newPaths;
+
+      if (userEmail) {
+        const { paths: enabledPaths, hasExplicitPermissions } =
+          await fetchUserEnabledPaths(userEmail);
+        if (hasExplicitPermissions) {
+          newPaths = enabledPaths;
+        }
+      }
+
+      if (newPaths === undefined) {
+        const rolePaths = await fetchRoleBasedNavPermissions(resolvedRole);
+        newPaths = rolePaths || [];
+      }
+
+      setAllowedPaths(newPaths);
+    } catch (err) {
+      console.error('[AuthProvider] Failed to load permissions:', err);
+      setAllowedPaths([]);
+    } finally {
+      setPermissionsLoading(false);
+    }
+  }, [state.user, apiAppRoles]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    refreshPermissions();
+  }, [refreshPermissions]);
+
   // ----------------------------------------------------------------------
 
   const checkAuthenticated = state.user ? 'authenticated' : 'unauthenticated';
@@ -344,8 +408,19 @@ export function AuthProvider({ children }) {
       loading: status === 'loading',
       authenticated: status === 'authenticated',
       unauthenticated: status === 'unauthenticated',
+      allowedPaths,
+      permissionsLoading,
+      refreshPermissions,
     };
-  }, [apiAppRoles, checkUserSession, state.user, status]);
+  }, [
+    apiAppRoles,
+    checkUserSession,
+    state.user,
+    status,
+    allowedPaths,
+    permissionsLoading,
+    refreshPermissions,
+  ]);
 
   return <AuthContext value={memoizedValue}>{children}</AuthContext>;
 }
