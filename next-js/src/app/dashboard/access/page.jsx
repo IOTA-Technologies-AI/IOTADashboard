@@ -25,6 +25,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import {
   fetchRoles,
   fetchNavPermissions,
+  refreshNavPermissionsCache,
   setUserNavPermissions,
   fetchUserNavPermissions,
   grantDefaultPermissions,
@@ -446,6 +447,26 @@ export default function AccessControlPage() {
               Manage user permissions for navigation menu items
             </Typography>
           </Box>
+          <Button
+            variant="outlined"
+            size="small"
+            startIcon={<Iconify icon="eva:refresh-fill" />}
+            disabled={navLoading}
+            onClick={async () => {
+              try {
+                setNavLoading(true);
+                await refreshNavPermissionsCache();
+                const navData = await fetchNavPermissions();
+                setNavPermissions(navData);
+              } catch (err) {
+                setError(err?.message || 'Failed to refresh permissions cache');
+              } finally {
+                setNavLoading(false);
+              }
+            }}
+          >
+            {navLoading ? 'Refreshing...' : 'Refresh Menu List'}
+          </Button>
         </Stack>
 
         {/* Alerts */}

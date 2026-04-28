@@ -2913,6 +2913,11 @@ export async function fetchNavPermissions() {
   return response.data?.permissions || [];
 }
 
+export async function refreshNavPermissionsCache() {
+  const response = await axios.post(`${API_BASE_URL}nav-permissions/refresh-cache`);
+  return response.data;
+}
+
 /**
  * @summary Fetches the navigation permissions granted to a specific user.
  * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
@@ -4431,6 +4436,7 @@ export const apiHelper = {
   assignManagerApi,
   fetchManagerUsers,
   fetchNavPermissions,
+  refreshNavPermissionsCache,
   fetchUserNavPermissions,
   fetchUserEnabledPaths,
   setUserNavPermissions,
