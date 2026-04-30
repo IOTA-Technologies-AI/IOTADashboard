@@ -2,6 +2,7 @@
 
 import useSWR from 'swr';
 import { useMemo } from 'react';
+import { varAlpha } from 'minimal-shared/utils';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -20,7 +21,10 @@ import { useRouter } from 'src/routes/hooks';
 import { fCurrency } from 'src/utils/format-number';
 import { listPipelineDeals } from 'src/utils/apiHelper';
 
+import { CONFIG } from 'src/global-config';
+
 import { Iconify } from 'src/components/iconify';
+import { SvgColor } from 'src/components/svg-color';
 
 // ----------------------------------------------------------------------
 
@@ -59,79 +63,73 @@ function fmt(n, currency) {
 
 // ----------------------------------------------------------------------
 
-function KpiCard({ label, value, sub, icon, iconColor, trend }) {
+function KpiCard({ label, value, sub, icon, color = 'primary', trend }) {
   const theme = useTheme();
   return (
     <Card
       sx={{
         p: 3,
-        height: '100%',
+        boxShadow: 'none',
         position: 'relative',
         overflow: 'hidden',
-        boxShadow:
-          theme.customShadows?.card ||
-          '0 0 2px 0 rgba(145,158,171,.2), 0 12px 24px -4px rgba(145,158,171,.12)',
+        color: `${color}.darker`,
+        backgroundColor: 'common.white',
+        backgroundImage: `linear-gradient(135deg, ${varAlpha(theme.vars.palette[color].lighterChannel, 0.48)}, ${varAlpha(theme.vars.palette[color].lightChannel, 0.48)})`,
       }}
     >
-      <Stack direction="row" alignItems="flex-start" justifyContent="space-between">
-        <Box>
-          <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-            {label}
-          </Typography>
-          <Typography variant="h4" fontWeight={700} lineHeight={1.2}>
-            {value}
-          </Typography>
-          {sub && (
-            <Typography variant="caption" color="text.secondary" mt={0.5} display="block">
-              {sub}
-            </Typography>
-          )}
-        </Box>
+      {/* Glass icon */}
+      <Box sx={{ width: 48, height: 48, mb: 3 }}>
+        <img
+          alt={label}
+          src={`${CONFIG.assetsDir}/assets/icons/glass/${icon}`}
+          width={48}
+          height={48}
+        />
+      </Box>
+
+      {/* Trend badge top-right */}
+      {trend != null && (
         <Box
           sx={{
-            width: 48,
-            height: 48,
-            borderRadius: 1.5,
+            top: 16,
+            gap: 0.5,
+            right: 16,
             display: 'flex',
+            position: 'absolute',
             alignItems: 'center',
-            justifyContent: 'center',
-            bgcolor: alpha(iconColor, 0.12),
-            color: iconColor,
-            flexShrink: 0,
           }}
         >
-          <Iconify icon={icon} width={24} />
-        </Box>
-      </Stack>
-
-      {trend != null && (
-        <Stack direction="row" alignItems="center" spacing={0.5} mt={2}>
           <Iconify
+            width={20}
             icon={trend >= 0 ? 'eva:trending-up-fill' : 'eva:trending-down-fill'}
-            width={18}
-            color={trend >= 0 ? 'success.main' : 'error.main'}
           />
-          <Typography variant="caption" color={trend >= 0 ? 'success.main' : 'error.main'}>
+          <Box component="span" sx={{ typography: 'subtitle2' }}>
             {trend >= 0 ? '+' : ''}
             {trend}%
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            vs last period
-          </Typography>
-        </Stack>
+          </Box>
+        </Box>
       )}
 
-      {/* decorative bg circle */}
-      <Box
+      <Box sx={{ mb: 0.5, typography: 'subtitle2' }}>{label}</Box>
+      <Box sx={{ typography: 'h4' }}>{value}</Box>
+      {sub && (
+        <Typography variant="caption" sx={{ opacity: 0.72, mt: 0.5, display: 'block' }}>
+          {sub}
+        </Typography>
+      )}
+
+      {/* Shape watermark */}
+      <SvgColor
+        src={`${CONFIG.assetsDir}/assets/background/shape-square.svg`}
         sx={{
+          top: 0,
+          left: -20,
+          width: 240,
+          zIndex: -1,
+          height: 240,
+          opacity: 0.24,
           position: 'absolute',
-          right: -20,
-          bottom: -20,
-          width: 96,
-          height: 96,
-          borderRadius: '50%',
-          bgcolor: alpha(iconColor, 0.06),
-          pointerEvents: 'none',
+          color: `${color}.lighter`,
         }}
       />
     </Card>
@@ -315,16 +313,16 @@ export function SalesDashboardView() {
           <KpiCard
             label="Total Deals"
             value={loading ? '…' : stats.total}
-            icon="solar:bag-bold"
-            iconColor={theme.palette.primary.main}
+            icon="ic-glass-bag.svg"
+            color="primary"
           />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
           <KpiCard
             label="Active Pipeline"
             value={loading ? '…' : stats.active}
-            icon="solar:fire-bold"
-            iconColor={theme.palette.warning.main}
+            icon="ic-glass-buy.svg"
+            color="warning"
           />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
@@ -332,8 +330,8 @@ export function SalesDashboardView() {
             label="Win Rate"
             value={loading ? '…' : `${stats.winRate}%`}
             sub={`${stats.won} deal${stats.won !== 1 ? 's' : ''} closed`}
-            icon="solar:medal-ribbons-star-bold"
-            iconColor={theme.palette.success.main}
+            icon="ic-glass-message.svg"
+            color="success"
           />
         </Grid>
         <Grid size={{ xs: 6, md: 3 }}>
@@ -341,8 +339,8 @@ export function SalesDashboardView() {
             label="Pipeline Value"
             value={loading ? '…' : fmt(stats.totalValue, currency)}
             sub={`Won: ${fmt(stats.wonValue, currency)}`}
-            icon="solar:dollar-minimalistic-bold"
-            iconColor={theme.palette.info.main}
+            icon="ic-glass-users.svg"
+            color="info"
           />
         </Grid>
       </Grid>
