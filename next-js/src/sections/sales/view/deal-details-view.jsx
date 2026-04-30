@@ -1,7 +1,7 @@
 'use client';
 
 import useSWR, { mutate as globalMutate } from 'swr';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -27,6 +27,7 @@ import { paths } from 'src/routes/paths';
 import { Iconify } from 'src/components/iconify';
 import { toast } from 'src/components/snackbar';
 import { useAuthContext } from 'src/auth/hooks';
+import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 import { getPipelineDeal, addPipelineActivity } from 'src/utils/apiHelper';
 
 // ----------------------------------------------------------------------
@@ -66,6 +67,13 @@ function LabelValue({ label, value }) {
 export function DealDetailsView({ id }) {
   const router = useRouter();
   const { user } = useAuthContext();
+  const { users: msUsers } = useMicrosoftUsers();
+
+  // Build email → display name map
+  const bdmNameMap = useMemo(
+    () => Object.fromEntries((msUsers || []).map((u) => [u.email, u.name])),
+    [msUsers]
+  );
 
   const { data, isLoading, mutate } = useSWR(id ? `pipeline-deal-${id}` : null, () =>
     getPipelineDeal(id)
@@ -156,13 +164,18 @@ export function DealDetailsView({ id }) {
         </Box>
 
         <Stack direction="row" spacing={1}>
-          <Button
-            variant="outlined"
-            startIcon={<Iconify icon="solar:pen-bold" />}
-            onClick={() => router.push(paths.dashboard.sales.deals.edit(id))}
-          >
-            Edit
-          </Button>
+          {/* Only the deal creator or admin/superAdmin can edit */}
+          {(user?.email === deal.createdBy ||
+            user?.role === 'admin' ||
+            user?.role === 'superAdmin') && (
+            <Button
+              variant="outlined"
+              startIcon={<Iconify icon="solar:pen-bold" />}
+              onClick={() => router.push(paths.dashboard.sales.deals.edit(id))}
+            >
+              Edit
+            </Button>
+          )}
           <Button
             variant="outlined"
             startIcon={<Iconify icon="solar:arrow-left-bold" />}
@@ -203,10 +216,13 @@ export function DealDetailsView({ id }) {
               <Grid size={{ xs: 6, md: 4 }}>
                 <LabelValue label="Source" value={deal.source?.replace('_', ' ')} />
               </Grid>
-              <Grid size={{ xs: 6, md: 4 }}>
-                <LabelValue label="Assigned BDM" value={deal.assignedBdm} />
+              <Grid size={{ xs: 12, md: 6 }}>
+                <LabelValue
+                  label="Assigned BDM"
+                  value={deal.assignedBdm ? bdmNameMap[deal.assignedBdm] || deal.assignedBdm : null}
+                />
               </Grid>
-              <Grid size={{ xs: 6, md: 4 }}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <LabelValue label="Created" value={new Date(deal.createdAt).toLocaleDateString()} />
               </Grid>
             </Grid>
