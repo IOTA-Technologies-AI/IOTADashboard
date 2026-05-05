@@ -51,6 +51,7 @@ const schema = z.object({
   budgetMax: z.coerce.number().min(0),
   employmentType: z.string(),
   status: z.string(),
+  description: z.string().optional(),
 });
 
 // ----------------------------------------------------------------------
@@ -144,6 +145,7 @@ export function JDNewEditForm({ id }) {
   const [aiOpen, setAiOpen] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiError, setAiError] = useState('');
+  const [aiPreview, setAiPreview] = useState(null); // holds GenerateJDSuggestion after generation
   const [aiInputs, setAiInputs] = useState({
     title: '',
     department: '',
@@ -175,16 +177,7 @@ export function JDNewEditForm({ id }) {
   // Populate form when editing
   useMemo(() => {
     if (existing && !initialized) {
-      reset({
-        title: existing.title,
-        department: existing.department,
-        experienceYears: existing.experienceYears,
-        location: existing.location,
-        budgetMin: existing.budgetMin,
-        budgetMax: existing.budgetMax,
-        employmentType: existing.employmentType,
-        status: existing.status,
-      });
+      reset({ ...existing, description: existing.description || '' });
       setMandatorySkills(existing.mandatorySkills || []);
       setOptionalSkills(existing.optionalSkills || []);
       setCertifications(existing.certifications || []);
@@ -195,6 +188,7 @@ export function JDNewEditForm({ id }) {
   const handleAiGenerate = async () => {
     setAiGenerating(true);
     setAiError('');
+    setAiPreview(null);
     try {
       const res = await generateJobDescription({
         title: aiInputs.title,
@@ -203,27 +197,31 @@ export function JDNewEditForm({ id }) {
         employmentType: aiInputs.employmentType,
         context: aiInputs.context || undefined,
       });
-      const suggestion = res.data;
-      // Pre-fill tag arrays
-      setMandatorySkills(suggestion.mandatorySkills || []);
-      setOptionalSkills(suggestion.optionalSkills || []);
-      setCertifications(suggestion.certifications || []);
-      // Pre-fill form fields if the user hasn't typed them yet
-      reset((prev) => ({
-        ...prev,
-        title: prev.title || aiInputs.title,
-        department: prev.department || aiInputs.department,
-        experienceYears: prev.experienceYears || aiInputs.experienceYears,
-        employmentType: aiInputs.employmentType,
-        budgetMin: suggestion.budgetMin || prev.budgetMin,
-        budgetMax: suggestion.budgetMax || prev.budgetMax,
-      }));
-      setAiOpen(false);
+      setAiPreview(res.data);
     } catch (err) {
       setAiError(err?.response?.data?.message || err.message || 'AI generation failed');
     } finally {
       setAiGenerating(false);
     }
+  };
+
+  const handleAiApply = () => {
+    if (!aiPreview) return;
+    setMandatorySkills(aiPreview.mandatorySkills || []);
+    setOptionalSkills(aiPreview.optionalSkills || []);
+    setCertifications(aiPreview.certifications || []);
+    reset((prev) => ({
+      ...prev,
+      title: prev.title || aiInputs.title,
+      department: prev.department || aiInputs.department,
+      experienceYears: prev.experienceYears || Number(aiInputs.experienceYears),
+      employmentType: aiInputs.employmentType,
+      budgetMin: aiPreview.budgetMin || prev.budgetMin,
+      budgetMax: aiPreview.budgetMax || prev.budgetMax,
+      description: aiPreview.description || prev.description || '',
+    }));
+    setAiOpen(false);
+    setAiPreview(null);
   };
 
   const onSubmit = async (values) => {
@@ -234,6 +232,7 @@ export function JDNewEditForm({ id }) {
         mandatorySkills,
         optionalSkills,
         certifications,
+        description: values.description || '',
         createdBy: user?.email || '',
       };
       if (isEdit) {
@@ -492,6 +491,27 @@ export function JDNewEditForm({ id }) {
                   />
                 </Grid>
               </Grid>
+            </Card>
+          </Grid>
+
+          {/* Full JD Description */}
+          <Grid item xs={12}>
+            <Card sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Job Description
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                Full job description (auto-filled by AI Generate, or type manually). Supports plain
+                text or markdown.
+              </Typography>
+              <TextField
+                fullWidth
+                multiline
+                rows={14}
+                placeholder="Role overview, key responsibilities, required qualifications…"
+                {...register('description')}
+                inputProps={{ style: { fontFamily: 'monospace', fontSize: 13 } }}
+              />
             </Card>
           </Grid>
 
