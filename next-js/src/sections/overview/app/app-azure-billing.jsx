@@ -1,8 +1,10 @@
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Divider from '@mui/material/Divider';
 import Skeleton from '@mui/material/Skeleton';
+import Tooltip from '@mui/material/Tooltip';
 import CardHeader from '@mui/material/CardHeader';
 import Typography from '@mui/material/Typography';
 import { useTheme } from '@mui/material/styles';
@@ -22,7 +24,14 @@ import { Chart, useChart, ChartLegends } from 'src/components/chart';
  *   currency – e.g. "USD"
  *   loading  – show skeletons while fetching
  */
-export function AppAzureBilling({ data = [], currency = 'USD', loading = false, sx, ...other }) {
+export function AppAzureBilling({
+  data = [],
+  currency = 'USD',
+  loading = false,
+  error,
+  sx,
+  ...other
+}) {
   const theme = useTheme();
 
   const categories = data.map((d) => d.month);
@@ -84,6 +93,14 @@ export function AppAzureBilling({ data = [], currency = 'USD', loading = false, 
         subheader="Last 6 months · Super Admin only"
         sx={{ mb: 1 }}
       />
+
+      {error && (
+        <Tooltip title={error} placement="bottom">
+          <Alert severity="warning" sx={{ mx: 3, mb: 1 }}>
+            Cost data unavailable — IAM permission required.
+          </Alert>
+        </Tooltip>
+      )}
 
       <ChartLegends
         colors={chartColors}

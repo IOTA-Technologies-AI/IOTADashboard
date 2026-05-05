@@ -46,7 +46,7 @@ export function OverviewAppView() {
 
   // Azure billing — superAdmin only
   const isSuperAdmin = user?.role === 'superAdmin' || user?.roleId === 4;
-  const [azureBilling, setAzureBilling] = useState({ data: [], currency: 'USD' });
+  const [azureBilling, setAzureBilling] = useState({ data: [], currency: 'USD', error: undefined });
   const [azureBillingLoading, setAzureBillingLoading] = useState(false);
 
   const currentYear = new Date().getFullYear();
@@ -234,6 +234,7 @@ export function OverviewAppView() {
               data={azureBilling.data}
               currency={azureBilling.currency}
               loading={azureBillingLoading}
+              error={azureBilling.error}
             />
           </Grid>
         ) : (
