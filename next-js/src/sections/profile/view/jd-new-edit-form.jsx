@@ -157,7 +157,6 @@ export function JDNewEditForm({ id }) {
   });
 
   const {
-    register,
     handleSubmit,
     control,
     reset,
@@ -498,40 +497,64 @@ export function JDNewEditForm({ id }) {
               </Typography>
               <Grid container spacing={2}>
                 <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Job Title"
-                    {...register('title')}
-                    error={!!errors.title}
-                    helperText={errors.title?.message}
+                  <Controller
+                    name="title"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        fullWidth
+                        label="Job Title"
+                        {...field}
+                        error={!!errors.title}
+                        helperText={errors.title?.message}
+                      />
+                    )}
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Department"
-                    {...register('department')}
-                    error={!!errors.department}
-                    helperText={errors.department?.message}
+                  <Controller
+                    name="department"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        fullWidth
+                        label="Department"
+                        {...field}
+                        error={!!errors.department}
+                        helperText={errors.department?.message}
+                      />
+                    )}
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    label="Location"
-                    {...register('location')}
-                    error={!!errors.location}
-                    helperText={errors.location?.message}
+                  <Controller
+                    name="location"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        fullWidth
+                        label="Location"
+                        {...field}
+                        error={!!errors.location}
+                        helperText={errors.location?.message}
+                      />
+                    )}
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Experience Required (years)"
-                    {...register('experienceYears')}
-                    error={!!errors.experienceYears}
-                    helperText={errors.experienceYears?.message}
+                  <Controller
+                    name="experienceYears"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Experience Required (years)"
+                        {...field}
+                        error={!!errors.experienceYears}
+                        helperText={errors.experienceYears?.message}
+                      />
+                    )}
                   />
                 </Grid>
                 <Grid item xs={12} md={4}>
@@ -565,29 +588,41 @@ export function JDNewEditForm({ id }) {
                   />
                 </Grid>
                 <Grid item xs={12} md={3}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Budget Min"
-                    {...register('budgetMin')}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">{budgetCurrency}</InputAdornment>
-                      ),
-                    }}
+                  <Controller
+                    name="budgetMin"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Budget Min"
+                        {...field}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">{budgetCurrency}</InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
                   />
                 </Grid>
                 <Grid item xs={12} md={3}>
-                  <TextField
-                    fullWidth
-                    type="number"
-                    label="Budget Max"
-                    {...register('budgetMax')}
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">{budgetCurrency}</InputAdornment>
-                      ),
-                    }}
+                  <Controller
+                    name="budgetMax"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        fullWidth
+                        type="number"
+                        label="Budget Max"
+                        {...field}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">{budgetCurrency}</InputAdornment>
+                          ),
+                        }}
+                      />
+                    )}
                   />
                 </Grid>
                 <Grid item xs={12} md={3}>
@@ -654,13 +689,19 @@ export function JDNewEditForm({ id }) {
                 Full job description (auto-filled by AI Generate, or type manually). Supports plain
                 text or markdown.
               </Typography>
-              <TextField
-                fullWidth
-                multiline
-                rows={14}
-                placeholder="Role overview, key responsibilities, required qualifications…"
-                {...register('description')}
-                inputProps={{ style: { fontFamily: 'monospace', fontSize: 13 } }}
+              <Controller
+                name="description"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={14}
+                    placeholder="Role overview, key responsibilities, required qualifications…"
+                    {...field}
+                    inputProps={{ style: { fontFamily: 'monospace', fontSize: 13 } }}
+                  />
+                )}
               />
             </Card>
           </Grid>
