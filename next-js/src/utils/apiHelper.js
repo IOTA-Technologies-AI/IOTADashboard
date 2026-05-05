@@ -4448,14 +4448,14 @@ export async function deleteCandidate(id) {
  * @param {File} file - The File object from the browser
  * @param {string} uploadedBy - Email of the uploader
  */
-export async function uploadResume(file, uploadedBy) {
+export async function uploadResume(file, uploadedBy, overrideFileName) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = async () => {
       try {
         const base64 = reader.result.split(',')[1];
         const response = await axios.post(`${PROFILE_API_URL}/profile/resume/upload`, {
-          fileName: file.name,
+          fileName: overrideFileName || file.name,
           fileBase64: base64,
           mimeType: file.type,
           uploadedBy,

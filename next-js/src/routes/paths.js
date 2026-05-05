@@ -121,7 +121,7 @@ export const paths = {
         details: (id) => `${ROOTS.DASHBOARD}/profile/jd/${id}`,
         edit: (id) => `${ROOTS.DASHBOARD}/profile/jd/${id}/edit`,
       },
-      resumes: `${ROOTS.DASHBOARD}/booking`,
+      resumes: `${ROOTS.DASHBOARD}/profile/resumes`,
       candidates: {
         root: `${ROOTS.DASHBOARD}/profile/candidates`,
         details: (id) => `${ROOTS.DASHBOARD}/profile/candidates/${id}`,
