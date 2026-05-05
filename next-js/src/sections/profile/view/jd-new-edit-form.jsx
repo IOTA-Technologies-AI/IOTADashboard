@@ -1,0 +1,369 @@
+'use client';
+
+import useSWR from 'swr';
+import { z } from 'zod';
+import { useMemo, useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import Chip from '@mui/material/Chip';
+import Grid from '@mui/material/Grid';
+import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import InputAdornment from '@mui/material/InputAdornment';
+import CircularProgress from '@mui/material/CircularProgress';
+
+import { paths } from 'src/routes/paths';
+import { useRouter } from 'src/routes/hooks';
+
+import { getJobDescription, createJobDescription, updateJobDescription } from 'src/utils/apiHelper';
+
+import { useAuthContext } from 'src/auth/hooks';
+import { DashboardContent } from 'src/layouts/dashboard';
+import { Iconify } from 'src/components/iconify';
+
+// ----------------------------------------------------------------------
+
+const EMPLOYMENT_TYPES = ['full-time', 'part-time', 'contract', 'remote'];
+const STATUSES = ['draft', 'published', 'archived'];
+
+const schema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  department: z.string().min(1, 'Department is required'),
+  experienceYears: z.coerce.number().min(0),
+  location: z.string().min(1, 'Location is required'),
+  budgetMin: z.coerce.number().min(0),
+  budgetMax: z.coerce.number().min(0),
+  employmentType: z.string(),
+  status: z.string(),
+});
+
+// ----------------------------------------------------------------------
+
+/** Chip-based tag input for skills / certs */
+function TagInput({ label, value, onChange, placeholder }) {
+  const [input, setInput] = useState('');
+
+  const handleKeyDown = (e) => {
+    if ((e.key === 'Enter' || e.key === ',') && input.trim()) {
+      e.preventDefault();
+      const tag = input.trim().replace(/,$/, '');
+      if (tag && !value.includes(tag)) onChange([...value, tag]);
+      setInput('');
+    }
+    if (e.key === 'Backspace' && !input && value.length) {
+      onChange(value.slice(0, -1));
+    }
+  };
+
+  return (
+    <Box>
+      <Typography variant="caption" sx={{ mb: 0.5, display: 'block', color: 'text.secondary' }}>
+        {label}
+      </Typography>
+      <Box
+        sx={{
+          display: 'flex',
+          flexWrap: 'wrap',
+          gap: 0.5,
+          p: 1,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 1,
+          minHeight: 48,
+          alignItems: 'center',
+        }}
+      >
+        {value.map((tag) => (
+          <Chip
+            key={tag}
+            size="small"
+            label={tag}
+            onDelete={() => onChange(value.filter((t) => t !== tag))}
+          />
+        ))}
+        <Box
+          component="input"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder={value.length === 0 ? placeholder : ''}
+          sx={{
+            border: 'none',
+            outline: 'none',
+            flexGrow: 1,
+            minWidth: 120,
+            fontSize: 14,
+            fontFamily: 'inherit',
+            backgroundColor: 'transparent',
+          }}
+        />
+      </Box>
+      <Typography variant="caption" sx={{ color: 'text.disabled' }}>
+        Press Enter or comma to add
+      </Typography>
+    </Box>
+  );
+}
+
+// ----------------------------------------------------------------------
+
+export function JDNewEditForm({ id }) {
+  const router = useRouter();
+  const { user } = useAuthContext();
+  const isEdit = Boolean(id);
+
+  const { data, isLoading } = useSWR(isEdit ? `profile/jd/${id}` : null, () =>
+    getJobDescription(id)
+  );
+
+  const existing = data?.data;
+
+  const [mandatorySkills, setMandatorySkills] = useState([]);
+  const [optionalSkills, setOptionalSkills] = useState([]);
+  const [certifications, setCertifications] = useState([]);
+  const [initialized, setInitialized] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      title: '',
+      department: '',
+      experienceYears: 0,
+      location: '',
+      budgetMin: 0,
+      budgetMax: 0,
+      employmentType: 'full-time',
+      status: 'draft',
+    },
+  });
+
+  // Populate form when editing
+  useMemo(() => {
+    if (existing && !initialized) {
+      reset({
+        title: existing.title,
+        department: existing.department,
+        experienceYears: existing.experienceYears,
+        location: existing.location,
+        budgetMin: existing.budgetMin,
+        budgetMax: existing.budgetMax,
+        employmentType: existing.employmentType,
+        status: existing.status,
+      });
+      setMandatorySkills(existing.mandatorySkills || []);
+      setOptionalSkills(existing.optionalSkills || []);
+      setCertifications(existing.certifications || []);
+      setInitialized(true);
+    }
+  }, [existing, initialized, reset]);
+
+  const onSubmit = async (values) => {
+    setSaving(true);
+    try {
+      const payload = {
+        ...values,
+        mandatorySkills,
+        optionalSkills,
+        certifications,
+        createdBy: user?.email || '',
+      };
+      if (isEdit) {
+        await updateJobDescription(id, payload);
+      } else {
+        await createJobDescription(payload);
+      }
+      router.push(paths.dashboard.profile.jd.root);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (isEdit && isLoading) {
+    return (
+      <DashboardContent>
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+          <CircularProgress />
+        </Box>
+      </DashboardContent>
+    );
+  }
+
+  return (
+    <DashboardContent>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
+        <Button startIcon={<Iconify icon="eva:arrow-back-fill" />} onClick={() => router.back()}>
+          Back
+        </Button>
+        <Typography variant="h4">
+          {isEdit ? 'Edit Job Description' : 'New Job Description'}
+        </Typography>
+      </Stack>
+
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <Grid container spacing={3}>
+          {/* Basic Info */}
+          <Grid item xs={12}>
+            <Card sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Basic Information
+              </Typography>
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Job Title"
+                    {...register('title')}
+                    error={!!errors.title}
+                    helperText={errors.title?.message}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Department"
+                    {...register('department')}
+                    error={!!errors.department}
+                    helperText={errors.department?.message}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Location"
+                    {...register('location')}
+                    error={!!errors.location}
+                    helperText={errors.location?.message}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Experience Required (years)"
+                    {...register('experienceYears')}
+                    error={!!errors.experienceYears}
+                    helperText={errors.experienceYears?.message}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Controller
+                    name="employmentType"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField select fullWidth label="Employment Type" {...field}>
+                        {EMPLOYMENT_TYPES.map((t) => (
+                          <MenuItem key={t} value={t} sx={{ textTransform: 'capitalize' }}>
+                            {t}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Budget Min"
+                    {...register('budgetMin')}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    type="number"
+                    label="Budget Max"
+                    {...register('budgetMax')}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Controller
+                    name="status"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField select fullWidth label="Status" {...field}>
+                        {STATUSES.map((s) => (
+                          <MenuItem key={s} value={s} sx={{ textTransform: 'capitalize' }}>
+                            {s}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                </Grid>
+              </Grid>
+            </Card>
+          </Grid>
+
+          {/* Skills */}
+          <Grid item xs={12}>
+            <Card sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Skills & Requirements
+              </Typography>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={6}>
+                  <TagInput
+                    label="Mandatory Skills *"
+                    value={mandatorySkills}
+                    onChange={setMandatorySkills}
+                    placeholder="e.g. React, Node.js…"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TagInput
+                    label="Optional Skills"
+                    value={optionalSkills}
+                    onChange={setOptionalSkills}
+                    placeholder="e.g. GraphQL, Docker…"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <TagInput
+                    label="Required Certifications"
+                    value={certifications}
+                    onChange={setCertifications}
+                    placeholder="e.g. AWS Solutions Architect…"
+                  />
+                </Grid>
+              </Grid>
+            </Card>
+          </Grid>
+
+          {/* Submit */}
+          <Grid item xs={12}>
+            <Stack direction="row" justifyContent="flex-end" spacing={2}>
+              <Button variant="outlined" onClick={() => router.back()}>
+                Cancel
+              </Button>
+              <Button type="submit" variant="contained" disabled={saving}>
+                {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Create JD'}
+              </Button>
+            </Stack>
+          </Grid>
+        </Grid>
+      </form>
+    </DashboardContent>
+  );
+}

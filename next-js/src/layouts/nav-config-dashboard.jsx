@@ -52,6 +52,7 @@ const ICONS = {
   payroll: <AttachMoneyIcon style={{ width: 24, height: 24 }} />,
   sales: <LeaderboardIcon style={{ width: 24, height: 24 }} />,
   todo: <FormatListNumberedIcon style={{ width: 24, height: 24 }} />,
+  profile: icon('ic-user'),
 };
 
 // ----------------------------------------------------------------------
@@ -82,7 +83,18 @@ export const navData = [
       { title: 'Ecommerce', path: paths.dashboard.general.ecommerce, icon: ICONS.ecommerce },
       { title: 'Analytics', path: paths.dashboard.general.analytics, icon: ICONS.analytics },
       { title: 'Banking', path: paths.dashboard.general.banking, icon: ICONS.banking },
-      { title: 'Booking', path: paths.dashboard.general.booking, icon: ICONS.booking },
+      {
+        title: 'Profile',
+        path: paths.dashboard.profile.root,
+        icon: ICONS.profile,
+        children: [
+          { title: 'Overview', path: paths.dashboard.profile.root },
+          { title: 'Job Descriptions', path: paths.dashboard.profile.jd.root },
+          { title: 'Resumes', path: paths.dashboard.profile.resumes },
+          { title: 'Candidates', path: paths.dashboard.profile.candidates.root },
+          { title: 'Matching', path: paths.dashboard.profile.matching },
+        ],
+      },
       { title: 'Accounts', path: paths.dashboard.general.account, icon: ICONS.dashboard },
       { title: 'File', path: paths.dashboard.general.file, icon: ICONS.file },
       {

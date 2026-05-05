@@ -4389,6 +4389,92 @@ export async function addPipelineActivity(id, type, content, performedBy) {
   return response.data;
 }
 
+// ============================================================
+// Profile / PRMS
+// ============================================================
+
+const PROFILE_API_URL = process.env.NEXT_PUBLIC_SERVER_URL;
+
+export async function listJobDescriptions() {
+  const response = await axios.get(`${PROFILE_API_URL}/profile/jd`);
+  return response.data;
+}
+
+export async function getJobDescription(id) {
+  const response = await axios.get(`${PROFILE_API_URL}/profile/jd/${id}`);
+  return response.data;
+}
+
+export async function createJobDescription(data) {
+  const response = await axios.post(`${PROFILE_API_URL}/profile/jd`, data);
+  return response.data;
+}
+
+export async function updateJobDescription(id, data) {
+  const response = await axios.patch(`${PROFILE_API_URL}/profile/jd/${id}`, { id, ...data });
+  return response.data;
+}
+
+export async function deleteJobDescription(id) {
+  const response = await axios.delete(`${PROFILE_API_URL}/profile/jd/${id}`);
+  return response.data;
+}
+
+export async function listCandidates() {
+  const response = await axios.get(`${PROFILE_API_URL}/profile/candidates`);
+  return response.data;
+}
+
+export async function getCandidate(id) {
+  const response = await axios.get(`${PROFILE_API_URL}/profile/candidates/${id}`);
+  return response.data;
+}
+
+export async function updateCandidate(id, data) {
+  const response = await axios.patch(`${PROFILE_API_URL}/profile/candidates/${id}`, {
+    id,
+    ...data,
+  });
+  return response.data;
+}
+
+export async function deleteCandidate(id) {
+  const response = await axios.delete(`${PROFILE_API_URL}/profile/candidates/${id}`);
+  return response.data;
+}
+
+/**
+ * Upload a resume file.
+ * @param {File} file - The File object from the browser
+ * @param {string} uploadedBy - Email of the uploader
+ */
+export async function uploadResume(file, uploadedBy) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async () => {
+      try {
+        const base64 = reader.result.split(',')[1];
+        const response = await axios.post(`${PROFILE_API_URL}/profile/resume/upload`, {
+          fileName: file.name,
+          fileBase64: base64,
+          mimeType: file.type,
+          uploadedBy,
+        });
+        resolve(response.data);
+      } catch (err) {
+        reject(err);
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+export async function matchJDtoCandidates(jdId) {
+  const response = await axios.post(`${PROFILE_API_URL}/profile/match`, { jdId });
+  return response.data;
+}
+
 export const apiHelper = {
   fetchTotalIotaBilling,
   fetchTotalPartnerBilling,
@@ -4558,4 +4644,16 @@ export const apiHelper = {
   deletePipelineDeal,
   updatePipelineDealStage,
   addPipelineActivity,
+  // Profile / PRMS
+  listJobDescriptions,
+  getJobDescription,
+  createJobDescription,
+  updateJobDescription,
+  deleteJobDescription,
+  listCandidates,
+  getCandidate,
+  updateCandidate,
+  deleteCandidate,
+  uploadResume,
+  matchJDtoCandidates,
 };

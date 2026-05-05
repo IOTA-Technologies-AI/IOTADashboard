@@ -113,6 +113,21 @@ export const paths = {
     access: {
       root: `${ROOTS.DASHBOARD}/access`,
     },
+    profile: {
+      root: `${ROOTS.DASHBOARD}/profile`,
+      jd: {
+        root: `${ROOTS.DASHBOARD}/profile/jd`,
+        new: `${ROOTS.DASHBOARD}/profile/jd/new`,
+        details: (id) => `${ROOTS.DASHBOARD}/profile/jd/${id}`,
+        edit: (id) => `${ROOTS.DASHBOARD}/profile/jd/${id}/edit`,
+      },
+      resumes: `${ROOTS.DASHBOARD}/booking`,
+      candidates: {
+        root: `${ROOTS.DASHBOARD}/profile/candidates`,
+        details: (id) => `${ROOTS.DASHBOARD}/profile/candidates/${id}`,
+      },
+      matching: `${ROOTS.DASHBOARD}/profile/matching`,
+    },
     general: {
       app: `${ROOTS.DASHBOARD}/app`,
       ecommerce: `${ROOTS.DASHBOARD}/ecommerce`,

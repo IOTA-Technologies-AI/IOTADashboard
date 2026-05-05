@@ -1,11 +1,9 @@
-import { CONFIG } from 'src/global-config';
-
-import { OverviewBookingView } from 'src/sections/overview/booking/view';
+import { ResumeRepositoryView } from 'src/sections/profile/view';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Booking` };
+export const metadata = { title: 'Profile | Resumes' };
 
 export default function Page() {
-  return <OverviewBookingView />;
+  return <ResumeRepositoryView />;
 }
