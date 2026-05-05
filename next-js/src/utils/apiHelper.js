@@ -4475,6 +4475,22 @@ export async function matchJDtoCandidates(jdId) {
   return response.data;
 }
 
+export async function generateJobDescription(data) {
+  const response = await axios.post(`${PROFILE_API_URL}/profile/generate-jd`, data);
+  return response.data;
+}
+
+// ============================================================
+// Azure Billing
+// ============================================================
+
+const AZURE_BILLING_API_URL = process.env.NEXT_PUBLIC_SERVER_URL;
+
+export async function getAzureBilling() {
+  const response = await axios.get(`${AZURE_BILLING_API_URL}/azure/billing`);
+  return response.data;
+}
+
 export const apiHelper = {
   fetchTotalIotaBilling,
   fetchTotalPartnerBilling,
@@ -4656,4 +4672,6 @@ export const apiHelper = {
   deleteCandidate,
   uploadResume,
   matchJDtoCandidates,
+  generateJobDescription,
+  getAzureBilling,
 };

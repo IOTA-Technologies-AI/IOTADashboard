@@ -7,7 +7,7 @@ import Grid from '@mui/material/Grid';
 import Button from '@mui/material/Button';
 import { useTheme } from '@mui/material/styles';
 
-import { apiHelper } from 'src/utils/apiHelper';
+import { apiHelper, getAzureBilling } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import { SeoIllustration } from 'src/assets/illustrations';
@@ -24,6 +24,7 @@ import { AppQuranVerse } from '../app-quran-verse';
 import { AppTopAuthors } from '../app-top-authors';
 import { AppTopRelated } from '../app-top-related';
 import { AppNewInvoices } from '../app-new-invoices';
+import { AppAzureBilling } from '../app-azure-billing';
 import { AppAreaInstalled } from '../app-area-installed';
 import { AppWidgetSummary } from '../app-widget-summary';
 import { AppCurrentDownload } from '../app-current-download';
@@ -42,6 +43,11 @@ export function OverviewAppView() {
     totalPaid: 0,
     totalPending: 0,
   });
+
+  // Azure billing — superAdmin only
+  const isSuperAdmin = user?.role === 'superAdmin' || user?.roleId === 4;
+  const [azureBilling, setAzureBilling] = useState({ data: [], currency: 'USD' });
+  const [azureBillingLoading, setAzureBillingLoading] = useState(false);
 
   const currentYear = new Date().getFullYear();
   const previousYear = currentYear - 1;
@@ -76,7 +82,16 @@ export function OverviewAppView() {
       .catch((error) => {
         console.error('Error fetching total Partner billing:', error);
       });
-  }, []);
+
+    // Fetch Azure billing for superAdmin
+    if (isSuperAdmin) {
+      setAzureBillingLoading(true);
+      getAzureBilling()
+        .then((res) => setAzureBilling(res))
+        .catch((err) => console.error('Azure billing fetch failed:', err))
+        .finally(() => setAzureBillingLoading(false));
+    }
+  }, [isSuperAdmin]);
 
   return (
     <DashboardContent maxWidth="xl">
@@ -213,9 +228,19 @@ export function OverviewAppView() {
           />
         </Grid>
 
-        <Grid size={{ xs: 12, md: 6, lg: 4 }}>
-          <AppTopRelated title="Resources Card" list={_appRelated} />
-        </Grid>
+        {isSuperAdmin ? (
+          <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+            <AppAzureBilling
+              data={azureBilling.data}
+              currency={azureBilling.currency}
+              loading={azureBillingLoading}
+            />
+          </Grid>
+        ) : (
+          <Grid size={{ xs: 12, md: 6, lg: 4 }}>
+            <AppTopRelated title="Resources Card" list={_appRelated} />
+          </Grid>
+        )}
 
         <Grid size={{ xs: 12, md: 6, lg: 4 }}>
           <AppTopInstalledCountries title="Top Billing Customers" list={_appInstalled} />

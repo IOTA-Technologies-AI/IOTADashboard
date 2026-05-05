@@ -11,17 +11,27 @@ import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
 import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
-import { getJobDescription, createJobDescription, updateJobDescription } from 'src/utils/apiHelper';
+import {
+  getJobDescription,
+  createJobDescription,
+  updateJobDescription,
+  generateJobDescription,
+} from 'src/utils/apiHelper';
 
 import { useAuthContext } from 'src/auth/hooks';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -130,6 +140,18 @@ export function JDNewEditForm({ id }) {
   const [initialized, setInitialized] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  // AI Generate dialog state
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiGenerating, setAiGenerating] = useState(false);
+  const [aiError, setAiError] = useState('');
+  const [aiInputs, setAiInputs] = useState({
+    title: '',
+    department: '',
+    experienceYears: 0,
+    employmentType: 'full-time',
+    context: '',
+  });
+
   const {
     register,
     handleSubmit,
@@ -170,6 +192,40 @@ export function JDNewEditForm({ id }) {
     }
   }, [existing, initialized, reset]);
 
+  const handleAiGenerate = async () => {
+    setAiGenerating(true);
+    setAiError('');
+    try {
+      const res = await generateJobDescription({
+        title: aiInputs.title,
+        department: aiInputs.department,
+        experienceYears: Number(aiInputs.experienceYears),
+        employmentType: aiInputs.employmentType,
+        context: aiInputs.context || undefined,
+      });
+      const suggestion = res.data;
+      // Pre-fill tag arrays
+      setMandatorySkills(suggestion.mandatorySkills || []);
+      setOptionalSkills(suggestion.optionalSkills || []);
+      setCertifications(suggestion.certifications || []);
+      // Pre-fill form fields if the user hasn't typed them yet
+      reset((prev) => ({
+        ...prev,
+        title: prev.title || aiInputs.title,
+        department: prev.department || aiInputs.department,
+        experienceYears: prev.experienceYears || aiInputs.experienceYears,
+        employmentType: aiInputs.employmentType,
+        budgetMin: suggestion.budgetMin || prev.budgetMin,
+        budgetMax: suggestion.budgetMax || prev.budgetMax,
+      }));
+      setAiOpen(false);
+    } catch (err) {
+      setAiError(err?.response?.data?.message || err.message || 'AI generation failed');
+    } finally {
+      setAiGenerating(false);
+    }
+  };
+
   const onSubmit = async (values) => {
     setSaving(true);
     try {
@@ -205,14 +261,102 @@ export function JDNewEditForm({ id }) {
 
   return (
     <DashboardContent>
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 3 }}>
-        <Button startIcon={<Iconify icon="eva:arrow-back-fill" />} onClick={() => router.back()}>
-          Back
-        </Button>
-        <Typography variant="h4">
-          {isEdit ? 'Edit Job Description' : 'New Job Description'}
-        </Typography>
+      <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 3 }}>
+        <Stack direction="row" alignItems="center" spacing={1}>
+          <Button startIcon={<Iconify icon="eva:arrow-back-fill" />} onClick={() => router.back()}>
+            Back
+          </Button>
+          <Typography variant="h4">
+            {isEdit ? 'Edit Job Description' : 'New Job Description'}
+          </Typography>
+        </Stack>
+        {!isEdit && (
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={<Iconify icon="solar:magic-stick-3-bold" />}
+            onClick={() => setAiOpen(true)}
+          >
+            Generate with AI
+          </Button>
+        )}
       </Stack>
+
+      {/* AI Generate Dialog */}
+      <Dialog open={aiOpen} onClose={() => setAiOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Generate Job Description with AI</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              Provide a few details and AI will suggest skills, certifications, and salary range.
+            </Typography>
+            {aiError && <Alert severity="error">{aiError}</Alert>}
+            <TextField
+              fullWidth
+              label="Job Title"
+              value={aiInputs.title}
+              onChange={(e) => setAiInputs((p) => ({ ...p, title: e.target.value }))}
+              required
+            />
+            <TextField
+              fullWidth
+              label="Department"
+              value={aiInputs.department}
+              onChange={(e) => setAiInputs((p) => ({ ...p, department: e.target.value }))}
+              required
+            />
+            <Stack direction="row" spacing={2}>
+              <TextField
+                fullWidth
+                type="number"
+                label="Years of Experience"
+                value={aiInputs.experienceYears}
+                onChange={(e) => setAiInputs((p) => ({ ...p, experienceYears: e.target.value }))}
+              />
+              <TextField
+                select
+                fullWidth
+                label="Employment Type"
+                value={aiInputs.employmentType}
+                onChange={(e) => setAiInputs((p) => ({ ...p, employmentType: e.target.value }))}
+              >
+                {EMPLOYMENT_TYPES.map((t) => (
+                  <MenuItem key={t} value={t} sx={{ textTransform: 'capitalize' }}>
+                    {t}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Stack>
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              label="Additional context (optional)"
+              placeholder="e.g. startup environment, must have fintech experience, remote-first team…"
+              value={aiInputs.context}
+              onChange={(e) => setAiInputs((p) => ({ ...p, context: e.target.value }))}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAiOpen(false)}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={handleAiGenerate}
+            disabled={aiGenerating || !aiInputs.title || !aiInputs.department}
+            startIcon={
+              aiGenerating ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : (
+                <Iconify icon="solar:magic-stick-3-bold" />
+              )
+            }
+          >
+            {aiGenerating ? 'Generating…' : 'Generate'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <form onSubmit={handleSubmit(onSubmit)}>
         <Grid container spacing={3}>
