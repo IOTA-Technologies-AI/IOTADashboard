@@ -7,15 +7,17 @@ import Chip from '@mui/material/Chip';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
+import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
+import LinearProgress from '@mui/material/LinearProgress';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
-import { getJobDescription } from 'src/utils/apiHelper';
+import { getJobDescription, getMatchResults } from 'src/utils/apiHelper';
 
 import { Iconify } from 'src/components/iconify';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -49,7 +51,10 @@ function SkillChips({ label, skills, color = 'primary' }) {
 export function JDDetailView({ id }) {
   const router = useRouter();
   const { data, isLoading } = useSWR(`profile/jd/${id}`, () => getJobDescription(id));
+  const { data: matchData } = useSWR(`profile/match-results/${id}`, () => getMatchResults(id));
   const jd = data?.data;
+  const savedResults = matchData?.results || [];
+  const matchRanAt = matchData?.ranAt || null;
 
   if (isLoading) {
     return (
@@ -123,7 +128,7 @@ export function JDDetailView({ id }) {
                   label: 'Budget Range',
                   value:
                     jd.budgetMin || jd.budgetMax
-                      ? `$${jd.budgetMin?.toLocaleString()} – $${jd.budgetMax?.toLocaleString()}`
+                      ? `${jd.budgetCurrency || 'USD'} ${jd.budgetMin?.toLocaleString()} – ${jd.budgetCurrency || 'USD'} ${jd.budgetMax?.toLocaleString()}`
                       : 'Not specified',
                 },
               ].map(({ label, value }) => (
@@ -152,23 +157,125 @@ export function JDDetailView({ id }) {
           </Card>
         </Grid>
 
-        {/* Quick nav to matching */}
+        {/* Candidate Matching panel */}
         <Grid item xs={12} md={7}>
-          <Card sx={{ p: 3, height: '100%' }}>
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              Candidate Matching
-            </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
-              Run AI matching to score and rank all candidates against this job description.
-            </Typography>
-            <Button
-              variant="contained"
-              size="large"
-              startIcon={<Iconify icon="eva:flash-fill" />}
-              onClick={() => router.push(`${paths.dashboard.profile.matching}?jdId=${id}`)}
+          <Card sx={{ p: 3, height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <Stack
+              direction="row"
+              alignItems="center"
+              justifyContent="space-between"
+              sx={{ mb: 1 }}
             >
-              Run AI Matching
-            </Button>
+              <Typography variant="h6">Candidate Matching</Typography>
+              {matchRanAt && (
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  Last run:{' '}
+                  {new Date(matchRanAt).toLocaleString(undefined, {
+                    dateStyle: 'medium',
+                    timeStyle: 'short',
+                  })}
+                </Typography>
+              )}
+            </Stack>
+
+            {savedResults.length === 0 ? (
+              <>
+                <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
+                  Run AI matching to score and rank all candidates against this job description.
+                  Results are saved so you don&apos;t re-run every visit.
+                </Typography>
+                <Button
+                  variant="contained"
+                  size="large"
+                  startIcon={<Iconify icon="eva:flash-fill" />}
+                  onClick={() => router.push(`${paths.dashboard.profile.matching}?jdId=${id}`)}
+                >
+                  Run AI Matching
+                </Button>
+              </>
+            ) : (
+              <>
+                {/* Top 3 results preview */}
+                <Stack spacing={1.5} sx={{ flex: 1 }}>
+                  {savedResults.slice(0, 3).map((r, idx) => {
+                    const initials = (r.candidateName || '?')
+                      .split(' ')
+                      .map((w) => w[0])
+                      .join('')
+                      .slice(0, 2)
+                      .toUpperCase();
+                    const scoreColor =
+                      r.score == null
+                        ? 'default'
+                        : r.score >= 75
+                          ? 'success'
+                          : r.score >= 50
+                            ? 'warning'
+                            : 'error';
+                    return (
+                      <Stack key={r.candidateId} direction="row" spacing={1.5} alignItems="center">
+                        <Box
+                          sx={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: '50%',
+                            bgcolor: 'primary.lighter',
+                            color: 'primary.main',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 700,
+                            fontSize: 11,
+                            flexShrink: 0,
+                          }}
+                        >
+                          #{idx + 1}
+                        </Box>
+                        <Avatar
+                          sx={{ width: 32, height: 32, fontSize: 12, bgcolor: 'primary.main' }}
+                        >
+                          {initials}
+                        </Avatar>
+                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <Typography variant="body2" noWrap sx={{ fontWeight: 600 }}>
+                              {r.candidateName}
+                            </Typography>
+                            <Chip
+                              size="small"
+                              label={r.score != null ? `${r.score}%` : 'N/A'}
+                              color={scoreColor}
+                            />
+                          </Stack>
+                          <LinearProgress
+                            variant="determinate"
+                            value={r.score ?? 0}
+                            color={scoreColor === 'default' ? 'primary' : scoreColor}
+                            sx={{ height: 4, borderRadius: 2, mt: 0.5 }}
+                          />
+                        </Box>
+                      </Stack>
+                    );
+                  })}
+                </Stack>
+
+                {savedResults.length > 3 && (
+                  <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1 }}>
+                    +{savedResults.length - 3} more candidates
+                  </Typography>
+                )}
+
+                <Button
+                  variant="outlined"
+                  size="small"
+                  sx={{ mt: 2, alignSelf: 'flex-start' }}
+                  startIcon={<Iconify icon="eva:flash-fill" />}
+                  onClick={() => router.push(`${paths.dashboard.profile.matching}?jdId=${id}`)}
+                >
+                  View All Results
+                </Button>
+              </>
+            )}
           </Card>
         </Grid>
       </Grid>

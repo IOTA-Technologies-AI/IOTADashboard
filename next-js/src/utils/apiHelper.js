@@ -4475,6 +4475,13 @@ export async function matchJDtoCandidates(jdId) {
   return response.data;
 }
 
+export async function getMatchResults(jdId) {
+  const response = await axios.get(`${PROFILE_API_URL}/profile/match-results`, {
+    params: { jdId },
+  });
+  return response.data;
+}
+
 export async function generateJobDescription(data) {
   const response = await axios.post(`${PROFILE_API_URL}/profile/generate-jd`, data);
   return response.data;
@@ -4672,6 +4679,7 @@ export const apiHelper = {
   deleteCandidate,
   uploadResume,
   matchJDtoCandidates,
+  getMatchResults,
   generateJobDescription,
   getAzureBilling,
 };

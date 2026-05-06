@@ -24,7 +24,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
-import { listJobDescriptions, matchJDtoCandidates } from 'src/utils/apiHelper';
+import { listJobDescriptions, matchJDtoCandidates, getMatchResults } from 'src/utils/apiHelper';
 
 import { Iconify } from 'src/components/iconify';
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -149,6 +149,7 @@ export function MatchingView() {
 
   const [selectedJdId, setSelectedJdId] = useState(preselectedJdId || '');
   const [results, setResults] = useState(null);
+  const [ranAt, setRanAt] = useState(null);
   const [matching, setMatching] = useState(false);
   const [error, setError] = useState('');
 
@@ -159,16 +160,41 @@ export function MatchingView() {
     }
   }, [preselectedJdId, jds, selectedJdId]);
 
+  // Load saved results whenever JD selection changes
+  useEffect(() => {
+    if (!selectedJdId) {
+      setResults(null);
+      setRanAt(null);
+      return;
+    }
+    setResults(null);
+    setRanAt(null);
+    setError('');
+    getMatchResults(selectedJdId)
+      .then((res) => {
+        if (res.results?.length) {
+          setResults(res.results);
+          setRanAt(res.ranAt);
+        }
+      })
+      .catch(() => {
+        // No saved results — leave results null (user can run fresh)
+      });
+  }, [selectedJdId]);
+
   const selectedJd = jds.find((j) => j.id === selectedJdId);
 
   const handleRunMatch = async () => {
     if (!selectedJdId) return;
     setMatching(true);
     setError('');
-    setResults(null);
     try {
       const res = await matchJDtoCandidates(selectedJdId);
       setResults(res.results || []);
+      // Fetch ranAt from the freshly persisted row
+      getMatchResults(selectedJdId)
+        .then((r) => setRanAt(r.ranAt))
+        .catch(() => setRanAt(new Date().toISOString()));
     } catch (err) {
       setError(err?.response?.data?.message || err.message || 'Matching failed');
     } finally {
@@ -217,9 +243,23 @@ export function MatchingView() {
               )
             }
           >
-            {matching ? 'Matching…' : 'Run AI Match'}
+            {matching ? 'Matching…' : results ? 'Re-run AI Match' : 'Run AI Match'}
           </Button>
         </Stack>
+
+        {/* Last-run timestamp */}
+        {ranAt && !matching && (
+          <Alert severity="info" icon={<Iconify icon="eva:clock-outline" />} sx={{ mt: 2 }}>
+            Showing saved results from{' '}
+            <strong>
+              {new Date(ranAt).toLocaleString(undefined, {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+              })}
+            </strong>
+            . Click <em>Re-run AI Match</em> to get fresh results.
+          </Alert>
+        )}
 
         {/* Selected JD summary */}
         {selectedJd && (
@@ -258,6 +298,20 @@ export function MatchingView() {
         <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
+      )}
+
+      {/* No saved results yet */}
+      {selectedJdId && results === null && !matching && (
+        <Card sx={{ p: 4, textAlign: 'center' }}>
+          <Iconify icon="eva:flash-outline" width={40} sx={{ color: 'text.disabled', mb: 1 }} />
+          <Typography variant="subtitle1" sx={{ mb: 0.5 }}>
+            No matching results yet
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Click <strong>Run AI Match</strong> above to score and rank all candidates against this
+            job description. Results are saved so you don&apos;t need to re-run every time.
+          </Typography>
+        </Card>
       )}
 
       {/* Results */}
