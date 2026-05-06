@@ -1,19 +1,21 @@
 'use client';
 
 import useSWR from 'swr';
+import { varAlpha } from 'minimal-shared/utils';
 import { useRef, useState, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
-import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
+import Pagination from '@mui/material/Pagination';
 import DialogTitle from '@mui/material/DialogTitle';
 import Typography from '@mui/material/Typography';
+import ListItemText from '@mui/material/ListItemText';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import LinearProgress from '@mui/material/LinearProgress';
@@ -25,6 +27,7 @@ import { useRouter } from 'src/routes/hooks';
 import { listCandidates, uploadResume } from 'src/utils/apiHelper';
 
 import { useAuthContext } from 'src/auth/hooks';
+import { AvatarShape } from 'src/assets/illustrations';
 import { Iconify } from 'src/components/iconify';
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -110,6 +113,9 @@ function DropZone({ onFilesDropped, uploading }) {
 
 // ----------------------------------------------------------------------
 
+// Maps candidate status → theme palette colour for the cover gradient
+const COVER_PALETTE = { active: 'primary', shortlisted: 'success', rejected: 'error' };
+
 function CandidateCard({ candidate, onClick }) {
   const initials = (candidate.name || '?')
     .split(' ')
@@ -118,41 +124,63 @@ function CandidateCard({ candidate, onClick }) {
     .slice(0, 2)
     .toUpperCase();
 
+  const paletteKey = COVER_PALETTE[candidate.status] || 'info';
+
   return (
     <Card
       onClick={onClick}
       sx={{
-        height: 200,
-        width: '100%',
-        position: 'relative',
-        overflow: 'hidden',
+        textAlign: 'center',
         cursor: 'pointer',
         transition: 'box-shadow 0.25s',
         '&:hover': { boxShadow: 8 },
-        '&:hover .card-base': { opacity: 0 },
-        '&:hover .card-overlay': { opacity: 1 },
       }}
     >
-      {/* ── Base view: centered avatar + name + status ── */}
-      <Box
-        className="card-base"
-        sx={{
-          height: '100%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 1,
-          p: 2,
-          transition: 'opacity 0.25s',
-        }}
-      >
-        <Avatar sx={{ bgcolor: 'primary.main', width: 56, height: 56, fontSize: 20 }}>
+      {/* ── Cover banner + floating avatar ── */}
+      <Box sx={{ position: 'relative' }}>
+        <AvatarShape
+          sx={{ left: 0, right: 0, zIndex: 10, mx: 'auto', bottom: -26, position: 'absolute' }}
+        />
+        <Avatar
+          sx={(theme) => ({
+            left: 0,
+            right: 0,
+            width: 64,
+            height: 64,
+            zIndex: 11,
+            mx: 'auto',
+            bottom: -32,
+            fontSize: 22,
+            fontWeight: 700,
+            position: 'absolute',
+            bgcolor: theme.palette[paletteKey].dark,
+            color: theme.palette[paletteKey].contrastText,
+          })}
+        >
           {initials}
         </Avatar>
-        <Typography variant="subtitle2" align="center" noWrap sx={{ width: '100%', px: 1 }}>
-          {candidate.name || 'Unknown'}
-        </Typography>
+
+        <Box
+          sx={(theme) => ({
+            height: 120,
+            background: `linear-gradient(135deg, ${varAlpha(theme.vars.palette[paletteKey].lightChannel, 0.56)} 0%, ${theme.palette[paletteKey].dark} 100%)`,
+          })}
+        />
+      </Box>
+
+      {/* ── Name + email ── */}
+      <ListItemText
+        sx={{ mt: 7, mb: 1, px: 2 }}
+        primary={candidate.name || 'Unknown'}
+        secondary={candidate.email || '—'}
+        slotProps={{
+          primary: { sx: { typography: 'subtitle1' } },
+          secondary: { sx: { mt: 0.5, typography: 'caption', color: 'text.secondary' } },
+        }}
+      />
+
+      {/* ── Status chip ── */}
+      <Box sx={{ mb: 2.5, display: 'flex', justifyContent: 'center' }}>
         <Chip
           size="small"
           label={candidate.status || 'active'}
@@ -161,69 +189,29 @@ function CandidateCard({ candidate, onClick }) {
         />
       </Box>
 
-      {/* ── Hover overlay: email + skills + experience ── */}
+      <Divider sx={{ borderStyle: 'dashed' }} />
+
+      {/* ── Stats grid ── */}
       <Box
-        className="card-overlay"
         sx={{
-          position: 'absolute',
-          inset: 0,
-          bgcolor: 'primary.main',
-          color: 'primary.contrastText',
-          p: 2,
-          opacity: 0,
-          transition: 'opacity 0.25s',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
+          py: 3,
+          display: 'grid',
+          typography: 'subtitle1',
+          gridTemplateColumns: 'repeat(3, 1fr)',
         }}
       >
-        {/* Name + email */}
-        <Box>
-          <Typography variant="subtitle2" noWrap>
-            {candidate.name || 'Unknown'}
-          </Typography>
-          <Typography variant="caption" sx={{ opacity: 0.85 }} noWrap>
-            {candidate.email}
-          </Typography>
-        </Box>
-
-        {/* Skills */}
-        <Box
-          sx={{
-            flexGrow: 1,
-            mt: 1,
-            display: 'flex',
-            flexWrap: 'wrap',
-            gap: 0.5,
-            overflow: 'hidden',
-            alignContent: 'flex-start',
-            maxHeight: 72,
-          }}
-        >
-          {(candidate.skills || []).slice(0, 5).map((s) => (
-            <Chip
-              key={s}
-              size="small"
-              label={s}
-              sx={{ bgcolor: 'rgba(255,255,255,0.2)', color: 'inherit', fontSize: 11 }}
-            />
-          ))}
-          {(candidate.skills || []).length > 5 && (
-            <Chip
-              size="small"
-              label={`+${candidate.skills.length - 5} more`}
-              sx={{ bgcolor: 'rgba(255,255,255,0.15)', color: 'inherit', fontSize: 11 }}
-            />
-          )}
-        </Box>
-
-        {/* Experience + file icon */}
-        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mt: 1 }}>
-          <Typography variant="caption" sx={{ opacity: 0.9 }}>
-            {candidate.experienceYears ?? '—'} yrs experience
-          </Typography>
-          <Iconify icon="eva:file-text-fill" width={18} sx={{ opacity: 0.85 }} />
-        </Stack>
+        {[
+          { label: 'Experience', value: `${candidate.experienceYears ?? 0} yrs` },
+          { label: 'Skills', value: candidate.skills?.length ?? 0 },
+          { label: 'Certs', value: candidate.certifications?.length ?? 0 },
+        ].map((stat) => (
+          <Box key={stat.label} sx={{ gap: 0.5, display: 'flex', flexDirection: 'column' }}>
+            <Box component="span" sx={{ typography: 'caption', color: 'text.secondary' }}>
+              {stat.label}
+            </Box>
+            {stat.value}
+          </Box>
+        ))}
       </Box>
     </Card>
   );
@@ -246,6 +234,8 @@ function generateUniqueFileName(fileName, existingNames) {
   return candidate;
 }
 
+const ROWS_PER_PAGE = 12;
+
 export function ResumeRepositoryView() {
   const router = useRouter();
   const { user } = useAuthContext();
@@ -253,6 +243,7 @@ export function ResumeRepositoryView() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState([]);
   const [pendingConflict, setPendingConflict] = useState(null); // { fileName }
+  const [page, setPage] = useState(1);
   const conflictResolveFnRef = useRef(null);
 
   const candidates = data?.data || [];
@@ -379,16 +370,37 @@ export function ResumeRepositoryView() {
           </Typography>
         </Card>
       ) : (
-        <Grid container spacing={2}>
-          {candidates.map((c) => (
-            <Grid item xs={12} sm={6} md={4} key={c.id} sx={{ display: 'flex' }}>
+        <>
+          <Box
+            sx={{
+              gap: 3,
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: 'repeat(1, 1fr)',
+                sm: 'repeat(2, 1fr)',
+                md: 'repeat(3, 1fr)',
+              },
+            }}
+          >
+            {candidates.slice((page - 1) * ROWS_PER_PAGE, page * ROWS_PER_PAGE).map((c) => (
               <CandidateCard
+                key={c.id}
                 candidate={c}
                 onClick={() => router.push(paths.dashboard.profile.candidates.details(c.id))}
               />
-            </Grid>
-          ))}
-        </Grid>
+            ))}
+          </Box>
+
+          {candidates.length > ROWS_PER_PAGE && (
+            <Pagination
+              page={page}
+              shape="circular"
+              count={Math.ceil(candidates.length / ROWS_PER_PAGE)}
+              onChange={(_, newPage) => setPage(newPage)}
+              sx={{ mt: { xs: 5, md: 8 }, mx: 'auto' }}
+            />
+          )}
+        </>
       )}
       {/* Duplicate-file conflict dialog */}
       <Dialog open={Boolean(pendingConflict)} maxWidth="xs" fullWidth>
