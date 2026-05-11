@@ -354,15 +354,15 @@ export function ResourceCalculationFormView({ id }) {
     setSaving(true);
     try {
       // Resolve customer name from id for positionCode storage
-      const selectedCustomer = customerList.find(
-        (c) => String(c.id || c.name) === String(customerId)
-      );
+      const selectedCustomer = customerList.find((c) => String(c.id) === String(customerId));
+      const customerDisplayName =
+        selectedCustomer?.customerNameEn || selectedCustomer?.customerNameAr || customerId || '';
       const payload = {
         title: title.trim(),
         jdId: jdId || undefined,
         candidateId: candidateId || undefined,
         nationality: nationality.trim(),
-        positionCode: String(selectedCustomer?.name || customerId || ''),
+        positionCode: String(customerDisplayName),
         insurancePremiumFactor: Number(insurancePremiumFactor) || 1,
         dependentsCount: Number(dependentsCount) || 0,
         baseSalary: Number(baseSalary) || 0,
@@ -529,8 +529,8 @@ export function ResourceCalculationFormView({ id }) {
                 >
                   <MenuItem value="">— None —</MenuItem>
                   {customerList.map((c) => (
-                    <MenuItem key={c.id || c.name} value={String(c.id || c.name)}>
-                      {c.name}
+                    <MenuItem key={c.id} value={String(c.id)}>
+                      {c.customerNameEn || c.customerNameAr || String(c.id)}
                     </MenuItem>
                   ))}
                 </Select>
@@ -692,7 +692,10 @@ export function ResourceCalculationFormView({ id }) {
                   <Typography variant="caption" color="text.secondary">
                     {[
                       nationality,
-                      customerList.find((c) => (c.id || c.name) === customerId)?.name || customerId,
+                      (() => {
+                        const c = customerList.find((cu) => String(cu.id) === String(customerId));
+                        return c?.customerNameEn || c?.customerNameAr || customerId || null;
+                      })(),
                     ]
                       .filter(Boolean)
                       .join(' — ')}
@@ -897,6 +900,233 @@ export function ResourceCalculationFormView({ id }) {
           </Card>
         </Grid>
       </Grid>
+
+      {/* ── Quotation Summary Section ─────────────────────────────────────── */}
+      {(() => {
+        const VAT_RATE = 0.15;
+        const subtotal = totalAnnual;
+        const vatAmount = subtotal * VAT_RATE;
+        const grandTotal = subtotal + vatAmount;
+
+        // Build description bullets from active line items
+        const insuranceItems = activeItems.filter((i) => i.category === 'insurance');
+        const hasEOS = activeItems.some(
+          (i) => i.category === 'statutory' && i.label.toLowerCase().includes('end of service')
+        );
+        const hasStandardBenefits = activeItems.some(
+          (i) =>
+            (i.category === 'statutory' && !i.label.toLowerCase().includes('end of service')) ||
+            i.category === 'service'
+        );
+        const hasTravel = activeItems.some(
+          (i) => i.category === 'government' && i.label.toLowerCase().includes('ticket')
+        );
+        const otherGovtItems = activeItems.filter(
+          (i) => i.category === 'government' && !i.label.toLowerCase().includes('ticket')
+        );
+
+        const customerObj = customerList.find((cu) => String(cu.id) === String(customerId));
+        const customerName = customerObj?.customerNameEn || customerObj?.customerNameAr || '';
+
+        return (
+          <Card sx={{ mt: 3, overflow: 'hidden' }}>
+            {/* Card header */}
+            <Box
+              sx={{
+                backgroundColor: '#0B5E41',
+                px: 3,
+                py: 1.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <Typography variant="subtitle1" color="white" fontWeight={700} letterSpacing={0.5}>
+                Quotation Summary
+              </Typography>
+              {customerName && (
+                <Typography variant="caption" color="rgba(255,255,255,0.75)">
+                  {customerName}
+                </Typography>
+              )}
+            </Box>
+
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: '#0B5E41' }}>
+                    <TableCell
+                      sx={{
+                        color: 'white',
+                        fontWeight: 700,
+                        fontSize: 12,
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.8,
+                        width: '52%',
+                        borderBottom: 'none',
+                        py: 1.5,
+                      }}
+                    >
+                      Description
+                    </TableCell>
+                    <TableCell
+                      align="center"
+                      sx={{
+                        color: 'white',
+                        fontWeight: 700,
+                        fontSize: 11,
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.6,
+                        width: '24%',
+                        borderBottom: 'none',
+                        lineHeight: 1.4,
+                        py: 1.5,
+                      }}
+                    >
+                      Monthly Charges
+                      <br />
+                      (Excl. VAT)
+                    </TableCell>
+                    <TableCell
+                      align="center"
+                      sx={{
+                        color: 'white',
+                        fontWeight: 700,
+                        fontSize: 11,
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.6,
+                        width: '24%',
+                        borderBottom: 'none',
+                        lineHeight: 1.4,
+                        py: 1.5,
+                      }}
+                    >
+                      Annual Charges
+                      <br />
+                      (12 Months)
+                      <br />
+                      (Excl. VAT)
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  <TableRow>
+                    <TableCell sx={{ verticalAlign: 'top', py: 2.5, borderBottom: 'none' }}>
+                      <Typography variant="body2" fontWeight={600} gutterBottom>
+                        {nationality ? `${nationality} Employee` : 'Employee'}
+                      </Typography>
+                      <Box component="ul" sx={{ pl: 2.5, mt: 0.5, mb: 0 }}>
+                        {Number(dependentsCount) > 0 && (
+                          <Typography component="li" variant="body2" sx={{ mb: 0.3 }}>
+                            Family with {dependentsCount} Dependent
+                            {Number(dependentsCount) !== 1 ? 's' : ''}
+                          </Typography>
+                        )}
+                        {insuranceItems.map((item, i) => (
+                          <Typography key={i} component="li" variant="body2" sx={{ mb: 0.3 }}>
+                            {resolveLabel(item.label, insurancePremiumFactor, dependentsCount)}
+                          </Typography>
+                        ))}
+                        {hasStandardBenefits && (
+                          <Typography component="li" variant="body2" sx={{ mb: 0.3 }}>
+                            Standard Employee Benefits
+                          </Typography>
+                        )}
+                        {hasEOS && (
+                          <Typography component="li" variant="body2" sx={{ mb: 0.3 }}>
+                            End of Service Benefits
+                          </Typography>
+                        )}
+                        {hasTravel && (
+                          <Typography component="li" variant="body2" sx={{ mb: 0.3 }}>
+                            Annual Travel Benefits
+                          </Typography>
+                        )}
+                        {otherGovtItems.map((item, i) => (
+                          <Typography key={i} component="li" variant="body2" sx={{ mb: 0.3 }}>
+                            {resolveLabel(item.label, insurancePremiumFactor, dependentsCount)}
+                          </Typography>
+                        ))}
+                      </Box>
+                    </TableCell>
+                    <TableCell
+                      align="right"
+                      sx={{ verticalAlign: 'middle', py: 2.5, borderBottom: 'none' }}
+                    >
+                      <Typography variant="body1" fontWeight={600}>
+                        SAR {fmtNumber(totalMonthly)}
+                      </Typography>
+                    </TableCell>
+                    <TableCell
+                      align="right"
+                      sx={{ verticalAlign: 'middle', py: 2.5, borderBottom: 'none' }}
+                    >
+                      <Typography variant="body1" fontWeight={600}>
+                        SAR {fmtNumber(totalAnnual)}
+                      </Typography>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            <Divider />
+
+            {/* Footer: contact note + subtotal/VAT/total */}
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-end',
+                flexWrap: 'wrap',
+                gap: 2,
+                px: 3,
+                py: 2.5,
+              }}
+            >
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ maxWidth: 340, lineHeight: 1.6 }}
+              >
+                If you have any questions concerning this quotation,
+                <br />
+                please contact us at{' '}
+                <Box component="strong" sx={{ color: 'text.primary' }}>
+                  accounts@iotatechnologies.ai
+                </Box>
+                .
+              </Typography>
+
+              <Stack spacing={0.75} sx={{ minWidth: 300 }}>
+                {[
+                  { label: 'SUBTOTAL:', value: subtotal },
+                  { label: `VAT (${(VAT_RATE * 100).toFixed(0)}%):`, value: vatAmount },
+                  { label: 'OTHERS:', value: 0 },
+                ].map(({ label, value }) => (
+                  <Stack key={label} direction="row" justifyContent="space-between" spacing={4}>
+                    <Typography variant="body2" fontWeight={700} sx={{ letterSpacing: 0.3 }}>
+                      {label}
+                    </Typography>
+                    <Typography variant="body2" fontWeight={700}>
+                      SAR {fmtNumber(value)}
+                    </Typography>
+                  </Stack>
+                ))}
+                <Divider sx={{ my: 0.5 }} />
+                <Stack direction="row" justifyContent="space-between" spacing={4}>
+                  <Typography variant="body1" fontWeight={800} sx={{ letterSpacing: 0.3 }}>
+                    TOTAL:
+                  </Typography>
+                  <Typography variant="body1" fontWeight={800} color="success.dark">
+                    SAR {fmtNumber(grandTotal)}
+                  </Typography>
+                </Stack>
+              </Stack>
+            </Box>
+          </Card>
+        );
+      })()}
 
       {/* ── Approval Workflow Section ─────────────────────────────────────── */}
       {isEdit &&
