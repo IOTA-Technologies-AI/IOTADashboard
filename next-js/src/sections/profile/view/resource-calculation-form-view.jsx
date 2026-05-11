@@ -40,6 +40,7 @@ import {
   listCandidates,
   listJobDescriptions,
   uploadResume,
+  getCustomers,
 } from 'src/utils/apiHelper';
 
 import { Iconify } from 'src/components/iconify';
@@ -74,11 +75,13 @@ function resolveLabel(label, insurancePremiumFactor, dependentsCount) {
     .replace(/\{dependents\}/g, dependentsCount);
 }
 
-/** Evaluate simple formula expressions with baseSalary context. */
-function evalFormula(formula, baseSalary) {
+/** Evaluate simple formula expressions with baseSalary and dependentsCount context. */
+function evalFormula(formula, baseSalary, dependentsCount) {
   if (!formula) return 0;
   try {
-    const safe = formula.replace(/baseSalary/g, String(Number(baseSalary) || 0));
+    const safe = formula
+      .replace(/baseSalary/g, String(Number(baseSalary) || 0))
+      .replace(/dependentsCount/g, String(Number(dependentsCount) || 0));
     if (!/^[\d\s+\-*/().]+$/.test(safe)) return 0;
     // eslint-disable-next-line no-new-func
     const result = Number(Function('"use strict"; return (' + safe + ')')());
@@ -89,10 +92,10 @@ function evalFormula(formula, baseSalary) {
 }
 
 /** Recompute all computed line items and totals. */
-function recompute(items, baseSalary) {
+function recompute(items, baseSalary, dependentsCount) {
   return items.map((item) => {
     if (item.isComputed && item.formula) {
-      const monthly = evalFormula(item.formula, baseSalary);
+      const monthly = evalFormula(item.formula, baseSalary, dependentsCount);
       return { ...item, monthly, annual: monthly * 12 };
     }
     return { ...item, annual: item.annual || item.monthly * 12 };
@@ -130,13 +133,14 @@ export function ResourceCalculationFormView({ id }) {
   const { data: tplData } = useSWR('profile/rc-templates', getResourceCalculationTemplates);
   const { data: jdListData } = useSWR('profile/jd', listJobDescriptions);
   const { data: candidatesData } = useSWR('profile/candidates', listCandidates);
+  const { data: customersData } = useSWR('customers', getCustomers);
 
   // ── Form state ────────────────────────────────────────────────────────────
   const [title, setTitle] = useState('');
   const [jdId, setJdId] = useState('');
   const [candidateId, setCandidateId] = useState('');
+  const [customerId, setCustomerId] = useState('');
   const [nationality, setNationality] = useState('');
-  const [positionCode, setPositionCode] = useState('');
   const [insurancePremiumFactor, setInsurancePremiumFactor] = useState(1.0);
   const [dependentsCount, setDependentsCount] = useState(0);
   const [baseSalary, setBaseSalary] = useState(0);
@@ -165,7 +169,7 @@ export function ResourceCalculationFormView({ id }) {
       setJdId(rc.jdId || '');
       setCandidateId(rc.candidateId || '');
       setNationality(rc.nationality);
-      setPositionCode(rc.positionCode);
+      setCustomerId(rc.positionCode || '');
       setInsurancePremiumFactor(rc.insurancePremiumFactor);
       setDependentsCount(rc.dependentsCount);
       setBaseSalary(rc.baseSalary);
@@ -184,10 +188,24 @@ export function ResourceCalculationFormView({ id }) {
   }, [isEdit, rcData, tplData, initialized]);
 
   // ── Auto-recompute formula items when baseSalary changes ─────────────────
+  // On new forms, if templates are loaded but line items haven't been seeded yet with
+  // a real salary, we seed them now so all computed rows populate immediately.
   const handleBaseSalaryChange = (val) => {
     const num = Number(val) || 0;
     setBaseSalary(num);
-    setLineItems((prev) => recompute(prev, num));
+    setLineItems((prev) => {
+      // Seed salary line item value
+      const withSalary = prev.map((item) =>
+        item.category === 'salary' ? { ...item, monthly: num, annual: num * 12 } : item
+      );
+      return recompute(withSalary, num, Number(dependentsCount) || 0);
+    });
+  };
+
+  const handleDependentsCountChange = (val) => {
+    const num = Number(val) || 0;
+    setDependentsCount(num);
+    setLineItems((prev) => recompute(prev, baseSalary, num));
   };
 
   // ── Line-item helpers ─────────────────────────────────────────────────────
@@ -271,12 +289,15 @@ export function ResourceCalculationFormView({ id }) {
 
     setSaving(true);
     try {
+      // Resolve customer name from id for positionCode storage
+      const customers = customersData || [];
+      const selectedCustomer = customers.find((c) => c.id === customerId || c.name === customerId);
       const payload = {
         title: title.trim(),
         jdId: jdId || undefined,
         candidateId: candidateId || undefined,
         nationality: nationality.trim(),
-        positionCode: positionCode.trim(),
+        positionCode: selectedCustomer?.name || customerId || '',
         insurancePremiumFactor: Number(insurancePremiumFactor) || 1,
         dependentsCount: Number(dependentsCount) || 0,
         baseSalary: Number(baseSalary) || 0,
@@ -314,6 +335,9 @@ export function ResourceCalculationFormView({ id }) {
 
   const jdList = jdListData?.data || [];
   const candidateList = candidatesData?.data || [];
+  const customerList = Array.isArray(customersData)
+    ? customersData
+    : customersData?.customers || [];
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -370,13 +394,21 @@ export function ResourceCalculationFormView({ id }) {
                 required
               />
 
-              <TextField
-                label="Position Code"
-                value={positionCode}
-                onChange={(e) => setPositionCode(e.target.value)}
-                placeholder="e.g. RB"
-                fullWidth
-              />
+              <FormControl fullWidth>
+                <InputLabel>Customer</InputLabel>
+                <Select
+                  value={customerId}
+                  label="Customer"
+                  onChange={(e) => setCustomerId(e.target.value)}
+                >
+                  <MenuItem value="">— None —</MenuItem>
+                  {customerList.map((c) => (
+                    <MenuItem key={c.id || c.name} value={c.id || c.name}>
+                      {c.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
               <TextField
                 label="Bupa Insurance Premium Factor"
@@ -392,7 +424,7 @@ export function ResourceCalculationFormView({ id }) {
                 label="Dependents Count"
                 type="number"
                 value={dependentsCount}
-                onChange={(e) => setDependentsCount(e.target.value)}
+                onChange={(e) => handleDependentsCountChange(e.target.value)}
                 inputProps={{ step: 1, min: 0 }}
                 helperText="Included in insurance & ticket calculations"
                 fullWidth
@@ -530,11 +562,16 @@ export function ResourceCalculationFormView({ id }) {
                 <Typography variant="h6" fontWeight={700}>
                   {title || 'Resource Calculation'}
                 </Typography>
-                {(nationality || positionCode) && (
+                {(nationality || customerId) && (
                   <Typography variant="caption" color="text.secondary">
-                    {[nationality, positionCode].filter(Boolean).join(' — ')}
-                    {insurancePremiumFactor > 1 ? ` — Bupa ${insurancePremiumFactor}` : ''}
-                    {dependentsCount > 0 ? ` — ${dependentsCount} dependents` : ''}
+                    {[
+                      nationality,
+                      customerList.find((c) => (c.id || c.name) === customerId)?.name || customerId,
+                    ]
+                      .filter(Boolean)
+                      .join(' — ')}
+                    {Number(insurancePremiumFactor) > 1 ? ` — Bupa ${insurancePremiumFactor}` : ''}
+                    {Number(dependentsCount) > 0 ? ` — ${dependentsCount} dependents` : ''}
                   </Typography>
                 )}
               </Box>
