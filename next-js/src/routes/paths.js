@@ -127,6 +127,11 @@ export const paths = {
         details: (id) => `${ROOTS.DASHBOARD}/profile/candidates/${id}`,
       },
       matching: `${ROOTS.DASHBOARD}/profile/matching`,
+      resourceCalculation: {
+        root: `${ROOTS.DASHBOARD}/profile/resource-calculation`,
+        new: `${ROOTS.DASHBOARD}/profile/resource-calculation/new`,
+        details: (id) => `${ROOTS.DASHBOARD}/profile/resource-calculation/${id}`,
+      },
     },
     general: {
       app: `${ROOTS.DASHBOARD}/app`,

@@ -93,6 +93,7 @@ export const navData = [
           { title: 'Resumes', path: paths.dashboard.profile.resumes },
           { title: 'Candidates', path: paths.dashboard.profile.candidates.root },
           { title: 'Matching', path: paths.dashboard.profile.matching },
+          { title: 'Resource Calculation', path: paths.dashboard.profile.resourceCalculation.root },
         ],
       },
       { title: 'Accounts', path: paths.dashboard.general.account, icon: ICONS.dashboard },

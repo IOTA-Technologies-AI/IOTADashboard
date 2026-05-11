@@ -4487,6 +4487,47 @@ export async function generateJobDescription(data) {
   return response.data;
 }
 
+export async function getResourceCalculationTemplates() {
+  const response = await axios.get(`${PROFILE_API_URL}/profile/resource-calculation-templates`);
+  return response.data;
+}
+
+export async function listResourceCalculations() {
+  const response = await axios.get(`${PROFILE_API_URL}/profile/resource-calculations`);
+  return response.data;
+}
+
+export async function getResourceCalculation(id) {
+  const response = await axios.get(`${PROFILE_API_URL}/profile/resource-calculations/${id}`);
+  return response.data;
+}
+
+export async function createResourceCalculation(data) {
+  const authHeaders = getAuthHeaders();
+  const response = await axios.post(`${PROFILE_API_URL}/profile/resource-calculations`, data, {
+    headers: authHeaders,
+  });
+  return response.data;
+}
+
+export async function updateResourceCalculation(id, data) {
+  const authHeaders = getAuthHeaders();
+  const response = await axios.patch(
+    `${PROFILE_API_URL}/profile/resource-calculations/${id}`,
+    { id, ...data },
+    { headers: authHeaders }
+  );
+  return response.data;
+}
+
+export async function deleteResourceCalculation(id) {
+  const authHeaders = getAuthHeaders();
+  const response = await axios.delete(`${PROFILE_API_URL}/profile/resource-calculations/${id}`, {
+    headers: authHeaders,
+  });
+  return response.data;
+}
+
 // ============================================================
 // Azure Billing
 // ============================================================

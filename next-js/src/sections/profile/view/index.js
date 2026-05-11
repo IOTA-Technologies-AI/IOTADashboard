@@ -6,3 +6,5 @@ export { ResumeRepositoryView } from './resume-repository-view';
 export { CandidatesListView } from './candidates-list-view';
 export { CandidateDetailView } from './candidate-detail-view';
 export { MatchingView } from './matching-view';
+export { ResourceCalculationListView } from './resource-calculation-list-view';
+export { ResourceCalculationFormView } from './resource-calculation-form-view';
