@@ -57,6 +57,18 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 const STATUS_OPTIONS = ['draft', 'submitted', 'approved', 'rejected'];
 
+const NATIONALITY_OPTIONS = [
+  'Indian',
+  'Pakistani',
+  'Egyptian',
+  'Saudi Arabian',
+  'Filipino',
+  'Sri Lankan',
+  'Sudanese',
+  'American',
+  'British',
+];
+
 const STATUS_COLORS = {
   draft: 'default',
   submitted: 'info',
@@ -491,14 +503,21 @@ export function ResourceCalculationFormView({ id }) {
                 required
               />
 
-              <TextField
-                label="Nationality"
-                value={nationality}
-                onChange={(e) => setNationality(e.target.value)}
-                placeholder="e.g. Egyptian"
-                fullWidth
-                required
-              />
+              <FormControl fullWidth required>
+                <InputLabel>Nationality</InputLabel>
+                <Select
+                  value={nationality}
+                  label="Nationality"
+                  onChange={(e) => setNationality(e.target.value)}
+                >
+                  <MenuItem value="">— Select —</MenuItem>
+                  {NATIONALITY_OPTIONS.map((n) => (
+                    <MenuItem key={n} value={n}>
+                      {n}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
               <FormControl fullWidth>
                 <InputLabel>Customer</InputLabel>
