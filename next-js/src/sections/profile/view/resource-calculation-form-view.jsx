@@ -1,7 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -27,6 +27,10 @@ import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
 import InputAdornment from '@mui/material/InputAdornment';
 import Switch from '@mui/material/Switch';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { paths } from 'src/routes/paths';
@@ -41,6 +45,9 @@ import {
   listJobDescriptions,
   uploadResume,
   getCustomers,
+  submitRCForApproval,
+  forwardRC,
+  approveRC,
 } from 'src/utils/apiHelper';
 
 import { Iconify } from 'src/components/iconify';
@@ -126,9 +133,12 @@ export function ResourceCalculationFormView({ id }) {
   const isEdit = Boolean(id);
 
   // ── Remote data ──────────────────────────────────────────────────────────
-  const { data: rcData, isLoading: rcLoading } = useSWR(
-    isEdit ? `profile/resource-calculations/${id}` : null,
-    () => getResourceCalculation(id)
+  const {
+    data: rcData,
+    isLoading: rcLoading,
+    mutate: mutateRC,
+  } = useSWR(isEdit ? `profile/resource-calculations/${id}` : null, () =>
+    getResourceCalculation(id)
   );
   const { data: tplData } = useSWR('profile/rc-templates', getResourceCalculationTemplates);
   const { data: jdListData } = useSWR('profile/jd', listJobDescriptions);
@@ -154,9 +164,27 @@ export function ResourceCalculationFormView({ id }) {
   const [error, setError] = useState('');
   const [initialized, setInitialized] = useState(false);
 
+  // ── Approval workflow state ───────────────────────────────────────────────
+  const [forwardDialogOpen, setForwardDialogOpen] = useState(false);
+  const [forwardEmail, setForwardEmail] = useState('');
+  const [forwardNotes, setForwardNotes] = useState('');
+  const [forwarding, setForwarding] = useState(false);
+  const [submittingForApproval, setSubmittingForApproval] = useState(false);
+  const [approvalActionLoading, setApprovalActionLoading] = useState('');
+
   // ── Resume upload state ───────────────────────────────────────────────────
   const [resumeUploading, setResumeUploading] = useState(false);
   const [resumeUploadError, setResumeUploadError] = useState('');
+
+  // ── Refs so callbacks always see the latest baseSalary / dependentsCount ─
+  const baseSalaryRef = useRef(baseSalary);
+  const dependentsCountRef = useRef(dependentsCount);
+  useEffect(() => {
+    baseSalaryRef.current = baseSalary;
+  }, [baseSalary]);
+  useEffect(() => {
+    dependentsCountRef.current = dependentsCount;
+  }, [dependentsCount]);
 
   // ── Seed form from existing record or from templates ─────────────────────
   useEffect(() => {
@@ -191,14 +219,26 @@ export function ResourceCalculationFormView({ id }) {
   // On new forms, if templates are loaded but line items haven't been seeded yet with
   // a real salary, we seed them now so all computed rows populate immediately.
   const handleBaseSalaryChange = (val) => {
-    const num = Number(val) || 0;
+    const num = Number(String(val).replace(/,/g, '')) || 0;
     setBaseSalary(num);
     setLineItems((prev) => {
-      // Seed salary line item value
-      const withSalary = prev.map((item) =>
-        item.category === 'salary' ? { ...item, monthly: num, annual: num * 12 } : item
-      );
-      return recompute(withSalary, num, Number(dependentsCount) || 0);
+      const seeded = prev.map((item) => {
+        if (item.category === 'salary') {
+          return { ...item, monthly: num, annual: num * 12 };
+        }
+        // Editable items with formulas (e.g. End of Service) auto-fill from salary
+        if (
+          !item.isComputed &&
+          item.isEditable &&
+          item.formula &&
+          item.formula.includes('baseSalary')
+        ) {
+          const monthly = evalFormula(item.formula, num, Number(dependentsCount) || 0);
+          return { ...item, monthly, annual: monthly * 12 };
+        }
+        return item;
+      });
+      return recompute(seeded, num, Number(dependentsCount) || 0);
     });
   };
 
@@ -209,12 +249,24 @@ export function ResourceCalculationFormView({ id }) {
   };
 
   // ── Line-item helpers ─────────────────────────────────────────────────────
-  const handleLineItemChange = useCallback((idx, field, val) => {
+  const handleLineItemChange = useCallback((idx, field, val, category) => {
+    if (field === 'monthly' && category === 'salary') {
+      // Salary row edited directly — sync top field and recompute
+      const num = Number(String(val).replace(/,/g, '')) || 0;
+      setBaseSalary(num);
+      setLineItems((prev) => {
+        const seeded = prev.map((item, i) =>
+          i === idx ? { ...item, monthly: num, annual: num * 12 } : item
+        );
+        return recompute(seeded, num, dependentsCountRef.current);
+      });
+      return;
+    }
     setLineItems((prev) => {
       const updated = [...prev];
       const item = { ...updated[idx], [field]: val };
       if (field === 'monthly') {
-        item.annual = Number(val) * 12;
+        item.annual = Number(String(val).replace(/,/g, '')) * 12;
       }
       updated[idx] = item;
       return updated;
@@ -311,14 +363,68 @@ export function ResourceCalculationFormView({ id }) {
 
       if (isEdit) {
         await updateResourceCalculation(id, payload);
+        mutateRC();
       } else {
-        await createResourceCalculation(payload);
+        const result = await createResourceCalculation(payload);
+        const newId = result?.data?.id;
+        if (newId) {
+          // Auto-submit for approval on create
+          submitRCForApproval(newId).catch(console.error);
+          router.push(paths.dashboard.profile.resourceCalculation.details(newId));
+        } else {
+          router.push(paths.dashboard.profile.resourceCalculation.root);
+        }
       }
-      router.push(paths.dashboard.profile.resourceCalculation.root);
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Save failed');
     } finally {
       setSaving(false);
+    }
+  };
+
+  // ── Approval workflow handlers ─────────────────────────────────────────────
+  const handleSubmitForApproval = async () => {
+    setSubmittingForApproval(true);
+    try {
+      await submitRCForApproval(id);
+      await mutateRC();
+      setStatus('submitted');
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Submit failed');
+    } finally {
+      setSubmittingForApproval(false);
+    }
+  };
+
+  const handleForward = async () => {
+    if (!forwardEmail.trim()) return;
+    setForwarding(true);
+    try {
+      await forwardRC(id, {
+        toEmail: forwardEmail.trim(),
+        fromEmail: getUserEmail(),
+        notes: forwardNotes.trim() || undefined,
+      });
+      await mutateRC();
+      setForwardDialogOpen(false);
+      setForwardEmail('');
+      setForwardNotes('');
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Forward failed');
+    } finally {
+      setForwarding(false);
+    }
+  };
+
+  const handleApproveReject = async (decision) => {
+    setApprovalActionLoading(decision);
+    try {
+      await approveRC(id, { approverEmail: getUserEmail(), decision });
+      await mutateRC();
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'Action failed');
+    } finally {
+      setApprovalActionLoading('');
     }
   };
 
@@ -589,15 +695,16 @@ export function ResourceCalculationFormView({ id }) {
             <Box sx={{ mb: 2 }}>
               <TextField
                 label="Base Monthly Salary"
-                type="number"
-                value={baseSalary}
+                type="text"
+                inputMode="numeric"
+                value={Number(baseSalary || 0).toLocaleString('en-SA')}
                 onChange={(e) => handleBaseSalaryChange(e.target.value)}
                 InputProps={{
                   startAdornment: <InputAdornment position="start">{currency}</InputAdornment>,
                 }}
-                inputProps={{ step: 100, min: 0 }}
+                inputProps={{ style: { textAlign: 'right' } }}
                 size="small"
-                sx={{ width: 260 }}
+                sx={{ width: 280 }}
               />
             </Box>
 
@@ -605,7 +712,9 @@ export function ResourceCalculationFormView({ id }) {
               <Table size="small">
                 <TableHead>
                   <TableRow sx={{ backgroundColor: 'grey.100' }}>
-                    <TableCell sx={{ fontWeight: 700, width: '40%' }}>Expenses</TableCell>
+                    <TableCell sx={{ fontWeight: 700, width: '40%' }}>
+                      Employee Calculation
+                    </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 700 }}>
                       Monthly
                     </TableCell>
@@ -626,7 +735,9 @@ export function ResourceCalculationFormView({ id }) {
                               insurancePremiumFactor,
                               dependentsCount
                             )}
-                            onChange={(e) => handleLineItemChange(idx, 'label', e.target.value)}
+                            onChange={(e) =>
+                              handleLineItemChange(idx, 'label', e.target.value, item.category)
+                            }
                             size="small"
                             variant="standard"
                             InputProps={{
@@ -644,21 +755,23 @@ export function ResourceCalculationFormView({ id }) {
                         </Stack>
                       </TableCell>
                       <TableCell align="right">
-                        {item.isComputed ? (
+                        {item.isComputed && !item.isEditable ? (
                           <Typography variant="body2" fontWeight={500}>
                             {fmtNumber(item.monthly)}
                           </Typography>
                         ) : (
                           <TextField
-                            type="number"
-                            value={item.monthly}
-                            onChange={(e) =>
-                              handleLineItemChange(idx, 'monthly', Number(e.target.value))
-                            }
+                            type="text"
+                            inputMode="numeric"
+                            value={Number(item.monthly || 0).toLocaleString('en-SA')}
+                            onChange={(e) => {
+                              const raw = Number(String(e.target.value).replace(/,/g, '')) || 0;
+                              handleLineItemChange(idx, 'monthly', raw, item.category);
+                            }}
                             size="small"
                             variant="standard"
-                            inputProps={{ step: 100, min: 0, style: { textAlign: 'right' } }}
-                            sx={{ width: 110 }}
+                            inputProps={{ style: { textAlign: 'right' } }}
+                            sx={{ width: 120 }}
                           />
                         )}
                       </TableCell>
@@ -675,7 +788,12 @@ export function ResourceCalculationFormView({ id }) {
                                 size="small"
                                 checked={item.isActive}
                                 onChange={(e) =>
-                                  handleLineItemChange(idx, 'isActive', e.target.checked)
+                                  handleLineItemChange(
+                                    idx,
+                                    'isActive',
+                                    e.target.checked,
+                                    item.category
+                                  )
                                 }
                               />
                             }
@@ -720,7 +838,7 @@ export function ResourceCalculationFormView({ id }) {
 
             <Divider sx={{ my: 2 }} />
 
-            <Stack direction="row" spacing={2} justifyContent="flex-end">
+            <Stack direction="row" spacing={2} justifyContent="flex-end" flexWrap="wrap">
               <Button
                 variant="outlined"
                 onClick={() => router.push(paths.dashboard.profile.resourceCalculation.root)}
@@ -728,6 +846,23 @@ export function ResourceCalculationFormView({ id }) {
               >
                 Cancel
               </Button>
+              {isEdit && status === 'draft' && (
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  onClick={handleSubmitForApproval}
+                  disabled={submittingForApproval}
+                  startIcon={
+                    submittingForApproval ? (
+                      <CircularProgress size={16} />
+                    ) : (
+                      <Iconify icon="solar:send-bold" />
+                    )
+                  }
+                >
+                  Submit for Approval
+                </Button>
+              )}
               <Button
                 variant="contained"
                 onClick={handleSubmit}
@@ -736,12 +871,205 @@ export function ResourceCalculationFormView({ id }) {
                   saving ? <CircularProgress size={16} /> : <Iconify icon="mingcute:save-line" />
                 }
               >
-                {isEdit ? 'Save Changes' : 'Create Calculation'}
+                {isEdit ? 'Save Changes' : 'Create & Submit for Approval'}
               </Button>
             </Stack>
           </Card>
         </Grid>
       </Grid>
+
+      {/* ── Approval Workflow Section ─────────────────────────────────────── */}
+      {isEdit &&
+        (() => {
+          const approvals = rcData?.data?.approvals || [];
+          const currentUserEmail = getUserEmail();
+          const myPending = approvals.find(
+            (a) => a.approverEmail === currentUserEmail && a.decision === 'pending'
+          );
+          return (
+            <Card sx={{ p: 3, mt: 3 }}>
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{ mb: 2 }}
+              >
+                <Typography variant="subtitle1" fontWeight={700}>
+                  Approval Workflow
+                </Typography>
+                <Stack direction="row" spacing={1}>
+                  {myPending && (
+                    <>
+                      <Button
+                        size="small"
+                        variant="contained"
+                        color="success"
+                        disabled={approvalActionLoading === 'approved'}
+                        onClick={() => handleApproveReject('approved')}
+                        startIcon={
+                          approvalActionLoading === 'approved' ? (
+                            <CircularProgress size={14} />
+                          ) : (
+                            <Iconify icon="solar:check-circle-bold" />
+                          )
+                        }
+                      >
+                        Approve
+                      </Button>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        color="error"
+                        disabled={approvalActionLoading === 'rejected'}
+                        onClick={() => handleApproveReject('rejected')}
+                        startIcon={
+                          approvalActionLoading === 'rejected' ? (
+                            <CircularProgress size={14} />
+                          ) : (
+                            <Iconify icon="solar:close-circle-bold" />
+                          )
+                        }
+                      >
+                        Reject
+                      </Button>
+                    </>
+                  )}
+                  {(status === 'submitted' || status === 'approved') && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<Iconify icon="solar:forward-bold" />}
+                      onClick={() => setForwardDialogOpen(true)}
+                    >
+                      Forward to User
+                    </Button>
+                  )}
+                </Stack>
+              </Stack>
+
+              {approvals.length === 0 ? (
+                <Typography variant="body2" color="text.secondary">
+                  No approval activity yet.
+                </Typography>
+              ) : (
+                <Stack spacing={1.5}>
+                  {approvals.map((a, i) => (
+                    <Box
+                      key={a.id || i}
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 1,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        backgroundColor:
+                          a.decision === 'approved'
+                            ? 'success.lighter'
+                            : a.decision === 'rejected'
+                              ? 'error.lighter'
+                              : 'background.neutral',
+                      }}
+                    >
+                      <Stack direction="row" alignItems="center" spacing={1} flexWrap="wrap">
+                        <Chip
+                          label={
+                            a.type === 'submit'
+                              ? 'Submitted'
+                              : a.type === 'forward'
+                                ? 'Forwarded'
+                                : 'Decision'
+                          }
+                          size="small"
+                          color={
+                            a.type === 'submit'
+                              ? 'info'
+                              : a.type === 'forward'
+                                ? 'warning'
+                                : 'default'
+                          }
+                          variant="outlined"
+                        />
+                        <Typography variant="body2" fontWeight={600}>
+                          {a.approverEmail}
+                        </Typography>
+                        <Chip
+                          label={a.decision.charAt(0).toUpperCase() + a.decision.slice(1)}
+                          size="small"
+                          color={
+                            a.decision === 'approved'
+                              ? 'success'
+                              : a.decision === 'rejected'
+                                ? 'error'
+                                : 'default'
+                          }
+                        />
+                        <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
+                          {new Date(a.decidedAt || a.createdAt).toLocaleString('en-GB')}
+                        </Typography>
+                      </Stack>
+                      {a.notes && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          display="block"
+                          sx={{ mt: 0.5, ml: 0.5 }}
+                        >
+                          {a.notes}
+                        </Typography>
+                      )}
+                    </Box>
+                  ))}
+                </Stack>
+              )}
+            </Card>
+          );
+        })()}
+
+      {/* ── Forward to User Dialog ─────────────────────────────────────────── */}
+      <Dialog
+        open={forwardDialogOpen}
+        onClose={() => setForwardDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Forward for Approval</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <TextField
+              label="Recipient Email"
+              type="email"
+              value={forwardEmail}
+              onChange={(e) => setForwardEmail(e.target.value)}
+              placeholder="colleague@iotatechnologies.ai"
+              fullWidth
+              required
+              autoFocus
+            />
+            <TextField
+              label="Message (optional)"
+              value={forwardNotes}
+              onChange={(e) => setForwardNotes(e.target.value)}
+              multiline
+              rows={3}
+              fullWidth
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setForwardDialogOpen(false)} disabled={forwarding}>
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleForward}
+            disabled={forwarding || !forwardEmail.trim()}
+            startIcon={
+              forwarding ? <CircularProgress size={16} /> : <Iconify icon="solar:send-bold" />
+            }
+          >
+            Send
+          </Button>
+        </DialogActions>
+      </Dialog>
     </DashboardContent>
   );
 }

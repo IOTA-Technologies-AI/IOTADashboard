@@ -4528,6 +4528,43 @@ export async function deleteResourceCalculation(id) {
   return response.data;
 }
 
+export async function submitRCForApproval(id) {
+  const authHeaders = getAuthHeaders();
+  let submittedBy = '';
+  try {
+    const u = JSON.parse(localStorage.getItem('user') || '{}');
+    submittedBy = u.email || '';
+  } catch {
+    /* ignore */
+  }
+  const response = await axios.post(
+    `${PROFILE_API_URL}/profile/resource-calculations/${id}/submit`,
+    { id, submittedBy },
+    { headers: authHeaders }
+  );
+  return response.data;
+}
+
+export async function forwardRC(id, data) {
+  const authHeaders = getAuthHeaders();
+  const response = await axios.post(
+    `${PROFILE_API_URL}/profile/resource-calculations/${id}/forward`,
+    { id, ...data },
+    { headers: authHeaders }
+  );
+  return response.data;
+}
+
+export async function approveRC(id, data) {
+  const authHeaders = getAuthHeaders();
+  const response = await axios.post(
+    `${PROFILE_API_URL}/profile/resource-calculations/${id}/approve`,
+    { id, ...data },
+    { headers: authHeaders }
+  );
+  return response.data;
+}
+
 // ============================================================
 // Azure Billing
 // ============================================================
