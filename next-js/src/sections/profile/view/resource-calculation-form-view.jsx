@@ -354,14 +354,15 @@ export function ResourceCalculationFormView({ id }) {
     setSaving(true);
     try {
       // Resolve customer name from id for positionCode storage
-      const customers = customersData || [];
-      const selectedCustomer = customers.find((c) => c.id === customerId || c.name === customerId);
+      const selectedCustomer = customerList.find(
+        (c) => String(c.id || c.name) === String(customerId)
+      );
       const payload = {
         title: title.trim(),
         jdId: jdId || undefined,
         candidateId: candidateId || undefined,
         nationality: nationality.trim(),
-        positionCode: selectedCustomer?.name || customerId || '',
+        positionCode: String(selectedCustomer?.name || customerId || ''),
         insurancePremiumFactor: Number(insurancePremiumFactor) || 1,
         dependentsCount: Number(dependentsCount) || 0,
         baseSalary: Number(baseSalary) || 0,
@@ -528,7 +529,7 @@ export function ResourceCalculationFormView({ id }) {
                 >
                   <MenuItem value="">— None —</MenuItem>
                   {customerList.map((c) => (
-                    <MenuItem key={c.id || c.name} value={c.id || c.name}>
+                    <MenuItem key={c.id || c.name} value={String(c.id || c.name)}>
                       {c.name}
                     </MenuItem>
                   ))}
