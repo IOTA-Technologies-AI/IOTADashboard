@@ -18,8 +18,10 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import LoadingButton from '@mui/lab/LoadingButton';
 import Autocomplete from '@mui/material/Autocomplete';
+import Switch from '@mui/material/Switch';
 import ToggleButton from '@mui/material/ToggleButton';
 import CircularProgress from '@mui/material/CircularProgress';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { paths } from 'src/routes/paths';
@@ -42,6 +44,8 @@ export default function NdaNewPage() {
   const [submitting, setSubmitting] = useState(false);
   const [documentSource, setDocumentSource] = useState('iota_generated');
   const [partnerSigningMethod, setPartnerSigningMethod] = useState('digital');
+  const [requireOtp, setRequireOtp] = useState(false);
+  const [requireConsent, setRequireConsent] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null); // { name, base64 }
   const newDocFileRef = useRef(null);
 
@@ -134,6 +138,8 @@ export default function NdaNewPage() {
         createdBy: user?.email || 'unknown',
         documentSource,
         partnerSigningMethod,
+        requireOtp,
+        requireConsent,
       });
 
       // Step 2: if an external file was selected, upload it in a separate request
@@ -218,6 +224,61 @@ export default function NdaNewPage() {
                   Manual (Wet Signature)
                 </ToggleButton>
               </ToggleButtonGroup>
+
+              {/* ── Signing Security Options ── */}
+              {partnerSigningMethod === 'digital' && (
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                    Signing Security Options
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                    Choose which verification steps the partner must complete before signing.
+                  </Typography>
+                  <Stack spacing={1}>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={requireOtp}
+                          onChange={(e) => setRequireOtp(e.target.checked)}
+                          color="warning"
+                        />
+                      }
+                      label={
+                        <Box>
+                          <Typography variant="body2" fontWeight={600}>
+                            Email OTP (2FA)
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Partner must verify their identity via a 6-digit code sent to their
+                            registered email before they can sign. Recommended for sensitive
+                            documents.
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={requireConsent}
+                          onChange={(e) => setRequireConsent(e.target.checked)}
+                          color="primary"
+                        />
+                      }
+                      label={
+                        <Box>
+                          <Typography variant="body2" fontWeight={600}>
+                            Explicit Consent Checkbox
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Partner must tick an acknowledgement checkbox confirming they have read
+                            and agree to the terms before the sign button is enabled.
+                          </Typography>
+                        </Box>
+                      }
+                    />
+                  </Stack>
+                </Box>
+              )}
 
               {documentSource === 'external_upload' && (
                 <Box sx={{ mt: 2.5 }}>

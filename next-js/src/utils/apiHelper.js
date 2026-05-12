@@ -3796,15 +3796,48 @@ export async function iotaSignNda(id, signatureData, signerEmail) {
  * @param {string} [ipAddress] - IP address of the partner for audit trail.
  * @returns {Promise<object>} The updated NDA object with the partner's signature recorded.
  */
-export async function partnerSignNda(token, signatureData, ipAddress) {
+export async function partnerSignNda(token, signatureData, ipAddress, sessionToken, userAgent) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/sign/${token}`, {
       signatureData,
       ipAddress: ipAddress || '',
+      sessionToken: sessionToken || '',
+      userAgent: userAgent || '',
     });
     return response.data.nda;
   } catch (error) {
     console.error('Error submitting partner signature:', error);
+    throw error;
+  }
+}
+
+/**
+ * @summary Sends a 6-digit OTP to the signatory's registered email address.
+ * @param {string} token - The JWT signing token from the partner's email link.
+ * @returns {Promise<{maskedEmail: string}>} Masked email address the code was sent to.
+ */
+export async function requestNdaOtp(token) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}ndas/sign/${token}/request-otp`);
+    return response.data;
+  } catch (error) {
+    console.error('Error requesting NDA OTP:', error);
+    throw error;
+  }
+}
+
+/**
+ * @summary Verifies the OTP entered by the signer and returns a session token.
+ * @param {string} token - The JWT signing token from the partner's email link.
+ * @param {string} code - The 6-digit OTP entered by the signer.
+ * @returns {Promise<{sessionToken: string}>} Session token to present when submitting signature.
+ */
+export async function verifyNdaOtp(token, code) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}ndas/sign/${token}/verify-otp`, { code });
+    return response.data;
+  } catch (error) {
+    console.error('Error verifying NDA OTP:', error);
     throw error;
   }
 }
@@ -4666,6 +4699,8 @@ export const apiHelper = {
   submitNdaForIotaSigning,
   iotaSignNda,
   partnerSignNda,
+  requestNdaOtp,
+  verifyNdaOtp,
   finalizeNda,
   cancelNda,
   uploadExternalNdaDocument,

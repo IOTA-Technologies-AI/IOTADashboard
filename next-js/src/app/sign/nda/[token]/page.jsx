@@ -8,12 +8,15 @@ import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Divider from '@mui/material/Divider';
+import Checkbox from '@mui/material/Checkbox';
 import IconButton from '@mui/material/IconButton';
+import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { getNdaByToken, partnerSignNda } from 'src/utils/apiHelper';
+import { getNdaByToken, partnerSignNda, requestNdaOtp, verifyNdaOtp } from 'src/utils/apiHelper';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -32,6 +35,24 @@ export default function PartnerNdaSignPage({ params }) {
   const [signatureData, setSignatureData] = useState('');
   const [signing, setSigning] = useState(false);
   const [done, setDone] = useState(false);
+
+  // ── OTP / identity verification state ─────────────────────────────────────
+  // When requireOtp is false on the NDA we skip straight to 'otp-verified'.
+  // When requireOtp is true we auto-send the OTP on page load (no manual click needed)
+  // so the user lands directly at the code-entry step.
+  // 'otp-gate'     : loading — will auto-send if required
+  // 'otp-sending'  : auto-send in progress
+  // 'otp-sent'     : code dispatched — waiting for user to enter it
+  // 'otp-verified' : identity confirmed (or not required) — show full signing flow
+  const [verifyStep, setVerifyStep] = useState('otp-gate');
+  const [maskedEmail, setMaskedEmail] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [sessionToken, setSessionToken] = useState('');
+
+  // ── Consent checkbox ──────────────────────────────────────────────────────
+  const [consentChecked, setConsentChecked] = useState(false);
 
   // For zone preview canvas
   const [pdfJsDoc, setPdfJsDoc] = useState(null);
@@ -129,6 +150,27 @@ export default function PartnerNdaSignPage({ params }) {
         setNda(data.nda);
         setSignatory(data.signatory);
         setSignerEmail(data.signerEmail || '');
+
+        // If OTP is not required for this NDA, skip the gate entirely
+        if (!data.nda?.requireOtp) {
+          setVerifyStep('otp-verified');
+          return;
+        }
+
+        // OTP is required — auto-send the code so the user lands directly at the entry step
+        try {
+          setSendingOtp(true);
+          setVerifyStep('otp-sending');
+          const otpData = await requestNdaOtp(token);
+          setMaskedEmail(otpData.maskedEmail || data.signerEmail || '');
+          setVerifyStep('otp-sent');
+        } catch (otpErr) {
+          // Auto-send failed; fall back to the manual "Send Code" card
+          console.error('[OTP auto-send]', otpErr);
+          setVerifyStep('otp-gate');
+        } finally {
+          setSendingOtp(false);
+        }
       } catch (err) {
         const msg =
           err?.response?.data?.message || err?.message || 'Invalid or expired signing link.';
@@ -138,11 +180,15 @@ export default function PartnerNdaSignPage({ params }) {
       }
     };
     fetchData();
-  }, [token]);
+  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSign = async () => {
     if (!signatureData) {
       toast.error('Please draw your signature first');
+      return;
+    }
+    if (nda?.requireConsent && !consentChecked) {
+      toast.error('Please confirm you have read and agree to the terms');
       return;
     }
     try {
@@ -156,7 +202,8 @@ export default function PartnerNdaSignPage({ params }) {
       } catch {
         // Silently ignore — IP is supplementary
       }
-      await partnerSignNda(token, signatureData, ipAddress);
+      const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
+      await partnerSignNda(token, signatureData, ipAddress, sessionToken || null, ua);
       setDone(true);
     } catch (err) {
       console.error(err);
@@ -164,6 +211,40 @@ export default function PartnerNdaSignPage({ params }) {
       toast.error(msg);
     } finally {
       setSigning(false);
+    }
+  };
+
+  const handleSendOtp = async () => {
+    try {
+      setSendingOtp(true);
+      const data = await requestNdaOtp(token);
+      setMaskedEmail(data.maskedEmail || signerEmail);
+      setVerifyStep('otp-sent');
+      toast.success('Verification code sent to your email');
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Failed to send verification code.';
+      toast.error(msg);
+    } finally {
+      setSendingOtp(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otpCode || otpCode.length !== 6) {
+      toast.error('Please enter the 6-digit code');
+      return;
+    }
+    try {
+      setVerifyingOtp(true);
+      const data = await verifyNdaOtp(token, otpCode);
+      setSessionToken(data.sessionToken);
+      setVerifyStep('otp-verified');
+      toast.success('Identity verified — you may now sign the document');
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Incorrect or expired code. Please try again.';
+      toast.error(msg);
+    } finally {
+      setVerifyingOtp(false);
     }
   };
 
@@ -269,6 +350,88 @@ export default function PartnerNdaSignPage({ params }) {
               Please review the document below and draw your signature to proceed.
             </Typography>
           </Alert>
+
+          {/* ── Identity verification gate (shown only when requireOtp is true) ── */}
+          {nda?.requireOtp && verifyStep === 'otp-sending' && (
+            <Card sx={{ p: 3, border: '2px solid', borderColor: 'warning.main' }}>
+              <Stack direction="row" alignItems="center" spacing={1.5}>
+                <Iconify icon="solar:shield-check-bold" color="warning.main" width={28} />
+                <Typography variant="h6">Sending Verification Code…</Typography>
+                <CircularProgress size={20} color="warning" />
+              </Stack>
+            </Card>
+          )}
+
+          {nda?.requireOtp && verifyStep === 'otp-gate' && (
+            <Card sx={{ p: 3, border: '2px solid', borderColor: 'warning.main' }}>
+              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1.5 }}>
+                <Iconify icon="solar:shield-check-bold" color="warning.main" width={28} />
+                <Typography variant="h6">Identity Verification Required</Typography>
+              </Stack>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                To protect the integrity of this document we need to verify your identity before you
+                can sign. We&apos;ll send a one-time 6-digit code to your registered email address.
+              </Typography>
+              <LoadingButton
+                variant="contained"
+                color="warning"
+                loading={sendingOtp}
+                startIcon={<Iconify icon="solar:letter-bold" />}
+                onClick={handleSendOtp}
+              >
+                Send Verification Code
+              </LoadingButton>
+            </Card>
+          )}
+
+          {nda?.requireOtp && verifyStep === 'otp-sent' && (
+            <Card sx={{ p: 3, border: '2px solid', borderColor: 'warning.main' }}>
+              <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 1.5 }}>
+                <Iconify icon="solar:shield-check-bold" color="warning.main" width={28} />
+                <Typography variant="h6">Enter Verification Code</Typography>
+              </Stack>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                A 6-digit code has been sent to <strong>{maskedEmail}</strong>. The code is valid
+                for 10 minutes.
+              </Typography>
+              <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                <TextField
+                  label="6-digit code"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  inputProps={{ inputMode: 'numeric', maxLength: 6 }}
+                  size="small"
+                  sx={{ width: 160 }}
+                />
+                <LoadingButton
+                  variant="contained"
+                  color="warning"
+                  loading={verifyingOtp}
+                  onClick={handleVerifyOtp}
+                  disabled={otpCode.length !== 6}
+                >
+                  Verify Code
+                </LoadingButton>
+                <LoadingButton
+                  variant="outlined"
+                  color="inherit"
+                  size="small"
+                  loading={sendingOtp}
+                  onClick={handleSendOtp}
+                >
+                  Resend
+                </LoadingButton>
+              </Stack>
+            </Card>
+          )}
+
+          {nda?.requireOtp && verifyStep === 'otp-verified' && (
+            <Alert severity="success" icon={<Iconify icon="solar:shield-check-bold" />}>
+              <Typography variant="body2">
+                Identity verified. You may now review the document and apply your signature below.
+              </Typography>
+            </Alert>
+          )}
 
           {/* NDA document */}
           <Card sx={{ p: 0, overflow: 'hidden' }}>
@@ -418,31 +581,73 @@ export default function PartnerNdaSignPage({ params }) {
           )}
 
           {/* Signature */}
-          <Card sx={{ p: 3, border: '2px solid', borderColor: 'primary.main' }}>
-            <Typography variant="h6" sx={{ mb: 1 }}>
-              Your Signature
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              By applying your signature below, you confirm that you have read, understood, and
-              agree to the terms of this Non-Disclosure Agreement. Your signature, along with a
-              timestamp and your IP address, will be permanently recorded in the document audit log.
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            <NdaSignatureCanvas onSave={setSignatureData} label="Draw your signature here" />
-            {signatureData && (
-              <Box sx={{ mt: 2 }}>
-                <LoadingButton
-                  variant="contained"
-                  size="large"
-                  loading={signing}
-                  startIcon={<Iconify icon="solar:check-circle-bold" />}
-                  onClick={handleSign}
-                >
-                  I Agree & Sign
-                </LoadingButton>
-              </Box>
-            )}
-          </Card>
+          {(() => {
+            const otpBlocked = nda?.requireOtp && verifyStep !== 'otp-verified';
+            const signEnabled = signatureData && (!nda?.requireConsent || consentChecked);
+            return (
+              <Card
+                sx={{
+                  p: 3,
+                  border: '2px solid',
+                  borderColor: otpBlocked ? 'divider' : 'primary.main',
+                  opacity: otpBlocked ? 0.45 : 1,
+                  pointerEvents: otpBlocked ? 'none' : 'auto',
+                }}
+              >
+                <Typography variant="h6" sx={{ mb: 1 }}>
+                  Your Signature
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  By applying your signature below, you confirm that you have read, understood, and
+                  agree to the terms of this Non-Disclosure Agreement. Your signature, along with a
+                  timestamp and your IP address, will be permanently recorded in the document audit
+                  log.
+                </Typography>
+                <Divider sx={{ mb: 2 }} />
+                <NdaSignatureCanvas
+                  onSave={setSignatureData}
+                  label="Draw or type your signature here"
+                />
+
+                {/* Consent checkbox — only shown when requireConsent is true on the NDA */}
+                {nda?.requireConsent && (
+                  <FormControlLabel
+                    sx={{ mt: 2, alignItems: 'flex-start' }}
+                    control={
+                      <Checkbox
+                        checked={consentChecked}
+                        onChange={(e) => setConsentChecked(e.target.checked)}
+                        color="primary"
+                        sx={{ pt: 0 }}
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" color="text.secondary">
+                        I confirm that I have fully read and understood this Non-Disclosure
+                        Agreement and I agree to be legally bound by its terms. I acknowledge that
+                        this electronic signature has the same legal effect as a handwritten
+                        signature.
+                      </Typography>
+                    }
+                  />
+                )}
+
+                {signEnabled && (
+                  <Box sx={{ mt: 2 }}>
+                    <LoadingButton
+                      variant="contained"
+                      size="large"
+                      loading={signing}
+                      startIcon={<Iconify icon="solar:check-circle-bold" />}
+                      onClick={handleSign}
+                    >
+                      I Agree &amp; Sign
+                    </LoadingButton>
+                  </Box>
+                )}
+              </Card>
+            );
+          })()}
 
           {/* Footer disclaimer */}
           <Typography variant="caption" color="text.secondary" textAlign="center">
