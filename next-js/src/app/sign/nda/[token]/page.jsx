@@ -654,7 +654,7 @@ export default function PartnerNdaSignPage({ params }) {
             This is a legally binding document. By signing, you agree to the terms contained herein.
             This signature portal is provided by IOTA Technologies. All data is securely stored. If
             you did not expect this email or believe you received it in error, please contact{' '}
-            <strong>legal@iotatechnologies.io</strong>.
+            <strong>legal@iotatechnologies.ai</strong>.
           </Typography>
         </Stack>
       </Box>
