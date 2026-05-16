@@ -123,6 +123,7 @@ export default function Page() {
         balance: data.balance || 0,
         currencyCode: data.currencyCode || 'SAR',
         viewToken: data.viewToken || null,
+        zatcaQrCode: data.zatcaQrCode || null,
       });
     });
   }, [id]);

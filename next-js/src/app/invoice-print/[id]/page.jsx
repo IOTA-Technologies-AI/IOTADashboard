@@ -295,25 +295,36 @@ export default function InvoicePrintPage() {
         totalAmount: data.total || 0,
         discount: Math.abs(data.adjustment || 0),
         shipping: data.shippingCharge || 0,
+        zatcaQrCode: data.zatcaQrCode || null,
       };
 
       setInvoiceNumber(invoice.invoiceNumber);
 
-      // Generate QR code for view link if token is available
-      let qrCodeBlock = '';
+      // Generate QR code block (view URL QR + ZATCA QR)
+      let viewQrHtml = '';
       if (data.viewToken) {
         try {
           const QRCode = await import('qrcode');
           const viewUrl = `https://docs.iotatechnologies.io/view/${data.viewToken}`;
           const qrDataUrl = await QRCode.toDataURL(viewUrl, { width: 120, margin: 1 });
-          qrCodeBlock = `<div style="text-align:center;margin-top:16px;">
+          viewQrHtml = `<div style="text-align:center;">
             <img src="${qrDataUrl}" width="80" height="80" style="display:inline-block;" alt="Scan to view invoice" />
             <div style="font-size:9px;color:#888;margin-top:4px;">Scan to view invoice online</div>
           </div>`;
         } catch {
-          qrCodeBlock = '';
+          viewQrHtml = '';
         }
       }
+      const zatcaQrHtml = data.zatcaQrCode
+        ? `<div style="text-align:center;">
+            <img src="${data.zatcaQrCode}" width="80" height="80" style="display:inline-block;" alt="ZATCA QR" />
+            <div style="font-size:9px;color:#888;margin-top:4px;">ZATCA e-Invoice QR</div>
+          </div>`
+        : '';
+      const qrCodeBlock =
+        viewQrHtml || zatcaQrHtml
+          ? `<div style="display:flex;justify-content:space-between;margin-top:16px;">${viewQrHtml}${zatcaQrHtml}</div>`
+          : '';
       setHtml(fillTemplate(templateHtml, invoice, liveOffices, qrCodeBlock));
     });
   }, [id, liveOffices]);

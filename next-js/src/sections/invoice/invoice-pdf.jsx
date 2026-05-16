@@ -285,7 +285,7 @@ const useStyles = () =>
 
 // ── Public PDF document (exported for direct use) ─────────────────────────────
 
-export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase64 }) {
+export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase64, zatcaQrCode }) {
   const {
     items,
     dueDate,
@@ -449,11 +449,23 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
             </View>
           </View>
 
-          {/* QR code — scan to view this invoice online */}
-          {viewQrBase64 ? (
-            <View style={styles.qrBlock}>
-              <Image src={viewQrBase64} style={styles.qrImage} />
-              <Text style={styles.qrLabel}>Scan to view invoice online</Text>
+          {/* QR codes row */}
+          {viewQrBase64 || zatcaQrCode ? (
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 }}>
+              {viewQrBase64 ? (
+                <View style={styles.qrBlock}>
+                  <Image src={viewQrBase64} style={styles.qrImage} />
+                  <Text style={styles.qrLabel}>Scan to view invoice online</Text>
+                </View>
+              ) : (
+                <View />
+              )}
+              {zatcaQrCode ? (
+                <View style={styles.qrBlock}>
+                  <Image src={zatcaQrCode} style={styles.qrImage} />
+                  <Text style={styles.qrLabel}>ZATCA e-Invoice QR</Text>
+                </View>
+              ) : null}
             </View>
           ) : null}
         </View>
@@ -498,6 +510,7 @@ export function InvoicePDFDownload({ invoice, currentStatus, offices }) {
           currentStatus={currentStatus}
           offices={offices}
           viewQrBase64={viewQrBase64}
+          zatcaQrCode={invoice?.zatcaQrCode || null}
         />
       }
       fileName={invoice?.invoiceNumber || 'invoice'}
@@ -531,6 +544,7 @@ export function InvoicePDFViewer({ invoice, currentStatus, offices }) {
         currentStatus={currentStatus}
         offices={offices}
         viewQrBase64={viewQrBase64}
+        zatcaQrCode={invoice?.zatcaQrCode || null}
       />
     </PDFViewer>
   );
