@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import dynamic from 'next/dynamic';
 import { useBoolean } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
@@ -21,13 +20,6 @@ import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 
 const DOCS_BASE_URL = 'https://docs.iotatechnologies.io';
-
-// ----------------------------------------------------------------------
-
-const InvoicePDFViewer = dynamic(
-  () => import('./invoice-pdf').then((mod) => mod.InvoicePDFViewer),
-  { ssr: false }
-);
 
 export function InvoiceToolbar({
   invoice,
@@ -93,7 +85,13 @@ export function InvoiceToolbar({
           </Button>
         </DialogActions>
         <Box sx={{ flexGrow: 1, height: 1, overflow: 'hidden' }}>
-          {invoice && <InvoicePDFViewer invoice={invoice} currentStatus={currentStatus} />}
+          {invoice && (
+            <iframe
+              title="invoice-preview"
+              src={`/invoice-print/${invoice?.id || invoice?.invoiceId}?preview=true`}
+              style={{ width: '100%', height: '100%', border: 'none' }}
+            />
+          )}
         </Box>
       </Box>
     </Dialog>

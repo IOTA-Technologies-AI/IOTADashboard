@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 
 import { fDate } from 'src/utils/format-time';
 import { fetchInvoice, fetchOfficeConfigs, getCustomers } from 'src/utils/apiHelper';
@@ -205,6 +205,8 @@ function fillTemplate(templateHtml, invoice, officeList, qrCodeBlock) {
 
 export default function InvoicePrintPage() {
   const { id } = useParams();
+  const searchParams = useSearchParams();
+  const isPreview = searchParams.get('preview') === 'true';
   const [html, setHtml] = useState(null);
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const [liveOffices, setLiveOffices] = useState(null);
@@ -325,7 +327,15 @@ export default function InvoicePrintPage() {
         viewQrHtml || zatcaQrHtml
           ? `<div style="display:flex;justify-content:space-between;margin-top:16px;">${viewQrHtml}${zatcaQrHtml}</div>`
           : '';
-      setHtml(fillTemplate(templateHtml, invoice, liveOffices, qrCodeBlock));
+      let finalHtml = fillTemplate(templateHtml, invoice, liveOffices, qrCodeBlock);
+      // In preview mode, hide the print toolbar
+      if (isPreview) {
+        finalHtml = finalHtml.replace(
+          '</head>',
+          '<style>.toolbar{display:none!important}</style></head>'
+        );
+      }
+      setHtml(finalHtml);
     });
   }, [id, liveOffices]);
 
@@ -343,12 +353,14 @@ export default function InvoicePrintPage() {
       doc.write(html);
       doc.close();
 
-      // Wait for fonts/images then print
-      const doPrint = () => iframe.contentWindow?.print();
-      if (iframe.contentDocument?.fonts) {
-        iframe.contentDocument.fonts.ready.then(() => setTimeout(doPrint, 300));
-      } else {
-        setTimeout(doPrint, 800);
+      // Wait for fonts/images then print (skip in preview mode)
+      if (!isPreview) {
+        const doPrint = () => iframe.contentWindow?.print();
+        if (iframe.contentDocument?.fonts) {
+          iframe.contentDocument.fonts.ready.then(() => setTimeout(doPrint, 300));
+        } else {
+          setTimeout(doPrint, 800);
+        }
       }
     };
 
