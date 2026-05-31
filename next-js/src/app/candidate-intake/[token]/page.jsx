@@ -628,7 +628,7 @@ function StepSalaryExpectations({ data, onChange }) {
           Salary Expectations & Work Preferences
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Please share your salary expectations. All figures should be monthly amounts.
+          Please share your total expected monthly salary.
         </Typography>
       </Stack>
 
@@ -650,58 +650,13 @@ function StepSalaryExpectations({ data, onChange }) {
         </Grid>
         <Grid item xs={12} sm={6}>
           <TextField
-            label="Expected Basic Salary (monthly)"
-            {...numField('expectedBasicSalary')}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">{data.currencyCode || 'SAR'}</InputAdornment>
-              ),
-            }}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Expected Housing Allowance"
-            {...numField('expectedHousingAllowance')}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">{data.currencyCode || 'SAR'}</InputAdornment>
-              ),
-            }}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Expected Transport Allowance"
-            {...numField('expectedTransportAllowance')}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">{data.currencyCode || 'SAR'}</InputAdornment>
-              ),
-            }}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Other Allowances"
-            {...numField('expectedOtherAllowances')}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">{data.currencyCode || 'SAR'}</InputAdornment>
-              ),
-            }}
-          />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Expected Total Package"
+            label="Expected Total Salary (monthly)"
             {...numField('expectedTotalPackage')}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">{data.currencyCode || 'SAR'}</InputAdornment>
               ),
             }}
-            helperText="Leave blank to auto-sum from fields above."
           />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -843,11 +798,7 @@ function StepReview({ formData, tokenRecord }) {
 
       <Section title="Salary Expectations">
         <Row label="Currency" value={formData.currencyCode} />
-        <Row label="Basic Salary" value={formData.expectedBasicSalary} />
-        <Row label="Housing Allowance" value={formData.expectedHousingAllowance} />
-        <Row label="Transport Allowance" value={formData.expectedTransportAllowance} />
-        <Row label="Other Allowances" value={formData.expectedOtherAllowances} />
-        <Row label="Expected Total" value={formData.expectedTotalPackage} />
+        <Row label="Expected Total Salary" value={formData.expectedTotalPackage} />
         <Row label="Desired Start Date" value={formData.desiredStartDate} />
         <Row label="Work Arrangement" value={formData.workArrangement} />
         <Row label="Additional Remarks" value={formData.additionalRemarks} />
@@ -913,15 +864,26 @@ export default function CandidateIntakePage() {
     setSubmitting(true);
     setSubmitError('');
     try {
-      // Auto-calculate total if not provided
       const data = { ...formData };
-      if (!data.expectedTotalPackage) {
-        data.expectedTotalPackage =
-          (parseFloat(data.expectedBasicSalary) || 0) +
-            (parseFloat(data.expectedHousingAllowance) || 0) +
-            (parseFloat(data.expectedTransportAllowance) || 0) +
-            (parseFloat(data.expectedOtherAllowances) || 0) || undefined;
-      }
+      // Convert all numeric fields: empty string → undefined, string number → number
+      // Also strip legacy salary breakup fields (no longer collected)
+      const numericFields = [
+        'numberOfDependents',
+        'expectedTotalPackage',
+        'expectedBasicSalary',
+        'expectedHousingAllowance',
+        'expectedTransportAllowance',
+        'expectedOtherAllowances',
+      ];
+      numericFields.forEach((key) => {
+        if (data[key] === '' || data[key] === null || data[key] === undefined) {
+          delete data[key];
+        } else {
+          const parsed = parseFloat(data[key]);
+          data[key] = isNaN(parsed) ? undefined : parsed;
+          if (data[key] === undefined) delete data[key];
+        }
+      });
 
       await submitCandidateIntakeForm(token, sessionToken, data);
       setSubmitted(true);

@@ -285,6 +285,24 @@ const MuiFilledInput = {
 };
 
 /* **********************************************************************
+ * 🧩 InputLabel
+ * **********************************************************************/
+const MuiInputLabel = {
+  // ▼▼▼▼▼▼▼▼ 🎨 STYLE ▼▼▼▼▼▼▼▼
+  styleOverrides: {
+    root: ({ theme }) => ({
+      // When the label floats up (shrinks) on an outlined input, give it a
+      // background that masks the border line so the text is legible.
+      '&.MuiInputLabel-shrink.MuiInputLabel-outlined': {
+        backgroundColor: theme.vars.palette.background.paper,
+        paddingInline: 4,
+        borderRadius: 2,
+      },
+    }),
+  },
+};
+
+/* **********************************************************************
  * 🧩 TextField
  * **********************************************************************/
 const MuiTextField = {
@@ -300,6 +318,7 @@ const MuiTextField = {
 export const textField = {
   MuiInput,
   MuiInputBase,
+  MuiInputLabel,
   MuiTextField,
   MuiFilledInput,
   MuiOutlinedInput,
