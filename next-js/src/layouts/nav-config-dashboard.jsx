@@ -222,6 +222,7 @@ export const navData = [
           },
           { title: 'Employee Offer Management', path: paths.dashboard.hr.offerManagement.root },
           { title: 'NDA Management', path: paths.dashboard.hr.ndaManagement.root },
+          { title: 'Candidate Intake', path: paths.dashboard.hr.candidateIntake.root },
           {
             title: 'Partnership Agreements',
             path: paths.dashboard.hr.partnershipAgreement.root,
