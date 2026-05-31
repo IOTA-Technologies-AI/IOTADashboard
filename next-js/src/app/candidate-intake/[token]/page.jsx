@@ -73,6 +73,17 @@ const COUNTRIES = [
   'Other',
 ];
 
+// ─── Date constraint helpers ──────────────────────────────────────────────────
+
+// Returns today's date as YYYY-MM-DD (used as min/max for date inputs)
+const todayStr = () => new Date().toISOString().split('T')[0];
+// Max selectable DOB — candidate must be at least 16 years old
+const maxDobStr = () => {
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 16);
+  return d.toISOString().split('T')[0];
+};
+
 // ─── Logo ─────────────────────────────────────────────────────────────────────
 
 function IOTALogo() {
@@ -236,13 +247,13 @@ function StepPersonalDetails({ data, onChange }) {
       </Stack>
 
       <Grid container spacing={2}>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={6}>
           <TextField label="First Name *" {...field('firstName')} />
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={6}>
           <TextField label="Middle Name" {...field('middleName')} />
         </Grid>
-        <Grid item xs={12} sm={4}>
+        <Grid item xs={12} sm={6}>
           <TextField label="Last Name *" {...field('lastName')} />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -250,10 +261,11 @@ function StepPersonalDetails({ data, onChange }) {
         </Grid>
         <Grid item xs={12} sm={6}>
           <TextField
-            label="Date of Birth"
+            label="Date of Birth *"
             type="date"
             {...field('dateOfBirth')}
             InputLabelProps={{ shrink: true }}
+            inputProps={{ max: maxDobStr() }}
           />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -331,16 +343,20 @@ function StepResidencyDocuments({ data, onChange }) {
           <TextField label="City of Residence" {...field('cityOfResidence')} />
         </Grid>
 
-        {/* KSA-specific fields */}
+        {/* National ID — shown for all */}
+        <Grid item xs={12} sm={6}>
+          <TextField
+            label="National ID"
+            {...field('nationalId')}
+            helperText="e.g. National ID, Emirates ID, or equivalent"
+          />
+        </Grid>
+
+        {/* KSA-specific: Iqama */}
         {isKsa && (
           <>
-            <Grid item xs={12}>
-              <Alert severity="info" sx={{ mb: 0 }}>
-                You selected Saudi Arabia — please fill in your Iqama / National ID details.
-              </Alert>
-            </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField label="National ID / Iqama Number" {...field('iqamaNumber')} />
+              <TextField label="Iqama Number" {...field('iqamaNumber')} />
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
@@ -348,10 +364,9 @@ function StepResidencyDocuments({ data, onChange }) {
                 type="date"
                 {...field('iqamaExpiryDate')}
                 InputLabelProps={{ shrink: true }}
+                inputProps={{ min: todayStr() }}
+                helperText="Must be a future date"
               />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField label="Saudi National ID (if citizen)" {...field('nationalId')} />
             </Grid>
           </>
         )}
@@ -365,6 +380,8 @@ function StepResidencyDocuments({ data, onChange }) {
             type="date"
             {...field('passportExpiryDate')}
             InputLabelProps={{ shrink: true }}
+            inputProps={{ min: todayStr() }}
+            helperText="Must be a future date"
           />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -380,6 +397,8 @@ function StepResidencyDocuments({ data, onChange }) {
             type="date"
             {...field('visaExpiryDate')}
             InputLabelProps={{ shrink: true }}
+            inputProps={{ min: todayStr() }}
+            helperText="Must be a future date"
           />
         </Grid>
         <Grid item xs={12} sm={6}>
@@ -440,10 +459,10 @@ function StepFamilyDependents({ data, onChange }) {
             Spouse Details
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
               <TextField label="Spouse Full Name" {...field('spouseName')} />
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
               <TextField label="Spouse Nationality" select {...field('spouseNationality')}>
                 {NATIONALITIES.map((n) => (
                   <MenuItem key={n} value={n}>
@@ -452,7 +471,7 @@ function StepFamilyDependents({ data, onChange }) {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6}>
               <TextField label="Spouse National ID / Iqama" {...field('spouseNationalId')} />
             </Grid>
           </Grid>
@@ -480,7 +499,7 @@ function StepFamilyDependents({ data, onChange }) {
                 Dependent {idx + 1}
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     label="Full Name"
                     value={dependents[idx]?.name || ''}
@@ -488,7 +507,7 @@ function StepFamilyDependents({ data, onChange }) {
                     fullWidth
                   />
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     label="Relationship"
                     select
@@ -503,7 +522,7 @@ function StepFamilyDependents({ data, onChange }) {
                     ))}
                   </TextField>
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     label="Date of Birth"
                     type="date"
@@ -511,9 +530,10 @@ function StepFamilyDependents({ data, onChange }) {
                     onChange={(e) => handleDepChange(idx, 'dateOfBirth', e.target.value)}
                     fullWidth
                     InputLabelProps={{ shrink: true }}
+                    inputProps={{ max: todayStr() }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     label="Nationality"
                     select
@@ -528,7 +548,7 @@ function StepFamilyDependents({ data, onChange }) {
                     ))}
                   </TextField>
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} sm={6}>
                   <TextField
                     label="Passport Number"
                     value={dependents[idx]?.passportNumber || ''}
@@ -536,9 +556,9 @@ function StepFamilyDependents({ data, onChange }) {
                     fullWidth
                   />
                 </Grid>
-                <Grid item xs={12} sm={4}>
+                <Grid item xs={12} sm={6}>
                   <TextField
-                    label="National ID / Iqama"
+                    label="National ID"
                     value={dependents[idx]?.nationalIdOrIqama || ''}
                     onChange={(e) => handleDepChange(idx, 'nationalIdOrIqama', e.target.value)}
                     fullWidth
@@ -667,6 +687,8 @@ function StepSalaryExpectations({ data, onChange }) {
             onChange={(e) => onChange('desiredStartDate', e.target.value)}
             fullWidth
             InputLabelProps={{ shrink: true }}
+            inputProps={{ min: todayStr() }}
+            helperText="Must be a future date"
           />
         </Grid>
         <Grid item xs={12} sm={6}>
