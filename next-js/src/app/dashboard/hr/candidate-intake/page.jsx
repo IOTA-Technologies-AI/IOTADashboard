@@ -249,13 +249,13 @@ export default function CandidateIntakePage() {
       field: 'expiresAt',
       headerName: 'Expires',
       width: 150,
-      valueFormatter: ({ value }) => (value ? new Date(value).toLocaleDateString('en-GB') : '—'),
+      valueFormatter: (value) => (value ? new Date(value).toLocaleDateString('en-GB') : '—'),
     },
     {
       field: 'createdAt',
       headerName: 'Created',
       width: 150,
-      valueFormatter: ({ value }) => (value ? new Date(value).toLocaleDateString('en-GB') : '—'),
+      valueFormatter: (value) => (value ? new Date(value).toLocaleDateString('en-GB') : '—'),
     },
     {
       field: 'actions',
@@ -312,7 +312,7 @@ export default function CandidateIntakePage() {
       field: 'expectedTotalPackage',
       headerName: 'Expected Total',
       width: 140,
-      valueFormatter: ({ value, row }) =>
+      valueFormatter: (value, row) =>
         value ? `${row.currencyCode || 'SAR'} ${Number(value).toLocaleString()}` : '—',
     },
     {
@@ -331,7 +331,7 @@ export default function CandidateIntakePage() {
       field: 'submittedAt',
       headerName: 'Submitted',
       width: 150,
-      valueFormatter: ({ value }) => (value ? new Date(value).toLocaleDateString('en-GB') : '—'),
+      valueFormatter: (value) => (value ? new Date(value).toLocaleDateString('en-GB') : '—'),
     },
     {
       field: 'actions',
