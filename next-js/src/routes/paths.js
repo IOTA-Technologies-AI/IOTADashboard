@@ -271,6 +271,10 @@ export const paths = {
         pendingApprovals: path(ROOTS.DASHBOARD, '/hr/employee-requests/pending-approvals'),
       },
       auditLog: path(ROOTS.DASHBOARD, '/hr/audit-log'),
+      candidateIntake: {
+        root: path(ROOTS.DASHBOARD, '/hr/candidate-intake'),
+        details: (id) => path(ROOTS.DASHBOARD, `/hr/candidate-intake/${id}`),
+      },
     },
     user: {
       root: `${ROOTS.DASHBOARD}/user`,

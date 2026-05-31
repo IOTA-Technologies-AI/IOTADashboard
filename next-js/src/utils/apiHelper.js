@@ -4609,6 +4609,77 @@ export async function getAzureBilling() {
   return response.data;
 }
 
+// ─── Candidate Intake — HR token management ──────────────────────────────────
+
+export async function generateCandidateIntakeToken(data) {
+  const response = await axios.post(`${API_BASE_URL}candidate-intake/tokens`, data, {
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+}
+
+export async function listCandidateIntakeTokens(params = {}) {
+  const response = await axios.get(`${API_BASE_URL}candidate-intake/tokens`, {
+    headers: getAuthHeaders(),
+    params,
+  });
+  return response.data;
+}
+
+export async function revokeCandidateIntakeToken(id, revokedBy) {
+  const response = await axios.post(
+    `${API_BASE_URL}candidate-intake/tokens/${id}/revoke`,
+    { revokedBy },
+    { headers: getAuthHeaders() }
+  );
+  return response.data;
+}
+
+export async function listCandidateIntakeSubmissions(params = {}) {
+  const response = await axios.get(`${API_BASE_URL}candidate-intake/submissions`, {
+    headers: getAuthHeaders(),
+    params,
+  });
+  return response.data;
+}
+
+export async function getCandidateIntakeSubmission(id) {
+  const response = await axios.get(`${API_BASE_URL}candidate-intake/submissions/${id}`, {
+    headers: getAuthHeaders(),
+  });
+  return response.data;
+}
+
+// ─── Candidate Intake — candidate-facing (no dashboard JWT) ──────────────────
+
+export async function getCandidateIntakeToken(token) {
+  const response = await axios.get(`${API_BASE_URL}candidate-intake/tokens/${token}`);
+  return response.data;
+}
+
+export async function requestCandidateIntakeOtp(token, email) {
+  const response = await axios.post(`${API_BASE_URL}candidate-intake/tokens/${token}/request-otp`, {
+    email,
+  });
+  return response.data;
+}
+
+export async function verifyCandidateIntakeOtp(token, email, code) {
+  const response = await axios.post(`${API_BASE_URL}candidate-intake/tokens/${token}/verify-otp`, {
+    email,
+    code,
+  });
+  return response.data;
+}
+
+export async function submitCandidateIntakeForm(token, sessionToken, formData) {
+  const response = await axios.post(`${API_BASE_URL}candidate-intake/tokens/${token}/submit`, {
+    sessionToken,
+    ...formData,
+  });
+  return response.data;
+}
+
 export const apiHelper = {
   fetchTotalIotaBilling,
   fetchTotalPartnerBilling,
@@ -4795,4 +4866,14 @@ export const apiHelper = {
   getMatchResults,
   generateJobDescription,
   getAzureBilling,
+  // Candidate Intake
+  generateCandidateIntakeToken,
+  listCandidateIntakeTokens,
+  revokeCandidateIntakeToken,
+  listCandidateIntakeSubmissions,
+  getCandidateIntakeSubmission,
+  getCandidateIntakeToken,
+  requestCandidateIntakeOtp,
+  verifyCandidateIntakeOtp,
+  submitCandidateIntakeForm,
 };
