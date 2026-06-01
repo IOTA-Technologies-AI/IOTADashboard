@@ -45,7 +45,7 @@ function SectionCard({ title, icon, children }) {
         }}
       >
         {icon && <Iconify icon={icon} sx={{ color: 'white' }} />}
-        <Typography variant="subtitle1" color="white" fontWeight={700}>
+        <Typography variant="subtitle1" sx={{ color: 'white' }} fontWeight={700}>
           {title}
         </Typography>
       </Box>
@@ -76,7 +76,7 @@ const AUDIT_ACTION_LABELS = {
   otp_verified: { label: 'OTP Verified', color: 'success', icon: 'eva:checkmark-circle-fill' },
   otp_failed: { label: 'OTP Failed', color: 'error', icon: 'eva:alert-triangle-fill' },
   form_submitted: { label: 'Form Submitted', color: 'success', icon: 'eva:checkmark-square-fill' },
-  submission_viewed: { label: 'Submission Viewed', color: 'default', icon: 'eva:eye-outline' },
+  submission_viewed: { label: 'Submission Viewed', color: 'grey', icon: 'eva:eye-outline' },
 };
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
@@ -143,7 +143,7 @@ export default function CandidateSubmissionDetailPage() {
               {s.candidateEmail}
             </Typography>
             {s.positionTitle && (
-              <Typography variant="body2" color="primary.main" fontWeight={600} mt={0.5}>
+              <Typography variant="body2" sx={{ color: 'primary.main' }} fontWeight={600} mt={0.5}>
                 {s.positionTitle}
               </Typography>
             )}
@@ -174,7 +174,7 @@ export default function CandidateSubmissionDetailPage() {
 
       <Grid container spacing={3}>
         {/* Left column */}
-        <Grid item xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <SectionCard title="Personal Details" icon="eva:person-fill">
             <InfoRow
               label="Full Name (English)"
@@ -294,7 +294,7 @@ export default function CandidateSubmissionDetailPage() {
         </Grid>
 
         {/* Right column */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           {/* Token info */}
           <SectionCard title="Intake Link" icon="eva:link-fill">
             <InfoRow label="Candidate Email" value={t?.candidateEmail} />

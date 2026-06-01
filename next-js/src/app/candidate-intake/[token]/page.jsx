@@ -343,7 +343,6 @@ function StepResidencyDocuments({ data, onChange }) {
       </Stack>
 
       <Grid container spacing={2}>
-        {/* Country takes full width — label is long */}
         <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Country of Residence *" select {...field('countryOfResidence')}>
             {COUNTRIES.map((c) => (
@@ -357,34 +356,14 @@ function StepResidencyDocuments({ data, onChange }) {
           <TextField label="City of Residence" {...field('cityOfResidence')} />
         </Grid>
 
-        {/* National ID — shown for all */}
-        <Grid size={{ xs: 12, sm: 6 }}>
-          <TextField
-            label="National ID"
-            {...field('nationalId')}
-            helperText="e.g. National ID, Emirates ID, or equivalent"
-          />
-        </Grid>
-
-        {/* KSA-specific: Iqama */}
+        {/* National ID — KSA only */}
         {isKsa && (
-          <>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField label="Iqama Number" {...field('iqamaNumber')} />
-            </Grid>
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <TextField
-                label="Iqama Expiry Date"
-                type="date"
-                {...field('iqamaExpiryDate')}
-                InputLabelProps={{ shrink: true }}
-                inputProps={{ min: todayStr() }}
-                helperText="Must be a future date"
-              />
-            </Grid>
-          </>
+          <Grid size={{ xs: 12, sm: 6 }}>
+            <TextField label="National ID" {...field('nationalId')} />
+          </Grid>
         )}
 
+        {/* Passport — always shown */}
         <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Passport Number" {...field('passportNumber')} />
         </Grid>
@@ -398,12 +377,18 @@ function StepResidencyDocuments({ data, onChange }) {
             helperText="Must be a future date"
           />
         </Grid>
+
+        {/* Visa Type — dropdown */}
         <Grid size={{ xs: 12, sm: 6 }}>
-          <TextField
-            label="Visa Type"
-            {...field('visaType')}
-            helperText='e.g. "Work Visa", "Family Residence", "Visit Visa"'
-          />
+          <TextField label="Visa Type" select {...field('visaType')}>
+            {['Transferable Iqama', 'Saudi National', 'Premium Resident', 'Not Applicable'].map(
+              (v) => (
+                <MenuItem key={v} value={v}>
+                  {v}
+                </MenuItem>
+              )
+            )}
+          </TextField>
         </Grid>
         <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
@@ -415,15 +400,20 @@ function StepResidencyDocuments({ data, onChange }) {
             helperText="Must be a future date"
           />
         </Grid>
+
         <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Current Employer (if any)" {...field('currentEmployer')} />
         </Grid>
+
+        {/* Notice Period — dropdown */}
         <Grid size={{ xs: 12, sm: 6 }}>
-          <TextField
-            label="Notice Period"
-            {...field('noticePeriod')}
-            helperText='e.g. "1 month", "2 weeks", "Immediate"'
-          />
+          <TextField label="Notice Period" select {...field('noticePeriod')}>
+            {['Immediate', '15 Days', '30 Days', '60 Days', '90 Days'].map((n) => (
+              <MenuItem key={n} value={n}>
+                {n}
+              </MenuItem>
+            ))}
+          </TextField>
         </Grid>
       </Grid>
     </Stack>
