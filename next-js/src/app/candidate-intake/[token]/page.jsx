@@ -247,19 +247,24 @@ function StepPersonalDetails({ data, onChange }) {
       </Stack>
 
       <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
+        {/* Name row — 3 per row on md+, 2 per row on sm, full-width on xs */}
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <TextField label="First Name *" {...field('firstName')} />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <TextField label="Middle Name" {...field('middleName')} />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6, md: 4 }}>
           <TextField label="Last Name *" {...field('lastName')} />
         </Grid>
-        <Grid item xs={12} sm={6}>
+
+        {/* Full-width: Arabic name needs extra space */}
+        <Grid size={{ xs: 12 }}>
           <TextField label="Full Name in Arabic" {...field('nameArabic')} />
         </Grid>
-        <Grid item xs={12} sm={6}>
+
+        {/* DOB + Gender — 2 per row */}
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Date of Birth *"
             type="date"
@@ -268,7 +273,7 @@ function StepPersonalDetails({ data, onChange }) {
             inputProps={{ max: maxDobStr() }}
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Gender" select {...field('gender')}>
             {['Male', 'Female', 'Other'].map((g) => (
               <MenuItem key={g} value={g}>
@@ -277,7 +282,9 @@ function StepPersonalDetails({ data, onChange }) {
             ))}
           </TextField>
         </Grid>
-        <Grid item xs={12} sm={6}>
+
+        {/* Marital Status + Nationality — 2 per row */}
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Marital Status" select {...field('maritalStatus')}>
             {['Single', 'Married', 'Divorced', 'Widowed'].map((s) => (
               <MenuItem key={s} value={s}>
@@ -286,7 +293,7 @@ function StepPersonalDetails({ data, onChange }) {
             ))}
           </TextField>
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Nationality" select {...field('nationality')}>
             {NATIONALITIES.map((n) => (
               <MenuItem key={n} value={n}>
@@ -295,13 +302,17 @@ function StepPersonalDetails({ data, onChange }) {
             ))}
           </TextField>
         </Grid>
-        <Grid item xs={12} sm={6}>
+
+        {/* Phone — 2 per row */}
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Phone Number" {...field('phone')} />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Alternate Phone" {...field('alternatePhone')} />
         </Grid>
-        <Grid item xs={12} sm={6}>
+
+        {/* Email — full width */}
+        <Grid size={{ xs: 12 }}>
           <TextField label="Personal Email" type="email" {...field('personalEmail')} />
         </Grid>
       </Grid>
@@ -330,7 +341,8 @@ function StepResidencyDocuments({ data, onChange }) {
       </Stack>
 
       <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
+        {/* Country takes full width — label is long */}
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Country of Residence *" select {...field('countryOfResidence')}>
             {COUNTRIES.map((c) => (
               <MenuItem key={c} value={c}>
@@ -339,12 +351,12 @@ function StepResidencyDocuments({ data, onChange }) {
             ))}
           </TextField>
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="City of Residence" {...field('cityOfResidence')} />
         </Grid>
 
         {/* National ID — shown for all */}
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="National ID"
             {...field('nationalId')}
@@ -355,10 +367,10 @@ function StepResidencyDocuments({ data, onChange }) {
         {/* KSA-specific: Iqama */}
         {isKsa && (
           <>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField label="Iqama Number" {...field('iqamaNumber')} />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField
                 label="Iqama Expiry Date"
                 type="date"
@@ -371,10 +383,10 @@ function StepResidencyDocuments({ data, onChange }) {
           </>
         )}
 
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Passport Number" {...field('passportNumber')} />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Passport Expiry Date"
             type="date"
@@ -384,14 +396,14 @@ function StepResidencyDocuments({ data, onChange }) {
             helperText="Must be a future date"
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Visa Type"
             {...field('visaType')}
             helperText='e.g. "Work Visa", "Family Residence", "Visit Visa"'
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Visa Expiry Date"
             type="date"
@@ -401,10 +413,10 @@ function StepResidencyDocuments({ data, onChange }) {
             helperText="Must be a future date"
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Current Employer (if any)" {...field('currentEmployer')} />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Notice Period"
             {...field('noticePeriod')}
@@ -459,10 +471,10 @@ function StepFamilyDependents({ data, onChange }) {
             Spouse Details
           </Typography>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField label="Spouse Full Name" {...field('spouseName')} />
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField label="Spouse Nationality" select {...field('spouseNationality')}>
                 {NATIONALITIES.map((n) => (
                   <MenuItem key={n} value={n}>
@@ -471,7 +483,7 @@ function StepFamilyDependents({ data, onChange }) {
                 ))}
               </TextField>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <TextField label="Spouse National ID / Iqama" {...field('spouseNationalId')} />
             </Grid>
           </Grid>
@@ -499,7 +511,7 @@ function StepFamilyDependents({ data, onChange }) {
                 Dependent {idx + 1}
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     label="Full Name"
                     value={dependents[idx]?.name || ''}
@@ -507,7 +519,7 @@ function StepFamilyDependents({ data, onChange }) {
                     fullWidth
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     label="Relationship"
                     select
@@ -522,7 +534,7 @@ function StepFamilyDependents({ data, onChange }) {
                     ))}
                   </TextField>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     label="Date of Birth"
                     type="date"
@@ -533,7 +545,7 @@ function StepFamilyDependents({ data, onChange }) {
                     inputProps={{ max: todayStr() }}
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     label="Nationality"
                     select
@@ -548,7 +560,7 @@ function StepFamilyDependents({ data, onChange }) {
                     ))}
                   </TextField>
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     label="Passport Number"
                     value={dependents[idx]?.passportNumber || ''}
@@ -556,7 +568,7 @@ function StepFamilyDependents({ data, onChange }) {
                     fullWidth
                   />
                 </Grid>
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <TextField
                     label="National ID"
                     value={dependents[idx]?.nationalIdOrIqama || ''}
@@ -592,7 +604,7 @@ function StepInsurance({ data, onChange }) {
       </Stack>
 
       <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Preferred Insurance Class" select {...field('insuranceClass')}>
             {['Basic', 'Enhanced', 'VIP', 'Family'].map((c) => (
               <MenuItem key={c} value={c}>
@@ -601,13 +613,13 @@ function StepInsurance({ data, onChange }) {
             ))}
           </TextField>
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Current Insurance Provider" {...field('currentInsurer')} />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Current Policy Number" {...field('currentInsurancePolicyNumber')} />
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField
             label="Insurance Notes / Special Requirements"
             multiline
@@ -653,7 +665,7 @@ function StepSalaryExpectations({ data, onChange }) {
       </Stack>
 
       <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Currency"
             select
@@ -668,7 +680,7 @@ function StepSalaryExpectations({ data, onChange }) {
             ))}
           </TextField>
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Expected Total Salary (monthly)"
             {...numField('expectedTotalPackage')}
@@ -679,7 +691,7 @@ function StepSalaryExpectations({ data, onChange }) {
             }}
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField
             label="Desired Start Date"
             type="date"
@@ -691,7 +703,7 @@ function StepSalaryExpectations({ data, onChange }) {
             helperText="Must be a future date"
           />
         </Grid>
-        <Grid item xs={12} sm={6}>
+        <Grid size={{ xs: 12, sm: 6 }}>
           <TextField label="Work Arrangement" select {...field('workArrangement')}>
             {['On-site', 'Hybrid', 'Remote'].map((w) => (
               <MenuItem key={w} value={w}>
@@ -700,7 +712,7 @@ function StepSalaryExpectations({ data, onChange }) {
             ))}
           </TextField>
         </Grid>
-        <Grid item xs={12}>
+        <Grid size={{ xs: 12 }}>
           <TextField
             label="Additional Remarks"
             multiline
