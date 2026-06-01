@@ -95,7 +95,7 @@ function IOTALogo() {
         alt="IOTA"
         sx={{ height: 40, width: 'auto', borderRadius: 1 }}
       />
-      <Typography variant="h6" fontWeight={700} color="primary.dark">
+      <Typography variant="h6" fontWeight={700} sx={{ color: 'primary.dark' }}>
         IOTA Technologies
       </Typography>
     </Box>
