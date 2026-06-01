@@ -31,6 +31,7 @@ import {
   grantDefaultPermissions,
 } from 'src/utils/apiHelper';
 import { clearPermissionCache } from 'src/auth/guard/permission-guard';
+import { clearVersionCheck, clearUserNavPermissionCache } from 'src/utils/pageAccess';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -277,6 +278,11 @@ export default function AccessControlPage() {
       );
       // Clear the PermissionGuard cache for this user so the change takes effect immediately.
       clearPermissionCache(selectedUser.email);
+      // Clear the user's nav permission cache and version check so that their
+      // layout will silently re-validate on the next navigation and sign them
+      // out if the permissions have changed.
+      clearUserNavPermissionCache(selectedUser.email);
+      clearVersionCheck(selectedUser.email);
       await loadUserPermissions(selectedUser.email);
     } catch (err) {
       console.error('[AccessControl] Save error:', err);
@@ -306,6 +312,8 @@ export default function AccessControlPage() {
         setSuccessMessage(`Default ${role} permissions granted to ${selectedUser.name}`);
         // Clear the PermissionGuard cache for this user so the change takes effect immediately.
         clearPermissionCache(selectedUser.email);
+        clearUserNavPermissionCache(selectedUser.email);
+        clearVersionCheck(selectedUser.email);
         await loadUserPermissions(selectedUser.email);
       } catch (err) {
         setError(err?.message || 'Failed to grant default permissions');

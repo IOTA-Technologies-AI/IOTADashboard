@@ -9,7 +9,9 @@ const ROLE_STORAGE_KEY = 'pageAccessByRole';
 const USER_PERM_STORAGE_KEY = 'userNavPermissions';
 const CACHE_TTL_KEY = 'pageAccessCacheTTL';
 const USER_CACHE_TTL_KEY = 'userNavPermissionsCacheTTL';
-const CACHE_TTL_MS = 30 * 1000; // 30 seconds cache - short TTL to ensure permissions refresh quickly
+const VERSION_CHECK_TTL_KEY = 'permVersionCheckTTL';
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours - permissions are cached for a full day
+const VERSION_CHECK_TTL_MS = 5 * 60 * 1000; // 5 minutes - how often to silently re-validate in background
 
 const safeParse = (value) => {
   try {
@@ -231,11 +233,42 @@ export const clearUserNavPermissionCache = (userId) => {
   }
 };
 
+// ============================================================================
+// Version check helpers — 5-minute TTL, independent of the 24h paths cache
+// Used to silently re-validate permissions in the background without a visible refresh
+// ============================================================================
+
+export const isVersionCheckDue = (userId) => {
+  if (!userId || !hasWindow()) return true;
+  const ttlMap = safeParse(window.localStorage.getItem(VERSION_CHECK_TTL_KEY));
+  const expiry = ttlMap[userId];
+  return !expiry || Date.now() > expiry;
+};
+
+export const markVersionCheckDone = (userId) => {
+  if (!userId || !hasWindow()) return;
+  const ttlMap = safeParse(window.localStorage.getItem(VERSION_CHECK_TTL_KEY));
+  ttlMap[userId] = Date.now() + VERSION_CHECK_TTL_MS;
+  window.localStorage.setItem(VERSION_CHECK_TTL_KEY, JSON.stringify(ttlMap));
+};
+
+export const clearVersionCheck = (userId) => {
+  if (!hasWindow()) return;
+  const ttlMap = safeParse(window.localStorage.getItem(VERSION_CHECK_TTL_KEY));
+  if (userId) {
+    delete ttlMap[userId];
+  } else {
+    window.localStorage.removeItem(VERSION_CHECK_TTL_KEY);
+    return;
+  }
+  window.localStorage.setItem(VERSION_CHECK_TTL_KEY, JSON.stringify(ttlMap));
+};
+
 // Fetch user-specific nav permissions from backend (LEGACY - FOR USER-SPECIFIC OVERRIDES)
 export const fetchUserNavPermissions = async (userId, forceRefresh = false) => {
   if (!userId) {
     console.warn('[pageAccess] No userId provided to fetchUserNavPermissions');
-    return [];
+    return { paths: [], hasExplicitPermissions: false };
   }
 
   try {
@@ -249,7 +282,8 @@ export const fetchUserNavPermissions = async (userId, forceRefresh = false) => {
           '- paths:',
           cached.length
         );
-        return cached;
+        // Return consistent shape — if it's cached, it was explicitly configured
+        return { paths: cached, hasExplicitPermissions: true };
       }
     }
 

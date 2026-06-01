@@ -18,6 +18,8 @@ import {
   fetchUserNavPermissions,
   fetchNavPermissionsForRole,
   clearUserNavPermissionCache,
+  isVersionCheckDue,
+  markVersionCheckDone,
 } from 'src/utils/pageAccess';
 import { filterNavByPermissions } from 'src/utils/filterNavByPermissions';
 
@@ -28,6 +30,7 @@ import { Logo } from 'src/components/logo';
 import { useSettingsContext } from 'src/components/settings';
 
 import { useAuthContext } from 'src/auth/hooks';
+import { signOut } from 'src/auth/context/supabase/action';
 import { PermissionGuard } from 'src/auth/guard';
 
 import { NavMobile } from './nav-mobile';
@@ -91,40 +94,56 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
     }
 
     const loadPermissions = async () => {
-      setPermissionsLoaded(false);
+      // ── Step 1: Use any valid cached data immediately (no visible flash) ────
+      const cachedPaths = resolvePageAccess(userEmailForPerms, normalizedRole);
+      if (cachedPaths.length > 0) {
+        setAllowedPaths(cachedPaths);
+        setPermissionsLoaded(true);
 
-      // Fetch user-specific permissions using email
+        // ── Step 2: Background version check every 5 minutes ────────────────
+        // Skip if the version hasn't expired yet — no network call needed.
+        if (userEmailForPerms && !isVersionCheckDue(userEmailForPerms)) return;
+      }
+
+      // ── Step 3: Fetch fresh permissions (first load OR background check) ───
       if (userEmailForPerms) {
-        const { paths: userPaths, hasExplicitPermissions } =
-          await fetchUserNavPermissions(userEmailForPerms);
-
-        // Clear the localStorage cache for this user to prevent stale data
-        clearUserNavPermissionCache(userEmailForPerms);
+        const { paths: freshPaths, hasExplicitPermissions } = await fetchUserNavPermissions(
+          userEmailForPerms,
+          true
+        ); // force bypass cache
 
         if (hasExplicitPermissions) {
-          // Admin has explicitly configured this user — respect their decision exactly.
-          // userPaths may be empty if admin revoked all access (that's intentional).
-          setAllowedPaths(userPaths);
+          // If we already had cached paths, compare for changes
+          if (cachedPaths.length > 0) {
+            const sort = (arr) => [...arr].sort().join(',');
+            if (sort(freshPaths) !== sort(cachedPaths)) {
+              // Permissions were changed by an admin — sign the user out so they
+              // re-login and get a clean, up-to-date session.
+              console.log('[Permissions] Change detected — signing out for fresh session');
+              await signOut();
+              return;
+            }
+            // Paths unchanged — stamp the version check and keep existing state
+            markVersionCheckDone(userEmailForPerms);
+            return;
+          }
+
+          // First load with no cache
+          setAllowedPaths(freshPaths);
+          markVersionCheckDone(userEmailForPerms);
           setPermissionsLoaded(true);
           return;
         }
 
-        // No rows in DB yet — user hasn't been configured.
-        // Fall back to role-based defaults so they have a working sidebar.
+        // No rows in DB — user hasn't been configured. Fall back to role defaults.
       }
 
-      // Fall back to role-based permissions (only if no user email to check)
+      // ── Step 4: Role-based fallback ──────────────────────────────────────────
       if (normalizedRole) {
         const rolePaths = await fetchNavPermissionsForRole(normalizedRole);
-        if (rolePaths.length > 0) {
-          setAllowedPaths(rolePaths);
-        } else {
-          setAllowedPaths([]);
-        }
-        setPermissionsLoaded(true);
-      } else {
-        setPermissionsLoaded(true);
+        setAllowedPaths(rolePaths.length > 0 ? rolePaths : []);
       }
+      setPermissionsLoaded(true);
     };
 
     loadPermissions();
