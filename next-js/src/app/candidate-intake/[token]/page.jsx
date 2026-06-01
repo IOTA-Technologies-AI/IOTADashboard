@@ -121,8 +121,10 @@ function StepVerifyIdentity({ tokenRecord, onVerified }) {
 
   // Countdown for resend
   useEffect(() => {
-    if (countdown <= 0) return;
-    const t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    let t;
+    if (countdown > 0) {
+      t = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    }
     return () => clearTimeout(t);
   }, [countdown]);
 
@@ -730,7 +732,7 @@ function StepReview({ formData, tokenRecord }) {
   const Section = ({ title, children }) => (
     <Card variant="outlined" sx={{ mb: 2 }}>
       <Box sx={{ px: 2, py: 1.5, bgcolor: 'primary.dark' }}>
-        <Typography variant="subtitle2" color="white" fontWeight={600}>
+        <Typography variant="subtitle2" sx={{ color: 'white' }} fontWeight={600}>
           {title}
         </Typography>
       </Box>
@@ -1052,7 +1054,6 @@ export default function CandidateIntakePage() {
   ];
 
   const isLastStep = activeStep === STEPS.length - 1;
-  const isFirstStep = activeStep === 0;
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f4f4f5', py: { xs: 2, sm: 4 } }}>
