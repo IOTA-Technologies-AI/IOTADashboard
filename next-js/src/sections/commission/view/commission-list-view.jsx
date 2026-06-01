@@ -31,9 +31,9 @@ import {
   TablePaginationCustom,
 } from 'src/components/table';
 
-import { DealTableRow } from '../deal-table-row';
-import { DealTableToolbar } from '../deal-table-toolbar';
-import { DealTableFiltersResult } from '../deal-table-filters-result';
+import { CommissionTableRow } from '../commission-table-row';
+import { CommissionTableToolbar } from '../commission-table-toolbar';
+import { CommissionTableFiltersResult } from '../commission-table-filters-result';
 
 const TABLE_HEAD = [
   { id: 'dealNumber', label: 'Deal #' },
@@ -57,12 +57,12 @@ const defaultFilters = {
   region: 'all',
 };
 
-export function DealListView({ deals: initialDeals = [] }) {
+export function CommissionListView({ commissions: initialCommissions = [] }) {
   const router = useRouter();
   const table = useTable({ defaultOrderBy: 'dealDate', defaultOrder: 'desc' });
   const confirm = useBoolean();
 
-  const [tableData, setTableData] = useState(initialDeals);
+  const [tableData, setTableData] = useState(initialCommissions);
 
   const filters = useSetState(defaultFilters);
 
@@ -84,14 +84,14 @@ export function DealListView({ deals: initialDeals = [] }) {
 
   const handleViewRow = useCallback(
     (id) => {
-      router.push(paths.dashboard.deals.details(id));
+      router.push(paths.dashboard.commission.details(id));
     },
     [router]
   );
 
   const handleEditRow = useCallback(
     (id) => {
-      router.push(paths.dashboard.deals.edit(id));
+      router.push(paths.dashboard.commission.edit(id));
     },
     [router]
   );
@@ -108,26 +108,26 @@ export function DealListView({ deals: initialDeals = [] }) {
   return (
     <DashboardContent>
       <CustomBreadcrumbs
-        heading="Deals"
+        heading="Commission"
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
-          { name: 'Deals', href: paths.dashboard.deals.root },
+          { name: 'Commission', href: paths.dashboard.commission.root },
           { name: 'List' },
         ]}
         action={
           <Button
-            onClick={() => router.push(paths.dashboard.deals.new)}
+            onClick={() => router.push(paths.dashboard.commission.new)}
             variant="contained"
             startIcon={<Iconify icon="mingcute:add-line" />}
           >
-            New Deal
+            New Commission
           </Button>
         }
         sx={{ mb: { xs: 3, md: 5 } }}
       />
 
       <Card>
-        <DealTableToolbar
+        <CommissionTableToolbar
           filters={filters}
           onResetPage={table.onResetPage}
           options={{
@@ -137,7 +137,7 @@ export function DealListView({ deals: initialDeals = [] }) {
         />
 
         {canReset && (
-          <DealTableFiltersResult
+          <CommissionTableFiltersResult
             filters={filters}
             totalResults={dataFiltered.length}
             onResetPage={table.onResetPage}
@@ -184,7 +184,7 @@ export function DealListView({ deals: initialDeals = [] }) {
 
               <TableBody>
                 {dataInPage.map((row) => (
-                  <DealTableRow
+                  <CommissionTableRow
                     key={row.id}
                     row={row}
                     selected={table.selected.includes(row.id)}

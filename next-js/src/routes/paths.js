@@ -167,11 +167,11 @@ export const paths = {
       generalLedger: `${ROOTS.DASHBOARD}/finance/general-ledger`,
       journalEntries: `${ROOTS.DASHBOARD}/finance/journal-entries`,
     },
-    deals: {
-      root: `${ROOTS.DASHBOARD}/deals`,
-      new: `${ROOTS.DASHBOARD}/deals/new`,
-      details: (id) => `${ROOTS.DASHBOARD}/deals/${id}`,
-      edit: (id) => `${ROOTS.DASHBOARD}/deals/${id}/edit`,
+    commission: {
+      root: `${ROOTS.DASHBOARD}/commission`,
+      new: `${ROOTS.DASHBOARD}/commission/new`,
+      details: (id) => `${ROOTS.DASHBOARD}/commission/${id}`,
+      edit: (id) => `${ROOTS.DASHBOARD}/commission/${id}/edit`,
       bdm: `${ROOTS.DASHBOARD}/bdm`,
     },
     bdm: {

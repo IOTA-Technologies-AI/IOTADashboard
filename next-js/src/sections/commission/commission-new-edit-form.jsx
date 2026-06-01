@@ -23,14 +23,14 @@ import { fCurrency } from 'src/utils/format-number';
 import { fetchInvoices, getExpensesWithLinkedInvoices } from 'src/utils/apiHelper';
 
 import { getBDMs } from 'src/actions/bdm';
-import { createDeal, updateDeal } from 'src/actions/deals';
+import { createCommission, updateCommission } from 'src/actions/commission';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field, RHFTextField, RHFAutocomplete } from 'src/components/hook-form';
 
 // ----------------------------------------------------------------------
 
-export const DealSchema = zod.object({
+export const CommissionSchema = zod.object({
   dealNumber: zod.string().min(1, { message: 'Deal number is required!' }),
   dealName: zod.string().min(1, { message: 'Deal name is required!' }),
   dealDate: zod.coerce.date(),
@@ -47,7 +47,7 @@ export const DealSchema = zod.object({
 
 // ----------------------------------------------------------------------
 
-export function DealNewEditForm({ currentDeal }) {
+export function CommissionNewEditForm({ currentCommission }) {
   const router = useRouter();
 
   const [invoices, setInvoices] = useState([]);
@@ -87,20 +87,20 @@ export function DealNewEditForm({ currentDeal }) {
   const defaultValues = useMemo(
     () => ({
       // Auto-generate deal number using timestamp when creating a new deal
-      dealNumber: currentDeal?.dealNumber || `${Date.now()}`,
-      dealName: currentDeal?.dealName || '',
-      dealDate: currentDeal?.dealDate ? new Date(currentDeal.dealDate) : new Date(),
-      customerId: currentDeal?.customerId || undefined,
-      arInvoiceIds: currentDeal?.arInvoiceIds || [],
-      expenseIds: currentDeal?.expenseIds || [],
-      bdmId: currentDeal?.bdmId || '',
-      bdmCommissionType: currentDeal?.bdmCommissionType || 'percentage',
-      bdmCommissionValue: currentDeal?.bdmCommissionValue || 0,
-      status: currentDeal?.status || 'draft',
-      region: currentDeal?.region || 'KSA',
-      notes: currentDeal?.notes || '',
+      dealNumber: currentCommission?.dealNumber || `${Date.now()}`,
+      dealName: currentCommission?.dealName || '',
+      dealDate: currentCommission?.dealDate ? new Date(currentCommission.dealDate) : new Date(),
+      customerId: currentCommission?.customerId || undefined,
+      arInvoiceIds: currentCommission?.arInvoiceIds || [],
+      expenseIds: currentCommission?.expenseIds || [],
+      bdmId: currentCommission?.bdmId || '',
+      bdmCommissionType: currentCommission?.bdmCommissionType || 'percentage',
+      bdmCommissionValue: currentCommission?.bdmCommissionValue || 0,
+      status: currentCommission?.status || 'draft',
+      region: currentCommission?.region || 'KSA',
+      notes: currentCommission?.notes || '',
     }),
-    [currentDeal]
+    [currentCommission]
   );
 
   const arraysEqual = (a = [], b = []) => {
@@ -111,7 +111,7 @@ export function DealNewEditForm({ currentDeal }) {
   };
 
   const methods = useForm({
-    resolver: zodResolver(DealSchema),
+    resolver: zodResolver(CommissionSchema),
     defaultValues,
   });
 
@@ -123,20 +123,20 @@ export function DealNewEditForm({ currentDeal }) {
   } = methods;
 
   const values = watch();
-  const currentDealId = currentDeal?.id ?? null;
+  const currentCommissionId = currentCommission?.id ?? null;
 
-  // Ensure form is hydrated when editing after async currentDeal load
+  // Ensure form is hydrated when editing after async currentCommission load
   useEffect(() => {
-    if (currentDeal) {
+    if (currentCommission) {
       // Supabase stores single AR id in arInvoiceId and expense ids in apInvoiceId (stringified)
       const parsedExpenseIds = (() => {
-        if (Array.isArray(currentDeal.apInvoiceId)) return currentDeal.apInvoiceId;
-        if (typeof currentDeal.apInvoiceId === 'string') {
+        if (Array.isArray(currentCommission.apInvoiceId)) return currentCommission.apInvoiceId;
+        if (typeof currentCommission.apInvoiceId === 'string') {
           try {
-            const parsed = JSON.parse(currentDeal.apInvoiceId);
+            const parsed = JSON.parse(currentCommission.apInvoiceId);
             return Array.isArray(parsed) ? parsed : [];
           } catch {
-            return currentDeal.apInvoiceId ? [currentDeal.apInvoiceId] : [];
+            return currentCommission.apInvoiceId ? [currentCommission.apInvoiceId] : [];
           }
         }
         return [];
@@ -144,17 +144,21 @@ export function DealNewEditForm({ currentDeal }) {
 
       reset({
         ...defaultValues,
-        dealDate: currentDeal.dealDate ? new Date(currentDeal.dealDate) : new Date(),
-        arInvoiceIds: (currentDeal.arInvoiceIds || currentDeal.arInvoiceId || [])
+        dealDate: currentCommission.dealDate ? new Date(currentCommission.dealDate) : new Date(),
+        arInvoiceIds: (currentCommission.arInvoiceIds || currentCommission.arInvoiceId || [])
           .toString()
           .split(',')
           .filter(Boolean)
           .map((id) => String(id)),
         expenseIds: parsedExpenseIds.map((id) => String(id)),
-        bdmId: currentDeal.bdmId ? String(currentDeal.bdmId) : '',
+        bdmId: currentCommission.bdmId ? String(currentCommission.bdmId) : '',
       });
 
-      initialArIdsRef.current = (currentDeal.arInvoiceIds || currentDeal.arInvoiceId || [])
+      initialArIdsRef.current = (
+        currentCommission.arInvoiceIds ||
+        currentCommission.arInvoiceId ||
+        []
+      )
         .toString()
         .split(',')
         .filter(Boolean)
@@ -162,28 +166,35 @@ export function DealNewEditForm({ currentDeal }) {
 
       initialExpenseIdsRef.current = parsedExpenseIds.map((id) => String(id));
     }
-  }, [currentDeal, defaultValues, reset]);
+  }, [currentCommission, defaultValues, reset]);
 
   // Seed calculations from existing deal when nothing is selected yet (edit mode)
   useEffect(() => {
-    if (currentDeal && arInvoices.length === 0 && selectedExpenses.length === 0) {
+    if (currentCommission && arInvoices.length === 0 && selectedExpenses.length === 0) {
       setCalculations((prev) => ({
         ...prev,
-        arAmount: currentDeal.arInvoiceAmount ?? prev.arAmount,
-        arAmountWithVAT: currentDeal.arInvoiceAmountWithVAT ?? currentDeal.arInvoiceAmount ?? prev.arAmountWithVAT,
+        arAmount: currentCommission.arInvoiceAmount ?? prev.arAmount,
+        arAmountWithVAT:
+          currentCommission.arInvoiceAmountWithVAT ??
+          currentCommission.arInvoiceAmount ??
+          prev.arAmountWithVAT,
         expenseAmount:
-          currentDeal.expenseAmount ?? currentDeal.apInvoiceAmount ?? prev.expenseAmount,
+          currentCommission.expenseAmount ??
+          currentCommission.apInvoiceAmount ??
+          prev.expenseAmount,
         expenseAmountWithVAT:
-          currentDeal.expenseAmountWithVAT ?? currentDeal.apInvoiceAmount ?? prev.expenseAmountWithVAT,
-        expenseVAT: currentDeal.expenseVAT ?? prev.expenseVAT,
-        grossProfit: currentDeal.grossProfit ?? prev.grossProfit,
-        vatAmount: currentDeal.vatAmount ?? prev.vatAmount,
-        netProfitBeforeBDM: currentDeal.netProfitBeforeBDM ?? prev.netProfitBeforeBDM,
-        bdmCommissionAmount: currentDeal.bdmCommissionAmount ?? prev.bdmCommissionAmount,
-        netProfitAfterBDM: currentDeal.netProfitAfterBDM ?? prev.netProfitAfterBDM,
+          currentCommission.expenseAmountWithVAT ??
+          currentCommission.apInvoiceAmount ??
+          prev.expenseAmountWithVAT,
+        expenseVAT: currentCommission.expenseVAT ?? prev.expenseVAT,
+        grossProfit: currentCommission.grossProfit ?? prev.grossProfit,
+        vatAmount: currentCommission.vatAmount ?? prev.vatAmount,
+        netProfitBeforeBDM: currentCommission.netProfitBeforeBDM ?? prev.netProfitBeforeBDM,
+        bdmCommissionAmount: currentCommission.bdmCommissionAmount ?? prev.bdmCommissionAmount,
+        netProfitAfterBDM: currentCommission.netProfitAfterBDM ?? prev.netProfitAfterBDM,
       }));
     }
-  }, [currentDeal, arInvoices.length, selectedExpenses.length]);
+  }, [currentCommission, arInvoices.length, selectedExpenses.length]);
 
   // Load invoices, expenses and BDMs
   useEffect(() => {
@@ -246,7 +257,7 @@ export function DealNewEditForm({ currentDeal }) {
 
     // On edit, if selections match initial, don't recalc (prevents VAT changes)
     if (
-      currentDeal &&
+      currentCommission &&
       arraysEqual(
         arInvoices.map((inv) => String(inv.id)),
         initialArIdsRef.current.map((id) => String(id))
@@ -304,8 +315,8 @@ export function DealNewEditForm({ currentDeal }) {
     values.bdmId,
     values.bdmCommissionType,
     values.bdmCommissionValue,
-    currentDeal,
-    currentDealId,
+    currentCommission,
+    currentCommissionId,
   ]);
 
   const onSubmit = handleSubmit(async (data) => {
@@ -316,51 +327,62 @@ export function DealNewEditForm({ currentDeal }) {
       const primaryArInvoice = hasArSelections ? arInvoices[0] : null;
       const primaryExpense = hasExpenseSelections ? selectedExpenses[0] : null;
 
-      const arInvoiceId = primaryArInvoice?.id || currentDeal?.arInvoiceId || null;
-      const arInvoiceNumber = primaryArInvoice?.invoiceNumber || currentDeal?.arInvoiceNumber || '';
+      const arInvoiceId = primaryArInvoice?.id || currentCommission?.arInvoiceId || null;
+      const arInvoiceNumber =
+        primaryArInvoice?.invoiceNumber || currentCommission?.arInvoiceNumber || '';
       const arInvoiceIds = hasArSelections
         ? arInvoices.map((inv) => String(inv.id))
-        : currentDeal?.arInvoiceIds || (currentDeal?.arInvoiceId ? [String(currentDeal.arInvoiceId)] : []);
+        : currentCommission?.arInvoiceIds ||
+          (currentCommission?.arInvoiceId ? [String(currentCommission.arInvoiceId)] : []);
       const arInvoiceNumbers = hasArSelections
         ? arInvoices.map((inv) => inv.invoiceNumber).join(', ')
-        : currentDeal?.arInvoiceNumbers || currentDeal?.arInvoiceNumber || '';
+        : currentCommission?.arInvoiceNumbers || currentCommission?.arInvoiceNumber || '';
 
       const arInvoiceAmount = hasArSelections
         ? calculations.arAmount
-        : currentDeal?.arInvoiceAmount || calculations.arAmount || 0;
+        : currentCommission?.arInvoiceAmount || calculations.arAmount || 0;
 
       const expenseIdsArray = data.expenseIds || [];
-      const apInvoiceId = expenseIdsArray.length ? JSON.stringify(expenseIdsArray) : currentDeal?.apInvoiceId || null;
-      const apInvoiceNumber = primaryExpense?.linkedInvoiceNumber || currentDeal?.apInvoiceNumber || '';
+      const apInvoiceId = expenseIdsArray.length
+        ? JSON.stringify(expenseIdsArray)
+        : currentCommission?.apInvoiceId || null;
+      const apInvoiceNumber =
+        primaryExpense?.linkedInvoiceNumber || currentCommission?.apInvoiceNumber || '';
       const expenseIds = hasExpenseSelections
         ? expenseIdsArray
-        : currentDeal?.expenseIds ||
-          (currentDeal?.apInvoiceId
-            ? Array.isArray(currentDeal.apInvoiceId)
-              ? currentDeal.apInvoiceId
-              : [String(currentDeal.apInvoiceId)]
+        : currentCommission?.expenseIds ||
+          (currentCommission?.apInvoiceId
+            ? Array.isArray(currentCommission.apInvoiceId)
+              ? currentCommission.apInvoiceId
+              : [String(currentCommission.apInvoiceId)]
             : []);
       const expenseDescriptions = hasExpenseSelections
-        ? selectedExpenses.map((exp) => exp.expenseSettlementNotes || exp.expenseTypeDesc || '').join(', ')
-        : currentDeal?.expenseDescriptions || '';
+        ? selectedExpenses
+            .map((exp) => exp.expenseSettlementNotes || exp.expenseTypeDesc || '')
+            .join(', ')
+        : currentCommission?.expenseDescriptions || '';
 
       const expenseAmountWithVAT = hasExpenseSelections
         ? calculations.expenseAmountWithVAT
-        : currentDeal?.expenseAmountWithVAT ||
-          currentDeal?.apInvoiceAmount ||
+        : currentCommission?.expenseAmountWithVAT ||
+          currentCommission?.apInvoiceAmount ||
           calculations.expenseAmountWithVAT ||
           0;
 
       const apInvoiceAmount = expenseAmountWithVAT;
 
       const grossProfit =
-        calculations.grossProfit || currentDeal?.grossProfit || arInvoiceAmount - apInvoiceAmount;
+        calculations.grossProfit ||
+        currentCommission?.grossProfit ||
+        arInvoiceAmount - apInvoiceAmount;
 
       const netProfitBeforeBDM =
-        calculations.netProfitBeforeBDM || currentDeal?.netProfitBeforeBDM || grossProfit;
+        calculations.netProfitBeforeBDM || currentCommission?.netProfitBeforeBDM || grossProfit;
 
       const netProfitAfterBDM =
-        calculations.netProfitAfterBDM || currentDeal?.netProfitAfterBDM || netProfitBeforeBDM;
+        calculations.netProfitAfterBDM ||
+        currentCommission?.netProfitAfterBDM ||
+        netProfitBeforeBDM;
 
       const basePayload = {
         dealNumber: data.dealNumber,
@@ -374,8 +396,8 @@ export function DealNewEditForm({ currentDeal }) {
         bdmCommissionType: data.bdmCommissionType,
         bdmCommissionValue: data.bdmCommissionValue,
         bdmCommissionAmount:
-          calculations.bdmCommissionAmount || currentDeal?.bdmCommissionAmount || 0,
-        bdmCommissionPaid: data.bdmCommissionPaid ?? currentDeal?.bdmCommissionPaid ?? false,
+          calculations.bdmCommissionAmount || currentCommission?.bdmCommissionAmount || 0,
+        bdmCommissionPaid: data.bdmCommissionPaid ?? currentCommission?.bdmCommissionPaid ?? false,
         updatedAt: new Date().toISOString(),
       };
 
@@ -397,9 +419,9 @@ export function DealNewEditForm({ currentDeal }) {
           : basePayload;
 
       console.log('Payload being sent:', payload);
-      if (currentDeal) {
-        await updateDeal(currentDeal.id, payload);
-        toast.success('Deal updated successfully');
+      if (currentCommission) {
+        await updateCommission(currentCommission.id, payload);
+        toast.success('Commission updated successfully');
       } else {
         const createPayload = {
           dealNumber: data.dealNumber,
@@ -416,21 +438,23 @@ export function DealNewEditForm({ currentDeal }) {
           bdmCommissionType: data.bdmCommissionType,
           bdmCommissionValue: data.bdmCommissionValue,
         };
-        await createDeal(createPayload);
-        toast.success('Deal created successfully');
+        await createCommission(createPayload);
+        toast.success('Commission created successfully');
       }
 
-      router.push(paths.dashboard.deals.root);
+      router.push(paths.dashboard.commission.root);
     } catch (error) {
-      console.error('Error saving deal:', error);
-      toast.error(currentDeal ? 'Failed to update deal' : 'Failed to create deal');
+      console.error('Error saving commission:', error);
+      toast.error(
+        currentCommission ? 'Failed to update commission' : 'Failed to create commission'
+      );
     }
   });
 
   const renderDetails = (
     <Card>
       <Stack spacing={3} sx={{ p: 3 }}>
-        <Typography variant="h6">Deal Details</Typography>
+        <Typography variant="h6">Commission Details</Typography>
 
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
@@ -763,13 +787,13 @@ export function DealNewEditForm({ currentDeal }) {
       <Button
         variant="outlined"
         color="inherit"
-        onClick={() => router.push(paths.dashboard.deals.root)}
+        onClick={() => router.push(paths.dashboard.commission.root)}
       >
         Cancel
       </Button>
 
       <LoadingButton type="submit" variant="contained" loading={isSubmitting}>
-        {currentDeal ? 'Update Deal' : 'Create Deal'}
+        {currentCommission ? 'Update Commission' : 'Create Commission'}
       </LoadingButton>
     </Stack>
   );

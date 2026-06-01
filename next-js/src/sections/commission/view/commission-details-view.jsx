@@ -30,7 +30,7 @@ import { fCurrency } from 'src/utils/format-number';
 import { getExpenseByExpenseId } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { deleteDeal, payBDMCommission } from 'src/actions/deals';
+import { deleteCommission, payBDMCommission } from 'src/actions/commission';
 
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
@@ -51,7 +51,7 @@ const STATUS_OPTIONS = {
 
 // ----------------------------------------------------------------------
 
-export function DealDetailsView({ deal }) {
+export function CommissionDetailsView({ commission: deal }) {
   const theme = useTheme();
   const router = useRouter();
   const confirm = useBoolean();
@@ -104,12 +104,12 @@ export function DealDetailsView({ deal }) {
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
-      await deleteDeal(deal.id);
-      toast.success('Deal deleted successfully');
-      router.push(paths.dashboard.deals.root);
+      await deleteCommission(deal.id);
+      toast.success('Commission deleted successfully');
+      router.push(paths.dashboard.commission.root);
     } catch (error) {
-      console.error('Error deleting deal:', error);
-      toast.error('Failed to delete deal');
+      console.error('Error deleting commission:', error);
+      toast.error('Failed to delete commission');
     } finally {
       setIsDeleting(false);
       confirm.onFalse();
@@ -799,7 +799,7 @@ export function DealDetailsView({ deal }) {
         heading={deal.dealName}
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
-          { name: 'Deals', href: paths.dashboard.deals.root },
+          { name: 'Commission', href: paths.dashboard.commission.root },
           { name: deal.dealNumber },
         ]}
         action={
@@ -807,7 +807,7 @@ export function DealDetailsView({ deal }) {
             <Button
               variant="outlined"
               startIcon={<Iconify icon="solar:pen-bold" />}
-              onClick={() => router.push(paths.dashboard.deals.edit(deal.id))}
+              onClick={() => router.push(paths.dashboard.commission.edit(deal.id))}
             >
               Edit
             </Button>

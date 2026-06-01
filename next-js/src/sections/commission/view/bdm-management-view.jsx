@@ -101,7 +101,7 @@ export function BDMManagementView({ deals, bdms }) {
           color: 'warning',
         },
         {
-          title: 'Total Deals',
+          title: 'Total Commissions',
           value: totalDeals,
           icon: 'solar:document-text-bold-duotone',
           color: 'info',
@@ -166,7 +166,7 @@ export function BDMManagementView({ deals, bdms }) {
                   color="info"
                   variant="soft"
                 />
-                <Chip size="small" label={`${bdm.dealsCount} total deals`} variant="outlined" />
+                <Chip size="small" label={`${bdm.dealsCount} total`} variant="outlined" />
               </Stack>
 
               <Stack spacing={1}>
@@ -221,8 +221,8 @@ export function BDMManagementView({ deals, bdms }) {
             <TableHead>
               <TableRow>
                 <TableCell>BDM</TableCell>
-                <TableCell align="center">Active Deals</TableCell>
-                <TableCell align="center">Total Deals</TableCell>
+                <TableCell align="center">Active</TableCell>
+                <TableCell align="center">Total</TableCell>
                 <TableCell align="right">Total Commission</TableCell>
                 <TableCell align="right">Paid</TableCell>
                 <TableCell align="right">Pending</TableCell>
@@ -413,7 +413,7 @@ export function BDMManagementView({ deals, bdms }) {
         heading="BDM Management"
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
-          { name: 'Deals', href: paths.dashboard.deals.root },
+          { name: 'Commission', href: paths.dashboard.commission.root },
           { name: 'BDM Management' },
         ]}
         sx={{ mb: { xs: 3, md: 5 } }}

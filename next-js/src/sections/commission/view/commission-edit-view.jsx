@@ -6,24 +6,24 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
-import { DealNewEditForm } from '../deal-new-edit-form';
+import { CommissionNewEditForm } from '../commission-new-edit-form';
 
 // ----------------------------------------------------------------------
 
-export function DealCreateView() {
+export function CommissionEditView({ currentCommission }) {
   return (
-    <DashboardContent>
+    <DashboardContent sx={{ minHeight: '100vh', overflowY: 'auto', pb: { xs: 3, md: 4 } }}>
       <CustomBreadcrumbs
-        heading="Create a new deal"
+        heading="Edit commission"
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
-          { name: 'Deals', href: paths.dashboard.deals.root },
-          { name: 'Create' },
+          { name: 'Commission', href: paths.dashboard.commission.root },
+          { name: currentCommission?.dealNumber || 'Edit' },
         ]}
         sx={{ mb: { xs: 3, md: 5 } }}
       />
 
-      <DealNewEditForm />
+      <CommissionNewEditForm currentCommission={currentCommission} />
     </DashboardContent>
   );
 }

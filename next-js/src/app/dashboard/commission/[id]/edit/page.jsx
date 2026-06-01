@@ -4,26 +4,26 @@ import { useState, useEffect } from 'react';
 
 import { useParams, notFound } from 'next/navigation';
 
-import { getDeal } from 'src/actions/deals';
+import { getCommission } from 'src/actions/commission';
 
-import { DealEditView } from 'src/sections/deals/view/deal-edit-view';
+import { CommissionEditView } from 'src/sections/commission/view/commission-edit-view';
 
 export default function Page() {
   const { id } = useParams();
-  const [deal, setDeal] = useState(null);
+  const [commission, setCommission] = useState(null);
   const [missing, setMissing] = useState(false);
 
   useEffect(() => {
     if (!id) return;
-    getDeal(id)
+    getCommission(id)
       .then((data) => {
         if (!data) setMissing(true);
-        else setDeal(data);
+        else setCommission(data);
       })
       .catch(() => setMissing(true));
   }, [id]);
 
   if (missing) notFound();
-  if (!deal) return null;
-  return <DealEditView currentDeal={deal} />;
+  if (!commission) return null;
+  return <CommissionEditView currentCommission={commission} />;
 }

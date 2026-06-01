@@ -14,7 +14,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 
 import { Iconify } from 'src/components/iconify';
 
-export function DealTableToolbar({ filters, onResetPage, options }) {
+export function CommissionTableToolbar({ filters, onResetPage, options }) {
   const popover = usePopover();
 
   const handleFilterName = useCallback(
@@ -50,7 +50,7 @@ export function DealTableToolbar({ filters, onResetPage, options }) {
         sx={{ p: 2.5, pr: { xs: 2.5, md: 1 } }}
       >
         <FormControl sx={{ flexShrink: 0, width: { xs: 1, md: 200 } }}>
-          <InputLabel htmlFor="deal-filter-status-select-label">Status</InputLabel>
+          <InputLabel htmlFor="commission-filter-status-select-label">Status</InputLabel>
           <Select
             value={filters.state.status}
             onChange={handleFilterStatus}
@@ -66,7 +66,7 @@ export function DealTableToolbar({ filters, onResetPage, options }) {
         </FormControl>
 
         <FormControl sx={{ flexShrink: 0, width: { xs: 1, md: 200 } }}>
-          <InputLabel htmlFor="deal-filter-region-select-label">Region</InputLabel>
+          <InputLabel htmlFor="commission-filter-region-select-label">Region</InputLabel>
           <Select
             value={filters.state.region}
             onChange={handleFilterRegion}
@@ -86,7 +86,7 @@ export function DealTableToolbar({ filters, onResetPage, options }) {
             fullWidth
             value={filters.state.name}
             onChange={handleFilterName}
-            placeholder="Search deal number or name..."
+            placeholder="Search commission number or name..."
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">

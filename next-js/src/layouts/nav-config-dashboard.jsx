@@ -48,7 +48,7 @@ const ICONS = {
   dashboard: icon('ic-dashboard'),
   vendor: <HandshakeIcon style={{ width: 24, height: 24 }} />,
   expense: <MoneyOffIcon style={{ width: 24, height: 24 }} />,
-  deals: <BusinessIcon style={{ width: 24, height: 24 }} />,
+  commission: <BusinessIcon style={{ width: 24, height: 24 }} />,
   payroll: <AttachMoneyIcon style={{ width: 24, height: 24 }} />,
   sales: <LeaderboardIcon style={{ width: 24, height: 24 }} />,
   todo: <FormatListNumberedIcon style={{ width: 24, height: 24 }} />,
@@ -288,13 +288,13 @@ export const navData = [
         ],
       },
       {
-        title: 'Deals',
-        path: paths.dashboard.deals.root,
-        icon: ICONS.deals,
+        title: 'Commission',
+        path: paths.dashboard.commission.root,
+        icon: ICONS.commission,
         children: [
-          { title: 'All Deals', path: paths.dashboard.deals.root },
-          { title: 'Create Deal', path: paths.dashboard.deals.new },
-          { title: 'BDM Management', path: paths.dashboard.deals.bdm },
+          { title: 'All Commissions', path: paths.dashboard.commission.root },
+          { title: 'Create Commission', path: paths.dashboard.commission.new },
+          { title: 'BDM Management', path: paths.dashboard.commission.bdm },
         ],
       },
       {

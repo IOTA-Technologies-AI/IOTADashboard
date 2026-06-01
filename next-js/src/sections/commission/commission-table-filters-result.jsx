@@ -6,7 +6,7 @@ import Button from '@mui/material/Button';
 
 import { Iconify } from 'src/components/iconify';
 
-export function DealTableFiltersResult({ filters, totalResults, onResetPage, sx }) {
+export function CommissionTableFiltersResult({ filters, totalResults, onResetPage, sx }) {
   const handleRemoveStatus = () => {
     onResetPage();
     filters.setState({ status: 'all' });

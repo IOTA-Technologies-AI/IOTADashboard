@@ -21,7 +21,14 @@ import { Iconify } from 'src/components/iconify';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 import { CustomPopover } from 'src/components/custom-popover';
 
-export function DealTableRow({ row, selected, onSelectRow, onViewRow, onEditRow, onDeleteRow }) {
+export function CommissionTableRow({
+  row,
+  selected,
+  onSelectRow,
+  onViewRow,
+  onEditRow,
+  onDeleteRow,
+}) {
   const confirm = useBoolean();
   const popover = usePopover();
 
