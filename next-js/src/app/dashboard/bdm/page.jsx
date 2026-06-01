@@ -1,5 +1,5 @@
 import { getBDMs } from 'src/actions/bdm';
-import { getDeals } from 'src/actions/deals';
+import { getCommissions } from 'src/actions/commission';
 
 import { BDMListView } from 'src/sections/bdm/view/bdm-list-view';
 
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function Page() {
-  const [bdms = [], deals = []] = await Promise.all([getBDMs(), getDeals()]);
+  const [bdms = [], deals = []] = await Promise.all([getBDMs(), getCommissions()]);
 
   const enriched = bdms.map((bdm) => {
     const bdmDeals = deals.filter((deal) => String(deal.bdmId) === String(bdm.id));

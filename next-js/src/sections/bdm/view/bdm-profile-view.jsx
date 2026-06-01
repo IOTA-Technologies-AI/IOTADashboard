@@ -30,7 +30,7 @@ import { fDate } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
 import { getExpenseByExpenseId } from 'src/utils/apiHelper';
 
-import { updateDeal } from 'src/actions/deals';
+import { updateCommission } from 'src/actions/commission';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Label } from 'src/components/label';
@@ -181,7 +181,7 @@ export function BDMProfileView({ bdm, deals }) {
           }
         }
 
-        await updateDeal(dealId, payload);
+        await updateCommission(dealId, payload);
 
         setLocalDeals((prev) =>
           prev.map((d) =>
