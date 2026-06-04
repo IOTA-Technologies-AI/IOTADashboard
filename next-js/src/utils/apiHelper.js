@@ -4423,6 +4423,43 @@ export async function addPipelineActivity(id, type, content, performedBy) {
 }
 
 // ============================================================
+// Sales Activity Ledger
+// ============================================================
+
+export async function listLedgerEntries() {
+  const response = await axios.get(`${SALES_API_URL}/sales/ledger`);
+  return response.data;
+}
+
+export async function getLedgerEntry(id) {
+  const response = await axios.get(`${SALES_API_URL}/sales/ledger/${id}`);
+  return response.data;
+}
+
+export async function createLedgerEntry(data) {
+  const response = await axios.post(`${SALES_API_URL}/sales/ledger`, data);
+  return response.data;
+}
+
+export async function updateLedgerEntry(id, data) {
+  const response = await axios.patch(`${SALES_API_URL}/sales/ledger/${id}`, { id, ...data });
+  return response.data;
+}
+
+export async function deleteLedgerEntry(id) {
+  const response = await axios.delete(`${SALES_API_URL}/sales/ledger/${id}`);
+  return response.data;
+}
+
+export async function addLedgerActivity(id, activityData) {
+  const response = await axios.post(`${SALES_API_URL}/sales/ledger/${id}/activity`, {
+    id,
+    ...activityData,
+  });
+  return response.data;
+}
+
+// ============================================================
 // Profile / PRMS
 // ============================================================
 
@@ -4851,6 +4888,13 @@ export const apiHelper = {
   deletePipelineDeal,
   updatePipelineDealStage,
   addPipelineActivity,
+  // Sales Activity Ledger
+  listLedgerEntries,
+  getLedgerEntry,
+  createLedgerEntry,
+  updateLedgerEntry,
+  deleteLedgerEntry,
+  addLedgerActivity,
   // Profile / PRMS
   listJobDescriptions,
   getJobDescription,

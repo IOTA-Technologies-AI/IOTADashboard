@@ -6,3 +6,4 @@ export * from './deal-new-edit-form';
 export * from './deal-details-view';
 export * from './sales-reports-view';
 export * from './sales-contacts-view';
+export * from './sales-activity-ledger-view';

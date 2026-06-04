@@ -109,6 +109,7 @@ export const navData = [
           { title: 'New Deal', path: paths.dashboard.sales.deals.new },
           { title: 'Contacts', path: paths.dashboard.sales.contacts },
           { title: 'Reports', path: paths.dashboard.sales.reports },
+          { title: 'Activity Ledger', path: paths.dashboard.sales.activityLedger },
         ],
       },
       { title: 'To Do', path: paths.dashboard.todo, icon: ICONS.todo },
