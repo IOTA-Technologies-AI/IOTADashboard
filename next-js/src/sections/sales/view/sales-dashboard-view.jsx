@@ -112,11 +112,9 @@ function KpiCard({ label, value, sub, icon, color = 'primary', trend }) {
 
       <Box sx={{ mb: 0.5, typography: 'subtitle2' }}>{label}</Box>
       <Box sx={{ typography: 'h4' }}>{value}</Box>
-      {sub && (
-        <Typography variant="caption" sx={{ opacity: 0.72, mt: 0.5, display: 'block' }}>
-          {sub}
-        </Typography>
-      )}
+      <Typography variant="caption" sx={{ opacity: sub ? 0.72 : 0, mt: 0.5, display: 'block' }}>
+        {sub || '\u00A0'}
+      </Typography>
 
       {/* Shape watermark */}
       <SvgColor
