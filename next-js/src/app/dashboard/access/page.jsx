@@ -34,6 +34,7 @@ import {
   refreshNavPermissionsCache,
   setUserNavPermissions,
   fetchUserNavPermissions,
+  fetchUsersWithRoles,
   grantDefaultPermissions,
   fetchEnterpriseAppUsers,
   addEnterpriseAppUser,
@@ -117,6 +118,7 @@ export default function AccessControlPage() {
   const { users: microsoftUsers, loading: usersLoading, error: usersError } = useMicrosoftUsers();
 
   const [roles, setRoles] = useState([]);
+  const [supabaseUsers, setSupabaseUsers] = useState([]);
   const [navPermissions, setNavPermissions] = useState([]);
   const [rolesLoading, setRolesLoading] = useState(false);
   const [navLoading, setNavLoading] = useState(false);
@@ -129,7 +131,6 @@ export default function AccessControlPage() {
   // Enterprise App Access state
   const [appAssignments, setAppAssignments] = useState([]);
   const [enrichedAppAssignments, setEnrichedAppAssignments] = useState([]);
-  const [rolesEnriching, setRolesEnriching] = useState(false);
   const [appAccessLoading, setAppAccessLoading] = useState(false);
   const [appAccessError, setAppAccessError] = useState('');
   const [userToAdd, setUserToAdd] = useState(null);
@@ -159,13 +160,18 @@ export default function AccessControlPage() {
         setRolesLoading(true);
         setNavLoading(true);
 
-        const [rolesData, navData] = await Promise.all([fetchRoles(), fetchNavPermissions()]);
+        const [rolesData, navData, supaUsers] = await Promise.all([
+          fetchRoles(),
+          fetchNavPermissions(),
+          fetchUsersWithRoles().catch(() => []),
+        ]);
 
         console.log('[AccessControl] Loaded nav permissions:', navData?.length, 'records');
         console.log('[AccessControl] Nav permissions IDs:', navData?.map((p) => p.id).slice(-10));
 
         setRoles(rolesData);
         setNavPermissions(navData);
+        setSupabaseUsers(supaUsers);
       } catch (err) {
         setError(err?.message || 'Failed to load data');
       } finally {
@@ -197,37 +203,38 @@ export default function AccessControlPage() {
     }
   }, [activeTab, loadAppAssignments]);
 
-  // Enrich assignments with email (from Graph users) and IOTA grantedRole
+  // Enrich assignments: match Azure AD principalId → MS user email → Supabase roleId → role name
   useEffect(() => {
-    if (activeTab !== 1 || appAssignments.length === 0) {
-      setEnrichedAppAssignments(appAssignments);
-      return;
-    }
+    if (activeTab !== 1) return;
 
-    const enrich = async () => {
-      setRolesEnriching(true);
-      try {
-        const results = await Promise.all(
-          appAssignments.map(async (assignment) => {
-            const msUser = microsoftUsers.find((u) => u.id === assignment.principalId);
-            const email = msUser?.email || '';
-            if (!email) return { ...assignment, email, grantedRole: null };
-            try {
-              const perms = await fetchUserNavPermissions(email);
-              return { ...assignment, email, grantedRole: perms[0]?.grantedRole || null };
-            } catch {
-              return { ...assignment, email, grantedRole: null };
-            }
-          })
-        );
-        setEnrichedAppAssignments(results);
-      } finally {
-        setRolesEnriching(false);
-      }
-    };
+    // Build a lookup map: email (lowercase) → Supabase user record
+    const supaByEmail = {};
+    supabaseUsers.forEach((u) => {
+      if (u.email) supaByEmail[u.email.toLowerCase()] = u;
+      if (u.id) supaByEmail[u.id.toLowerCase()] = u;
+    });
 
-    enrich();
-  }, [appAssignments, microsoftUsers, activeTab]);
+    // Build a lookup map: roleId → role name
+    const roleById = {};
+    roles.forEach((r) => {
+      roleById[r.id] = r.name;
+    });
+
+    const results = appAssignments.map((assignment) => {
+      // Find matching MS user by Azure AD object ID to get email
+      const msUser = microsoftUsers.find((u) => u.id === assignment.principalId);
+      const email = msUser?.email || '';
+
+      // Look up in Supabase users by email or id
+      const supaUser = email ? supaByEmail[email.toLowerCase()] : null;
+      const roleId = supaUser?.roleId ?? null;
+      const roleName = roleId != null ? (roleById[roleId] ?? null) : null;
+
+      return { ...assignment, email, roleName };
+    });
+
+    setEnrichedAppAssignments(results);
+  }, [appAssignments, microsoftUsers, supabaseUsers, roles, activeTab]);
 
   // Add a user to the Enterprise App
   const handleAddEnterpriseUser = useCallback(async () => {
@@ -705,22 +712,26 @@ export default function AccessControlPage() {
             ) : (
               <List disablePadding>
                 {enrichedAppAssignments.map((assignment) => {
-                  const roleLabel = {
-                    superAdmin: 'Super Admin',
-                    admin: 'Admin',
-                    manager: 'Manager',
-                    regular: 'Regular',
-                    custom: 'Custom',
-                  }[assignment.grantedRole];
+                  // Normalise the role name coming from Supabase
+                  // The `roles` table uses "super-admin" (hyphen) but display as "Super Admin"
+                  const rawRole = assignment.roleName ?? '';
+                  const roleLabel = (() => {
+                    const n = rawRole.toLowerCase().replace(/[-\s]/g, '');
+                    if (n === 'superadmin') return 'Super Admin';
+                    if (n === 'admin') return 'Admin';
+                    if (n === 'manager') return 'Manager';
+                    if (n === 'regular') return 'Regular';
+                    return null;
+                  })();
 
-                  const roleColor =
-                    {
-                      superAdmin: 'error',
-                      admin: 'warning',
-                      manager: 'info',
-                      regular: 'default',
-                      custom: 'secondary',
-                    }[assignment.grantedRole] || 'default';
+                  const roleColor = (() => {
+                    const n = rawRole.toLowerCase().replace(/[-\s]/g, '');
+                    if (n === 'superadmin') return 'error';
+                    if (n === 'admin') return 'warning';
+                    if (n === 'manager') return 'info';
+                    if (n === 'regular') return 'default';
+                    return 'default';
+                  })();
 
                   return (
                     <ListItem
@@ -763,9 +774,7 @@ export default function AccessControlPage() {
                             <Typography variant="body2" fontWeight={500}>
                               {assignment.principalDisplayName || assignment.principalId}
                             </Typography>
-                            {rolesEnriching ? (
-                              <CircularProgress size={12} />
-                            ) : roleLabel ? (
+                            {roleLabel ? (
                               <Chip
                                 label={roleLabel}
                                 color={roleColor}

@@ -2841,6 +2841,11 @@ export async function fetchRoles() {
   return response.data?.roles || response.data || [];
 }
 
+export async function fetchUsersWithRoles() {
+  const response = await axios.get(`${API_BASE_URL}users-with-roles`);
+  return response.data?.users || [];
+}
+
 /**
  * @summary Assigns a role to a user by their ID.
  * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
@@ -4780,6 +4785,7 @@ export const apiHelper = {
   deleteLeaveRequest,
   getAccountsReceivable: fetchAccountsReceivable,
   fetchRoles,
+  fetchUsersWithRoles,
   setUserRoleApi,
   assignManagerApi,
   fetchManagerUsers,
