@@ -35,6 +35,7 @@ export function ExpenseTableRow({
   onDeleteRow,
   onRefresh,
   canEdit = true,
+  canApprove = false,
 }) {
   const confirm = useBoolean();
   const popover = usePopover();
@@ -152,8 +153,8 @@ export function ExpenseTableRow({
             View
           </MenuItem>
 
-          {/* Approve/Review action for pending expenses */}
-          {isPending && canEdit && (
+          {/* Approve/Review action — only for admins/super-admins on pending expenses */}
+          {isPending && canApprove && (
             <MenuItem
               onClick={() => {
                 approvalDialog.onTrue();
@@ -166,6 +167,7 @@ export function ExpenseTableRow({
             </MenuItem>
           )}
 
+          {/* Edit — shown when canEdit (owner of pending OR super-admin) */}
           {canEdit && (
             <MenuItem
               onClick={() => {
@@ -175,6 +177,20 @@ export function ExpenseTableRow({
             >
               <Iconify icon="solar:pen-bold" />
               Edit
+            </MenuItem>
+          )}
+
+          {/* Delete — same permission as edit */}
+          {canEdit && (
+            <MenuItem
+              onClick={() => {
+                confirm.onTrue();
+                popover.onClose();
+              }}
+              sx={{ color: 'error.main' }}
+            >
+              <Iconify icon="solar:trash-bin-trash-bold" />
+              Delete
             </MenuItem>
           )}
         </MenuList>

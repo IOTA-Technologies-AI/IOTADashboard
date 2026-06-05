@@ -75,7 +75,17 @@ export function ExpenseListView({ expenses: initialExpenses = [], permissionErro
     4: 'superAdmin',
   };
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
-  const canEdit = normalizedRole === 'superAdmin';
+  const isSuperAdmin = normalizedRole === 'superAdmin';
+  const isAdmin = normalizedRole === 'admin';
+  // canApprove: only admins/super-admins can approve or reject
+  const canApprove = isSuperAdmin || isAdmin;
+  // canEditRow: super-admin can always edit; regular user can only edit their own pending expenses
+  const canEditRow = (row) => {
+    if (isSuperAdmin) return true;
+    const isPending = row.expenseApprovalStatus === null || row.expenseApprovalStatus === undefined;
+    const isOwner = row.expenseBy === user?.name || row.expenseBy === user?.displayName;
+    return isPending && isOwner;
+  };
 
   const [permissionDenied, setPermissionDenied] = useState(!!permissionError);
 
@@ -179,14 +189,19 @@ export function ExpenseListView({ expenses: initialExpenses = [], permissionErro
   }
 
   const handleEditRow = useCallback(
-    (id) => {
-      if (!canEdit) {
-        toast.error('Only admins and super admins can edit expenses');
+    (row) => {
+      if (!canEditRow(row)) {
+        toast.error(
+          isSuperAdmin
+            ? 'This expense cannot be edited.'
+            : 'You can only edit your own pending expenses.'
+        );
         return;
       }
-      router.push(paths.dashboard.expense.edit(id));
+      router.push(paths.dashboard.expense.edit(row.referenceId));
     },
-    [canEdit, router]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isSuperAdmin, router, user]
   );
 
   // Export functions
@@ -420,8 +435,9 @@ export function ExpenseListView({ expenses: initialExpenses = [], permissionErro
                   <ExpenseTableRow
                     key={row.referenceId}
                     row={row}
-                    canEdit={canEdit}
-                    onEditRow={() => handleEditRow(row.referenceId)}
+                    canEdit={canEditRow(row)}
+                    canApprove={canApprove}
+                    onEditRow={() => handleEditRow(row)}
                     onViewRow={() => handleViewRow(row.referenceId)}
                     onRefresh={() => handleRefreshExpense(row.referenceId)}
                   />

@@ -24,7 +24,18 @@ export function ExpenseEditView({ expense }) {
 
   const roleIdToName = { 1: 'regular', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
-  const canEdit = normalizedRole === 'superAdmin';
+  const isSuperAdmin = normalizedRole === 'superAdmin';
+
+  const isPending =
+    expense?.expenseApprovalStatus === null || expense?.expenseApprovalStatus === undefined;
+  const isOwner = expense?.expenseBy === user?.name || expense?.expenseBy === user?.displayName;
+  const canEdit = isSuperAdmin || (isPending && isOwner);
+
+  const deniedReason = !canEdit
+    ? isPending
+      ? 'You can only edit your own expenses.'
+      : 'This expense has already been approved or rejected and cannot be edited.'
+    : null;
 
   if (!canEdit) {
     return (
@@ -37,9 +48,7 @@ export function ExpenseEditView({ expense }) {
           </m.div>
 
           <m.div variants={varBounce('in')}>
-            <Typography sx={{ color: 'text.secondary' }}>
-              Only super admins can edit expenses.
-            </Typography>
+            <Typography sx={{ color: 'text.secondary' }}>{deniedReason}</Typography>
           </m.div>
 
           <m.div variants={varBounce('in')}>
