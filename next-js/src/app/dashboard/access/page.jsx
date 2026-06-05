@@ -203,38 +203,17 @@ export default function AccessControlPage() {
     }
   }, [activeTab, loadAppAssignments]);
 
-  // Enrich assignments: match Azure AD principalId → MS user email → Supabase roleId → role name
+  // Enrich assignments: add email from MS Graph users (roleName already comes from the API)
   useEffect(() => {
     if (activeTab !== 1) return;
 
-    // Build a lookup map: email (lowercase) → Supabase user record
-    const supaByEmail = {};
-    supabaseUsers.forEach((u) => {
-      if (u.email) supaByEmail[u.email.toLowerCase()] = u;
-      if (u.id) supaByEmail[u.id.toLowerCase()] = u;
-    });
-
-    // Build a lookup map: roleId → role name
-    const roleById = {};
-    roles.forEach((r) => {
-      roleById[r.id] = r.name;
-    });
-
     const results = appAssignments.map((assignment) => {
-      // Find matching MS user by Azure AD object ID to get email
       const msUser = microsoftUsers.find((u) => u.id === assignment.principalId);
-      const email = msUser?.email || '';
-
-      // Look up in Supabase users by email or id
-      const supaUser = email ? supaByEmail[email.toLowerCase()] : null;
-      const roleId = supaUser?.roleId ?? null;
-      const roleName = roleId != null ? (roleById[roleId] ?? null) : null;
-
-      return { ...assignment, email, roleName };
+      return { ...assignment, email: msUser?.email || '' };
     });
 
     setEnrichedAppAssignments(results);
-  }, [appAssignments, microsoftUsers, supabaseUsers, roles, activeTab]);
+  }, [appAssignments, microsoftUsers, activeTab]);
 
   // Add a user to the Enterprise App
   const handleAddEnterpriseUser = useCallback(async () => {
@@ -713,23 +692,15 @@ export default function AccessControlPage() {
               <List disablePadding>
                 {enrichedAppAssignments.map((assignment) => {
                   // Normalise the role name coming from Supabase
-                  // The `roles` table uses "super-admin" (hyphen) but display as "Super Admin"
-                  const rawRole = assignment.roleName ?? '';
-                  const roleLabel = (() => {
-                    const n = rawRole.toLowerCase().replace(/[-\s]/g, '');
-                    if (n === 'superadmin') return 'Super Admin';
-                    if (n === 'admin') return 'Admin';
-                    if (n === 'manager') return 'Manager';
-                    if (n === 'regular') return 'Regular';
-                    return null;
-                  })();
+                  // roleName comes directly from the Azure app role displayName
+                  const rawRole = (assignment.roleName ?? '').toLowerCase().replace(/[-\s]/g, '');
+                  const roleLabel = assignment.roleName || null;
 
                   const roleColor = (() => {
-                    const n = rawRole.toLowerCase().replace(/[-\s]/g, '');
-                    if (n === 'superadmin') return 'error';
-                    if (n === 'admin') return 'warning';
-                    if (n === 'manager') return 'info';
-                    if (n === 'regular') return 'default';
+                    if (rawRole === 'superadmin') return 'error';
+                    if (rawRole === 'admin') return 'warning';
+                    if (rawRole === 'manager') return 'info';
+                    if (rawRole === 'regular') return 'success';
                     return 'default';
                   })();
 
