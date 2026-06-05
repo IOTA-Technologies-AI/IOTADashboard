@@ -22,6 +22,7 @@ import { useRouter } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
 import { apiHelper } from 'src/utils/apiHelper';
+import { deleteExpense } from 'src/utils/apiHelper';
 import { fDate, fIsAfter } from 'src/utils/format-time';
 
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -202,6 +203,28 @@ export function ExpenseListView({ expenses: initialExpenses = [], permissionErro
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [isSuperAdmin, router, user]
+  );
+
+  const handleDeleteRow = useCallback(
+    async (row) => {
+      if (!canEditRow(row)) {
+        toast.error(
+          isSuperAdmin
+            ? 'Approved or rejected expenses cannot be deleted.'
+            : 'You can only delete your own pending expenses.'
+        );
+        return;
+      }
+      try {
+        await deleteExpense(row.referenceId);
+        setExpenses((prev) => prev.filter((e) => e.referenceId !== row.referenceId));
+        toast.success('Expense deleted successfully.');
+      } catch (err) {
+        toast.error(err?.message || 'Failed to delete expense.');
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isSuperAdmin, user]
   );
 
   // Export functions
@@ -438,6 +461,7 @@ export function ExpenseListView({ expenses: initialExpenses = [], permissionErro
                     canEdit={canEditRow(row)}
                     canApprove={canApprove}
                     onEditRow={() => handleEditRow(row)}
+                    onDeleteRow={() => handleDeleteRow(row)}
                     onViewRow={() => handleViewRow(row.referenceId)}
                     onRefresh={() => handleRefreshExpense(row.referenceId)}
                   />

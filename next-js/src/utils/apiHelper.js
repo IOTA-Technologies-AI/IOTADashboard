@@ -892,6 +892,35 @@ export async function updateExpense(referenceId, expenseData) {
   }
 }
 
+export async function deleteExpense(referenceId) {
+  try {
+    const userContext = getUserContext();
+    if (!userContext) throw new Error('No user context — please sign in again.');
+
+    const authHeaders = getAuthHeaders();
+    const response = await axios.delete(`${API_BASE_URL}expenses/${referenceId}`, {
+      headers: { 'Content-Type': 'application/json', ...authHeaders },
+      data: { referenceId, ...userContext },
+    });
+
+    if (response.status !== 200 && response.status !== 204) {
+      throw new Error(`Unexpected status ${response.status}`);
+    }
+    return true;
+  } catch (error) {
+    console.error('❌ Failed to delete expense:', error);
+    if (error.response?.status === 403) {
+      throw new Error(
+        error.response?.data?.message || 'You do not have permission to delete this expense.'
+      );
+    }
+    if (error.response?.status === 401) {
+      throw new Error('Authentication required. Please sign in again.');
+    }
+    throw error;
+  }
+}
+
 /**
  * @summary Uploads an expense attachment file to OneDrive.
  * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
@@ -4759,6 +4788,7 @@ export const apiHelper = {
   getExpense,
   createExpense,
   updateExpense,
+  deleteExpense,
   uploadExpenseAttachment,
   createInvoice,
   fetchInvoices,
