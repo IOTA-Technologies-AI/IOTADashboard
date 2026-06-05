@@ -2994,6 +2994,26 @@ export async function grantDefaultPermissions({ userId, role, grantedBy }) {
 }
 
 // =============================================
+// Enterprise App Access Management
+// =============================================
+
+export async function fetchEnterpriseAppUsers() {
+  const response = await axios.get(`${API_BASE_URL}enterprise-app-users`);
+  return response.data?.assignments || [];
+}
+
+export async function addEnterpriseAppUser(principalId) {
+  if (!principalId) throw new Error('principalId is required');
+  const response = await axios.post(`${API_BASE_URL}enterprise-app-users`, { principalId });
+  return response.data?.assignment;
+}
+
+export async function removeEnterpriseAppUser(assignmentId) {
+  if (!assignmentId) throw new Error('assignmentId is required');
+  await axios.delete(`${API_BASE_URL}enterprise-app-users/${assignmentId}`);
+}
+
+// =============================================
 // Job Management API Functions
 // =============================================
 
@@ -4769,6 +4789,10 @@ export const apiHelper = {
   fetchUserEnabledPaths,
   setUserNavPermissions,
   grantDefaultPermissions,
+  // Enterprise App Access
+  fetchEnterpriseAppUsers,
+  addEnterpriseAppUser,
+  removeEnterpriseAppUser,
   // Job management
   getJobs,
   getJobById,
