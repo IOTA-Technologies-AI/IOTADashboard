@@ -128,6 +128,8 @@ export default function AccessControlPage() {
 
   // Enterprise App Access state
   const [appAssignments, setAppAssignments] = useState([]);
+  const [enrichedAppAssignments, setEnrichedAppAssignments] = useState([]);
+  const [rolesEnriching, setRolesEnriching] = useState(false);
   const [appAccessLoading, setAppAccessLoading] = useState(false);
   const [appAccessError, setAppAccessError] = useState('');
   const [userToAdd, setUserToAdd] = useState(null);
@@ -194,6 +196,38 @@ export default function AccessControlPage() {
       loadAppAssignments();
     }
   }, [activeTab, loadAppAssignments]);
+
+  // Enrich assignments with email (from Graph users) and IOTA grantedRole
+  useEffect(() => {
+    if (activeTab !== 1 || appAssignments.length === 0) {
+      setEnrichedAppAssignments(appAssignments);
+      return;
+    }
+
+    const enrich = async () => {
+      setRolesEnriching(true);
+      try {
+        const results = await Promise.all(
+          appAssignments.map(async (assignment) => {
+            const msUser = microsoftUsers.find((u) => u.id === assignment.principalId);
+            const email = msUser?.email || '';
+            if (!email) return { ...assignment, email, grantedRole: null };
+            try {
+              const perms = await fetchUserNavPermissions(email);
+              return { ...assignment, email, grantedRole: perms[0]?.grantedRole || null };
+            } catch {
+              return { ...assignment, email, grantedRole: null };
+            }
+          })
+        );
+        setEnrichedAppAssignments(results);
+      } finally {
+        setRolesEnriching(false);
+      }
+    };
+
+    enrich();
+  }, [appAssignments, microsoftUsers, activeTab]);
 
   // Add a user to the Enterprise App
   const handleAddEnterpriseUser = useCallback(async () => {
@@ -670,45 +704,89 @@ export default function AccessControlPage() {
               </Stack>
             ) : (
               <List disablePadding>
-                {appAssignments.map((assignment) => (
-                  <ListItem
-                    key={assignment.id}
-                    divider
-                    secondaryAction={
-                      <Tooltip title="Revoke access">
-                        <span>
-                          <IconButton
-                            edge="end"
-                            color="error"
-                            onClick={() =>
-                              handleRemoveEnterpriseUser(
-                                assignment.id,
-                                assignment.principalDisplayName
-                              )
-                            }
-                            disabled={removingId === assignment.id}
-                          >
-                            {removingId === assignment.id ? (
-                              <CircularProgress size={20} />
+                {enrichedAppAssignments.map((assignment) => {
+                  const roleLabel = {
+                    superAdmin: 'Super Admin',
+                    admin: 'Admin',
+                    manager: 'Manager',
+                    regular: 'Regular',
+                    custom: 'Custom',
+                  }[assignment.grantedRole];
+
+                  const roleColor =
+                    {
+                      superAdmin: 'error',
+                      admin: 'warning',
+                      manager: 'info',
+                      regular: 'default',
+                      custom: 'secondary',
+                    }[assignment.grantedRole] || 'default';
+
+                  return (
+                    <ListItem
+                      key={assignment.id}
+                      divider
+                      secondaryAction={
+                        <Tooltip title="Revoke access">
+                          <span>
+                            <IconButton
+                              edge="end"
+                              color="error"
+                              onClick={() =>
+                                handleRemoveEnterpriseUser(
+                                  assignment.id,
+                                  assignment.principalDisplayName
+                                )
+                              }
+                              disabled={removingId === assignment.id}
+                            >
+                              {removingId === assignment.id ? (
+                                <CircularProgress size={20} />
+                              ) : (
+                                <Iconify icon="eva:person-delete-fill" />
+                              )}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      }
+                    >
+                      <ListItemIcon>
+                        <Avatar
+                          sx={{ width: 36, height: 36, bgcolor: 'primary.main', fontSize: 15 }}
+                        >
+                          {(assignment.principalDisplayName || '?')[0].toUpperCase()}
+                        </Avatar>
+                      </ListItemIcon>
+                      <ListItemText
+                        primary={
+                          <Stack direction="row" alignItems="center" spacing={1}>
+                            <Typography variant="body2" fontWeight={500}>
+                              {assignment.principalDisplayName || assignment.principalId}
+                            </Typography>
+                            {rolesEnriching ? (
+                              <CircularProgress size={12} />
+                            ) : roleLabel ? (
+                              <Chip
+                                label={roleLabel}
+                                color={roleColor}
+                                size="small"
+                                variant="soft"
+                              />
                             ) : (
-                              <Iconify icon="eva:person-delete-fill" />
+                              <Chip
+                                label="No role assigned"
+                                size="small"
+                                variant="outlined"
+                                sx={{ color: 'text.disabled', borderColor: 'divider' }}
+                              />
                             )}
-                          </IconButton>
-                        </span>
-                      </Tooltip>
-                    }
-                  >
-                    <ListItemIcon>
-                      <Avatar sx={{ width: 36, height: 36, bgcolor: 'primary.main', fontSize: 15 }}>
-                        {(assignment.principalDisplayName || '?')[0].toUpperCase()}
-                      </Avatar>
-                    </ListItemIcon>
-                    <ListItemText
-                      primary={assignment.principalDisplayName || assignment.principalId}
-                      secondary={assignment.principalType}
-                    />
-                  </ListItem>
-                ))}
+                          </Stack>
+                        }
+                        secondary={assignment.email || assignment.principalId}
+                      />
+                    </ListItem>
+                  );
+                })}
               </List>
             )}
           </Card>
