@@ -22,8 +22,6 @@ export function KanbanDetailsToolbar({
   onCloseDetails,
   ...other
 }) {
-  const smUp = useMediaQuery((theme) => theme.breakpoints.up('sm'));
-
   const menuActions = usePopover();
   const confirmDialog = useBoolean();
 
