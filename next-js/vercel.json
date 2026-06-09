@@ -1,4 +1,9 @@
 {
+  "build": {
+    "env": {
+      "NODE_OPTIONS": "--max-old-space-size=6144"
+    }
+  },
   "functions": {
     "src/app/api/onedrive/upload/route.js": {
       "maxDuration": 60

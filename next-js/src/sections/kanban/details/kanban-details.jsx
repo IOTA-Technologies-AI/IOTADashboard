@@ -63,7 +63,6 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
   const tabs = useTabs('overview');
   const { user } = useAuthContext();
 
-  const likeToggle = useBoolean();
   const contactsDialog = useBoolean();
 
   const [taskName, setTaskName] = useState(task.name);
@@ -170,9 +169,7 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
       taskName={task.name}
       onDelete={onDeleteTask}
       taskStatus={task.status}
-      liked={likeToggle.value}
       onCloseDetails={onClose}
-      onLikeToggle={likeToggle.onToggle}
     />
   );
 

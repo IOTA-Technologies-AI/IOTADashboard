@@ -33,6 +33,8 @@ const nextConfig = {
     if (isServer) {
       config.externals = [...(config.externals || []), 'motion-dom', 'motion-utils'];
     }
+    // Reduce parallelism on memory-constrained CI/Vercel builds
+    config.parallelism = 1;
     return config;
   },
   // With --turbopack (next dev --turbopack)
@@ -51,6 +53,15 @@ const sentryConfig = {
   project: 'javascript-nextjs',
   // Only print logs for uploading source maps in CI
   silent: !process.env.CI,
+  // Disable source map upload — no auth token is configured on Vercel,
+  // and uploading source maps during build significantly increases memory usage.
+  sourcemaps: {
+    disable: true,
+  },
+  // Disable the Sentry webpack plugin's telemetry bundle injection on Vercel
+  // to avoid a third parallel webpack pass that causes OOM on 8 GB build machines.
+  disableServerWebpackPlugin: !!process.env.VERCEL,
+  disableClientWebpackPlugin: !!process.env.VERCEL,
 };
 
 export default withSentryConfig(nextConfig, sentryConfig);

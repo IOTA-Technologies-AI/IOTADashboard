@@ -7,7 +7,6 @@ import Tooltip from '@mui/material/Tooltip';
 import MenuList from '@mui/material/MenuList';
 import MenuItem from '@mui/material/MenuItem';
 import IconButton from '@mui/material/IconButton';
-import useMediaQuery from '@mui/material/useMediaQuery';
 
 import { Iconify } from 'src/components/iconify';
 import { ConfirmDialog } from 'src/components/custom-dialog';
@@ -17,11 +16,9 @@ import { CustomPopover } from 'src/components/custom-popover';
 
 export function KanbanDetailsToolbar({
   sx,
-  liked,
   taskName,
   onDelete,
   taskStatus,
-  onLikeToggle,
   onCloseDetails,
   ...other
 }) {
@@ -93,14 +90,6 @@ export function KanbanDetailsToolbar({
         ]}
         {...other}
       >
-        {!smUp && (
-          <Tooltip title="Close">
-            <IconButton onClick={onCloseDetails} sx={{ mr: 2, ml: -1 }}>
-              <Iconify icon="mingcute:close-line" />
-            </IconButton>
-          </Tooltip>
-        )}
-
         <Button
           size="small"
           variant="soft"
@@ -113,21 +102,17 @@ export function KanbanDetailsToolbar({
         <Box component="span" sx={{ flexGrow: 1 }} />
 
         <Box sx={{ display: 'flex' }}>
-          <Tooltip title="Like">
-            <IconButton color={liked ? 'default' : 'primary'} onClick={onLikeToggle}>
-              <Iconify icon="solar:like-bold" />
-            </IconButton>
-          </Tooltip>
-
           <Tooltip title="Delete task">
             <IconButton onClick={confirmDialog.onTrue}>
               <Iconify icon="solar:trash-bin-trash-bold" />
             </IconButton>
           </Tooltip>
 
-          <IconButton>
-            <Iconify icon="eva:more-vertical-fill" />
-          </IconButton>
+          <Tooltip title="Close">
+            <IconButton onClick={onCloseDetails}>
+              <Iconify icon="mingcute:close-line" />
+            </IconButton>
+          </Tooltip>
         </Box>
       </Box>
 
