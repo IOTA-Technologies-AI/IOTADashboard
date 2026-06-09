@@ -28,16 +28,20 @@ const normalizeTask = (item = {}, stageId) => {
   const startDate = new Date().toISOString();
   const endDate = item.expectedCloseDate || item.due?.[1] || startDate;
 
-  // Build assignee array from assigneeEmail/assigneeName fields
-  const assigneeList = [];
-  if (item.assigneeEmail) {
-    assigneeList.push({
-      id: item.assigneeEmail,
-      name: item.assigneeName || item.assigneeEmail,
-      email: item.assigneeEmail,
-      avatarUrl: '',
-    });
-  }
+  // Support comma-separated multiple assignees stored in assigneeEmail / assigneeName
+  const rawEmails = item.assigneeEmail || '';
+  const rawNames = item.assigneeName || '';
+  const emailList = rawEmails
+    .split(',')
+    .map((e) => e.trim())
+    .filter(Boolean);
+  const nameList = rawNames.split(',').map((n) => n.trim());
+  const assigneeList = emailList.map((email, i) => ({
+    id: email,
+    name: nameList[i] || email,
+    email,
+    avatarUrl: '',
+  }));
 
   return {
     ...item,
@@ -361,6 +365,7 @@ export async function createTask(columnId, taskData, userInfo = {}) {
     description: taskData.description || '',
     expectedCloseDate: taskData.due?.[1] || taskData.expectedCloseDate || null,
     status: taskData.status || 'open',
+    priority: taskData.priority || 'medium',
     // Creator info
     createdByEmail: userInfo.email || null,
     createdByName: userInfo.displayName || userInfo.email || null,
@@ -393,17 +398,29 @@ export async function createTask(columnId, taskData, userInfo = {}) {
 // ----------------------------------------------------------------------
 
 export async function updateTask(columnId, taskData, userInfo = {}) {
+  // Convert assignee array (from details panel) → comma-separated strings
+  const assigneeArray = taskData.assignee || [];
+  const assigneeEmail =
+    assigneeArray.length > 0
+      ? assigneeArray.map((a) => a.email || a.id).join(',')
+      : (taskData.assigneeEmail ?? undefined);
+  const assigneeName =
+    assigneeArray.length > 0
+      ? assigneeArray.map((a) => a.name || a.email || a.id).join(',')
+      : (taskData.assigneeName ?? undefined);
+
   const payload = {
     stageId: columnId,
     name: taskData.name,
     description: taskData.description,
     status: taskData.status,
     expectedCloseDate: taskData.due?.[1] || taskData.expectedCloseDate,
+    priority: taskData.priority,
     // Labels
     labels: taskData.labels,
-    // Include assignee fields if provided
-    assigneeEmail: taskData.assigneeEmail,
-    assigneeName: taskData.assigneeName,
+    // Assignee (comma-separated for multi-assignee support)
+    assigneeEmail,
+    assigneeName,
     // Permission check: callerRoleId is used server-side to guard cancel actions
     ...(userInfo.roleId != null ? { callerRoleId: userInfo.roleId } : {}),
   };

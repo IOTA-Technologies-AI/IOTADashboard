@@ -109,9 +109,13 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
     setTaskDescription(event.target.value);
   }, []);
 
-  const handleChangePriority = useCallback((newValue) => {
-    setPriority(newValue);
-  }, []);
+  const handleChangePriority = useCallback(
+    (newValue) => {
+      setPriority(newValue);
+      onUpdateTask?.({ ...task, priority: newValue });
+    },
+    [onUpdateTask, task]
+  );
 
   const handleClickSubtaskComplete = useCallback(
     async (subtask) => {
@@ -252,23 +256,34 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
                       : assignee.name
                     : 'N/A'}
                 </Typography>
+                {user?.role === 'superAdmin' && (
+                  <IconButton
+                    size="small"
+                    onClick={() => handleToggleAssignee(assignee)}
+                    sx={{ p: 0.25, ml: 0.25 }}
+                  >
+                    <Iconify icon="mingcute:close-line" width={14} />
+                  </IconButton>
+                )}
               </Box>
             </Tooltip>
           ))}
 
-          <Tooltip title="Add assignee">
-            <IconButton
-              onClick={contactsDialog.onTrue}
-              sx={[
-                (theme) => ({
-                  border: `dashed 1px ${theme.vars.palette.divider}`,
-                  bgcolor: varAlpha(theme.vars.palette.grey['500Channel'], 0.08),
-                }),
-              ]}
-            >
-              <Iconify icon="mingcute:add-line" />
-            </IconButton>
-          </Tooltip>
+          {user?.role === 'superAdmin' && (
+            <Tooltip title="Add assignee">
+              <IconButton
+                onClick={contactsDialog.onTrue}
+                sx={[
+                  (theme) => ({
+                    border: `dashed 1px ${theme.vars.palette.divider}`,
+                    bgcolor: varAlpha(theme.vars.palette.grey['500Channel'], 0.08),
+                  }),
+                ]}
+              >
+                <Iconify icon="mingcute:add-line" />
+              </IconButton>
+            </Tooltip>
+          )}
 
           <KanbanContactsDialog
             assignee={assignees}
