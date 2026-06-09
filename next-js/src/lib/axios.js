@@ -96,6 +96,10 @@ export const endpoints = {
     stages: '/api/sales/stages',
     deals: '/api/sales/deals',
   },
+  apollo: {
+    peopleSearch: '/api/apollo/people-search',
+    peopleEnrich: '/api/apollo/people-enrich',
+  },
   calendar: '/api/calendar',
   auth: {
     me: 'https://vbjtplyfvrngvtqwydum.supabase.co/rest/v1/user?select=*&loginId=eq.',
