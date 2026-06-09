@@ -269,21 +269,19 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
             </Tooltip>
           ))}
 
-          {user?.role === 'superAdmin' && (
-            <Tooltip title="Add assignee">
-              <IconButton
-                onClick={contactsDialog.onTrue}
-                sx={[
-                  (theme) => ({
-                    border: `dashed 1px ${theme.vars.palette.divider}`,
-                    bgcolor: varAlpha(theme.vars.palette.grey['500Channel'], 0.08),
-                  }),
-                ]}
-              >
-                <Iconify icon="mingcute:add-line" />
-              </IconButton>
-            </Tooltip>
-          )}
+          <Tooltip title="Add assignee">
+            <IconButton
+              onClick={contactsDialog.onTrue}
+              sx={[
+                (theme) => ({
+                  border: `dashed 1px ${theme.vars.palette.divider}`,
+                  bgcolor: varAlpha(theme.vars.palette.grey['500Channel'], 0.08),
+                }),
+              ]}
+            >
+              <Iconify icon="mingcute:add-line" />
+            </IconButton>
+          </Tooltip>
 
           <KanbanContactsDialog
             assignee={assignees}
