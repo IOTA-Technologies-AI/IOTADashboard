@@ -25,6 +25,10 @@ export function TodoView() {
   const { user } = useAuthContext();
   const canManageColumns = ['admin', 'superAdmin'].includes(user?.role);
 
+  // Map role string → numeric roleId (mirrors Supabase roles table)
+  const roleIdMap = { regular: 1, manager: 2, admin: 3, superAdmin: 4 };
+  const callerRoleId = roleIdMap[user?.role] ?? 1;
+
   // Wrap createTask and updateTask to automatically include user info
   const todoActions = useMemo(
     () => ({
@@ -33,11 +37,13 @@ export function TodoView() {
           email: user?.email,
           displayName: user?.displayName || user?.email,
         }),
-      moveTask: moveTodoTask,
+      // Pass callerRoleId so the server can enforce the cancel-permission rule
+      moveTask: (updateTasks) => moveTodoTask(updateTasks, callerRoleId),
       updateTask: (columnId, taskData) =>
         updateTodoTask(columnId, taskData, {
           email: user?.email,
           displayName: user?.displayName || user?.email,
+          roleId: callerRoleId,
         }),
       deleteTask: deleteTodoTask,
       createColumn: createTodoColumn,
@@ -46,7 +52,8 @@ export function TodoView() {
       clearColumn: clearTodoColumn,
       deleteColumn: deleteTodoColumn,
     }),
-    [user?.email, user?.displayName]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [user?.email, user?.displayName, callerRoleId]
   );
 
   return (

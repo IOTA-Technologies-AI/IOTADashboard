@@ -404,6 +404,8 @@ export async function updateTask(columnId, taskData, userInfo = {}) {
     // Include assignee fields if provided
     assigneeEmail: taskData.assigneeEmail,
     assigneeName: taskData.assigneeName,
+    // Permission check: callerRoleId is used server-side to guard cancel actions
+    ...(userInfo.roleId != null ? { callerRoleId: userInfo.roleId } : {}),
   };
 
   const res = await axios.patch(`${endpoints.todo.tasks}/${taskData.id}`, payload);
@@ -439,7 +441,7 @@ export async function updateTask(columnId, taskData, userInfo = {}) {
 
 // ----------------------------------------------------------------------
 
-export async function moveTask(updateTasks) {
+export async function moveTask(updateTasks, callerRoleId) {
   const updates = [];
 
   // Identify which tasks actually moved to a different column
@@ -479,7 +481,11 @@ export async function moveTask(updateTasks) {
     try {
       await Promise.all(
         updates.map((update) =>
-          axios.patch(`${endpoints.todo.tasks}/${update.id}`, { stageId: update.stageId })
+          axios.patch(`${endpoints.todo.tasks}/${update.id}`, {
+            stageId: update.stageId,
+            // Forwarded so the server can enforce the cancel-permission rule
+            ...(callerRoleId != null ? { callerRoleId } : {}),
+          })
         )
       );
     } catch (error) {
