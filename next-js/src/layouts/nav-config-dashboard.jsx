@@ -11,7 +11,6 @@ import { paths } from 'src/routes/paths';
 import { CONFIG } from 'src/global-config';
 
 import { Label } from 'src/components/label';
-import { Iconify } from 'src/components/iconify';
 import { SvgColor } from 'src/components/svg-color';
 
 // ----------------------------------------------------------------------
@@ -84,7 +83,7 @@ export const navData = [
       { title: 'Analytics', path: paths.dashboard.general.analytics, icon: ICONS.analytics },
       { title: 'Banking', path: paths.dashboard.general.banking, icon: ICONS.banking },
       {
-        title: 'Profile',
+        title: 'Candidate',
         path: paths.dashboard.profile.root,
         icon: ICONS.profile,
         children: [
