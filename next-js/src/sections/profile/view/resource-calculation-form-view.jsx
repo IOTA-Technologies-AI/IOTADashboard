@@ -114,12 +114,14 @@ function resolveLabel(label, insurancePremiumFactor, dependentsCount) {
 }
 
 /** Evaluate simple formula expressions with baseSalary and dependentsCount context. */
-function evalFormula(formula, baseSalary, dependentsCount) {
+function evalFormula(formula, context = {}) {
   if (!formula) return 0;
   try {
-    const safe = formula
-      .replace(/baseSalary/g, String(Number(baseSalary) || 0))
-      .replace(/dependentsCount/g, String(Number(dependentsCount) || 0));
+    const keys = Object.keys(context).sort((a, b) => b.length - a.length);
+    const safe = keys.reduce((acc, key) => {
+      const value = Number(context[key]) || 0;
+      return acc.replace(new RegExp(`\\b${key}\\b`, 'g'), String(value));
+    }, formula);
     if (!/^[\d\s+\-*/().]+$/.test(safe)) return 0;
     // eslint-disable-next-line no-new-func
     const result = Number(Function('"use strict"; return (' + safe + ')')());
@@ -131,10 +133,35 @@ function evalFormula(formula, baseSalary, dependentsCount) {
 
 /** Recompute all computed line items and totals. */
 function recompute(items, baseSalary, dependentsCount) {
-  return items.map((item) => {
+  let nextItems = items.map((item) => ({ ...item }));
+
+  for (let pass = 0; pass < 4; pass += 1) {
+    const context = {
+      baseSalary: Number(baseSalary) || 0,
+      dependentsCount: Number(dependentsCount) || 0,
+    };
+
+    nextItems.forEach((item) => {
+      if (item.code) {
+        context[item.code] = Number(item.monthly) || 0;
+      }
+      if (item.category === 'salary') {
+        context.basic = Number(item.monthly) || Number(baseSalary) || 0;
+      }
+    });
+
+    nextItems = nextItems.map((item) => {
+      if (item.isComputed && item.formula) {
+        const monthly = evalFormula(item.formula, context);
+        return { ...item, monthly, annual: monthly * 12 };
+      }
+      return { ...item, annual: item.annual || item.monthly * 12 };
+    });
+  }
+
+  return nextItems.map((item) => {
     if (item.isComputed && item.formula) {
-      const monthly = evalFormula(item.formula, baseSalary, dependentsCount);
-      return { ...item, monthly, annual: monthly * 12 };
+      return { ...item, annual: item.monthly * 12 };
     }
     return { ...item, annual: item.annual || item.monthly * 12 };
   });
@@ -278,7 +305,10 @@ export function ResourceCalculationFormView({ id }) {
           item.formula &&
           item.formula.includes('baseSalary')
         ) {
-          const monthly = evalFormula(item.formula, num, Number(dependentsCount) || 0);
+          const monthly = evalFormula(item.formula, {
+            baseSalary: num,
+            dependentsCount: Number(dependentsCount) || 0,
+          });
           return { ...item, monthly, annual: monthly * 12 };
         }
         return item;
@@ -374,11 +404,14 @@ export function ResourceCalculationFormView({ id }) {
 
   // ── Totals ────────────────────────────────────────────────────────────────
   const activeItems = lineItems.filter((i) => i.isActive);
-  const totalMonthly = activeItems.reduce((s, i) => s + (Number(i.monthly) || 0), 0);
-  const totalAnnual = activeItems.reduce(
-    (s, i) => s + (Number(i.annual) || i.monthly * 12 || 0),
-    0
-  );
+  const invoiceAmountItem = lineItems.find((i) => i.code === 'invoiceAmount');
+  const isIndiaOffice = iotaOffice === 'India';
+  const totalMonthly = isIndiaOffice
+    ? Number(invoiceAmountItem?.monthly || 0)
+    : activeItems.reduce((s, i) => s + (Number(i.monthly) || 0), 0);
+  const totalAnnual = isIndiaOffice
+    ? Number(invoiceAmountItem?.annual || totalMonthly * 12 || 0)
+    : activeItems.reduce((s, i) => s + (Number(i.annual) || i.monthly * 12 || 0), 0);
 
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
@@ -547,6 +580,21 @@ export function ResourceCalculationFormView({ id }) {
               />
 
               <FormControl fullWidth required>
+                <InputLabel>IOTA Office</InputLabel>
+                <Select
+                  value={iotaOffice}
+                  label="IOTA Office"
+                  onChange={(e) => handleIotaOfficeChange(e.target.value)}
+                >
+                  {IOTA_OFFICE_OPTIONS.map((c) => (
+                    <MenuItem key={c.value} value={c.value}>
+                      {c.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth required>
                 <InputLabel>Nationality</InputLabel>
                 <Select
                   value={nationality}
@@ -557,21 +605,6 @@ export function ResourceCalculationFormView({ id }) {
                   {NATIONALITY_OPTIONS.map((n) => (
                     <MenuItem key={n} value={n}>
                       {n}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-
-              <FormControl fullWidth required>
-                <InputLabel>IOTA Office</InputLabel>
-                <Select
-                  value={iotaOffice}
-                  label="IOTA Office"
-                  onChange={(e) => handleIotaOfficeChange(e.target.value)}
-                >
-                  {IOTA_OFFICE_OPTIONS.map((c) => (
-                    <MenuItem key={c.value} value={c.value}>
-                      {c.label}
                     </MenuItem>
                   ))}
                 </Select>
@@ -835,25 +868,19 @@ export function ResourceCalculationFormView({ id }) {
                         </Stack>
                       </TableCell>
                       <TableCell align="right">
-                        {item.isComputed && !item.isEditable ? (
-                          <Typography variant="body2" fontWeight={500}>
-                            {fmtNumber(item.monthly)}
-                          </Typography>
-                        ) : (
-                          <TextField
-                            type="text"
-                            inputMode="numeric"
-                            value={Number(item.monthly || 0).toLocaleString('en-SA')}
-                            onChange={(e) => {
-                              const raw = Number(String(e.target.value).replace(/,/g, '')) || 0;
-                              handleLineItemChange(idx, 'monthly', raw, item.category);
-                            }}
-                            size="small"
-                            variant="standard"
-                            inputProps={{ style: { textAlign: 'right' } }}
-                            sx={{ width: 120 }}
-                          />
-                        )}
+                        <TextField
+                          type="text"
+                          inputMode="numeric"
+                          value={Number(item.monthly || 0).toLocaleString('en-SA')}
+                          onChange={(e) => {
+                            const raw = Number(String(e.target.value).replace(/,/g, '')) || 0;
+                            handleLineItemChange(idx, 'monthly', raw, item.category);
+                          }}
+                          size="small"
+                          variant="standard"
+                          inputProps={{ style: { textAlign: 'right' } }}
+                          sx={{ width: 120 }}
+                        />
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" color="text.secondary">
