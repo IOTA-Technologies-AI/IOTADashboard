@@ -69,9 +69,23 @@ const NATIONALITY_OPTIONS = [
   'British',
 ];
 
-const CALCULATION_COUNTRY_OPTIONS = [
-  { value: 'KSA', label: 'Saudi Arabia', currency: 'SAR', taxRate: 0.15, taxLabel: 'VAT' },
-  { value: 'India', label: 'India', currency: 'INR', taxRate: 0.18, taxLabel: 'GST' },
+const IOTA_OFFICE_OPTIONS = [
+  {
+    value: 'KSA',
+    label: 'IOTA Office - Saudi Arabia',
+    countryCode: 'KSA',
+    currency: 'SAR',
+    taxRate: 0.15,
+    taxLabel: 'VAT',
+  },
+  {
+    value: 'India',
+    label: 'IOTA Office - India',
+    countryCode: 'India',
+    currency: 'INR',
+    taxRate: 0.18,
+    taxLabel: 'GST',
+  },
 ];
 
 const STATUS_COLORS = {
@@ -157,9 +171,9 @@ export function ResourceCalculationFormView({ id }) {
   } = useSWR(isEdit ? `profile/resource-calculations/${id}` : null, () =>
     getResourceCalculation(id)
   );
-  const [calculationCountry, setCalculationCountry] = useState('KSA');
-  const { data: tplData } = useSWR(['profile/rc-templates', calculationCountry], () =>
-    getResourceCalculationTemplates(calculationCountry)
+  const [iotaOffice, setIotaOffice] = useState('KSA');
+  const { data: tplData } = useSWR(['profile/rc-templates', iotaOffice], () =>
+    getResourceCalculationTemplates(iotaOffice)
   );
   const { data: jdListData } = useSWR('profile/jd', listJobDescriptions);
   const { data: candidatesData } = useSWR('profile/candidates', listCandidates);
@@ -225,9 +239,8 @@ export function ResourceCalculationFormView({ id }) {
     setStatus(rc.status);
     setResumeUrl(rc.resumeUrl || '');
     setNotes(rc.notes || '');
-    if (rc.currency === 'INR' || rc.nationality === 'Indian') {
-      setCalculationCountry('India');
-    }
+    const officeFromRecord = rc.iotaOffice || (rc.currency === 'INR' ? 'India' : 'KSA');
+    setIotaOffice(officeFromRecord);
     setInitialized(true);
   }, [isEdit, rcData, initialized]);
 
@@ -238,15 +251,14 @@ export function ResourceCalculationFormView({ id }) {
     if (!items) return;
 
     const countryMeta =
-      CALCULATION_COUNTRY_OPTIONS.find((c) => c.value === calculationCountry) ||
-      CALCULATION_COUNTRY_OPTIONS[0];
+      IOTA_OFFICE_OPTIONS.find((c) => c.value === iotaOffice) || IOTA_OFFICE_OPTIONS[0];
 
     setCurrency(countryMeta.currency);
     setLineItems(
       recompute(items, Number(baseSalaryRef.current) || 0, Number(dependentsCountRef.current) || 0)
     );
     if (!initialized) setInitialized(true);
-  }, [isEdit, tplData, calculationCountry, initialized]);
+  }, [isEdit, tplData, iotaOffice, initialized]);
 
   // ── Auto-recompute formula items when baseSalary changes ─────────────────
   // On new forms, if templates are loaded but line items haven't been seeded yet with
@@ -281,9 +293,9 @@ export function ResourceCalculationFormView({ id }) {
     setLineItems((prev) => recompute(prev, baseSalary, num));
   };
 
-  const handleCalculationCountryChange = (nextCountry) => {
-    setCalculationCountry(nextCountry);
-    const countryMeta = CALCULATION_COUNTRY_OPTIONS.find((c) => c.value === nextCountry);
+  const handleIotaOfficeChange = (nextOffice) => {
+    setIotaOffice(nextOffice);
+    const countryMeta = IOTA_OFFICE_OPTIONS.find((c) => c.value === nextOffice);
     if (countryMeta) {
       setCurrency(countryMeta.currency);
     }
@@ -390,6 +402,7 @@ export function ResourceCalculationFormView({ id }) {
         title: title.trim(),
         jdId: jdId || undefined,
         candidateId: candidateId || undefined,
+        iotaOffice,
         nationality: nationality.trim(),
         positionCode: String(customerDisplayName),
         insurancePremiumFactor: Number(insurancePremiumFactor) || 1,
@@ -538,13 +551,7 @@ export function ResourceCalculationFormView({ id }) {
                 <Select
                   value={nationality}
                   label="Nationality"
-                  onChange={(e) => {
-                    const nextNationality = e.target.value;
-                    setNationality(nextNationality);
-                    if (!isEdit && nextNationality === 'Indian') {
-                      handleCalculationCountryChange('India');
-                    }
-                  }}
+                  onChange={(e) => setNationality(e.target.value)}
                 >
                   <MenuItem value="">— Select —</MenuItem>
                   {NATIONALITY_OPTIONS.map((n) => (
@@ -555,22 +562,20 @@ export function ResourceCalculationFormView({ id }) {
                 </Select>
               </FormControl>
 
-              {!isEdit && (
-                <FormControl fullWidth>
-                  <InputLabel>Calculation Country</InputLabel>
-                  <Select
-                    value={calculationCountry}
-                    label="Calculation Country"
-                    onChange={(e) => handleCalculationCountryChange(e.target.value)}
-                  >
-                    {CALCULATION_COUNTRY_OPTIONS.map((c) => (
-                      <MenuItem key={c.value} value={c.value}>
-                        {c.label}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
+              <FormControl fullWidth required>
+                <InputLabel>IOTA Office</InputLabel>
+                <Select
+                  value={iotaOffice}
+                  label="IOTA Office"
+                  onChange={(e) => handleIotaOfficeChange(e.target.value)}
+                >
+                  {IOTA_OFFICE_OPTIONS.map((c) => (
+                    <MenuItem key={c.value} value={c.value}>
+                      {c.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
               <FormControl fullWidth>
                 <InputLabel>Customer</InputLabel>
@@ -956,8 +961,7 @@ export function ResourceCalculationFormView({ id }) {
       {/* ── Quotation Summary Section ─────────────────────────────────────── */}
       {(() => {
         const countryMeta =
-          CALCULATION_COUNTRY_OPTIONS.find((c) => c.value === calculationCountry) ||
-          CALCULATION_COUNTRY_OPTIONS[0];
+          IOTA_OFFICE_OPTIONS.find((c) => c.value === iotaOffice) || IOTA_OFFICE_OPTIONS[0];
         const VAT_RATE = countryMeta.taxRate;
         const TAX_LABEL = countryMeta.taxLabel;
         const subtotal = totalAnnual;
