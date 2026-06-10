@@ -4611,8 +4611,10 @@ export async function generateJobDescription(data) {
   return response.data;
 }
 
-export async function getResourceCalculationTemplates() {
-  const response = await axios.get(`${PROFILE_API_URL}/profile/resource-calculation-templates`);
+export async function getResourceCalculationTemplates(countryCode = 'KSA') {
+  const response = await axios.get(`${PROFILE_API_URL}/profile/resource-calculation-templates`, {
+    params: { countryCode },
+  });
   return response.data;
 }
 

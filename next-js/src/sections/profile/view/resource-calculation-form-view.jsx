@@ -69,6 +69,11 @@ const NATIONALITY_OPTIONS = [
   'British',
 ];
 
+const CALCULATION_COUNTRY_OPTIONS = [
+  { value: 'KSA', label: 'Saudi Arabia', currency: 'SAR', taxRate: 0.15, taxLabel: 'VAT' },
+  { value: 'India', label: 'India', currency: 'INR', taxRate: 0.18, taxLabel: 'GST' },
+];
+
 const STATUS_COLORS = {
   draft: 'default',
   submitted: 'info',
@@ -152,7 +157,10 @@ export function ResourceCalculationFormView({ id }) {
   } = useSWR(isEdit ? `profile/resource-calculations/${id}` : null, () =>
     getResourceCalculation(id)
   );
-  const { data: tplData } = useSWR('profile/rc-templates', getResourceCalculationTemplates);
+  const [calculationCountry, setCalculationCountry] = useState('KSA');
+  const { data: tplData } = useSWR(['profile/rc-templates', calculationCountry], () =>
+    getResourceCalculationTemplates(calculationCountry)
+  );
   const { data: jdListData } = useSWR('profile/jd', listJobDescriptions);
   const { data: candidatesData } = useSWR('profile/candidates', listCandidates);
   const { data: customersData } = useSWR('customers', getCustomers);
@@ -198,34 +206,47 @@ export function ResourceCalculationFormView({ id }) {
     dependentsCountRef.current = dependentsCount;
   }, [dependentsCount]);
 
-  // ── Seed form from existing record or from templates ─────────────────────
+  // ── Seed form from existing record ────────────────────────────────────────
   useEffect(() => {
-    if (initialized) return;
+    if (!isEdit || initialized) return;
 
-    if (isEdit) {
-      const rc = rcData?.data;
-      if (!rc) return;
-      setTitle(rc.title);
-      setJdId(rc.jdId || '');
-      setCandidateId(rc.candidateId || '');
-      setNationality(rc.nationality);
-      setCustomerId(rc.positionCode || '');
-      setInsurancePremiumFactor(rc.insurancePremiumFactor);
-      setDependentsCount(rc.dependentsCount);
-      setBaseSalary(rc.baseSalary);
-      setCurrency(rc.currency);
-      setLineItems(rc.lineItems || []);
-      setStatus(rc.status);
-      setResumeUrl(rc.resumeUrl || '');
-      setNotes(rc.notes || '');
-      setInitialized(true);
-    } else {
-      const items = tplData?.items;
-      if (!items) return;
-      setLineItems(items);
-      setInitialized(true);
+    const rc = rcData?.data;
+    if (!rc) return;
+    setTitle(rc.title);
+    setJdId(rc.jdId || '');
+    setCandidateId(rc.candidateId || '');
+    setNationality(rc.nationality);
+    setCustomerId(rc.positionCode || '');
+    setInsurancePremiumFactor(rc.insurancePremiumFactor);
+    setDependentsCount(rc.dependentsCount);
+    setBaseSalary(rc.baseSalary);
+    setCurrency(rc.currency);
+    setLineItems(rc.lineItems || []);
+    setStatus(rc.status);
+    setResumeUrl(rc.resumeUrl || '');
+    setNotes(rc.notes || '');
+    if (rc.currency === 'INR' || rc.nationality === 'Indian') {
+      setCalculationCountry('India');
     }
-  }, [isEdit, rcData, tplData, initialized]);
+    setInitialized(true);
+  }, [isEdit, rcData, initialized]);
+
+  // ── Seed/refresh create-mode templates when country changes ───────────────
+  useEffect(() => {
+    if (isEdit) return;
+    const items = tplData?.items;
+    if (!items) return;
+
+    const countryMeta =
+      CALCULATION_COUNTRY_OPTIONS.find((c) => c.value === calculationCountry) ||
+      CALCULATION_COUNTRY_OPTIONS[0];
+
+    setCurrency(countryMeta.currency);
+    setLineItems(
+      recompute(items, Number(baseSalaryRef.current) || 0, Number(dependentsCountRef.current) || 0)
+    );
+    if (!initialized) setInitialized(true);
+  }, [isEdit, tplData, calculationCountry, initialized]);
 
   // ── Auto-recompute formula items when baseSalary changes ─────────────────
   // On new forms, if templates are loaded but line items haven't been seeded yet with
@@ -258,6 +279,14 @@ export function ResourceCalculationFormView({ id }) {
     const num = Number(val) || 0;
     setDependentsCount(num);
     setLineItems((prev) => recompute(prev, baseSalary, num));
+  };
+
+  const handleCalculationCountryChange = (nextCountry) => {
+    setCalculationCountry(nextCountry);
+    const countryMeta = CALCULATION_COUNTRY_OPTIONS.find((c) => c.value === nextCountry);
+    if (countryMeta) {
+      setCurrency(countryMeta.currency);
+    }
   };
 
   // ── Line-item helpers ─────────────────────────────────────────────────────
@@ -509,7 +538,13 @@ export function ResourceCalculationFormView({ id }) {
                 <Select
                   value={nationality}
                   label="Nationality"
-                  onChange={(e) => setNationality(e.target.value)}
+                  onChange={(e) => {
+                    const nextNationality = e.target.value;
+                    setNationality(nextNationality);
+                    if (!isEdit && nextNationality === 'Indian') {
+                      handleCalculationCountryChange('India');
+                    }
+                  }}
                 >
                   <MenuItem value="">— Select —</MenuItem>
                   {NATIONALITY_OPTIONS.map((n) => (
@@ -519,6 +554,23 @@ export function ResourceCalculationFormView({ id }) {
                   ))}
                 </Select>
               </FormControl>
+
+              {!isEdit && (
+                <FormControl fullWidth>
+                  <InputLabel>Calculation Country</InputLabel>
+                  <Select
+                    value={calculationCountry}
+                    label="Calculation Country"
+                    onChange={(e) => handleCalculationCountryChange(e.target.value)}
+                  >
+                    {CALCULATION_COUNTRY_OPTIONS.map((c) => (
+                      <MenuItem key={c.value} value={c.value}>
+                        {c.label}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
 
               <FormControl fullWidth>
                 <InputLabel>Customer</InputLabel>
@@ -903,7 +955,11 @@ export function ResourceCalculationFormView({ id }) {
 
       {/* ── Quotation Summary Section ─────────────────────────────────────── */}
       {(() => {
-        const VAT_RATE = 0.15;
+        const countryMeta =
+          CALCULATION_COUNTRY_OPTIONS.find((c) => c.value === calculationCountry) ||
+          CALCULATION_COUNTRY_OPTIONS[0];
+        const VAT_RATE = countryMeta.taxRate;
+        const TAX_LABEL = countryMeta.taxLabel;
         const subtotal = totalAnnual;
         const vatAmount = subtotal * VAT_RATE;
         const grandTotal = subtotal + vatAmount;
@@ -954,10 +1010,10 @@ export function ResourceCalculationFormView({ id }) {
             <TableContainer>
               <Table>
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: '#0B5E41' }}>
+                  <TableRow sx={{ backgroundColor: '#E8F3EF' }}>
                     <TableCell
                       sx={{
-                        color: 'white',
+                        color: '#111111',
                         fontWeight: 700,
                         fontSize: 12,
                         textTransform: 'uppercase',
@@ -972,7 +1028,7 @@ export function ResourceCalculationFormView({ id }) {
                     <TableCell
                       align="center"
                       sx={{
-                        color: 'white',
+                        color: '#111111',
                         fontWeight: 700,
                         fontSize: 11,
                         textTransform: 'uppercase',
@@ -985,12 +1041,12 @@ export function ResourceCalculationFormView({ id }) {
                     >
                       Monthly Charges
                       <br />
-                      (Excl. VAT)
+                      (Excl. {TAX_LABEL})
                     </TableCell>
                     <TableCell
                       align="center"
                       sx={{
-                        color: 'white',
+                        color: '#111111',
                         fontWeight: 700,
                         fontSize: 11,
                         textTransform: 'uppercase',
@@ -1005,7 +1061,7 @@ export function ResourceCalculationFormView({ id }) {
                       <br />
                       (12 Months)
                       <br />
-                      (Excl. VAT)
+                      (Excl. {TAX_LABEL})
                     </TableCell>
                   </TableRow>
                 </TableHead>
@@ -1054,7 +1110,7 @@ export function ResourceCalculationFormView({ id }) {
                       sx={{ verticalAlign: 'middle', py: 2.5, borderBottom: 'none' }}
                     >
                       <Typography variant="body1" fontWeight={600}>
-                        SAR {fmtNumber(totalMonthly)}
+                        {currency} {fmtNumber(totalMonthly)}
                       </Typography>
                     </TableCell>
                     <TableCell
@@ -1062,7 +1118,7 @@ export function ResourceCalculationFormView({ id }) {
                       sx={{ verticalAlign: 'middle', py: 2.5, borderBottom: 'none' }}
                     >
                       <Typography variant="body1" fontWeight={600}>
-                        SAR {fmtNumber(totalAnnual)}
+                        {currency} {fmtNumber(totalAnnual)}
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -1101,7 +1157,7 @@ export function ResourceCalculationFormView({ id }) {
               <Stack spacing={0.75} sx={{ minWidth: 300 }}>
                 {[
                   { label: 'SUBTOTAL:', value: subtotal },
-                  { label: `VAT (${(VAT_RATE * 100).toFixed(0)}%):`, value: vatAmount },
+                  { label: `${TAX_LABEL} (${(VAT_RATE * 100).toFixed(0)}%):`, value: vatAmount },
                   { label: 'OTHERS:', value: 0 },
                 ].map(({ label, value }) => (
                   <Stack key={label} direction="row" justifyContent="space-between" spacing={4}>
@@ -1109,7 +1165,7 @@ export function ResourceCalculationFormView({ id }) {
                       {label}
                     </Typography>
                     <Typography variant="body2" fontWeight={700}>
-                      SAR {fmtNumber(value)}
+                      {currency} {fmtNumber(value)}
                     </Typography>
                   </Stack>
                 ))}
@@ -1119,7 +1175,7 @@ export function ResourceCalculationFormView({ id }) {
                     TOTAL:
                   </Typography>
                   <Typography variant="body1" fontWeight={800} color="success.dark">
-                    SAR {fmtNumber(grandTotal)}
+                    {currency} {fmtNumber(grandTotal)}
                   </Typography>
                 </Stack>
               </Stack>
