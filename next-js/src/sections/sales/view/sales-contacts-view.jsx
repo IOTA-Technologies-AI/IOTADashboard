@@ -15,6 +15,7 @@ import Divider from '@mui/material/Divider';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
+import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -38,6 +39,7 @@ export function SalesContactsView() {
 
   // Apollo state — superAdmin only
   const [apolloQuery, setApolloQuery] = useState('');
+  const [apolloSearchBy, setApolloSearchBy] = useState('name');
   const [apolloSearching, setApolloSearching] = useState(false);
   const [apolloResults, setApolloResults] = useState([]);
   const [apolloEnriching, setApolloEnriching] = useState(null);
@@ -82,10 +84,19 @@ export function SalesContactsView() {
     setApolloEnrichedPerson(null);
     setApolloError(null);
     try {
-      const res = await axios.post(endpoints.apollo.peopleSearch, { query: apolloQuery.trim() });
+      const res = await axios.post(endpoints.apollo.peopleSearch, {
+        query: apolloQuery.trim(),
+        searchBy: apolloSearchBy,
+      });
       const people = res?.data?.people ?? res?.people ?? [];
       setApolloResults(people);
-      if (people.length === 0) setApolloError('No results found for that query.');
+      if (people.length === 0) {
+        setApolloError(
+          apolloSearchBy === 'company'
+            ? 'No people found under this company.'
+            : 'No people found for this name query.'
+        );
+      }
     } catch (err) {
       console.error('Apollo search failed', err);
       setApolloError(
@@ -146,8 +157,24 @@ export function SalesContactsView() {
 
           <Stack direction="row" spacing={1} mb={2}>
             <TextField
+              select
               size="small"
-              placeholder="Search by name or company…"
+              label="Search by"
+              value={apolloSearchBy}
+              onChange={(e) => setApolloSearchBy(e.target.value)}
+              sx={{ minWidth: 170 }}
+            >
+              <MenuItem value="name">Search by Name</MenuItem>
+              <MenuItem value="company">Search by Company</MenuItem>
+            </TextField>
+
+            <TextField
+              size="small"
+              placeholder={
+                apolloSearchBy === 'company'
+                  ? 'Enter company name (e.g. IOTA Technologies)'
+                  : 'Enter person/resource name'
+              }
               value={apolloQuery}
               onChange={(e) => setApolloQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -184,8 +211,10 @@ export function SalesContactsView() {
           {apolloResults.length > 0 && (
             <>
               <Typography variant="caption" color="text.secondary" mb={1} display="block">
-                {apolloResults.length} result{apolloResults.length !== 1 ? 's' : ''} — click
-                &quot;Fetch Details&quot; to retrieve email and phone.
+                {apolloSearchBy === 'company'
+                  ? `Found ${apolloResults.length} people under this company.`
+                  : `Found ${apolloResults.length} people matching this name query.`}{' '}
+                Click &quot;Fetch Details&quot; to retrieve email and phone.
               </Typography>
               <Table size="small">
                 <TableHead>
