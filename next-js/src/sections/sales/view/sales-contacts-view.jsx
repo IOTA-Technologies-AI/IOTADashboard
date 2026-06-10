@@ -326,6 +326,13 @@ export function SalesContactsView() {
                     </Box>
                     {apolloEnrichedPerson.phone || '—'}
                   </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Source:{' '}
+                    {apolloEnrichedPerson.source === 'cache' ? 'Contact DB (cached)' : 'Apollo'}
+                    {apolloEnrichedPerson.fetchedAt
+                      ? ` • Fetched: ${new Date(apolloEnrichedPerson.fetchedAt).toLocaleString()}`
+                      : ''}
+                  </Typography>
                 </Stack>
               </Box>
             </>
