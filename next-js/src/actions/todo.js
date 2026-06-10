@@ -372,6 +372,8 @@ export async function createTask(columnId, taskData, userInfo = {}) {
     // Assignee info (if provided)
     assigneeEmail: taskData.assigneeEmail || null,
     assigneeName: taskData.assigneeName || null,
+    snoozedUntil: taskData.snoozedUntil || null,
+    snoozedByEmail: taskData.snoozedByEmail || null,
   };
 
   const res = await axios.post(endpoints.todo.tasks, payload);
@@ -418,6 +420,9 @@ export async function updateTask(columnId, taskData, userInfo = {}) {
     priority: taskData.priority,
     // Labels
     labels: taskData.labels,
+    // Reminder snooze (task-level)
+    snoozedUntil: taskData.snoozedUntil,
+    snoozedByEmail: taskData.snoozedByEmail,
     // Assignee (comma-separated for multi-assignee support)
     assigneeEmail,
     assigneeName,

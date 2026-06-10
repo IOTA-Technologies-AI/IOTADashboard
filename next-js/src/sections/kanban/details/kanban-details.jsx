@@ -77,6 +77,9 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
   );
   const [newReminderChannel, setNewReminderChannel] = useState('email');
   const [newReminderEmail, setNewReminderEmail] = useState(task.assignee?.[0]?.email || '');
+  const [snoozeDays, setSnoozeDays] = useState(1);
+  const [snoozeSaving, setSnoozeSaving] = useState(false);
+  const [snoozedUntil, setSnoozedUntil] = useState(task.snoozedUntil || null);
   const [newCommentText, setNewCommentText] = useState('');
 
   const { subtasks, subtasksLoading, subtasksError } = useGetSubtasks(task.id);
@@ -148,6 +151,45 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
       console.error('create subtask failed', error);
     }
   }, [newSubtaskTitle, task.id]);
+
+  const handleSnoozeReminders = useCallback(
+    async (days) => {
+      try {
+        setSnoozeSaving(true);
+        const normalizedDays = Math.max(1, Math.min(7, Number(days) || 1));
+        const nextSnoozedUntil = dayjs().add(normalizedDays, 'day').toISOString();
+
+        await onUpdateTask?.({
+          ...task,
+          snoozedUntil: nextSnoozedUntil,
+          snoozedByEmail: user?.email || null,
+        });
+
+        setSnoozedUntil(nextSnoozedUntil);
+      } catch (error) {
+        console.error('snooze reminders failed', error);
+      } finally {
+        setSnoozeSaving(false);
+      }
+    },
+    [onUpdateTask, task, user?.email]
+  );
+
+  const handleClearSnooze = useCallback(async () => {
+    try {
+      setSnoozeSaving(true);
+      await onUpdateTask?.({
+        ...task,
+        snoozedUntil: null,
+        snoozedByEmail: user?.email || null,
+      });
+      setSnoozedUntil(null);
+    } catch (error) {
+      console.error('clear snooze failed', error);
+    } finally {
+      setSnoozeSaving(false);
+    }
+  }, [onUpdateTask, task, user?.email]);
 
   const handleToggleAssignee = useCallback(
     (contact) => {
@@ -386,6 +428,55 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
       <Box sx={{ display: 'flex', alignItems: 'center' }}>
         <BlockLabel>Priority</BlockLabel>
         <KanbanDetailsPriority priority={priority} onChangePriority={handleChangePriority} />
+      </Box>
+
+      {/* Reminder snooze */}
+      <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+        <BlockLabel sx={{ mt: 1 }}>Reminder snooze</BlockLabel>
+        <Box sx={{ width: 1 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="flex-start">
+            <TextField
+              select
+              size="small"
+              label="Days"
+              value={snoozeDays}
+              onChange={(e) => setSnoozeDays(Math.max(1, Math.min(7, Number(e.target.value))))}
+              sx={{ width: 120 }}
+            >
+              {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+                <MenuItem key={d} value={d}>
+                  {d} day{d > 1 ? 's' : ''}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <Button
+              variant="outlined"
+              onClick={() => handleSnoozeReminders(snoozeDays)}
+              disabled={snoozeSaving}
+              startIcon={<Iconify icon="solar:clock-circle-bold" />}
+            >
+              Snooze reminders
+            </Button>
+
+            {!!snoozedUntil && dayjs(snoozedUntil).isAfter(dayjs()) && (
+              <Button
+                variant="text"
+                color="inherit"
+                onClick={handleClearSnooze}
+                disabled={snoozeSaving}
+              >
+                Clear snooze
+              </Button>
+            )}
+          </Stack>
+
+          <Typography variant="caption" sx={{ color: 'text.secondary', mt: 1, display: 'block' }}>
+            {snoozedUntil && dayjs(snoozedUntil).isAfter(dayjs())
+              ? `Reminders are snoozed until ${fDateTime(snoozedUntil)} (max 7 days).`
+              : 'Pause reminder emails for this task for up to 7 days.'}
+          </Typography>
+        </Box>
       </Box>
 
       {/* Description */}
