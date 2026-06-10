@@ -43,6 +43,7 @@ export function SalesContactsView() {
   const [apolloSearching, setApolloSearching] = useState(false);
   const [apolloResults, setApolloResults] = useState([]);
   const [apolloCredits, setApolloCredits] = useState(null);
+  const [apolloCreditsChecked, setApolloCreditsChecked] = useState(false);
   const [apolloEnriching, setApolloEnriching] = useState(null);
   const [apolloEnrichedPerson, setApolloEnrichedPerson] = useState(null);
   const [apolloError, setApolloError] = useState(null);
@@ -93,6 +94,7 @@ export function SalesContactsView() {
       const credits = res?.data?.credits ?? null;
       setApolloResults(people);
       setApolloCredits(credits);
+      setApolloCreditsChecked(true);
       if (people.length === 0) {
         setApolloError(
           apolloSearchBy === 'company'
@@ -123,6 +125,7 @@ export function SalesContactsView() {
       const enriched = res?.data ?? res;
       setApolloEnrichedPerson({ ...enriched, displayName: person.name });
       setApolloCredits(enriched?.credits ?? null);
+      setApolloCreditsChecked(true);
     } catch (err) {
       console.error('Apollo enrich failed', err);
       setApolloError(err?.response?.data?.message || 'Failed to fetch contact details.');
@@ -211,27 +214,37 @@ export function SalesContactsView() {
             </Alert>
           )}
 
-          {apolloCredits && (
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} mb={2}>
-              <Chip
-                size="small"
-                color="info"
-                variant="soft"
-                label={`Apollo credits left (day): ${apolloCredits?.day?.leftOver ?? '—'}`}
-              />
-              <Chip
-                size="small"
-                color="default"
-                variant="soft"
-                label={`Hour: ${apolloCredits?.hour?.leftOver ?? '—'}`}
-              />
-              <Chip
-                size="small"
-                color="default"
-                variant="soft"
-                label={`Minute: ${apolloCredits?.minute?.leftOver ?? '—'}`}
-              />
-            </Stack>
+          {apolloCreditsChecked && (
+            <>
+              {apolloCredits ? (
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} mb={2}>
+                  <Chip
+                    size="small"
+                    color="info"
+                    variant="soft"
+                    label={`Apollo credits left (day): ${apolloCredits?.day?.leftOver ?? '—'}`}
+                  />
+                  <Chip
+                    size="small"
+                    color="default"
+                    variant="soft"
+                    label={`Hour: ${apolloCredits?.hour?.leftOver ?? '—'}`}
+                  />
+                  <Chip
+                    size="small"
+                    color="default"
+                    variant="soft"
+                    label={`Minute: ${apolloCredits?.minute?.leftOver ?? '—'}`}
+                  />
+                </Stack>
+              ) : (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  Apollo credits are currently unavailable for this request. This usually means the
+                  API key does not have usage-stats permission (master key required) or data came
+                  from Contact DB cache.
+                </Alert>
+              )}
+            </>
           )}
 
           {/* Search results table */}
