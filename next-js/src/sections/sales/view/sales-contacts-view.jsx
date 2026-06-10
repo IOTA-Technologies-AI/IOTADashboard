@@ -42,6 +42,7 @@ export function SalesContactsView() {
   const [apolloSearchBy, setApolloSearchBy] = useState('name');
   const [apolloSearching, setApolloSearching] = useState(false);
   const [apolloResults, setApolloResults] = useState([]);
+  const [apolloCredits, setApolloCredits] = useState(null);
   const [apolloEnriching, setApolloEnriching] = useState(null);
   const [apolloEnrichedPerson, setApolloEnrichedPerson] = useState(null);
   const [apolloError, setApolloError] = useState(null);
@@ -89,7 +90,9 @@ export function SalesContactsView() {
         searchBy: apolloSearchBy,
       });
       const people = res?.data?.people ?? res?.people ?? [];
+      const credits = res?.data?.credits ?? null;
       setApolloResults(people);
+      setApolloCredits(credits);
       if (people.length === 0) {
         setApolloError(
           apolloSearchBy === 'company'
@@ -119,6 +122,7 @@ export function SalesContactsView() {
       });
       const enriched = res?.data ?? res;
       setApolloEnrichedPerson({ ...enriched, displayName: person.name });
+      setApolloCredits(enriched?.credits ?? null);
     } catch (err) {
       console.error('Apollo enrich failed', err);
       setApolloError(err?.response?.data?.message || 'Failed to fetch contact details.');
@@ -205,6 +209,29 @@ export function SalesContactsView() {
             <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setApolloError(null)}>
               {apolloError}
             </Alert>
+          )}
+
+          {apolloCredits && (
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} mb={2}>
+              <Chip
+                size="small"
+                color="info"
+                variant="soft"
+                label={`Apollo credits left (day): ${apolloCredits?.day?.leftOver ?? '—'}`}
+              />
+              <Chip
+                size="small"
+                color="default"
+                variant="soft"
+                label={`Hour: ${apolloCredits?.hour?.leftOver ?? '—'}`}
+              />
+              <Chip
+                size="small"
+                color="default"
+                variant="soft"
+                label={`Minute: ${apolloCredits?.minute?.leftOver ?? '—'}`}
+              />
+            </Stack>
           )}
 
           {/* Search results table */}
