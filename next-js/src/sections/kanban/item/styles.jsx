@@ -44,6 +44,20 @@ export const ItemRoot = styled(m.li)(({ theme }) => {
     borderRadius: 'var(--kanban-item-radius)',
     backgroundColor: theme.vars.palette.common.white,
     transition: theme.transitions.create(['filter', 'box-shadow', 'background-color']),
+    // Priority border — bottom accent line + matching shadow
+    borderBottom: '3px solid transparent',
+    '&[data-priority="high"]': {
+      borderBottomColor: theme.vars.palette.error.main,
+      boxShadow: `0 4px 12px -2px ${theme.vars.palette.error.light}`,
+    },
+    '&[data-priority="medium"]': {
+      borderBottomColor: theme.vars.palette.warning.main,
+      boxShadow: `0 4px 12px -2px ${theme.vars.palette.warning.light}`,
+    },
+    '&[data-priority="low"]': {
+      borderBottomColor: theme.vars.palette.info.main,
+      boxShadow: `0 4px 12px -2px ${theme.vars.palette.info.light}`,
+    },
     ...theme.applyStyles('dark', {
       backgroundColor: theme.vars.palette.grey[900],
     }),
@@ -202,7 +216,16 @@ export function ItemInfo({ sx, assignee, comments, attachments, ...other }) {
             }}
           >
             {assignee.map((user) => (
-              <Avatar key={user.id} alt={user.name} src={user.avatarUrl} />
+              <Avatar
+                key={user.id}
+                alt={user.name}
+                src={user.avatarUrl || undefined}
+                sx={{ fontSize: 11, fontWeight: 700 }}
+              >
+                {!user.avatarUrl && user.name
+                  ? user.name.trim().charAt(0).toUpperCase()
+                  : undefined}
+              </Avatar>
             ))}
           </AvatarGroup>
         </>

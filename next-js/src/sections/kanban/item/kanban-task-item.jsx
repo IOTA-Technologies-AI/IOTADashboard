@@ -112,6 +112,7 @@ export function KanbanTaskItem({ task, columnId, sx, ...other }) {
       {...{
         [getAttr('dataTaskId')]: task.id,
       }}
+      data-priority={task.priority || 'low'}
       className={mergeClasses([kanbanClasses.item.root], {
         [kanbanClasses.state.dragging]: state.type === kanbanClasses.state.dragging,
         [kanbanClasses.state.draggingAndLeftSelf]:
