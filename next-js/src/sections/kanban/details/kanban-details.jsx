@@ -60,7 +60,16 @@ const BlockLabel = styled('span')(({ theme }) => ({
 
 // ----------------------------------------------------------------------
 
-export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose }) {
+export function KanbanDetails({
+  task,
+  open,
+  onUpdateTask,
+  onDeleteTask,
+  onClose,
+  columns,
+  currentColumnId,
+  onMoveToColumn,
+}) {
   const tabs = useTabs('overview');
   const { user } = useAuthContext();
 
@@ -211,8 +220,10 @@ export function KanbanDetails({ task, open, onUpdateTask, onDeleteTask, onClose 
     <KanbanDetailsToolbar
       taskName={task.name}
       onDelete={onDeleteTask}
-      taskStatus={task.status}
       onCloseDetails={onClose}
+      columns={columns || []}
+      currentColumnId={currentColumnId}
+      onMoveToColumn={onMoveToColumn}
     />
   );
 

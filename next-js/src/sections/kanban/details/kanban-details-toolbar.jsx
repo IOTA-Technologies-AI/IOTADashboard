@@ -1,4 +1,3 @@
-import { useState, useCallback } from 'react';
 import { useBoolean, usePopover } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
@@ -18,22 +17,22 @@ export function KanbanDetailsToolbar({
   sx,
   taskName,
   onDelete,
-  taskStatus,
   onCloseDetails,
+  columns = [],
+  currentColumnId,
+  onMoveToColumn,
   ...other
 }) {
   const menuActions = usePopover();
   const confirmDialog = useBoolean();
 
-  const [status, setStatus] = useState(taskStatus);
+  const currentColumn = columns.find((c) => c.id === currentColumnId);
+  const currentColumnName = currentColumn?.name ?? '—';
 
-  const handleChangeStatus = useCallback(
-    (newValue) => {
-      menuActions.onClose();
-      setStatus(newValue);
-    },
-    [menuActions]
-  );
+  const handleChangeColumn = (columnId) => {
+    menuActions.onClose();
+    if (onMoveToColumn) onMoveToColumn(columnId);
+  };
 
   const renderMenuActions = () => (
     <CustomPopover
@@ -43,13 +42,13 @@ export function KanbanDetailsToolbar({
       slotProps={{ arrow: { placement: 'top-right' } }}
     >
       <MenuList>
-        {['To do', 'In progress', 'Ready to test', 'Done'].map((option) => (
+        {columns.map((col) => (
           <MenuItem
-            key={option}
-            selected={status === option}
-            onClick={() => handleChangeStatus(option)}
+            key={col.id}
+            selected={col.id === currentColumnId}
+            onClick={() => handleChangeColumn(col.id)}
           >
-            {option}
+            {col.name}
           </MenuItem>
         ))}
       </MenuList>
@@ -93,8 +92,9 @@ export function KanbanDetailsToolbar({
           variant="soft"
           endIcon={<Iconify icon="eva:arrow-ios-downward-fill" width={16} sx={{ ml: -0.5 }} />}
           onClick={menuActions.onOpen}
+          disabled={columns.length === 0}
         >
-          {status}
+          {currentColumnName}
         </Button>
 
         <Box component="span" sx={{ flexGrow: 1 }} />

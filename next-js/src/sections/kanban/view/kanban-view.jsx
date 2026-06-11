@@ -23,6 +23,7 @@ import { KanbanColumn } from '../column/kanban-column';
 import { KanbanColumnAdd } from '../column/kanban-column-add';
 import { KanbanColumnSkeleton } from '../components/kanban-skeleton';
 import { defaultKanbanActions, KanbanActionsProvider } from '../context/actions-context';
+import { BoardProvider } from '../context/board-context';
 
 // ----------------------------------------------------------------------
 
@@ -145,19 +146,21 @@ export function KanbanView({
   );
 
   const renderList = () => (
-    <FlexibleColumnContainer columnFixed={columnFixed}>
-      <AnimatePresence>
-        {displayBoard.columns.map((column) => (
-          <KanbanColumn
-            key={column.id}
-            column={column}
-            tasks={displayBoard.tasks[column.id]}
-            canManageColumns={canManageColumns}
-          />
-        ))}
-      </AnimatePresence>
-      {canManageColumns ? <KanbanColumnAdd /> : null}
-    </FlexibleColumnContainer>
+    <BoardProvider board={displayBoard}>
+      <FlexibleColumnContainer columnFixed={columnFixed}>
+        <AnimatePresence>
+          {displayBoard.columns.map((column) => (
+            <KanbanColumn
+              key={column.id}
+              column={column}
+              tasks={displayBoard.tasks[column.id]}
+              canManageColumns={canManageColumns}
+            />
+          ))}
+        </AnimatePresence>
+        {canManageColumns ? <KanbanColumnAdd /> : null}
+      </FlexibleColumnContainer>
+    </BoardProvider>
   );
 
   const renderHead = () => (

@@ -5,6 +5,7 @@ import { useBoolean } from 'minimal-shared/hooks';
 import { mergeClasses } from 'minimal-shared/utils';
 
 import { useKanbanActions } from '../context/actions-context';
+import { useBoard } from '../context/board-context';
 
 import { kanbanClasses } from '../classes';
 import { KanbanDetails } from '../details/kanban-details';
@@ -49,7 +50,8 @@ const renderTaskPreview = (state, task) =>
 export function KanbanTaskItem({ task, columnId, sx, ...other }) {
   const taskDetailsDialog = useBoolean();
   const { taskRef, state } = useTaskItemDnd(task, columnId);
-  const { deleteTask, updateTask } = useKanbanActions();
+  const { deleteTask, updateTask, moveTask } = useKanbanActions();
+  const { columns, tasks: boardTasks } = useBoard();
 
   const handleDeleteTask = useCallback(async () => {
     try {
@@ -71,6 +73,25 @@ export function KanbanTaskItem({ task, columnId, sx, ...other }) {
     [columnId]
   );
 
+  // Move this task to a different column by rebuilding the full task map.
+  const handleMoveToColumn = useCallback(
+    (targetColumnId) => {
+      if (targetColumnId === columnId) return;
+      const newTasks = {};
+      // Copy all columns, removing the task from its current column and
+      // prepending it to the target column.
+      Object.keys(boardTasks).forEach((colId) => {
+        newTasks[colId] = (boardTasks[colId] || []).filter((t) => t.id !== task.id);
+      });
+      newTasks[targetColumnId] = [
+        { ...task, stageId: targetColumnId },
+        ...(newTasks[targetColumnId] || []),
+      ];
+      moveTask(newTasks);
+    },
+    [columnId, task, boardTasks, moveTask]
+  );
+
   const renderTaskDetailsDialog = () => (
     <KanbanDetails
       task={task}
@@ -78,6 +99,9 @@ export function KanbanTaskItem({ task, columnId, sx, ...other }) {
       onClose={taskDetailsDialog.onFalse}
       onUpdateTask={handleUpdateTask}
       onDeleteTask={handleDeleteTask}
+      columns={columns}
+      currentColumnId={columnId}
+      onMoveToColumn={handleMoveToColumn}
     />
   );
 
