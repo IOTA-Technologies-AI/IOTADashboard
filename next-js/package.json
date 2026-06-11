@@ -99,6 +99,7 @@
     "pdfjs-dist": "^5.4.449",
     "pdfreader": "^3.0.8",
     "qrcode": "^1.5.4",
+    "qrcode.react": "^4.2.0",
     "react": "^19.1.1",
     "react-apexcharts": "^1.7.0",
     "react-dom": "^19.1.1",

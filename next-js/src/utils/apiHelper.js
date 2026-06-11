@@ -4982,4 +4982,50 @@ export const apiHelper = {
   requestCandidateIntakeOtp,
   verifyCandidateIntakeOtp,
   submitCandidateIntakeForm,
+  // TOTP / Microsoft Authenticator
+  totpSetup,
+  totpVerifySetup,
+  totpVerify,
+  totpStatus,
 };
+
+// ─── TOTP / Microsoft Authenticator ────────────────────────────────────────
+
+/**
+ * Initiates TOTP setup for a user. Returns otpauthUri for QR code and the secret.
+ * @param {string} userId - The user's database UUID.
+ */
+export async function totpSetup(userId) {
+  const response = await axios.post(`${API_BASE_URL}totp/setup`, { userId });
+  return response.data;
+}
+
+/**
+ * Confirms TOTP setup by verifying the first code from the authenticator app.
+ * @param {string} userId - The user's database UUID.
+ * @param {string} code - The 6-digit TOTP code.
+ */
+export async function totpVerifySetup(userId, code) {
+  const response = await axios.post(`${API_BASE_URL}totp/verify-setup`, { userId, code });
+  return response.data;
+}
+
+/**
+ * Verifies a TOTP code before a sensitive action (e.g., invoice approval).
+ * Throws if TOTP not set up or code is invalid.
+ * @param {string} userId - The user's database UUID.
+ * @param {string} code - The 6-digit TOTP code.
+ */
+export async function totpVerify(userId, code) {
+  const response = await axios.post(`${API_BASE_URL}totp/verify`, { userId, code });
+  return response.data;
+}
+
+/**
+ * Checks whether TOTP is enabled for a user.
+ * @param {string} userId - The user's database UUID.
+ */
+export async function totpStatus(userId) {
+  const response = await axios.get(`${API_BASE_URL}totp/status/${encodeURIComponent(userId)}`);
+  return response.data;
+}
