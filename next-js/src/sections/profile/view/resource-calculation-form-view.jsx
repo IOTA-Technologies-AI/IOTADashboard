@@ -170,9 +170,9 @@ function recompute(items, baseSalary, dependentsCount) {
 }
 
 function fmtNumber(val) {
-  return Number(val || 0).toLocaleString('en-SA', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+  return Math.round(Number(val || 0)).toLocaleString('en-SA', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
   });
 }
 
@@ -410,7 +410,7 @@ export function ResourceCalculationFormView({ id }) {
 
   // ── Totals ────────────────────────────────────────────────────────────────
   const activeItems = lineItems.filter((i) => i.isActive);
-  const invoiceAmountItem = lineItems.find((i) => i.code === 'invoiceAmount');
+  const invoiceAmountItem = lineItems.find((i) => i.code === 'invoice_amount');
   const isIndiaOffice = iotaOffice === 'India';
   const totalMonthly = isIndiaOffice
     ? Number(invoiceAmountItem?.monthly || 0)
@@ -872,19 +872,28 @@ export function ResourceCalculationFormView({ id }) {
                         </Stack>
                       </TableCell>
                       <TableCell align="right">
-                        <TextField
-                          type="text"
-                          inputMode="numeric"
-                          value={Number(item.monthly || 0).toLocaleString('en-SA')}
-                          onChange={(e) => {
-                            const raw = Number(String(e.target.value).replace(/,/g, '')) || 0;
-                            handleLineItemChange(idx, 'monthly', raw);
-                          }}
-                          size="small"
-                          variant="standard"
-                          inputProps={{ style: { textAlign: 'right' } }}
-                          sx={{ width: 120 }}
-                        />
+                        {item.isEditable ? (
+                          <TextField
+                            type="text"
+                            inputMode="numeric"
+                            value={Math.round(Number(item.monthly || 0)).toLocaleString('en-SA')}
+                            onChange={(e) => {
+                              const raw = Number(String(e.target.value).replace(/,/g, '')) || 0;
+                              handleLineItemChange(idx, 'monthly', raw);
+                            }}
+                            size="small"
+                            variant="standard"
+                            inputProps={{ style: { textAlign: 'right' } }}
+                            sx={{ width: 120 }}
+                          />
+                        ) : (
+                          <Typography
+                            variant="body2"
+                            sx={{ textAlign: 'right', color: 'text.disabled', width: 120 }}
+                          >
+                            {Math.round(Number(item.monthly || 0)).toLocaleString('en-SA')}
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" color="text.secondary">
