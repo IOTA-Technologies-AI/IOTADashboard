@@ -131,39 +131,41 @@ function evalFormula(formula, context = {}) {
   }
 }
 
-/** Recompute all computed line items and totals. */
+/**
+ * Recompute formula-based line items sequentially so each row's result
+ * is immediately available to the next row's formula.
+ * Non-computed items are seeded into context first so formulas can
+ * reference them by code (e.g. basic, conveyance, hra…).
+ */
 function recompute(items, baseSalary, dependentsCount) {
-  let nextItems = items.map((item) => ({ ...item }));
+  // Build initial context from all non-computed items so their values
+  // are available to computed formulas that reference them.
+  const context = {
+    baseSalary: Number(baseSalary) || 0,
+    dependentsCount: Number(dependentsCount) || 0,
+  };
 
-  for (let pass = 0; pass < 4; pass += 1) {
-    const context = {
-      baseSalary: Number(baseSalary) || 0,
-      dependentsCount: Number(dependentsCount) || 0,
-    };
-
-    nextItems.forEach((item) => {
-      if (item.code) {
-        context[item.code] = Number(item.monthly) || 0;
-      }
-      if (item.category === 'salary') {
-        context.basic = Number(item.monthly) || Number(baseSalary) || 0;
-      }
-    });
-
-    nextItems = nextItems.map((item) => {
-      if (item.isComputed && item.formula) {
-        const monthly = evalFormula(item.formula, context);
-        return { ...item, monthly, annual: monthly * 12 };
-      }
-      return { ...item, annual: item.annual || item.monthly * 12 };
-    });
-  }
-
-  return nextItems.map((item) => {
-    if (item.isComputed && item.formula) {
-      return { ...item, annual: item.monthly * 12 };
+  items.forEach((item) => {
+    const code = String(item?.code || '').trim();
+    if (code && !item.isComputed) {
+      context[code] = Number(item.monthly) || 0;
     }
-    return { ...item, annual: item.annual || item.monthly * 12 };
+  });
+
+  // Compute items in declaration order so downstream formulas can
+  // reference upstream computed values (e.g. gross references hra).
+  return items.map((item) => {
+    const code = String(item?.code || '').trim();
+
+    if (item.isComputed && item.formula) {
+      const monthly = evalFormula(item.formula, context);
+      if (code) context[code] = Number(monthly) || 0;
+      return { ...item, monthly, annual: monthly * 12 };
+    }
+
+    // Non-computed — keep value, update annual
+    const annual = item.annual || (Number(item.monthly) || 0) * 12;
+    return { ...item, annual };
   });
 }
 
@@ -295,21 +297,15 @@ export function ResourceCalculationFormView({ id }) {
     setBaseSalary(num);
     setLineItems((prev) => {
       const seeded = prev.map((item) => {
-        if (item.category === 'salary') {
+        // Only update the explicit 'basic' coded row (India template).
+        // Fall back to the first salary-category row for KSA template
+        // which has no code field.
+        if (item.code === 'basic') {
           return { ...item, monthly: num, annual: num * 12 };
         }
-        // Editable items with formulas (e.g. End of Service) auto-fill from salary
-        if (
-          !item.isComputed &&
-          item.isEditable &&
-          item.formula &&
-          item.formula.includes('baseSalary')
-        ) {
-          const monthly = evalFormula(item.formula, {
-            baseSalary: num,
-            dependentsCount: Number(dependentsCount) || 0,
-          });
-          return { ...item, monthly, annual: monthly * 12 };
+        // KSA: single salary row with no code — keep legacy behaviour
+        if (!item.code && item.category === 'salary') {
+          return { ...item, monthly: num, annual: num * 12 };
         }
         return item;
       });
@@ -332,29 +328,39 @@ export function ResourceCalculationFormView({ id }) {
   };
 
   // ── Line-item helpers ─────────────────────────────────────────────────────
-  const handleLineItemChange = useCallback((idx, field, val, category) => {
-    if (field === 'monthly' && category === 'salary') {
-      // Salary row edited directly — sync top field and recompute
-      const num = Number(String(val).replace(/,/g, '')) || 0;
-      setBaseSalary(num);
+  const handleLineItemChange = useCallback(
+    (idx, field, val) => {
       setLineItems((prev) => {
-        const seeded = prev.map((item, i) =>
-          i === idx ? { ...item, monthly: num, annual: num * 12 } : item
-        );
-        return recompute(seeded, num, dependentsCountRef.current);
+        const updated = prev.map((item, i) => {
+          if (i !== idx) return item;
+          const next = { ...item, [field]: val };
+          if (field === 'monthly') {
+            next.annual = (Number(String(val).replace(/,/g, '')) || 0) * 12;
+          }
+          return next;
+        });
+
+        // Sync the 'Basic' salary top-level field when the basic-coded
+        // row (India) or the sole KSA salary row is edited.
+        if (field === 'monthly') {
+          const editedItem = updated[idx];
+          const isBasicRow =
+            editedItem?.code === 'basic' ||
+            (!editedItem?.code && editedItem?.category === 'salary');
+          if (isBasicRow) {
+            const num = Number(String(val).replace(/,/g, '')) || 0;
+            setBaseSalary(num);
+            return recompute(updated, num, dependentsCountRef.current);
+          }
+        }
+
+        // Any manual edit to a non-basic row — recompute dependents
+        return recompute(updated, baseSalaryRef.current, dependentsCountRef.current);
       });
-      return;
-    }
-    setLineItems((prev) => {
-      const updated = [...prev];
-      const item = { ...updated[idx], [field]: val };
-      if (field === 'monthly') {
-        item.annual = Number(String(val).replace(/,/g, '')) * 12;
-      }
-      updated[idx] = item;
-      return updated;
-    });
-  }, []);
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    []
+  );
 
   const handleAddLineItem = () => {
     const now = Date.now();
@@ -848,9 +854,7 @@ export function ResourceCalculationFormView({ id }) {
                               insurancePremiumFactor,
                               dependentsCount
                             )}
-                            onChange={(e) =>
-                              handleLineItemChange(idx, 'label', e.target.value, item.category)
-                            }
+                            onChange={(e) => handleLineItemChange(idx, 'label', e.target.value)}
                             size="small"
                             variant="standard"
                             InputProps={{
@@ -874,7 +878,7 @@ export function ResourceCalculationFormView({ id }) {
                           value={Number(item.monthly || 0).toLocaleString('en-SA')}
                           onChange={(e) => {
                             const raw = Number(String(e.target.value).replace(/,/g, '')) || 0;
-                            handleLineItemChange(idx, 'monthly', raw, item.category);
+                            handleLineItemChange(idx, 'monthly', raw);
                           }}
                           size="small"
                           variant="standard"
