@@ -41,7 +41,7 @@ function markTotpVerified(email) {
   }
 }
 
-// 'exchanging' | 'account_not_found' | 'setup_required' | 'setup_verify' | 'totp_required' | 'totp_locked' | 'error'
+// 'exchanging' | 'sending_qr' | 'setup_email_sent' | 'setup_verify' | 'totp_required' | 'totp_locked' | 'account_not_found' | 'error'
 
 export default function SupabaseAuthCallbackPage() {
   const router = useRouter();
@@ -52,9 +52,9 @@ export default function SupabaseAuthCallbackPage() {
   const [otp, setOtp] = useState('');
   const [otpError, setOtpError] = useState('');
   const [verifying, setVerifying] = useState(false);
-  const [sendingEmail, setSendingEmail] = useState(false);
-  const [emailSent, setEmailSent] = useState(false);
-  const [emailError, setEmailError] = useState('');
+  const [resending, setResending] = useState(false);
+  const [resendError, setResendError] = useState('');
+  const [checkingStatus, setCheckingStatus] = useState(false);
 
   // Hold resolved values across async phases
   const nextRef = useRef(paths.dashboard.root);
@@ -62,8 +62,171 @@ export default function SupabaseAuthCallbackPage() {
 
   const goToDashboard = () => router.replace(nextRef.current);
 
+  // Automatically send QR email and transition phase
+  const sendQrEmail = async () => {
+    setPhase('sending_qr');
+    try {
+      await totpSetup(emailRef.current);
+      setPhase('setup_email_sent');
+    } catch (err) {
+      const encoreMsg = err?.response?.data?.message || err?.message || '';
+      setAuthError(encoreMsg || 'Failed to send setup email. Please try again.');
+      setPhase('error');
+    }
+  };
+
   // ── Phase 1: exchange code and resolve TOTP status ────────────────────────
   useEffect(() => {
+    const code = searchParams.get('code');
+    nextRef.current = searchParams.get('next') || paths.dashboard.root;
+    const { code: hashCode, accessToken, refreshToken } = parseHashParams(window.location.hash);
+    const useCode = code || hashCode;
+
+    const afterSession = async (userEmail) => {
+      emailRef.current = userEmail || '';
+      console.log('[TOTP Callback] afterSession called with email:', userEmail);
+      if (!userEmail) {
+        goToDashboard();
+        return;
+      }
+      try {
+        const statusResult = await totpStatus(userEmail);
+        console.log('[TOTP Callback] totpStatus result:', statusResult);
+        const { totpEnabled, totpLocked } = statusResult;
+        if (!totpEnabled) {
+          console.log('[TOTP Callback] totpEnabled=false -> auto-sending QR email');
+          await sendQrEmail();
+          return;
+        }
+        if (totpLocked) {
+          setPhase('totp_locked');
+          return;
+        }
+        setPhase('totp_required');
+      } catch (statusErr) {
+        const httpStatus = statusErr?.response?.status;
+        const errMsg = statusErr?.response?.data?.message || statusErr?.message;
+        console.error('[TOTP Callback] totpStatus error:', httpStatus, errMsg, statusErr);
+        if (httpStatus === 404) {
+          setPhase('account_not_found');
+        } else {
+          // Unknown status — auto-send QR rather than blocking with OTP they may not have
+          await sendQrEmail();
+        }
+      }
+    };
+
+    const resolveSession = async () => {
+      if (accessToken) {
+        const { error: sessionError, data } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (sessionError) {
+          setAuthError(sessionError.message);
+          setPhase('error');
+          return;
+        }
+        await afterSession(data?.user?.email);
+        return;
+      }
+
+      const { data: existing } = await supabase.auth.getSession();
+      if (existing?.session) {
+        await afterSession(existing.session.user?.email);
+        return;
+      }
+
+      if (!useCode) {
+        setAuthError('Missing auth code in callback URL.');
+        setPhase('error');
+        return;
+      }
+
+      const { error: exchError, data: exchData } = await supabase.auth.exchangeCodeForSession({
+        authCode: useCode,
+      });
+      if (exchError) {
+        setAuthError(exchError.message);
+        setPhase('error');
+        return;
+      }
+      await afterSession(exchData?.user?.email);
+    };
+
+    resolveSession().catch((err) => {
+      setAuthError(err?.message || 'Unable to complete sign-in.');
+      setPhase('error');
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Resend QR email ───────────────────────────────────────────────────────
+  const handleResend = async () => {
+    setResending(true);
+    setResendError('');
+    try {
+      await totpSetup(emailRef.current);
+    } catch (err) {
+      const encoreMsg = err?.response?.data?.message || err?.message || '';
+      setResendError(encoreMsg || 'Failed to resend. Please try again.');
+    } finally {
+      setResending(false);
+    }
+  };
+
+  // ── "I've scanned it" — move to OTP entry ────────────────────────────────
+  const handleScannedIt = () => {
+    setOtp('');
+    setOtpError('');
+    setPhase('setup_verify');
+  };
+
+  // ── Confirm setup code ────────────────────────────────────────────────────
+  const handleVerifySetup = async () => {
+    const trimmed = otp.replace(/\s/g, '');
+    if (trimmed.length !== 6) {
+      setOtpError('Enter the 6-digit code shown in your authenticator app.');
+      return;
+    }
+    setVerifying(true);
+    setOtpError('');
+    try {
+      await totpVerifySetup(emailRef.current, trimmed);
+      markTotpVerified(emailRef.current);
+      goToDashboard();
+    } catch (err) {
+      const encoreMsg = err?.response?.data?.message || err?.message || '';
+      setOtpError(encoreMsg || 'Incorrect code. Please check the app and try again.');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // ── Verify OTP (returning user) ───────────────────────────────────────────
+  const handleVerify = async () => {
+    const trimmed = otp.replace(/\s/g, '');
+    if (trimmed.length !== 6) {
+      setOtpError('Enter the 6-digit code from your authenticator app.');
+      return;
+    }
+    setVerifying(true);
+    setOtpError('');
+    try {
+      await totpVerify(emailRef.current, trimmed);
+      markTotpVerified(emailRef.current);
+      goToDashboard();
+    } catch (err) {
+      const encoreMsg = err?.response?.data?.message || err?.message || '';
+      if (err?.response?.status === 403 || encoreMsg.toLowerCase().includes('locked')) {
+        setPhase('totp_locked');
+      } else {
+        setOtpError(encoreMsg || 'Incorrect code. Please try again.');
+      }
+    } finally {
+      setVerifying(false);
+    }
+  };
     const code = searchParams.get('code');
     nextRef.current = searchParams.get('next') || paths.dashboard.root;
     const { code: hashCode, accessToken, refreshToken } = parseHashParams(window.location.hash);
