@@ -71,30 +71,38 @@ export default function SupabaseAuthCallbackPage() {
 
     const afterSession = async (userEmail) => {
       emailRef.current = userEmail || '';
+      console.log('[TOTP Callback] afterSession called with email:', userEmail);
       if (!userEmail) {
+        console.log('[TOTP Callback] No email, redirecting to dashboard');
         goToDashboard();
         return;
       }
       try {
-        const { totpEnabled, totpLocked } = await totpStatus(userEmail);
+        const statusResult = await totpStatus(userEmail);
+        console.log('[TOTP Callback] totpStatus result:', statusResult);
+        const { totpEnabled, totpLocked } = statusResult;
         if (!totpEnabled) {
-          // First-time user — must set up TOTP before entering the dashboard
+          console.log('[TOTP Callback] totpEnabled=false -> setup_required');
           setPhase('setup_required');
           return;
         }
         if (totpLocked) {
+          console.log('[TOTP Callback] totpLocked=true -> totp_locked');
           setPhase('totp_locked');
           return;
         }
+        console.log('[TOTP Callback] totpEnabled=true -> totp_required');
         setPhase('totp_required');
       } catch (statusErr) {
         const httpStatus = statusErr?.response?.status;
+        const errMsg = statusErr?.response?.data?.message || statusErr?.message;
+        console.error('[TOTP Callback] totpStatus error:', httpStatus, errMsg, statusErr);
         if (httpStatus === 404) {
           // User authenticated via Entra but not yet provisioned in IOTA
           setPhase('account_not_found');
         } else {
-          // Any other failure — safe default is to require OTP
-          setPhase('totp_required');
+          // Unknown error — show setup rather than OTP (user can’t verify a code they may not have)
+          setPhase('setup_required');
         }
       }
     };
@@ -446,6 +454,21 @@ export default function SupabaseAuthCallbackPage() {
                 }
               >
                 {verifying ? 'Verifying…' : 'Verify & Sign In'}
+              </Button>
+
+              <Button
+                size="small"
+                variant="text"
+                color="inherit"
+                onClick={() => {
+                  setOtp('');
+                  setOtpError('');
+                  setEmailError('');
+                  setEmailSent(false);
+                  setPhase('setup_required');
+                }}
+              >
+                Haven&apos;t set up your authenticator yet?
               </Button>
             </Stack>
           </Box>

@@ -113,14 +113,14 @@ export function TotpGuard({ children }) {
       }
     } catch (err) {
       console.error('[TotpGuard] status check failed:', err);
-      // Fail open only if session is already verified (re-auth check failure shouldn't
-      // kick out an active user mid-session). On fresh load, require OTP.
+      // If we have a valid stamped session, let the user continue (re-auth failure shouldn't kick them out).
+      // Otherwise show setup_required — we can't demand a code they may not have.
       const ts = getVerifiedAt(email);
       if (ts && Date.now() - ts <= REAUTH_MS) {
         setState('verified');
         scheduleReauthCheck();
       } else {
-        setState('otp_required');
+        setState('setup_required');
       }
     }
   }, [email, isBypassPath, scheduleReauthCheck]);
