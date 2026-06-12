@@ -41,6 +41,7 @@ import {
   removeEnterpriseAppUser,
   totpStatus,
   totpUnlock,
+  totpReset,
 } from 'src/utils/apiHelper';
 import { clearPermissionCache } from 'src/auth/guard/permission-guard';
 import { clearVersionCheck, clearUserNavPermissionCache } from 'src/utils/pageAccess';
@@ -142,6 +143,7 @@ export default function AccessControlPage() {
   // TOTP lockout state
   const [totpLocked, setTotpLocked] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   // Selected user
   const [selectedUser, setSelectedUser] = useState(null);
@@ -334,6 +336,22 @@ export default function AccessControlPage() {
       setError(err?.message || 'Failed to unlock account.');
     } finally {
       setUnlocking(false);
+    }
+  }, [selectedUser]);
+
+  // Reset TOTP for selected user (wipes secret, sends new QR email)
+  const handleTotpReset = useCallback(async () => {
+    if (!selectedUser?.email) return;
+    setResetting(true);
+    setError('');
+    try {
+      await totpReset(selectedUser.email);
+      setTotpLocked(false);
+      setSuccessMessage(`TOTP reset for ${selectedUser.name}. A new QR code email has been sent.`);
+    } catch (err) {
+      setError(err?.response?.data?.message || err?.message || 'Failed to reset TOTP.');
+    } finally {
+      setResetting(false);
     }
   }, [selectedUser]);
 
@@ -959,6 +977,24 @@ export default function AccessControlPage() {
                               </Button>
                             </Tooltip>
                           )}
+                          <Tooltip title="Wipe this user's authenticator and send them a new QR code email">
+                            <Button
+                              size="small"
+                              variant="outlined"
+                              color="warning"
+                              onClick={handleTotpReset}
+                              disabled={resetting}
+                              startIcon={
+                                resetting ? (
+                                  <CircularProgress size={14} color="inherit" />
+                                ) : (
+                                  <Iconify icon="solar:refresh-bold" />
+                                )
+                              }
+                            >
+                              {resetting ? 'Resetting…' : 'Reset TOTP'}
+                            </Button>
+                          </Tooltip>
                           <Button
                             size="small"
                             variant={grantedRoleInfo?.role === 'regular' ? 'contained' : 'outlined'}

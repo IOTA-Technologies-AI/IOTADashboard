@@ -5001,6 +5001,7 @@ export const apiHelper = {
   totpVerify,
   totpStatus,
   totpUnlock,
+  totpReset,
 };
 
 // ─── TOTP / Microsoft Authenticator ────────────────────────────────────────
@@ -5046,5 +5047,10 @@ export async function totpStatus(userId) {
 
 export async function totpUnlock(userId) {
   const response = await axios.post(`${API_BASE_URL}totp/unlock`, { userId });
+  return response.data;
+}
+
+export async function totpReset(userId) {
+  const response = await axios.post(`${API_BASE_URL}totp/reset`, { userId });
   return response.data;
 }
