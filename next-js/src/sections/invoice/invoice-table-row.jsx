@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useBoolean, usePopover } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
@@ -17,11 +18,13 @@ import { RouterLink } from 'src/routes/components';
 
 import { fCurrency } from 'src/utils/format-number';
 import { fDate, fTime } from 'src/utils/format-time';
+import { markInvoicePaid } from 'src/utils/apiHelper';
 
 import { Label } from 'src/components/label';
 import { Iconify } from 'src/components/iconify';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 import { CustomPopover } from 'src/components/custom-popover';
+import { toast } from 'src/components/snackbar';
 
 // ----------------------------------------------------------------------
 
@@ -34,10 +37,14 @@ export function InvoiceTableRow({
   detailsHref,
   canEdit = true,
   canApprove = false,
+  canMarkPaid = false,
   onOpenApproval,
+  onMarkPaid,
 }) {
   const menuActions = usePopover();
   const confirmDialog = useBoolean();
+  const paidDialog = useBoolean();
+  const [marking, setMarking] = useState(false);
 
   const renderMenuActions = () => (
     <CustomPopover
@@ -65,6 +72,21 @@ export function InvoiceTableRow({
             >
               <Iconify icon="solar:check-circle-bold" />
               Review &amp; Approve
+            </MenuItem>
+          </li>
+        )}
+
+        {canMarkPaid && row.status === 'approved' && (
+          <li>
+            <MenuItem
+              onClick={() => {
+                paidDialog.onTrue();
+                menuActions.onClose();
+              }}
+              sx={{ color: 'success.dark' }}
+            >
+              <Iconify icon="solar:wallet-money-bold" />
+              Mark as Paid
             </MenuItem>
           </li>
         )}
@@ -105,6 +127,42 @@ export function InvoiceTableRow({
       action={
         <Button variant="contained" color="error" onClick={onDeleteRow}>
           Delete
+        </Button>
+      }
+    />
+  );
+
+  const handleMarkPaid = async () => {
+    setMarking(true);
+    try {
+      await markInvoicePaid(row.invoiceId || row.id, {
+        markedByName: row.approvedBy || 'Finance',
+        markedByEmail: '',
+      });
+      toast.success('Invoice marked as paid!');
+      paidDialog.onFalse();
+      onMarkPaid?.();
+    } catch {
+      toast.error('Failed to mark invoice as paid.');
+    } finally {
+      setMarking(false);
+    }
+  };
+
+  const renderPaidDialog = () => (
+    <ConfirmDialog
+      open={paidDialog.value}
+      onClose={paidDialog.onFalse}
+      title="Mark as Paid"
+      content={
+        <>
+          Confirm that funds for invoice <strong>{row.invoiceNumber}</strong> have been received and
+          this invoice should be marked as <strong>Paid</strong>?
+        </>
+      }
+      action={
+        <Button variant="contained" color="success" onClick={handleMarkPaid} disabled={marking}>
+          {marking ? 'Processing…' : 'Confirm Paid'}
         </Button>
       }
     />
@@ -199,6 +257,7 @@ export function InvoiceTableRow({
 
       {renderMenuActions()}
       {renderConfirmDialog()}
+      {renderPaidDialog()}
     </>
   );
 }

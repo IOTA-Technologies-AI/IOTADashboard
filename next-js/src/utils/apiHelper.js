@@ -2522,6 +2522,18 @@ export async function approveInvoice(invoiceId, data) {
   }
 }
 
+export async function markInvoicePaid(invoiceId, data) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}invoices/${invoiceId}/mark-paid`, data, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('❌ Failed to mark invoice as paid:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
 /**
  * @summary Issues an invoice by uploading the generated PDF to OneDrive and emailing it to the customer.
  * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
@@ -4800,6 +4812,7 @@ export const apiHelper = {
   updateInvoice,
   issueInvoice,
   approveInvoice,
+  markInvoicePaid,
   getEmployees,
   getEmployeeById,
   createEmployee,

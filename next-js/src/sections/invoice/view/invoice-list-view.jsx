@@ -113,6 +113,7 @@ export function InvoiceListView() {
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
   const canEdit = normalizedRole === 'superAdmin';
   const canApprove = normalizedRole === 'superAdmin';
+  const canMarkPaid = ['admin', 'superAdmin'].includes(normalizedRole);
 
   const [approvalInvoice, setApprovalInvoice] = useState(null);
   const approvalDialogOpen = useBoolean();
@@ -539,7 +540,13 @@ export function InvoiceListView() {
                             onDeleteRow={() => handleDeleteRow(row.id)}
                             canEdit={canEdit}
                             canApprove={canApprove}
+                            canMarkPaid={canMarkPaid}
                             onOpenApproval={handleOpenApproval}
+                            onMarkPaid={() =>
+                              setTableData((prev) =>
+                                prev.map((r) => (r.id === row.id ? { ...r, status: 'paid' } : r))
+                              )
+                            }
                             editHref={paths.dashboard.invoice.edit(row.id)}
                             detailsHref={paths.dashboard.invoice.details(row.id)}
                           />
