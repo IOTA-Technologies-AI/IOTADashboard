@@ -41,7 +41,7 @@ function markTotpVerified(email) {
   }
 }
 
-// 'exchanging' | 'setup_required' | 'setup_verify' | 'totp_required' | 'error'
+// 'exchanging' | 'setup_required' | 'setup_verify' | 'totp_required' | 'totp_locked' | 'error'
 
 export default function SupabaseAuthCallbackPage() {
   const router = useRouter();
@@ -76,10 +76,14 @@ export default function SupabaseAuthCallbackPage() {
         return;
       }
       try {
-        const { totpEnabled } = await totpStatus(userEmail);
+        const { totpEnabled, totpLocked } = await totpStatus(userEmail);
         if (!totpEnabled) {
           // First-time user — must set up TOTP before entering the dashboard
           setPhase('setup_required');
+          return;
+        }
+        if (totpLocked) {
+          setPhase('totp_locked');
           return;
         }
         setPhase('totp_required');
@@ -182,8 +186,13 @@ export default function SupabaseAuthCallbackPage() {
       await totpVerify(emailRef.current, trimmed);
       markTotpVerified(emailRef.current);
       goToDashboard();
-    } catch {
-      setOtpError('Incorrect code. Please try again.');
+    } catch (err) {
+      const msg = err?.message || '';
+      if (msg.toLowerCase().includes('locked')) {
+        setPhase('totp_locked');
+      } else {
+        setOtpError(msg || 'Incorrect code. Please try again.');
+      }
     } finally {
       setVerifying(false);
     }
@@ -403,6 +412,31 @@ export default function SupabaseAuthCallbackPage() {
               >
                 {verifying ? 'Verifying…' : 'Verify & Sign In'}
               </Button>
+            </Stack>
+          </Box>
+        </Card>
+      </Container>
+    );
+  }
+
+  // ── Account locked ────────────────────────────────────────────────────────
+  if (phase === 'totp_locked') {
+    return (
+      <Container maxWidth="xs" sx={{ py: 8 }}>
+        <Card variant="outlined">
+          <Box sx={{ p: 4 }}>
+            <Stack spacing={3} alignItems="center">
+              <Iconify icon="solar:lock-bold" width={48} sx={{ color: 'error.main' }} />
+              <Typography variant="h5" textAlign="center" color="error">
+                Account Locked
+              </Typography>
+              <Typography variant="body2" color="text.secondary" textAlign="center">
+                Your account has been locked after too many failed authentication attempts. Please
+                contact your <strong>Super Admin</strong> to unlock your account.
+              </Typography>
+              <Typography variant="caption" color="text.disabled" textAlign="center">
+                Signed in as <strong>{emailRef.current}</strong>
+              </Typography>
             </Stack>
           </Box>
         </Card>

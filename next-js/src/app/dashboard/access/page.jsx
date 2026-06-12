@@ -39,6 +39,8 @@ import {
   fetchEnterpriseAppUsers,
   addEnterpriseAppUser,
   removeEnterpriseAppUser,
+  totpStatus,
+  totpUnlock,
 } from 'src/utils/apiHelper';
 import { clearPermissionCache } from 'src/auth/guard/permission-guard';
 import { clearVersionCheck, clearUserNavPermissionCache } from 'src/utils/pageAccess';
@@ -136,6 +138,10 @@ export default function AccessControlPage() {
   const [userToAdd, setUserToAdd] = useState(null);
   const [addingUser, setAddingUser] = useState(false);
   const [removingId, setRemovingId] = useState(null);
+
+  // TOTP lockout state
+  const [totpLocked, setTotpLocked] = useState(false);
+  const [unlocking, setUnlocking] = useState(false);
 
   // Selected user
   const [selectedUser, setSelectedUser] = useState(null);
@@ -290,7 +296,7 @@ export default function AccessControlPage() {
 
   // Handle user selection - use email as the unique identifier
   const handleSelectUser = useCallback(
-    (user) => {
+    async (user) => {
       console.log('[AccessControl] Selected user:', {
         id: user.id,
         name: user.name,
@@ -299,11 +305,37 @@ export default function AccessControlPage() {
       setSelectedUser(user);
       setSuccessMessage('');
       setError('');
+      setTotpLocked(false);
       // Use email as the user identifier for permissions
       loadUserPermissions(user.email);
+      // Check TOTP lockout status
+      if (user.email) {
+        try {
+          const status = await totpStatus(user.email);
+          setTotpLocked(!!status.totpLocked);
+        } catch {
+          // Non-critical — don't block the page
+        }
+      }
     },
     [loadUserPermissions]
   );
+
+  // Unlock TOTP for selected user
+  const handleTotpUnlock = useCallback(async () => {
+    if (!selectedUser?.email) return;
+    setUnlocking(true);
+    setError('');
+    try {
+      await totpUnlock(selectedUser.email);
+      setTotpLocked(false);
+      setSuccessMessage(`TOTP account unlocked for ${selectedUser.name}.`);
+    } catch (err) {
+      setError(err?.message || 'Failed to unlock account.');
+    } finally {
+      setUnlocking(false);
+    }
+  }, [selectedUser]);
 
   // Toggle permission
   const handleTogglePermission = useCallback((permId) => {
@@ -907,6 +939,26 @@ export default function AccessControlPage() {
                           )}
                         </Box>
                         <Stack direction="row" spacing={1}>
+                          {totpLocked && (
+                            <Tooltip title="This user is locked out due to too many failed TOTP attempts">
+                              <Button
+                                size="small"
+                                variant="contained"
+                                color="error"
+                                onClick={handleTotpUnlock}
+                                disabled={unlocking}
+                                startIcon={
+                                  unlocking ? (
+                                    <CircularProgress size={14} color="inherit" />
+                                  ) : (
+                                    <Iconify icon="solar:lock-bold" />
+                                  )
+                                }
+                              >
+                                {unlocking ? 'Unlocking…' : 'Unlock TOTP'}
+                              </Button>
+                            </Tooltip>
+                          )}
                           <Button
                             size="small"
                             variant={grantedRoleInfo?.role === 'regular' ? 'contained' : 'outlined'}
