@@ -109,9 +109,11 @@ export function TotpGuard({ children }) {
         setState('verified');
         scheduleReauthCheck();
       }
-    } catch {
-      // If status check fails, fail open (don't block the whole app)
-      setState('verified');
+    } catch (err) {
+      // Status check failed — require setup rather than failing open silently.
+      // This prevents a broken API from granting unintended access.
+      console.error('[TotpGuard] status check failed:', err);
+      setState('setup_required');
     }
   }, [email, isBypassPath, scheduleReauthCheck]);
 
@@ -124,11 +126,17 @@ export function TotpGuard({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, authenticated, email, isBypassPath]);
 
-  // Re-check bypass on navigation (e.g. user navigates to authenticator page)
+  // Re-check TOTP on every navigation:
+  // - entering bypass path → grant access immediately
+  // - leaving bypass path → re-run the full TOTP check so the guard re-engages
   useEffect(() => {
     if (state === 'loading' || !authenticated || authLoading) return;
     if (isBypassPath) {
       setState('verified');
+    } else {
+      // Re-evaluate: user may have left the authenticator page without completing setup,
+      // or navigated somewhere after a bypass-granted session.
+      checkTotp();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
