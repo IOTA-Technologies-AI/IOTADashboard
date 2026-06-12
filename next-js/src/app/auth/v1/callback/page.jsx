@@ -58,19 +58,33 @@ export default function SupabaseAuthCallbackPage() {
       return;
     }
 
-    if (!useCode) {
-      handleError('Missing auth code in callback URL.');
-      return;
-    }
-
+    // Supabase client initialises with detectSessionInUrl=true by default, meaning it may
+    // have already automatically exchanged the PKCE code before this effect runs.
+    // Check for an existing session first to avoid a double-exchange (codes are one-time use).
     supabase.auth
-      .exchangeCodeForSession({ authCode: useCode })
-      .then(({ error: authError }) => {
-        if (authError) {
-          handleError(authError.message);
+      .getSession()
+      .then(({ data: { session } }) => {
+        if (session) {
+          // Code was auto-processed — session is ready, redirect immediately.
+          finish();
           return;
         }
-        finish();
+
+        if (!useCode) {
+          handleError('Missing auth code in callback URL.');
+          return;
+        }
+
+        supabase.auth
+          .exchangeCodeForSession({ authCode: useCode })
+          .then(({ error: authError }) => {
+            if (authError) {
+              handleError(authError.message);
+              return;
+            }
+            finish();
+          })
+          .catch((err) => handleError(err.message));
       })
       .catch((err) => handleError(err.message));
   }, [router, searchParams]);
