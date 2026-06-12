@@ -49,16 +49,20 @@ export const clearPermissionCache = () => {};
 export function PermissionGuard({ children }) {
   const router = useRouter();
   const pathname = usePathname();
-  const {
-    user,
-    loading: authLoading,
-    allowedPaths,
-    permissionsLoading,
-  } = useAuthContext();
+  const { user, loading: authLoading, allowedPaths, permissionsLoading } = useAuthContext();
 
   const role = useMemo(() => normalizeRole(user?.role, user?.roleId), [user?.role, user?.roleId]);
 
-  const baseAlwaysAllowed = useMemo(() => [paths.dashboard.root, paths.dashboard.general.app], []);
+  const baseAlwaysAllowed = useMemo(
+    () => [
+      paths.dashboard.root,
+      paths.dashboard.general.app,
+      // TOTP authenticator setup must always be reachable — any authenticated user
+      // needs to complete 2FA setup before they have other permissions assigned.
+      `${paths.dashboard.user.account}/authenticator`,
+    ],
+    []
+  );
 
   const isAlwaysAllowed = useMemo(() => {
     if (!pathname) return false;
