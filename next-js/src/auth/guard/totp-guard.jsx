@@ -73,6 +73,7 @@ export function TotpGuard({ children }) {
   const [otp, setOtp] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState('');
+  const [locked, setLocked] = useState(false);
 
   // Timer ref for re-auth polling
   const timerRef = useRef(null);
@@ -178,8 +179,7 @@ export function TotpGuard({ children }) {
     } catch (err) {
       const encoreMsg = err?.response?.data?.message || err?.message || '';
       if (err?.response?.status === 403 || encoreMsg.toLowerCase().includes('locked')) {
-        // Account locked — sign out and redirect to sign-in so callback shows the lock screen
-        setState('otp_required');
+        setLocked(true);
         setError('Account locked. Contact your Super Admin to unlock your account.');
       } else {
         setError(encoreMsg || 'Incorrect code. Please try again.');
@@ -286,16 +286,16 @@ export function TotpGuard({ children }) {
               variant="contained"
               size="large"
               onClick={handleVerify}
-              disabled={verifying || otp.replace(/\s/g, '').length !== 6}
+              disabled={verifying || locked || otp.replace(/\s/g, '').length !== 6}
               startIcon={
                 verifying ? (
                   <CircularProgress size={16} color="inherit" />
                 ) : (
-                  <Iconify icon="solar:lock-password-bold" />
+                  <Iconify icon={locked ? 'solar:lock-bold' : 'solar:lock-password-bold'} />
                 )
               }
             >
-              {verifying ? 'Verifying…' : 'Verify'}
+              {verifying ? 'Verifying…' : locked ? 'Account Locked' : 'Verify'}
             </Button>
           </DialogActions>
         </Dialog>
