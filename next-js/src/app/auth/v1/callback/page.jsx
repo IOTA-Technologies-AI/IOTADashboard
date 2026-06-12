@@ -41,7 +41,7 @@ function markTotpVerified(email) {
   }
 }
 
-// 'exchanging' | 'setup_required' | 'setup_verify' | 'totp_required' | 'totp_locked' | 'error'
+// 'exchanging' | 'account_not_found' | 'setup_required' | 'setup_verify' | 'totp_required' | 'totp_locked' | 'error'
 
 export default function SupabaseAuthCallbackPage() {
   const router = useRouter();
@@ -87,9 +87,15 @@ export default function SupabaseAuthCallbackPage() {
           return;
         }
         setPhase('totp_required');
-      } catch {
-        // Status check failed — require TOTP entry as a safe default
-        setPhase('totp_required');
+      } catch (statusErr) {
+        const httpStatus = statusErr?.response?.status;
+        if (httpStatus === 404) {
+          // User authenticated via Entra but not yet provisioned in IOTA
+          setPhase('account_not_found');
+        } else {
+          // Any other failure — safe default is to require OTP
+          setPhase('totp_required');
+        }
       }
     };
 
@@ -146,8 +152,9 @@ export default function SupabaseAuthCallbackPage() {
       await totpSetup(emailRef.current);
       setEmailSent(true);
       setPhase('setup_verify');
-    } catch {
-      setEmailError('Failed to send QR code. Please try again.');
+    } catch (err) {
+      const encoreMsg = err?.response?.data?.message || err?.message || '';
+      setEmailError(encoreMsg || 'Failed to send QR code. Please try again.');
     } finally {
       setSendingEmail(false);
     }
@@ -166,8 +173,9 @@ export default function SupabaseAuthCallbackPage() {
       await totpVerifySetup(emailRef.current, trimmed);
       markTotpVerified(emailRef.current);
       goToDashboard();
-    } catch {
-      setOtpError('Incorrect code. Please check the app and try again.');
+    } catch (err) {
+      const encoreMsg = err?.response?.data?.message || err?.message || '';
+      setOtpError(encoreMsg || 'Incorrect code. Please check the app and try again.');
     } finally {
       setVerifying(false);
     }
@@ -187,11 +195,12 @@ export default function SupabaseAuthCallbackPage() {
       markTotpVerified(emailRef.current);
       goToDashboard();
     } catch (err) {
-      const msg = err?.message || '';
-      if (msg.toLowerCase().includes('locked')) {
+      // Encore errors come via axios as err.response.data = { code, message }
+      const encoreMsg = err?.response?.data?.message || err?.message || '';
+      if (err?.response?.status === 403 || encoreMsg.toLowerCase().includes('locked')) {
         setPhase('totp_locked');
       } else {
-        setOtpError(msg || 'Incorrect code. Please try again.');
+        setOtpError(encoreMsg || 'Incorrect code. Please try again.');
       }
     } finally {
       setVerifying(false);
@@ -221,6 +230,32 @@ export default function SupabaseAuthCallbackPage() {
         <Card variant="outlined">
           <Box sx={{ p: 4 }}>
             <Alert severity="error">{authError || 'Unable to complete sign-in.'}</Alert>
+          </Box>
+        </Card>
+      </Container>
+    );
+  }
+
+  // ── Account not provisioned in IOTA ──────────────────────────────────────
+  if (phase === 'account_not_found') {
+    return (
+      <Container maxWidth="xs" sx={{ py: 8 }}>
+        <Card variant="outlined">
+          <Box sx={{ p: 4 }}>
+            <Stack spacing={3} alignItems="center">
+              <Iconify icon="solar:user-block-bold" width={48} sx={{ color: 'warning.main' }} />
+              <Typography variant="h5" textAlign="center">
+                Account Not Activated
+              </Typography>
+              <Typography variant="body2" color="text.secondary" textAlign="center">
+                You&apos;ve signed in with Microsoft successfully, but your account hasn&apos;t been
+                activated in the IOTA dashboard yet. Please ask your <strong>Super Admin</strong> to
+                grant you access via the Access Control page.
+              </Typography>
+              <Typography variant="caption" color="text.disabled" textAlign="center">
+                Signed in as <strong>{emailRef.current}</strong>
+              </Typography>
+            </Stack>
           </Box>
         </Card>
       </Container>

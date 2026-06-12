@@ -162,8 +162,15 @@ export function TotpGuard({ children }) {
       setVerifiedAt(email);
       setState('verified');
       scheduleReauthCheck();
-    } catch {
-      setError('Incorrect code. Please try again.');
+    } catch (err) {
+      const encoreMsg = err?.response?.data?.message || err?.message || '';
+      if (err?.response?.status === 403 || encoreMsg.toLowerCase().includes('locked')) {
+        // Account locked — sign out and redirect to sign-in so callback shows the lock screen
+        setState('otp_required');
+        setError('Account locked. Contact your Super Admin to unlock your account.');
+      } else {
+        setError(encoreMsg || 'Incorrect code. Please try again.');
+      }
     } finally {
       setVerifying(false);
     }
