@@ -26,7 +26,7 @@ import { useAuthContext } from 'src/auth/hooks';
 
 export function AccountTotpSetup() {
   const { user } = useAuthContext();
-  const userId = user?.id;
+  const userIdentifier = user?.id || user?.email;
 
   const [checking, setChecking] = useState(true);
   const [isEnabled, setIsEnabled] = useState(false);
@@ -40,10 +40,13 @@ export function AccountTotpSetup() {
   const [step, setStep] = useState('idle'); // 'idle' | 'qr' | 'done'
 
   const checkStatus = useCallback(async () => {
-    if (!userId) return;
+    if (!userIdentifier) {
+      setChecking(false);
+      return;
+    }
     setChecking(true);
     try {
-      const { totpEnabled } = await totpStatus(userId);
+      const { totpEnabled } = await totpStatus(userIdentifier);
       setIsEnabled(totpEnabled);
       if (totpEnabled) setStep('done');
     } catch {
@@ -51,28 +54,43 @@ export function AccountTotpSetup() {
     } finally {
       setChecking(false);
     }
-  }, [userId]);
+  }, [userIdentifier]);
 
   useEffect(() => {
     checkStatus();
   }, [checkStatus]);
 
   const handleStartSetup = async () => {
+    if (!userIdentifier) {
+      toast.error('Unable to find your account identity. Please sign out and sign in again.');
+      return;
+    }
     setSetupLoading(true);
     setCode('');
     setCodeError('');
     try {
-      const { otpauthUri: uri } = await totpSetup(userId);
+      const { otpauthUri: uri } = await totpSetup(userIdentifier);
       setOtpauthUri(uri);
       setStep('qr');
     } catch (err) {
-      toast.error('Failed to initiate authenticator setup. Please try again.');
+      const status = err?.response?.status;
+      if (status === 404) {
+        toast.error(
+          'TOTP setup endpoint is unavailable or user was not found. Please redeploy backend and try again.'
+        );
+      } else {
+        toast.error('Failed to initiate authenticator setup. Please try again.');
+      }
     } finally {
       setSetupLoading(false);
     }
   };
 
   const handleVerify = async () => {
+    if (!userIdentifier) {
+      toast.error('Unable to find your account identity. Please sign out and sign in again.');
+      return;
+    }
     const trimmed = code.replace(/\s/g, '');
     if (trimmed.length !== 6 || !/^\d{6}$/.test(trimmed)) {
       setCodeError('Please enter the 6-digit code from Microsoft Authenticator.');
@@ -81,7 +99,7 @@ export function AccountTotpSetup() {
     setVerifyLoading(true);
     setCodeError('');
     try {
-      await totpVerifySetup(userId, trimmed);
+      await totpVerifySetup(userIdentifier, trimmed);
       setIsEnabled(true);
       setStep('done');
       setOtpauthUri('');

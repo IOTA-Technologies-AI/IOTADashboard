@@ -40,6 +40,7 @@ export function TOTPModal({
   totpEnabled,
   actionLabel = 'Continue',
 }) {
+  const userIdentifier = userId;
   const [code, setCode] = useState('');
   const [codeError, setCodeError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -51,6 +52,11 @@ export function TOTPModal({
   };
 
   const handleVerify = async () => {
+    if (!userIdentifier) {
+      setCodeError('Unable to find your account identity. Please sign out and sign in again.');
+      return;
+    }
+
     const trimmed = code.replace(/\s/g, '');
     if (trimmed.length !== 6 || !/^\d{6}$/.test(trimmed)) {
       setCodeError('Enter the 6-digit code shown in Microsoft Authenticator.');
@@ -60,7 +66,7 @@ export function TOTPModal({
     setLoading(true);
     setCodeError('');
     try {
-      await totpVerify(userId, trimmed);
+      await totpVerify(userIdentifier, trimmed);
       setCode('');
       onClose();
       onVerified();

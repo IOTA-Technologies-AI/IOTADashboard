@@ -29,6 +29,7 @@ import { useAuthContext } from 'src/auth/hooks';
 
 export function InvoiceApprovalDialog({ open, onClose, invoice, onApprovalComplete }) {
   const { user } = useAuthContext();
+  const userIdentifier = user?.id || user?.email;
   const [loading, setLoading] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -47,12 +48,12 @@ export function InvoiceApprovalDialog({ open, onClose, invoice, onApprovalComple
 
   // Check TOTP status when dialog opens
   useEffect(() => {
-    if (open && user?.id) {
-      totpStatus(user.id)
+    if (open && userIdentifier) {
+      totpStatus(userIdentifier)
         .then(({ totpEnabled: enabled }) => setTotpEnabled(enabled))
         .catch(() => setTotpEnabled(false));
     }
-  }, [open, user?.id]);
+  }, [open, userIdentifier]);
 
   if (!invoice) return null;
 
@@ -290,7 +291,7 @@ export function InvoiceApprovalDialog({ open, onClose, invoice, onApprovalComple
               open={totpModalOpen}
               onClose={() => setTotpModalOpen(false)}
               onVerified={() => handleApproval(true)}
-              userId={user?.id}
+              userId={userIdentifier}
               totpEnabled={totpEnabled}
               actionLabel="Approve Invoice"
             />
