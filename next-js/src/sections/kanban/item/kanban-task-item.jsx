@@ -4,12 +4,11 @@ import { createPortal } from 'react-dom';
 import { useBoolean } from 'minimal-shared/hooks';
 import { mergeClasses } from 'minimal-shared/utils';
 
-import { useKanbanActions } from '../context/actions-context';
-import { useBoard } from '../context/board-context';
-
 import { kanbanClasses } from '../classes';
+import { useBoard } from '../context/board-context';
 import { KanbanDetails } from '../details/kanban-details';
 import { useTaskItemDnd } from '../hooks/use-task-item-dnd';
+import { useKanbanActions } from '../context/actions-context';
 import { getAttr, isSafari, taskMotionOptions } from '../utils/helpers';
 import {
   ItemRoot,
@@ -60,7 +59,7 @@ export function KanbanTaskItem({ task, columnId, sx, ...other }) {
     } catch (error) {
       console.error(error);
     }
-  }, [columnId, task.id]);
+  }, [columnId, task.id, deleteTask]);
 
   const handleUpdateTask = useCallback(
     async (taskData) => {
@@ -70,7 +69,7 @@ export function KanbanTaskItem({ task, columnId, sx, ...other }) {
         console.error(error);
       }
     },
-    [columnId]
+    [columnId, updateTask]
   );
 
   // Move this task to a different column by rebuilding the full task map.
@@ -83,10 +82,7 @@ export function KanbanTaskItem({ task, columnId, sx, ...other }) {
       Object.keys(boardTasks).forEach((colId) => {
         newTasks[colId] = (boardTasks[colId] || []).filter((t) => t.id !== task.id);
       });
-      newTasks[targetColumnId] = [
-        { ...task, stageId: targetColumnId },
-        ...(newTasks[targetColumnId] || []),
-      ];
+      newTasks[targetColumnId] = [{ ...task }, ...(newTasks[targetColumnId] || [])];
       moveTask(newTasks);
     },
     [columnId, task, boardTasks, moveTask]

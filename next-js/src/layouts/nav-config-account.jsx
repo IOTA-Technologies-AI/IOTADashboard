@@ -19,9 +19,4 @@ export const _account = [
     href: paths.dashboard.user.account,
     icon: <Iconify icon="solar:settings-bold-duotone" />,
   },
-  {
-    label: 'Authenticator',
-    href: `${paths.dashboard.user.account}/authenticator`,
-    icon: <Iconify icon="solar:shield-keyhole-bold-duotone" />,
-  },
 ];
