@@ -16,28 +16,41 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { fDate } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
-import { approveInvoice, fetchOfficeConfigs } from 'src/utils/apiHelper';
+import { approveInvoice, fetchOfficeConfigs, totpStatus } from 'src/utils/apiHelper';
 
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { TOTPModal } from 'src/components/totp-modal/TOTPModal';
+
 import { useAuthContext } from 'src/auth/hooks';
 
 // ----------------------------------------------------------------------
 
 export function InvoiceApprovalDialog({ open, onClose, invoice, onApprovalComplete }) {
   const { user } = useAuthContext();
+  const userIdentifier = user?.id || user?.email;
   const [loading, setLoading] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [reasonError, setReasonError] = useState('');
   const [liveOffices, setLiveOffices] = useState(null);
+  const [totpEnabled, setTotpEnabled] = useState(false);
+  const [totpModalOpen, setTotpModalOpen] = useState(false);
 
   useEffect(() => {
     fetchOfficeConfigs().then((offices) => {
       if (offices?.length) setLiveOffices(offices);
     });
   }, []);
+
+  useEffect(() => {
+    if (open && userIdentifier) {
+      totpStatus(userIdentifier)
+        .then(({ totpEnabled: enabled }) => setTotpEnabled(enabled))
+        .catch(() => setTotpEnabled(false));
+    }
+  }, [open, userIdentifier]);
 
   if (!invoice) return null;
 
@@ -265,11 +278,20 @@ export function InvoiceApprovalDialog({ open, onClose, invoice, onApprovalComple
               variant="contained"
               color="success"
               startIcon={<Iconify icon="solar:check-circle-bold" />}
-              onClick={() => handleApproval(true)}
+              onClick={() => setTotpModalOpen(true)}
               disabled={loading}
             >
               Approve
             </Button>
+
+            <TOTPModal
+              open={totpModalOpen}
+              onClose={() => setTotpModalOpen(false)}
+              onVerified={() => handleApproval(true)}
+              userId={userIdentifier}
+              totpEnabled={totpEnabled}
+              actionLabel="Approve Invoice"
+            />
           </>
         ) : isPending && rejecting ? (
           <>
