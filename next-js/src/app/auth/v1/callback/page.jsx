@@ -18,7 +18,7 @@ import { paths } from 'src/routes/paths';
 import { Iconify } from 'src/components/iconify';
 
 import { supabase } from 'src/lib/supabase';
-import { totpStatus, totpVerify } from 'src/utils/apiHelper';
+import { totpSetup, totpStatus, totpVerify, totpVerifySetup } from 'src/utils/apiHelper';
 
 // Parse query-style params from a hash fragment (e.g. #code=...&access_token=...)
 const parseHashParams = (hashString) => {
@@ -41,7 +41,7 @@ function markTotpVerified(email) {
   }
 }
 
-// 'exchanging' | 'totp_required' | 'setup_required' | 'done' | 'error'
+// 'exchanging' | 'setup_required' | 'setup_verify' | 'totp_required' | 'error'
 
 export default function SupabaseAuthCallbackPage() {
   const router = useRouter();
@@ -52,6 +52,9 @@ export default function SupabaseAuthCallbackPage() {
   const [otp, setOtp] = useState('');
   const [otpError, setOtpError] = useState('');
   const [verifying, setVerifying] = useState(false);
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
+  const [emailError, setEmailError] = useState('');
 
   // Hold resolved values across async phases
   const nextRef = useRef(paths.dashboard.root);
@@ -69,26 +72,24 @@ export default function SupabaseAuthCallbackPage() {
     const afterSession = async (userEmail) => {
       emailRef.current = userEmail || '';
       if (!userEmail) {
-        // No email — can't check TOTP; go straight through
         goToDashboard();
         return;
       }
       try {
         const { totpEnabled } = await totpStatus(userEmail);
         if (!totpEnabled) {
-          // User hasn't set up TOTP yet — let them in, TotpGuard will prompt setup
-          goToDashboard();
+          // First-time user — must set up TOTP before entering the dashboard
+          setPhase('setup_required');
           return;
         }
         setPhase('totp_required');
       } catch {
-        // TOTP status check failed — still require TOTP to be safe
+        // Status check failed — require TOTP entry as a safe default
         setPhase('totp_required');
       }
     };
 
     const resolveSession = async () => {
-      // Implicit flow (hash tokens)
       if (accessToken) {
         const { error: sessionError, data } = await supabase.auth.setSession({
           access_token: accessToken,
@@ -103,7 +104,6 @@ export default function SupabaseAuthCallbackPage() {
         return;
       }
 
-      // Check if Supabase already auto-exchanged the code (detectSessionInUrl=true)
       const { data: existing } = await supabase.auth.getSession();
       if (existing?.session) {
         await afterSession(existing.session.user?.email);
@@ -134,7 +134,42 @@ export default function SupabaseAuthCallbackPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // ── Phase 2: verify OTP ───────────────────────────────────────────────────
+  // ── Send QR code email (setup) ────────────────────────────────────────────
+  const handleSendQr = async () => {
+    setSendingEmail(true);
+    setEmailError('');
+    try {
+      await totpSetup(emailRef.current);
+      setEmailSent(true);
+      setPhase('setup_verify');
+    } catch {
+      setEmailError('Failed to send QR code. Please try again.');
+    } finally {
+      setSendingEmail(false);
+    }
+  };
+
+  // ── Confirm setup code ────────────────────────────────────────────────────
+  const handleVerifySetup = async () => {
+    const trimmed = otp.replace(/\s/g, '');
+    if (trimmed.length !== 6) {
+      setOtpError('Enter the 6-digit code shown in your authenticator app.');
+      return;
+    }
+    setVerifying(true);
+    setOtpError('');
+    try {
+      await totpVerifySetup(emailRef.current, trimmed);
+      markTotpVerified(emailRef.current);
+      goToDashboard();
+    } catch {
+      setOtpError('Incorrect code. Please check the app and try again.');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  // ── Verify OTP (returning user) ───────────────────────────────────────────
   const handleVerify = async () => {
     const trimmed = otp.replace(/\s/g, '');
     if (trimmed.length !== 6) {
@@ -156,7 +191,6 @@ export default function SupabaseAuthCallbackPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  // Exchanging / loading
   if (phase === 'exchanging') {
     return (
       <Container maxWidth="sm" sx={{ py: 8 }}>
@@ -172,7 +206,6 @@ export default function SupabaseAuthCallbackPage() {
     );
   }
 
-  // Auth error
   if (phase === 'error') {
     return (
       <Container maxWidth="sm" sx={{ py: 8 }}>
@@ -185,7 +218,135 @@ export default function SupabaseAuthCallbackPage() {
     );
   }
 
-  // TOTP verification required
+  // ── First-time setup: send QR code email ──────────────────────────────────
+  if (phase === 'setup_required') {
+    return (
+      <Container maxWidth="xs" sx={{ py: 8 }}>
+        <Card variant="outlined">
+          <Box sx={{ p: 4 }}>
+            <Stack spacing={3}>
+              <Stack spacing={1} alignItems="center">
+                <Iconify
+                  icon="solar:shield-keyhole-bold"
+                  width={40}
+                  sx={{ color: 'warning.main' }}
+                />
+                <Typography variant="h5" textAlign="center">
+                  Set Up Two-Factor Authentication
+                </Typography>
+                <Typography variant="body2" color="text.secondary" textAlign="center">
+                  Your organisation requires an authenticator app for dashboard access. We&apos;ll
+                  email you a QR code to scan with <strong>Microsoft Authenticator</strong> or any
+                  TOTP app.
+                </Typography>
+              </Stack>
+
+              {emailError && <Alert severity="error">{emailError}</Alert>}
+
+              <Button
+                fullWidth
+                size="large"
+                variant="contained"
+                color="warning"
+                onClick={handleSendQr}
+                disabled={sendingEmail}
+                startIcon={
+                  sendingEmail ? (
+                    <CircularProgress size={16} color="inherit" />
+                  ) : (
+                    <Iconify icon="solar:letter-bold" />
+                  )
+                }
+              >
+                {sendingEmail ? 'Sending…' : 'Send QR Code to My Email'}
+              </Button>
+
+              <Typography variant="caption" color="text.disabled" textAlign="center">
+                The QR code will be sent to <strong>{emailRef.current}</strong>
+              </Typography>
+            </Stack>
+          </Box>
+        </Card>
+      </Container>
+    );
+  }
+
+  // ── Setup verification: scan QR then enter code ───────────────────────────
+  if (phase === 'setup_verify') {
+    return (
+      <Container maxWidth="xs" sx={{ py: 8 }}>
+        <Card variant="outlined">
+          <Box sx={{ p: 4 }}>
+            <Stack spacing={3}>
+              <Stack spacing={1} alignItems="center">
+                <Iconify icon="solar:qr-code-bold" width={40} sx={{ color: 'success.main' }} />
+                <Typography variant="h5" textAlign="center">
+                  Scan &amp; Verify
+                </Typography>
+                <Typography variant="body2" color="text.secondary" textAlign="center">
+                  Check your email for the QR code. Scan it with your authenticator app, then enter
+                  the 6-digit code below to complete setup.
+                </Typography>
+              </Stack>
+
+              <TextField
+                autoFocus
+                fullWidth
+                label="Authenticator Code"
+                placeholder="000 000"
+                value={otp}
+                onChange={(e) => {
+                  setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6));
+                  setOtpError('');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleVerifySetup();
+                }}
+                inputProps={{ inputMode: 'numeric', maxLength: 6 }}
+                error={!!otpError}
+                helperText={otpError}
+                sx={{ '& input': { textAlign: 'center', fontSize: '1.5rem', letterSpacing: 6 } }}
+              />
+
+              <Button
+                fullWidth
+                size="large"
+                variant="contained"
+                color="success"
+                onClick={handleVerifySetup}
+                disabled={verifying || otp.replace(/\s/g, '').length !== 6}
+                startIcon={
+                  verifying ? (
+                    <CircularProgress size={16} color="inherit" />
+                  ) : (
+                    <Iconify icon="solar:check-circle-bold" />
+                  )
+                }
+              >
+                {verifying ? 'Verifying…' : 'Complete Setup & Sign In'}
+              </Button>
+
+              <Button
+                size="small"
+                variant="text"
+                color="inherit"
+                onClick={() => {
+                  setOtp('');
+                  setOtpError('');
+                  setEmailSent(false);
+                  setPhase('setup_required');
+                }}
+              >
+                Didn&apos;t receive the email? Send again
+              </Button>
+            </Stack>
+          </Box>
+        </Card>
+      </Container>
+    );
+  }
+
+  // ── Returning user: enter existing TOTP code ──────────────────────────────
   if (phase === 'totp_required') {
     return (
       <Container maxWidth="xs" sx={{ py: 8 }}>
@@ -223,7 +384,7 @@ export default function SupabaseAuthCallbackPage() {
                 inputProps={{ inputMode: 'numeric', maxLength: 6 }}
                 error={!!otpError}
                 helperText={otpError}
-                sx={{ letterSpacing: 4, '& input': { textAlign: 'center', fontSize: '1.5rem' } }}
+                sx={{ '& input': { textAlign: 'center', fontSize: '1.5rem', letterSpacing: 6 } }}
               />
 
               <Button
@@ -240,14 +401,8 @@ export default function SupabaseAuthCallbackPage() {
                   )
                 }
               >
-                {verifying ? 'Verifying…' : 'Verify & Continue'}
+                {verifying ? 'Verifying…' : 'Verify & Sign In'}
               </Button>
-
-              {otpError && (
-                <Alert severity="error" sx={{ mt: -1 }}>
-                  {otpError}
-                </Alert>
-              )}
             </Stack>
           </Box>
         </Card>
