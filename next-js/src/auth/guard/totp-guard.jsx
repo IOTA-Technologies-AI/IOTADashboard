@@ -98,10 +98,23 @@ export function TotpGuard({ children }) {
       return;
     }
     try {
-      const { totpEnabled } = await totpStatus(email);
+      const { totpEnabled, totpUnlockedAt } = await totpStatus(email);
       if (!totpEnabled) {
         setState('setup_required');
         return;
+      }
+      // If the admin unlocked the account AFTER the user last verified, invalidate their session.
+      if (totpUnlockedAt) {
+        const verifiedAt = getVerifiedAt(email);
+        if (!verifiedAt || verifiedAt < new Date(totpUnlockedAt).getTime()) {
+          try {
+            sessionStorage.removeItem(sessionKey(email));
+          } catch {
+            /* non-fatal */
+          }
+          setState('otp_required');
+          return;
+        }
       }
       // The callback page already verified TOTP on fresh login and stamped sessionStorage.
       // Here we only need to enforce the re-auth timer.
