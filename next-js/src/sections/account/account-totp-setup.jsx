@@ -26,7 +26,7 @@ import { useAuthContext } from 'src/auth/hooks';
 
 export function AccountTotpSetup() {
   const { user } = useAuthContext();
-  const userIdentifier = user?.id || user?.email;
+  const userIdentifier = user?.email;
 
   const [checking, setChecking] = useState(true);
   const [isEnabled, setIsEnabled] = useState(false);

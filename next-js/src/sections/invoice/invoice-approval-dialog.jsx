@@ -29,7 +29,7 @@ import { useAuthContext } from 'src/auth/hooks';
 
 export function InvoiceApprovalDialog({ open, onClose, invoice, onApprovalComplete }) {
   const { user } = useAuthContext();
-  const userIdentifier = user?.id || user?.email;
+  const userIdentifier = user?.email;
   const [loading, setLoading] = useState(false);
   const [rejecting, setRejecting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
