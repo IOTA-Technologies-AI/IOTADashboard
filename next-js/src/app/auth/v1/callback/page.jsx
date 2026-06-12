@@ -20,7 +20,8 @@ import { Iconify } from 'src/components/iconify';
 import { supabase } from 'src/lib/supabase';
 import { totpSetup, totpStatus, totpVerify, totpVerifySetup } from 'src/utils/apiHelper';
 
-// Parse query-style params from a hash fragment (e.g. #code=...&access_token=...)
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 const parseHashParams = (hashString) => {
   const hash = hashString?.startsWith('#') ? hashString.slice(1) : hashString || '';
   const params = new URLSearchParams(hash);
@@ -41,7 +42,15 @@ function markTotpVerified(email) {
   }
 }
 
-// 'exchanging' | 'sending_qr' | 'setup_email_sent' | 'setup_verify' | 'totp_required' | 'totp_locked' | 'account_not_found' | 'error'
+// ── Phases ────────────────────────────────────────────────────────────────────
+// exchanging      → loading: authenticating with Supabase
+// sending_qr      → loading: auto-sending QR code email (first-time user)
+// setup_email_sent → new user: email sent, show instructions + "I've scanned it"
+// setup_verify    → new user: enter 6-digit code from authenticator to finish setup
+// totp_required   → returning user: enter 6-digit code to sign in
+// totp_locked     → account locked after 3 wrong attempts
+// account_not_found → Entra user not provisioned in IOTA DB yet
+// error           → unrecoverable auth error
 
 export default function SupabaseAuthCallbackPage() {
   const router = useRouter();
@@ -54,15 +63,13 @@ export default function SupabaseAuthCallbackPage() {
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendError, setResendError] = useState('');
-  const [checkingStatus, setCheckingStatus] = useState(false);
 
-  // Hold resolved values across async phases
   const nextRef = useRef(paths.dashboard.root);
   const emailRef = useRef('');
 
   const goToDashboard = () => router.replace(nextRef.current);
 
-  // Automatically send QR email and transition phase
+  // ── Auto-send QR email ────────────────────────────────────────────────────
   const sendQrEmail = async () => {
     setPhase('sending_qr');
     try {
@@ -75,7 +82,7 @@ export default function SupabaseAuthCallbackPage() {
     }
   };
 
-  // ── Phase 1: exchange code and resolve TOTP status ────────────────────────
+  // ── Phase 1: exchange code → check TOTP status ────────────────────────────
   useEffect(() => {
     const code = searchParams.get('code');
     nextRef.current = searchParams.get('next') || paths.dashboard.root;
@@ -84,17 +91,16 @@ export default function SupabaseAuthCallbackPage() {
 
     const afterSession = async (userEmail) => {
       emailRef.current = userEmail || '';
-      console.log('[TOTP Callback] afterSession called with email:', userEmail);
+      console.log('[TOTP Callback] session email:', userEmail);
       if (!userEmail) {
         goToDashboard();
         return;
       }
       try {
-        const statusResult = await totpStatus(userEmail);
-        console.log('[TOTP Callback] totpStatus result:', statusResult);
-        const { totpEnabled, totpLocked } = statusResult;
+        const { totpEnabled, totpLocked } = await totpStatus(userEmail);
+        console.log('[TOTP Callback] status:', { totpEnabled, totpLocked });
         if (!totpEnabled) {
-          console.log('[TOTP Callback] totpEnabled=false -> auto-sending QR email');
+          // First-time user — auto-send QR, stay on this page
           await sendQrEmail();
           return;
         }
@@ -105,12 +111,12 @@ export default function SupabaseAuthCallbackPage() {
         setPhase('totp_required');
       } catch (statusErr) {
         const httpStatus = statusErr?.response?.status;
-        const errMsg = statusErr?.response?.data?.message || statusErr?.message;
-        console.error('[TOTP Callback] totpStatus error:', httpStatus, errMsg, statusErr);
+        console.error('[TOTP Callback] totpStatus error:', httpStatus, statusErr?.response?.data?.message);
         if (httpStatus === 404) {
+          // Not in IOTA DB yet
           setPhase('account_not_found');
         } else {
-          // Unknown status — auto-send QR rather than blocking with OTP they may not have
+          // Unknown — auto-send QR rather than demanding an OTP they may not have
           await sendQrEmail();
         }
       }
@@ -122,11 +128,7 @@ export default function SupabaseAuthCallbackPage() {
           access_token: accessToken,
           refresh_token: refreshToken,
         });
-        if (sessionError) {
-          setAuthError(sessionError.message);
-          setPhase('error');
-          return;
-        }
+        if (sessionError) { setAuthError(sessionError.message); setPhase('error'); return; }
         await afterSession(data?.user?.email);
         return;
       }
@@ -143,14 +145,8 @@ export default function SupabaseAuthCallbackPage() {
         return;
       }
 
-      const { error: exchError, data: exchData } = await supabase.auth.exchangeCodeForSession({
-        authCode: useCode,
-      });
-      if (exchError) {
-        setAuthError(exchError.message);
-        setPhase('error');
-        return;
-      }
+      const { error: exchError, data: exchData } = await supabase.auth.exchangeCodeForSession({ authCode: useCode });
+      if (exchError) { setAuthError(exchError.message); setPhase('error'); return; }
       await afterSession(exchData?.user?.email);
     };
 
@@ -168,27 +164,23 @@ export default function SupabaseAuthCallbackPage() {
     try {
       await totpSetup(emailRef.current);
     } catch (err) {
-      const encoreMsg = err?.response?.data?.message || err?.message || '';
-      setResendError(encoreMsg || 'Failed to resend. Please try again.');
+      setResendError(err?.response?.data?.message || err?.message || 'Failed to resend.');
     } finally {
       setResending(false);
     }
   };
 
-  // ── "I've scanned it" — move to OTP entry ────────────────────────────────
+  // ── "I've scanned it" → proceed to code entry ─────────────────────────────
   const handleScannedIt = () => {
     setOtp('');
     setOtpError('');
     setPhase('setup_verify');
   };
 
-  // ── Confirm setup code ────────────────────────────────────────────────────
+  // ── Verify setup code (first-time) ────────────────────────────────────────
   const handleVerifySetup = async () => {
     const trimmed = otp.replace(/\s/g, '');
-    if (trimmed.length !== 6) {
-      setOtpError('Enter the 6-digit code shown in your authenticator app.');
-      return;
-    }
+    if (trimmed.length !== 6) { setOtpError('Enter the 6-digit code from your authenticator app.'); return; }
     setVerifying(true);
     setOtpError('');
     try {
@@ -196,8 +188,7 @@ export default function SupabaseAuthCallbackPage() {
       markTotpVerified(emailRef.current);
       goToDashboard();
     } catch (err) {
-      const encoreMsg = err?.response?.data?.message || err?.message || '';
-      setOtpError(encoreMsg || 'Incorrect code. Please check the app and try again.');
+      setOtpError(err?.response?.data?.message || err?.message || 'Incorrect code. Please try again.');
     } finally {
       setVerifying(false);
     }
@@ -206,10 +197,7 @@ export default function SupabaseAuthCallbackPage() {
   // ── Verify OTP (returning user) ───────────────────────────────────────────
   const handleVerify = async () => {
     const trimmed = otp.replace(/\s/g, '');
-    if (trimmed.length !== 6) {
-      setOtpError('Enter the 6-digit code from your authenticator app.');
-      return;
-    }
+    if (trimmed.length !== 6) { setOtpError('Enter the 6-digit code from your authenticator app.'); return; }
     setVerifying(true);
     setOtpError('');
     try {
@@ -217,156 +205,6 @@ export default function SupabaseAuthCallbackPage() {
       markTotpVerified(emailRef.current);
       goToDashboard();
     } catch (err) {
-      const encoreMsg = err?.response?.data?.message || err?.message || '';
-      if (err?.response?.status === 403 || encoreMsg.toLowerCase().includes('locked')) {
-        setPhase('totp_locked');
-      } else {
-        setOtpError(encoreMsg || 'Incorrect code. Please try again.');
-      }
-    } finally {
-      setVerifying(false);
-    }
-  };
-    const code = searchParams.get('code');
-    nextRef.current = searchParams.get('next') || paths.dashboard.root;
-    const { code: hashCode, accessToken, refreshToken } = parseHashParams(window.location.hash);
-    const useCode = code || hashCode;
-
-    const afterSession = async (userEmail) => {
-      emailRef.current = userEmail || '';
-      console.log('[TOTP Callback] afterSession called with email:', userEmail);
-      if (!userEmail) {
-        console.log('[TOTP Callback] No email, redirecting to dashboard');
-        goToDashboard();
-        return;
-      }
-      try {
-        const statusResult = await totpStatus(userEmail);
-        console.log('[TOTP Callback] totpStatus result:', statusResult);
-        const { totpEnabled, totpLocked } = statusResult;
-        if (!totpEnabled) {
-          console.log('[TOTP Callback] totpEnabled=false -> setup_required');
-          setPhase('setup_required');
-          return;
-        }
-        if (totpLocked) {
-          console.log('[TOTP Callback] totpLocked=true -> totp_locked');
-          setPhase('totp_locked');
-          return;
-        }
-        console.log('[TOTP Callback] totpEnabled=true -> totp_required');
-        setPhase('totp_required');
-      } catch (statusErr) {
-        const httpStatus = statusErr?.response?.status;
-        const errMsg = statusErr?.response?.data?.message || statusErr?.message;
-        console.error('[TOTP Callback] totpStatus error:', httpStatus, errMsg, statusErr);
-        if (httpStatus === 404) {
-          // User authenticated via Entra but not yet provisioned in IOTA
-          setPhase('account_not_found');
-        } else {
-          // Unknown error — show setup rather than OTP (user can’t verify a code they may not have)
-          setPhase('setup_required');
-        }
-      }
-    };
-
-    const resolveSession = async () => {
-      if (accessToken) {
-        const { error: sessionError, data } = await supabase.auth.setSession({
-          access_token: accessToken,
-          refresh_token: refreshToken,
-        });
-        if (sessionError) {
-          setAuthError(sessionError.message);
-          setPhase('error');
-          return;
-        }
-        await afterSession(data?.user?.email);
-        return;
-      }
-
-      const { data: existing } = await supabase.auth.getSession();
-      if (existing?.session) {
-        await afterSession(existing.session.user?.email);
-        return;
-      }
-
-      if (!useCode) {
-        setAuthError('Missing auth code in callback URL.');
-        setPhase('error');
-        return;
-      }
-
-      const { error: exchError, data: exchData } = await supabase.auth.exchangeCodeForSession({
-        authCode: useCode,
-      });
-      if (exchError) {
-        setAuthError(exchError.message);
-        setPhase('error');
-        return;
-      }
-      await afterSession(exchData?.user?.email);
-    };
-
-    resolveSession().catch((err) => {
-      setAuthError(err?.message || 'Unable to complete sign-in.');
-      setPhase('error');
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // ── Send QR code email (setup) ────────────────────────────────────────────
-  const handleSendQr = async () => {
-    setSendingEmail(true);
-    setEmailError('');
-    try {
-      await totpSetup(emailRef.current);
-      setEmailSent(true);
-      setPhase('setup_verify');
-    } catch (err) {
-      const encoreMsg = err?.response?.data?.message || err?.message || '';
-      setEmailError(encoreMsg || 'Failed to send QR code. Please try again.');
-    } finally {
-      setSendingEmail(false);
-    }
-  };
-
-  // ── Confirm setup code ────────────────────────────────────────────────────
-  const handleVerifySetup = async () => {
-    const trimmed = otp.replace(/\s/g, '');
-    if (trimmed.length !== 6) {
-      setOtpError('Enter the 6-digit code shown in your authenticator app.');
-      return;
-    }
-    setVerifying(true);
-    setOtpError('');
-    try {
-      await totpVerifySetup(emailRef.current, trimmed);
-      markTotpVerified(emailRef.current);
-      goToDashboard();
-    } catch (err) {
-      const encoreMsg = err?.response?.data?.message || err?.message || '';
-      setOtpError(encoreMsg || 'Incorrect code. Please check the app and try again.');
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  // ── Verify OTP (returning user) ───────────────────────────────────────────
-  const handleVerify = async () => {
-    const trimmed = otp.replace(/\s/g, '');
-    if (trimmed.length !== 6) {
-      setOtpError('Enter the 6-digit code from your authenticator app.');
-      return;
-    }
-    setVerifying(true);
-    setOtpError('');
-    try {
-      await totpVerify(emailRef.current, trimmed);
-      markTotpVerified(emailRef.current);
-      goToDashboard();
-    } catch (err) {
-      // Encore errors come via axios as err.response.data = { code, message }
       const encoreMsg = err?.response?.data?.message || err?.message || '';
       if (err?.response?.status === 403 || encoreMsg.toLowerCase().includes('locked')) {
         setPhase('totp_locked');
@@ -380,14 +218,17 @@ export default function SupabaseAuthCallbackPage() {
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  if (phase === 'exchanging') {
+  // Loading: exchanging code or sending QR email
+  if (phase === 'exchanging' || phase === 'sending_qr') {
     return (
       <Container maxWidth="sm" sx={{ py: 8 }}>
         <Card variant="outlined">
           <Box sx={{ p: 4 }}>
             <Stack spacing={2} alignItems="center">
               <CircularProgress size={32} />
-              <Typography variant="h6">Finishing sign-in…</Typography>
+              <Typography variant="h6">
+                {phase === 'sending_qr' ? 'Sending setup email…' : 'Finishing sign-in…'}
+              </Typography>
             </Stack>
           </Box>
         </Card>
@@ -395,6 +236,7 @@ export default function SupabaseAuthCallbackPage() {
     );
   }
 
+  // Error
   if (phase === 'error') {
     return (
       <Container maxWidth="sm" sx={{ py: 8 }}>
@@ -407,7 +249,7 @@ export default function SupabaseAuthCallbackPage() {
     );
   }
 
-  // ── Account not provisioned in IOTA ──────────────────────────────────────
+  // Account not provisioned in IOTA DB
   if (phase === 'account_not_found') {
     return (
       <Container maxWidth="xs" sx={{ py: 8 }}>
@@ -415,13 +257,11 @@ export default function SupabaseAuthCallbackPage() {
           <Box sx={{ p: 4 }}>
             <Stack spacing={3} alignItems="center">
               <Iconify icon="solar:user-block-bold" width={48} sx={{ color: 'warning.main' }} />
-              <Typography variant="h5" textAlign="center">
-                Account Not Activated
-              </Typography>
+              <Typography variant="h5" textAlign="center">Account Not Activated</Typography>
               <Typography variant="body2" color="text.secondary" textAlign="center">
                 You&apos;ve signed in with Microsoft successfully, but your account hasn&apos;t been
-                activated in the IOTA dashboard yet. Please ask your <strong>Super Admin</strong> to
-                grant you access via the Access Control page.
+                activated in the IOTA dashboard yet. Please ask your{' '}
+                <strong>Super Admin</strong> to grant you access via the Access Control page.
               </Typography>
               <Typography variant="caption" color="text.disabled" textAlign="center">
                 Signed in as <strong>{emailRef.current}</strong>
@@ -433,52 +273,68 @@ export default function SupabaseAuthCallbackPage() {
     );
   }
 
-  // ── First-time setup: send QR code email ──────────────────────────────────
-  if (phase === 'setup_required') {
+  // First-time: QR email sent — show instructions
+  if (phase === 'setup_email_sent') {
     return (
       <Container maxWidth="xs" sx={{ py: 8 }}>
         <Card variant="outlined">
           <Box sx={{ p: 4 }}>
             <Stack spacing={3}>
               <Stack spacing={1} alignItems="center">
-                <Iconify
-                  icon="solar:shield-keyhole-bold"
-                  width={40}
-                  sx={{ color: 'warning.main' }}
-                />
-                <Typography variant="h5" textAlign="center">
-                  Set Up Two-Factor Authentication
-                </Typography>
+                <Iconify icon="solar:letter-bold" width={40} sx={{ color: 'success.main' }} />
+                <Typography variant="h5" textAlign="center">Check Your Email</Typography>
                 <Typography variant="body2" color="text.secondary" textAlign="center">
-                  Your organisation requires an authenticator app for dashboard access. We&apos;ll
-                  email you a QR code to scan with <strong>Microsoft Authenticator</strong> or any
-                  TOTP app.
+                  We&apos;ve sent a QR code to <strong>{emailRef.current}</strong>.
                 </Typography>
               </Stack>
 
-              {emailError && <Alert severity="error">{emailError}</Alert>}
+              <Box sx={{ bgcolor: 'background.neutral', borderRadius: 2, p: 2 }}>
+                <Stack spacing={1.5}>
+                  {[
+                    { n: 1, text: 'Open the email from IOTA Technologies.' },
+                    { n: 2, text: 'Open Microsoft Authenticator (or any TOTP app) on your phone.' },
+                    { n: 3, text: 'Tap "Add account" → "Other account" and scan the QR code.' },
+                    { n: 4, text: 'Once added, click the button below to continue.' },
+                  ].map(({ n, text }) => (
+                    <Stack key={n} direction="row" spacing={1.5} alignItems="flex-start">
+                      <Box
+                        sx={{
+                          minWidth: 24, height: 24, borderRadius: '50%',
+                          bgcolor: 'primary.main', color: 'primary.contrastText',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          fontSize: 12, fontWeight: 700, mt: 0.1,
+                        }}
+                      >
+                        {n}
+                      </Box>
+                      <Typography variant="body2" color="text.secondary">{text}</Typography>
+                    </Stack>
+                  ))}
+                </Stack>
+              </Box>
+
+              {resendError && <Alert severity="error">{resendError}</Alert>}
 
               <Button
                 fullWidth
                 size="large"
                 variant="contained"
-                color="warning"
-                onClick={handleSendQr}
-                disabled={sendingEmail}
-                startIcon={
-                  sendingEmail ? (
-                    <CircularProgress size={16} color="inherit" />
-                  ) : (
-                    <Iconify icon="solar:letter-bold" />
-                  )
-                }
+                onClick={handleScannedIt}
+                startIcon={<Iconify icon="solar:check-circle-bold" />}
               >
-                {sendingEmail ? 'Sending…' : 'Send QR Code to My Email'}
+                I&apos;ve Scanned the QR Code
               </Button>
 
-              <Typography variant="caption" color="text.disabled" textAlign="center">
-                The QR code will be sent to <strong>{emailRef.current}</strong>
-              </Typography>
+              <Button
+                size="small"
+                variant="text"
+                color="inherit"
+                onClick={handleResend}
+                disabled={resending}
+                startIcon={resending ? <CircularProgress size={14} color="inherit" /> : null}
+              >
+                {resending ? 'Resending…' : 'Didn\'t receive the email? Send again'}
+              </Button>
             </Stack>
           </Box>
         </Card>
@@ -486,7 +342,7 @@ export default function SupabaseAuthCallbackPage() {
     );
   }
 
-  // ── Setup verification: scan QR then enter code ───────────────────────────
+  // First-time: enter 6-digit code to complete setup
   if (phase === 'setup_verify') {
     return (
       <Container maxWidth="xs" sx={{ py: 8 }}>
@@ -495,12 +351,10 @@ export default function SupabaseAuthCallbackPage() {
             <Stack spacing={3}>
               <Stack spacing={1} alignItems="center">
                 <Iconify icon="solar:qr-code-bold" width={40} sx={{ color: 'success.main' }} />
-                <Typography variant="h5" textAlign="center">
-                  Scan &amp; Verify
-                </Typography>
+                <Typography variant="h5" textAlign="center">Enter the Code</Typography>
                 <Typography variant="body2" color="text.secondary" textAlign="center">
-                  Check your email for the QR code. Scan it with your authenticator app, then enter
-                  the 6-digit code below to complete setup.
+                  Open your authenticator app and enter the 6-digit code for{' '}
+                  <strong>IOTA Technologies</strong> to complete setup.
                 </Typography>
               </Stack>
 
@@ -510,13 +364,8 @@ export default function SupabaseAuthCallbackPage() {
                 label="Authenticator Code"
                 placeholder="000 000"
                 value={otp}
-                onChange={(e) => {
-                  setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6));
-                  setOtpError('');
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleVerifySetup();
-                }}
+                onChange={(e) => { setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6)); setOtpError(''); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleVerifySetup(); }}
                 inputProps={{ inputMode: 'numeric', maxLength: 6 }}
                 error={!!otpError}
                 helperText={otpError}
@@ -530,29 +379,13 @@ export default function SupabaseAuthCallbackPage() {
                 color="success"
                 onClick={handleVerifySetup}
                 disabled={verifying || otp.replace(/\s/g, '').length !== 6}
-                startIcon={
-                  verifying ? (
-                    <CircularProgress size={16} color="inherit" />
-                  ) : (
-                    <Iconify icon="solar:check-circle-bold" />
-                  )
-                }
+                startIcon={verifying ? <CircularProgress size={16} color="inherit" /> : <Iconify icon="solar:check-circle-bold" />}
               >
                 {verifying ? 'Verifying…' : 'Complete Setup & Sign In'}
               </Button>
 
-              <Button
-                size="small"
-                variant="text"
-                color="inherit"
-                onClick={() => {
-                  setOtp('');
-                  setOtpError('');
-                  setEmailSent(false);
-                  setPhase('setup_required');
-                }}
-              >
-                Didn&apos;t receive the email? Send again
+              <Button size="small" variant="text" color="inherit" onClick={() => setPhase('setup_email_sent')}>
+                ← Back to instructions
               </Button>
             </Stack>
           </Box>
@@ -561,7 +394,7 @@ export default function SupabaseAuthCallbackPage() {
     );
   }
 
-  // ── Returning user: enter existing TOTP code ──────────────────────────────
+  // Returning user: enter TOTP code
   if (phase === 'totp_required') {
     return (
       <Container maxWidth="xs" sx={{ py: 8 }}>
@@ -569,14 +402,8 @@ export default function SupabaseAuthCallbackPage() {
           <Box sx={{ p: 4 }}>
             <Stack spacing={3}>
               <Stack spacing={1} alignItems="center">
-                <Iconify
-                  icon="solar:shield-keyhole-bold"
-                  width={40}
-                  sx={{ color: 'primary.main' }}
-                />
-                <Typography variant="h5" textAlign="center">
-                  Two-Factor Verification
-                </Typography>
+                <Iconify icon="solar:shield-keyhole-bold" width={40} sx={{ color: 'primary.main' }} />
+                <Typography variant="h5" textAlign="center">Two-Factor Verification</Typography>
                 <Typography variant="body2" color="text.secondary" textAlign="center">
                   Open <strong>Microsoft Authenticator</strong> (or your TOTP app) and enter the
                   6-digit code for <strong>IOTA Technologies</strong>.
@@ -589,13 +416,8 @@ export default function SupabaseAuthCallbackPage() {
                 label="Authenticator Code"
                 placeholder="000 000"
                 value={otp}
-                onChange={(e) => {
-                  setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6));
-                  setOtpError('');
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleVerify();
-                }}
+                onChange={(e) => { setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6)); setOtpError(''); }}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleVerify(); }}
                 inputProps={{ inputMode: 'numeric', maxLength: 6 }}
                 error={!!otpError}
                 helperText={otpError}
@@ -608,30 +430,9 @@ export default function SupabaseAuthCallbackPage() {
                 variant="contained"
                 onClick={handleVerify}
                 disabled={verifying || otp.replace(/\s/g, '').length !== 6}
-                startIcon={
-                  verifying ? (
-                    <CircularProgress size={16} color="inherit" />
-                  ) : (
-                    <Iconify icon="solar:lock-password-bold" />
-                  )
-                }
+                startIcon={verifying ? <CircularProgress size={16} color="inherit" /> : <Iconify icon="solar:lock-password-bold" />}
               >
                 {verifying ? 'Verifying…' : 'Verify & Sign In'}
-              </Button>
-
-              <Button
-                size="small"
-                variant="text"
-                color="inherit"
-                onClick={() => {
-                  setOtp('');
-                  setOtpError('');
-                  setEmailError('');
-                  setEmailSent(false);
-                  setPhase('setup_required');
-                }}
-              >
-                Haven&apos;t set up your authenticator yet?
               </Button>
             </Stack>
           </Box>
@@ -640,7 +441,7 @@ export default function SupabaseAuthCallbackPage() {
     );
   }
 
-  // ── Account locked ────────────────────────────────────────────────────────
+  // Account locked
   if (phase === 'totp_locked') {
     return (
       <Container maxWidth="xs" sx={{ py: 8 }}>
@@ -648,12 +449,10 @@ export default function SupabaseAuthCallbackPage() {
           <Box sx={{ p: 4 }}>
             <Stack spacing={3} alignItems="center">
               <Iconify icon="solar:lock-bold" width={48} sx={{ color: 'error.main' }} />
-              <Typography variant="h5" textAlign="center" color="error">
-                Account Locked
-              </Typography>
+              <Typography variant="h5" textAlign="center" color="error">Account Locked</Typography>
               <Typography variant="body2" color="text.secondary" textAlign="center">
-                Your account has been locked after too many failed authentication attempts. Please
-                contact your <strong>Super Admin</strong> to unlock your account.
+                Your account has been locked after too many failed authentication attempts.
+                Please contact your <strong>Super Admin</strong> to unlock your account.
               </Typography>
               <Typography variant="caption" color="text.disabled" textAlign="center">
                 Signed in as <strong>{emailRef.current}</strong>
