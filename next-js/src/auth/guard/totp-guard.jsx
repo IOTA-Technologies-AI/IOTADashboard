@@ -103,6 +103,8 @@ export function TotpGuard({ children }) {
         setState('setup_required');
         return;
       }
+      // The callback page already verified TOTP on fresh login and stamped sessionStorage.
+      // Here we only need to enforce the re-auth timer.
       if (isSessionExpired(email)) {
         setState('otp_required');
       } else {
@@ -110,10 +112,16 @@ export function TotpGuard({ children }) {
         scheduleReauthCheck();
       }
     } catch (err) {
-      // Status check failed — require setup rather than failing open silently.
-      // This prevents a broken API from granting unintended access.
       console.error('[TotpGuard] status check failed:', err);
-      setState('setup_required');
+      // Fail open only if session is already verified (re-auth check failure shouldn't
+      // kick out an active user mid-session). On fresh load, require OTP.
+      const ts = getVerifiedAt(email);
+      if (ts && Date.now() - ts <= REAUTH_MS) {
+        setState('verified');
+        scheduleReauthCheck();
+      } else {
+        setState('otp_required');
+      }
     }
   }, [email, isBypassPath, scheduleReauthCheck]);
 
