@@ -22,6 +22,21 @@ import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { NdaHtmlTemplate, NdaSignatureCanvas } from 'src/components/nda';
 
+function getDocumentExtension(fileName = '') {
+  const normalized = String(fileName).toLowerCase().trim();
+  const parts = normalized.split('.');
+  return parts.length > 1 ? parts.at(-1) : '';
+}
+
+function isPdfDocument(fileName = '') {
+  return getDocumentExtension(fileName) === 'pdf';
+}
+
+function isWordDocument(fileName = '') {
+  const extension = getDocumentExtension(fileName);
+  return extension === 'doc' || extension === 'docx';
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function PartnerNdaSignPage({ params }) {
@@ -61,17 +76,16 @@ export default function PartnerNdaSignPage({ params }) {
   const zoneCanvasRef = useRef(null);
 
   // For external_upload NDAs: create a blob URL to show the uploaded PDF in an iframe
+  const uploadedDocumentName = nda?.uploadedDocumentName || '';
+  const isUploadedPdf = isPdfDocument(uploadedDocumentName);
+  const isUploadedWordDocument = isWordDocument(uploadedDocumentName);
   const uploadedDocBlobUrl = useMemo(() => {
-    if (
-      nda?.documentSource === 'external_upload' &&
-      nda?.uploadedDocumentBase64 &&
-      nda?.uploadedDocumentName?.toLowerCase().endsWith('.pdf')
-    ) {
+    if (nda?.documentSource === 'external_upload' && nda?.uploadedDocumentBase64 && isUploadedPdf) {
       const bytes = Uint8Array.from(atob(nda.uploadedDocumentBase64), (c) => c.charCodeAt(0));
       return URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
     }
     return null;
-  }, [nda?.documentSource, nda?.uploadedDocumentBase64, nda?.uploadedDocumentName]);
+  }, [nda?.documentSource, nda?.uploadedDocumentBase64, nda?.uploadedDocumentName, isUploadedPdf]);
 
   // Revoke blob URL on unmount / change
   useEffect(() => {
@@ -457,128 +471,24 @@ export default function PartnerNdaSignPage({ params }) {
                   title="Agreement Document"
                   sx={{ width: '100%', height: 700, border: 'none', display: 'block' }}
                 />
+              ) : nda?.documentSource === 'external_upload' ? (
+                <Stack spacing={2}>
+                  <Alert severity="warning">
+                    This NDA was uploaded as a Word document. The signing portal cannot render it as
+                    a PDF, so page-accurate signature overlays are unavailable until the file is
+                    converted to PDF.
+                  </Alert>
+                  <Alert severity="info">
+                    You can still review the uploaded file by downloading the original document from
+                    the source system if needed.
+                  </Alert>
+                </Stack>
               ) : (
                 /* IOTA-generated template */
                 <NdaHtmlTemplate nda={nda} showSignatures showAuditTrail={false} />
               )}
             </Box>
           </Card>
-
-          {/* Signature zone preview — show where on the document the partner needs to sign */}
-          {myZones.length > 0 && uploadedDocBlobUrl && (
-            <Card sx={{ p: 2, border: '2px dashed', borderColor: 'warning.main' }}>
-              <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-                Your signature location{myZones.length > 1 ? 's' : ''} in the document
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
-                The highlighted area{myZones.length > 1 ? 's' : ''} show
-                {myZones.length > 1 ? '' : 's'} where your signature will be embedded.
-              </Typography>
-
-              {/* Zone page chips for navigation */}
-              {[...new Set(myZones.map((z) => z.page || 1))]
-                .sort((a, b) => a - b)
-                .map((pg) => (
-                  <Chip
-                    key={pg}
-                    label={`Page ${pg}`}
-                    size="small"
-                    variant={zonePreviewPage === pg ? 'filled' : 'outlined'}
-                    color="warning"
-                    onClick={() => setZonePreviewPage(pg)}
-                    sx={{ mr: 0.75, mb: 1.5, cursor: 'pointer' }}
-                  />
-                ))}
-
-              {/* Page navigation */}
-              {pdfJsDoc && pdfJsDoc.numPages > 1 && (
-                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
-                  <Typography variant="caption" color="text.secondary">
-                    Page:
-                  </Typography>
-                  <IconButton
-                    size="small"
-                    onClick={() => setZonePreviewPage((p) => Math.max(1, p - 1))}
-                    disabled={zonePreviewPage <= 1}
-                  >
-                    <Iconify icon="solar:arrow-left-bold" width={16} />
-                  </IconButton>
-                  <Typography variant="body2">{zonePreviewPage}</Typography>
-                  <IconButton
-                    size="small"
-                    onClick={() => setZonePreviewPage((p) => p + 1)}
-                    disabled={zonePreviewPage >= pdfJsDoc.numPages}
-                  >
-                    <Iconify icon="solar:arrow-right-bold" width={16} />
-                  </IconButton>
-                  <Typography variant="caption" color="text.secondary">
-                    / {pdfJsDoc.numPages}
-                  </Typography>
-                </Stack>
-              )}
-
-              {/* Canvas preview with zone overlay */}
-              <Box
-                ref={zonePreviewRef}
-                sx={{
-                  position: 'relative',
-                  width: '100%',
-                  paddingTop: '141.4%',
-                  bgcolor: 'common.white',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 1,
-                  overflow: 'hidden',
-                  boxShadow: 2,
-                }}
-              >
-                <canvas
-                  ref={zoneCanvasRef}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    display: 'block',
-                  }}
-                />
-                {myZones
-                  .filter((z) => (z.page || 1) === zonePreviewPage)
-                  .map((zone) => (
-                    <Box
-                      key={zone.id}
-                      sx={{
-                        position: 'absolute',
-                        left: `${zone.xPct}%`,
-                        top: `${zone.yPct}%`,
-                        width: `${zone.widthPct}%`,
-                        height: `${zone.heightPct}%`,
-                        border: '2px dashed',
-                        borderColor: 'warning.main',
-                        bgcolor: 'rgba(255,152,0,0.18)',
-                        borderRadius: 0.5,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          fontSize: '0.6rem',
-                          fontWeight: 700,
-                          color: 'warning.dark',
-                          letterSpacing: 0.5,
-                        }}
-                      >
-                        SIGN HERE
-                      </Typography>
-                    </Box>
-                  ))}
-              </Box>
-            </Card>
-          )}
 
           {/* Signature */}
           {(() => {

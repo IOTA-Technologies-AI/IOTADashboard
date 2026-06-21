@@ -9,26 +9,24 @@ import Chip from '@mui/material/Chip';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
+import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import Select from '@mui/material/Select';
 import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
+import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
+import FormControl from '@mui/material/FormControl';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import Select from '@mui/material/Select';
-import MenuItem from '@mui/material/MenuItem';
-import InputLabel from '@mui/material/InputLabel';
-import FormControl from '@mui/material/FormControl';
-import Paper from '@mui/material/Paper';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
-import { useRouter } from 'src/routes/hooks';
 
 import {
   getNda,
@@ -36,12 +34,12 @@ import {
   updateNda,
   finalizeNda,
   iotaSignNda,
-  setNdaStampPlacements,
   setNdaSignatureZones,
-  setNdaPartnerSignatureZones,
+  setNdaStampPlacements,
   submitNdaForIotaSigning,
-  uploadExternalNdaDocument,
   remindPartnerSignatories,
+  uploadExternalNdaDocument,
+  setNdaPartnerSignatureZones,
 } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -148,11 +146,25 @@ function DetailRow({ label, value }) {
   );
 }
 
+function getDocumentExtension(fileName = '') {
+  const normalized = String(fileName).toLowerCase().trim();
+  const parts = normalized.split('.');
+  return parts.length > 1 ? parts.at(-1) : '';
+}
+
+function isPdfDocument(fileName = '') {
+  return getDocumentExtension(fileName) === 'pdf';
+}
+
+function isWordDocument(fileName = '') {
+  const extension = getDocumentExtension(fileName);
+  return extension === 'doc' || extension === 'docx';
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function NdaDetailsPage({ params }) {
   const { id } = use(params);
-  const router = useRouter();
   const { user } = useAuthContext();
   const printRef = useRef(null);
   const docFileInputRef = useRef(null);
@@ -169,7 +181,10 @@ export default function NdaDetailsPage({ params }) {
   const [stampPlacements, setStampPlacements] = useState([]);
   const [stampSaving, setStampSaving] = useState(false);
   const [stampPreviewPage, setStampPreviewPage] = useState(1);
-  const [draggingStamp, setDraggingStamp] = useState(null); // { id } during drag, null otherwise
+  const [draggingStamp, setDraggingStamp] = useState(null);
+  const [resizingStamp, setResizingStamp] = useState(null);
+  const [resizeStartWidth, setResizeStartWidth] = useState(0);
+  const [resizeStartX, setResizeStartX] = useState(0);
   const stampPreviewRef = useRef(null);
   const stampCanvasRef = useRef(null);
   const [signatureZones, setSignatureZones] = useState([]);
@@ -217,6 +232,10 @@ export default function NdaDetailsPage({ params }) {
   const [docUploading, setDocUploading] = useState(false);
 
   const userEmail = user?.email || '';
+  const uploadedDocumentName = nda?.uploadedDocumentName || '';
+  const isExternalUpload = nda?.documentSource === 'external_upload';
+  const isUploadedPdf = isPdfDocument(uploadedDocumentName);
+  const isUploadedWordDocument = isWordDocument(uploadedDocumentName);
 
   const pendingIotaSignature =
     nda?.status === 'pending_iota_signatures' &&
@@ -251,32 +270,36 @@ export default function NdaDetailsPage({ params }) {
   }, [nda?.signatureZones]);
 
   useEffect(() => {
-    if (nda?.uploadedDocumentBase64 && nda.uploadedDocumentName?.toLowerCase().endsWith('.pdf')) {
+    let url = null;
+    if (nda?.uploadedDocumentBase64 && isUploadedPdf) {
       const bytes = Uint8Array.from(atob(nda.uploadedDocumentBase64), (c) => c.charCodeAt(0));
       const blob = new Blob([bytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
+      url = URL.createObjectURL(blob);
       setDocBlobUrl(url);
-      return () => URL.revokeObjectURL(url);
+    } else {
+      setDocBlobUrl(null);
     }
-    setDocBlobUrl(null);
-  }, [nda?.uploadedDocumentBase64, nda?.uploadedDocumentName]);
+    return () => {
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [nda?.uploadedDocumentBase64, nda?.uploadedDocumentName, isUploadedPdf]);
 
   // Load pdfjs document whenever the blob URL changes
   useEffect(() => {
+    let cancelled = false;
     if (!docBlobUrl) {
       setPdfJsDoc(null);
-      return;
+    } else {
+      import('pdfjs-dist').then(async (pdfjsLib) => {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+        try {
+          const doc = await pdfjsLib.getDocument(docBlobUrl).promise;
+          if (!cancelled) setPdfJsDoc(doc);
+        } catch (e) {
+          console.error('pdfjs load error', e);
+        }
+      });
     }
-    let cancelled = false;
-    import('pdfjs-dist').then(async (pdfjsLib) => {
-      pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
-      try {
-        const doc = await pdfjsLib.getDocument(docBlobUrl).promise;
-        if (!cancelled) setPdfJsDoc(doc);
-      } catch (e) {
-        console.error('pdfjs load error', e);
-      }
-    });
     return () => {
       cancelled = true;
     };
@@ -284,20 +307,21 @@ export default function NdaDetailsPage({ params }) {
 
   // Render stamp preview canvas whenever the page or loaded doc changes
   useEffect(() => {
-    if (!pdfJsDoc || !stampCanvasRef.current) return;
-    const canvas = stampCanvasRef.current;
-    const pageNum = Math.min(stampPreviewPage, pdfJsDoc.numPages);
     let cancelled = false;
-    pdfJsDoc.getPage(pageNum).then((page) => {
-      if (cancelled) return;
-      const viewport = page.getViewport({ scale: 1 });
-      const containerWidth = canvas.parentElement?.offsetWidth || viewport.width;
-      const scale = containerWidth / viewport.width;
-      const scaledVp = page.getViewport({ scale });
-      canvas.width = scaledVp.width;
-      canvas.height = scaledVp.height;
-      page.render({ canvasContext: canvas.getContext('2d'), viewport: scaledVp });
-    });
+    if (pdfJsDoc && stampCanvasRef.current) {
+      const canvas = stampCanvasRef.current;
+      const pageNum = Math.min(stampPreviewPage, pdfJsDoc.numPages);
+      pdfJsDoc.getPage(pageNum).then((page) => {
+        if (cancelled) return;
+        const viewport = page.getViewport({ scale: 1 });
+        const containerWidth = canvas.parentElement?.offsetWidth || viewport.width;
+        const scale = containerWidth / viewport.width;
+        const scaledVp = page.getViewport({ scale });
+        canvas.width = scaledVp.width;
+        canvas.height = scaledVp.height;
+        page.render({ canvasContext: canvas.getContext('2d'), viewport: scaledVp });
+      });
+    }
     return () => {
       cancelled = true;
     };
@@ -305,20 +329,21 @@ export default function NdaDetailsPage({ params }) {
 
   // Render sig zone preview canvas whenever the page or loaded doc changes
   useEffect(() => {
-    if (!pdfJsDoc || !sigZoneCanvasRef.current) return;
-    const canvas = sigZoneCanvasRef.current;
-    const pageNum = Math.min(sigZonePreviewPage, pdfJsDoc.numPages);
     let cancelled = false;
-    pdfJsDoc.getPage(pageNum).then((page) => {
-      if (cancelled) return;
-      const viewport = page.getViewport({ scale: 1 });
-      const containerWidth = canvas.parentElement?.offsetWidth || viewport.width;
-      const scale = containerWidth / viewport.width;
-      const scaledVp = page.getViewport({ scale });
-      canvas.width = scaledVp.width;
-      canvas.height = scaledVp.height;
-      page.render({ canvasContext: canvas.getContext('2d'), viewport: scaledVp });
-    });
+    if (pdfJsDoc && sigZoneCanvasRef.current) {
+      const canvas = sigZoneCanvasRef.current;
+      const pageNum = Math.min(sigZonePreviewPage, pdfJsDoc.numPages);
+      pdfJsDoc.getPage(pageNum).then((page) => {
+        if (cancelled) return;
+        const viewport = page.getViewport({ scale: 1 });
+        const containerWidth = canvas.parentElement?.offsetWidth || viewport.width;
+        const scale = containerWidth / viewport.width;
+        const scaledVp = page.getViewport({ scale });
+        canvas.width = scaledVp.width;
+        canvas.height = scaledVp.height;
+        page.render({ canvasContext: canvas.getContext('2d'), viewport: scaledVp });
+      });
+    }
     return () => {
       cancelled = true;
     };
@@ -331,20 +356,21 @@ export default function NdaDetailsPage({ params }) {
 
   // Render partner sig zone preview canvas
   useEffect(() => {
-    if (!pdfJsDoc || !partnerSigZoneCanvasRef.current) return;
-    const canvas = partnerSigZoneCanvasRef.current;
-    const pageNum = Math.min(partnerSigZonePreviewPage, pdfJsDoc.numPages);
     let cancelled = false;
-    pdfJsDoc.getPage(pageNum).then((page) => {
-      if (cancelled) return;
-      const viewport = page.getViewport({ scale: 1 });
-      const containerWidth = canvas.parentElement?.offsetWidth || viewport.width;
-      const scale = containerWidth / viewport.width;
-      const scaledVp = page.getViewport({ scale });
-      canvas.width = scaledVp.width;
-      canvas.height = scaledVp.height;
-      page.render({ canvasContext: canvas.getContext('2d'), viewport: scaledVp });
-    });
+    if (pdfJsDoc && partnerSigZoneCanvasRef.current) {
+      const canvas = partnerSigZoneCanvasRef.current;
+      const pageNum = Math.min(partnerSigZonePreviewPage, pdfJsDoc.numPages);
+      pdfJsDoc.getPage(pageNum).then((page) => {
+        if (cancelled) return;
+        const viewport = page.getViewport({ scale: 1 });
+        const containerWidth = canvas.parentElement?.offsetWidth || viewport.width;
+        const scale = containerWidth / viewport.width;
+        const scaledVp = page.getViewport({ scale });
+        canvas.width = scaledVp.width;
+        canvas.height = scaledVp.height;
+        page.render({ canvasContext: canvas.getContext('2d'), viewport: scaledVp });
+      });
+    }
     return () => {
       cancelled = true;
     };
@@ -415,42 +441,75 @@ export default function NdaDetailsPage({ params }) {
     try {
       setActionLoading(true);
 
-      let fileBase64;
-      const isExternalUpload = nda.documentSource === 'external_upload';
+      const latestNda = await getNda(id);
+      setNda(latestNda);
 
-      if (isExternalUpload) {
-        if (!nda.uploadedDocumentBase64) {
+      const latestUploadedDocumentName = latestNda.uploadedDocumentName || '';
+      const latestIsUploadedPdfDoc = isPdfDocument(latestUploadedDocumentName);
+      const sourceStampPlacements = Array.isArray(latestNda.stampPlacements)
+        ? latestNda.stampPlacements
+        : [];
+      const sourceSignatureZones = Array.isArray(latestNda.signatureZones)
+        ? latestNda.signatureZones
+        : [];
+      const sourcePartnerSignatureZones = Array.isArray(latestNda.partnerSignatureZones)
+        ? latestNda.partnerSignatureZones
+        : [];
+
+      const allIotaSigned =
+        !Array.isArray(latestNda.iotaSignatories) ||
+        latestNda.iotaSignatories.every((signatory) => !!signatory.signedAt);
+      const allPartnerSigned =
+        !Array.isArray(latestNda.partnerSignatories) ||
+        latestNda.partnerSignatories.every((signatory) => !!signatory.signedAt);
+
+      if (!allIotaSigned || !allPartnerSigned) {
+        toast.error('All signatories must sign before the NDA can be finalized.');
+        return;
+      }
+
+      if (latestNda.documentSource === 'external_upload' && !latestIsUploadedPdfDoc) {
+        toast.error(
+          'Word documents (DOC/DOCX) must be converted to PDF before finalization so signatures and stamps can be embedded.'
+        );
+        return;
+      }
+
+      let fileBase64;
+      const docIsExternalUpload = latestNda.documentSource === 'external_upload';
+
+      if (docIsExternalUpload) {
+        if (!latestNda.uploadedDocumentBase64) {
           toast.error('No document uploaded. Please upload the partner document first.');
-          setActionLoading(false);
           return;
         }
-        fileBase64 = nda.uploadedDocumentBase64;
+        fileBase64 = latestNda.uploadedDocumentBase64;
       } else {
         // Generate PDF from react-pdf template
-        const blob = await pdf(<NdaPdfDocument nda={nda} />).toBlob();
+        const blob = await pdf(<NdaPdfDocument nda={latestNda} />).toBlob();
         const arrayBuffer = await blob.arrayBuffer();
         fileBase64 = uint8ToBase64(new Uint8Array(arrayBuffer));
       }
 
       // Apply IOTA signature zones, partner signature zones + stamp placements when the document is a PDF
-      const isPdf =
-        !isExternalUpload ||
-        (nda.uploadedDocumentName && nda.uploadedDocumentName.toLowerCase().endsWith('.pdf'));
+      const isPdf = !docIsExternalUpload || latestIsUploadedPdfDoc;
       if (
         isPdf &&
-        (stampPlacements.length > 0 ||
-          signatureZones.length > 0 ||
-          partnerSignatureZones.length > 0)
+        (sourceStampPlacements.length > 0 ||
+          sourceSignatureZones.length > 0 ||
+          sourcePartnerSignatureZones.length > 0)
       ) {
-        const { PDFDocument, rgb } = await import('pdf-lib');
+        const { PDFDocument } = await import('pdf-lib');
         const pdfBytes = Uint8Array.from(atob(fileBase64), (c) => c.charCodeAt(0));
         const pdfDoc = await PDFDocument.load(pdfBytes);
         const pages = pdfDoc.getPages();
 
         // Embed IOTA signature zones first
-        if (signatureZones.length > 0) {
-          const signatories = Array.isArray(nda?.iotaSignatories) ? nda.iotaSignatories : [];
-          for (const zone of signatureZones) {
+        if (sourceSignatureZones.length > 0) {
+          const signatories = Array.isArray(latestNda?.iotaSignatories)
+            ? latestNda.iotaSignatories
+            : [];
+          for (const zone of sourceSignatureZones) {
             const pageIdx = Math.max(0, (zone.page || 1) - 1);
             const page = pages[pageIdx];
             if (!page) continue;
@@ -478,37 +537,25 @@ export default function NdaDetailsPage({ params }) {
                   height: zoneH,
                   opacity: 1,
                 });
-              } catch {
-                page.drawRectangle({
-                  x: zoneX,
-                  y: zoneY - zoneH,
-                  width: zoneW,
-                  height: zoneH,
-                  borderColor: rgb(0.2, 0.2, 0.7),
-                  borderWidth: 1,
-                  opacity: 0.5,
-                });
+              } catch (embedErr) {
+                throw new Error(
+                  `Failed to embed IOTA signature for ${signatory?.email || 'unknown signatory'}: ${embedErr?.message || embedErr}`
+                );
               }
             } else {
-              page.drawRectangle({
-                x: zoneX,
-                y: zoneY - zoneH,
-                width: zoneW,
-                height: zoneH,
-                borderColor: rgb(0.2, 0.2, 0.7),
-                borderWidth: 1,
-                opacity: 0.5,
-              });
+              throw new Error(
+                `Missing signature data for IOTA signatory ${signatory?.email || 'unknown signatory'}.`
+              );
             }
           }
         }
 
         // Embed partner signature zones
-        if (partnerSignatureZones.length > 0) {
-          const partnerSignatories = Array.isArray(nda?.partnerSignatories)
-            ? nda.partnerSignatories
+        if (sourcePartnerSignatureZones.length > 0) {
+          const partnerSignatories = Array.isArray(latestNda?.partnerSignatories)
+            ? latestNda.partnerSignatories
             : [];
-          for (const zone of partnerSignatureZones) {
+          for (const zone of sourcePartnerSignatureZones) {
             const pageIdx = Math.max(0, (zone.page || 1) - 1);
             const page = pages[pageIdx];
             if (!page) continue;
@@ -533,38 +580,26 @@ export default function NdaDetailsPage({ params }) {
                   height: zoneH,
                   opacity: 1,
                 });
-              } catch {
-                page.drawRectangle({
-                  x: zoneX,
-                  y: zoneY - zoneH,
-                  width: zoneW,
-                  height: zoneH,
-                  borderColor: rgb(0.7, 0.3, 0.1),
-                  borderWidth: 1,
-                  opacity: 0.5,
-                });
+              } catch (embedErr) {
+                throw new Error(
+                  `Failed to embed partner signature for ${signatory?.email || 'unknown signatory'}: ${embedErr?.message || embedErr}`
+                );
               }
             } else {
-              page.drawRectangle({
-                x: zoneX,
-                y: zoneY - zoneH,
-                width: zoneW,
-                height: zoneH,
-                borderColor: rgb(0.7, 0.3, 0.1),
-                borderWidth: 1,
-                opacity: 0.5,
-              });
+              throw new Error(
+                `Missing signature data for partner signatory ${signatory?.email || 'unknown signatory'}.`
+              );
             }
           }
         }
 
         // Embed IOTA stamp
-        if (stampPlacements.length > 0) {
+        if (sourceStampPlacements.length > 0) {
           const stampRes = await fetch('/logo/iota-stamp.png');
           if (stampRes.ok) {
             const stampArrayBuffer = await stampRes.arrayBuffer();
             const stampImage = await pdfDoc.embedPng(new Uint8Array(stampArrayBuffer));
-            for (const placement of stampPlacements) {
+            for (const placement of sourceStampPlacements) {
               const pageIdx = Math.max(0, (placement.page || 1) - 1);
               const page = pages[pageIdx];
               if (!page) continue;
@@ -648,8 +683,15 @@ export default function NdaDetailsPage({ params }) {
   const handlePrint = async () => {
     const isExternalPdf =
       nda.documentSource === 'external_upload' &&
-      nda.uploadedDocumentName?.toLowerCase().endsWith('.pdf') &&
+      isPdfDocument(nda.uploadedDocumentName) &&
       nda.uploadedDocumentBase64;
+
+    if (nda.documentSource === 'external_upload' && !isPdfDocument(nda.uploadedDocumentName)) {
+      toast.error(
+        'Word documents cannot be printed as embedded PDFs. Download the original file instead.'
+      );
+      return;
+    }
 
     if (isExternalPdf) {
       // For external PDFs: embed current stamps + sig zones inline, open in new tab and print
@@ -662,7 +704,7 @@ export default function NdaDetailsPage({ params }) {
         return btoa(binary);
       };
       try {
-        const { PDFDocument, rgb } = await import('pdf-lib');
+        const { PDFDocument } = await import('pdf-lib');
         const pdfBytes = Uint8Array.from(atob(nda.uploadedDocumentBase64), (c) => c.charCodeAt(0));
         const pdfDoc = await PDFDocument.load(pdfBytes);
         const pages = pdfDoc.getPages();
@@ -694,27 +736,15 @@ export default function NdaDetailsPage({ params }) {
                 height: zoneH,
                 opacity: 1,
               });
-            } catch {
-              page.drawRectangle({
-                x: zoneX,
-                y: zoneY - zoneH,
-                width: zoneW,
-                height: zoneH,
-                borderColor: rgb(0.2, 0.2, 0.7),
-                borderWidth: 1,
-                opacity: 0.4,
-              });
+            } catch (embedErr) {
+              throw new Error(
+                `Failed to embed IOTA signature for ${signatory?.email || 'unknown signatory'}: ${embedErr?.message || embedErr}`
+              );
             }
           } else {
-            page.drawRectangle({
-              x: zoneX,
-              y: zoneY - zoneH,
-              width: zoneW,
-              height: zoneH,
-              borderColor: rgb(0.2, 0.2, 0.7),
-              borderWidth: 1,
-              opacity: 0.4,
-            });
+            throw new Error(
+              `Missing signature data for IOTA signatory ${signatory?.email || 'unknown signatory'}.`
+            );
           }
         }
 
@@ -771,27 +801,15 @@ export default function NdaDetailsPage({ params }) {
                   height: zoneH,
                   opacity: 1,
                 });
-              } catch {
-                page.drawRectangle({
-                  x: zoneX,
-                  y: zoneY - zoneH,
-                  width: zoneW,
-                  height: zoneH,
-                  borderColor: rgb(0.7, 0.3, 0.1),
-                  borderWidth: 1,
-                  opacity: 0.4,
-                });
+              } catch (embedErr) {
+                throw new Error(
+                  `Failed to embed partner signature for ${signatory?.email || 'unknown signatory'}: ${embedErr?.message || embedErr}`
+                );
               }
             } else {
-              page.drawRectangle({
-                x: zoneX,
-                y: zoneY - zoneH,
-                width: zoneW,
-                height: zoneH,
-                borderColor: rgb(0.7, 0.3, 0.1),
-                borderWidth: 1,
-                opacity: 0.4,
-              });
+              throw new Error(
+                `Missing signature data for partner signatory ${signatory?.email || 'unknown signatory'}.`
+              );
             }
           }
         }
@@ -894,7 +912,7 @@ export default function NdaDetailsPage({ params }) {
 
   // Document-level drag for stamp (fixes onMouseLeave early-cancel on fast movement)
   useEffect(() => {
-    if (!draggingStamp) return;
+    if (!draggingStamp) return undefined;
     const handleMove = (e) => {
       const container = stampPreviewRef.current;
       if (!container) return;
@@ -914,15 +932,42 @@ export default function NdaDetailsPage({ params }) {
     const handleUp = () => setDraggingStamp(null);
     document.addEventListener('mousemove', handleMove);
     document.addEventListener('mouseup', handleUp);
+
     return () => {
       document.removeEventListener('mousemove', handleMove);
       document.removeEventListener('mouseup', handleUp);
     };
   }, [draggingStamp]);
 
+  // Document-level drag for stamp resize
+  useEffect(() => {
+    if (!resizingStamp) return undefined;
+    const handleMove = (e) => {
+      const container = stampPreviewRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const currentX = e.clientX - rect.left;
+      const deltaX = currentX - resizeStartX;
+      const containerWidth = rect.width;
+      const deltaWidthPct = (deltaX / containerWidth) * 100;
+      const newWidthPct = Math.max(5, Math.min(50, resizeStartWidth + deltaWidthPct));
+      setStampPlacements((prev) =>
+        prev.map((p) => (p.id === resizingStamp ? { ...p, widthPct: newWidthPct } : p))
+      );
+    };
+    const handleUp = () => setResizingStamp(null);
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMove);
+      document.removeEventListener('mouseup', handleUp);
+    };
+  }, [resizingStamp, resizeStartWidth, resizeStartX]);
+
   // Document-level drag for signature zones
   useEffect(() => {
-    if (!draggingSigZone) return;
+    if (!draggingSigZone) return undefined;
     const handleMove = (e) => {
       const container = sigZonePreviewRef.current;
       if (!container) return;
@@ -943,6 +988,7 @@ export default function NdaDetailsPage({ params }) {
     const handleUp = () => setDraggingSigZone(null);
     document.addEventListener('mousemove', handleMove);
     document.addEventListener('mouseup', handleUp);
+
     return () => {
       document.removeEventListener('mousemove', handleMove);
       document.removeEventListener('mouseup', handleUp);
@@ -951,7 +997,7 @@ export default function NdaDetailsPage({ params }) {
 
   // Document-level drag for partner signature zones
   useEffect(() => {
-    if (!draggingPartnerSigZone) return;
+    if (!draggingPartnerSigZone) return undefined;
     const handleMove = (e) => {
       const container = partnerSigZonePreviewRef.current;
       if (!container) return;
@@ -972,6 +1018,7 @@ export default function NdaDetailsPage({ params }) {
     const handleUp = () => setDraggingPartnerSigZone(null);
     document.addEventListener('mousemove', handleMove);
     document.addEventListener('mouseup', handleUp);
+
     return () => {
       document.removeEventListener('mousemove', handleMove);
       document.removeEventListener('mouseup', handleUp);
@@ -1090,13 +1137,15 @@ export default function NdaDetailsPage({ params }) {
       return;
     }
 
-    const isUploadedPdf = nda.uploadedDocumentName?.toLowerCase().endsWith('.pdf');
-    if (
-      !isUploadedPdf ||
-      (stampPlacements.length === 0 &&
-        signatureZones.length === 0 &&
-        partnerSignatureZones.length === 0)
-    ) {
+    const hasOverlays =
+      stampPlacements.length > 0 || signatureZones.length > 0 || partnerSignatureZones.length > 0;
+
+    if (nda.documentSource === 'external_upload' && !isUploadedPdf && hasOverlays) {
+      toast.error('Word documents cannot be processed with embedded stamps or signatures.');
+      return;
+    }
+
+    if (!isUploadedPdf || !hasOverlays) {
       // No processing needed — just download the raw file
       const a = document.createElement('a');
       a.href = `data:application/octet-stream;base64,${nda.uploadedDocumentBase64}`;
@@ -1107,7 +1156,7 @@ export default function NdaDetailsPage({ params }) {
 
     try {
       setDownloadProcessing(true);
-      const { PDFDocument, rgb } = await import('pdf-lib');
+      const { PDFDocument } = await import('pdf-lib');
       const pdfBytes = Uint8Array.from(atob(nda.uploadedDocumentBase64), (c) => c.charCodeAt(0));
       const pdfDoc = await PDFDocument.load(pdfBytes);
       const pages = pdfDoc.getPages();
@@ -1140,27 +1189,15 @@ export default function NdaDetailsPage({ params }) {
                 height: zoneH,
                 opacity: 1,
               });
-            } catch {
-              page.drawRectangle({
-                x: zoneX,
-                y: zoneY - zoneH,
-                width: zoneW,
-                height: zoneH,
-                borderColor: rgb(0.2, 0.2, 0.7),
-                borderWidth: 1,
-                opacity: 0.5,
-              });
+            } catch (embedErr) {
+              throw new Error(
+                `Failed to embed IOTA signature for ${signatory?.email || 'unknown signatory'}: ${embedErr?.message || embedErr}`
+              );
             }
           } else {
-            page.drawRectangle({
-              x: zoneX,
-              y: zoneY - zoneH,
-              width: zoneW,
-              height: zoneH,
-              borderColor: rgb(0.2, 0.2, 0.7),
-              borderWidth: 1,
-              opacity: 0.5,
-            });
+            throw new Error(
+              `Missing signature data for IOTA signatory ${signatory?.email || 'unknown signatory'}.`
+            );
           }
         }
       }
@@ -1195,27 +1232,15 @@ export default function NdaDetailsPage({ params }) {
                 height: zoneH,
                 opacity: 1,
               });
-            } catch {
-              page.drawRectangle({
-                x: zoneX,
-                y: zoneY - zoneH,
-                width: zoneW,
-                height: zoneH,
-                borderColor: rgb(0.7, 0.3, 0.1),
-                borderWidth: 1,
-                opacity: 0.5,
-              });
+            } catch (embedErr) {
+              throw new Error(
+                `Failed to embed partner signature for ${signatory?.email || 'unknown signatory'}: ${embedErr?.message || embedErr}`
+              );
             }
           } else {
-            page.drawRectangle({
-              x: zoneX,
-              y: zoneY - zoneH,
-              width: zoneW,
-              height: zoneH,
-              borderColor: rgb(0.7, 0.3, 0.1),
-              borderWidth: 1,
-              opacity: 0.5,
-            });
+            throw new Error(
+              `Missing signature data for partner signatory ${signatory?.email || 'unknown signatory'}.`
+            );
           }
         }
       }
@@ -1583,20 +1608,28 @@ export default function NdaDetailsPage({ params }) {
                       />
                     ) : (
                       <Alert severity="info">
-                        DOCX / DOC files cannot be previewed in the browser. Download the file to
-                        review it.
+                        DOCX / DOC files cannot be previewed in the browser. Convert them to PDF if
+                        you need embedded signatures, stamps, or print processing.
+                      </Alert>
+                    )}
+                    {isUploadedWordDocument && (
+                      <Alert severity="warning">
+                        Word documents are supported as source files, but PDF-only actions are
+                        disabled until the file is converted to PDF.
                       </Alert>
                     )}
                     <Stack direction="row" spacing={1} flexWrap="wrap">
-                      <LoadingButton
-                        size="small"
-                        variant="contained"
-                        startIcon={<Iconify icon="solar:download-bold" />}
-                        loading={downloadProcessing}
-                        onClick={handleDownloadProcessed}
-                      >
-                        Download with Stamp &amp; Signatures
-                      </LoadingButton>
+                      {isUploadedPdf && (
+                        <LoadingButton
+                          size="small"
+                          variant="contained"
+                          startIcon={<Iconify icon="solar:download-bold" />}
+                          loading={downloadProcessing}
+                          onClick={handleDownloadProcessed}
+                        >
+                          Download with Stamp &amp; Signatures
+                        </LoadingButton>
+                      )}
                       <Button
                         size="small"
                         variant="outlined"
@@ -1866,6 +1899,7 @@ export default function NdaDetailsPage({ params }) {
 
             {/* IOTA Signature Zones — mark where each IOTA rep signs on the vendor-uploaded PDF */}
             {nda.documentSource === 'external_upload' &&
+              isUploadedPdf &&
               (nda.status === 'draft' || nda.status === 'pending_iota_signatures') && (
                 <Card sx={{ p: 3 }}>
                   <Box sx={{ mb: 2 }}>
@@ -2147,6 +2181,7 @@ export default function NdaDetailsPage({ params }) {
 
             {/* Partner Signature Zones — mark where each partner rep signs on the uploaded PDF */}
             {nda.documentSource === 'external_upload' &&
+              isUploadedPdf &&
               (nda.status === 'draft' ||
                 nda.status === 'pending_partner_signatures' ||
                 nda.status === 'pending_iota_signatures' ||
@@ -2468,7 +2503,7 @@ export default function NdaDetailsPage({ params }) {
                 <Typography variant="h6">IOTA Stamp Placements</Typography>
                 <Typography variant="caption" color="text.secondary">
                   {isDraft
-                    ? 'Click anywhere on the page preview to place the IOTA stamp. Drag placed stamps to reposition. Stamps are embedded during the OneDrive upload.'
+                    ? 'Click anywhere on the page preview to place the IOTA stamp. Drag placed stamps to reposition. Drag the blue circle in the bottom-right corner to resize. Stamps are embedded during the OneDrive upload.'
                     : 'Stamp placements are locked once the NDA leaves draft status.'}
                 </Typography>
               </Box>
@@ -2536,7 +2571,6 @@ export default function NdaDetailsPage({ params }) {
                 {!pdfJsDoc && (
                   <Box sx={{ position: 'absolute', inset: 0, p: '8%' }}>
                     {[...Array(14)].map((_, i) => (
-                      // eslint-disable-next-line react/no-array-index-key
                       <Box
                         key={i}
                         sx={{ height: 8, bgcolor: 'grey.100', borderRadius: 0.5, mb: 1.2 }}
@@ -2582,12 +2616,50 @@ export default function NdaDetailsPage({ params }) {
                       }}
                     >
                       <Box
-                        component="img"
-                        src="/logo/iota-stamp.png"
-                        alt="IOTA Stamp"
-                        draggable={false}
-                        sx={{ width: '100%', opacity: 0.85, display: 'block' }}
-                      />
+                        sx={{
+                          position: 'relative',
+                          width: '100%',
+                          display: 'block',
+                        }}
+                      >
+                        <Box
+                          component="img"
+                          src="/logo/iota-stamp.png"
+                          alt="IOTA Stamp"
+                          draggable={false}
+                          sx={{ width: '100%', opacity: 0.85, display: 'block' }}
+                        />
+                        {/* Resize handle in bottom-right corner */}
+                        {isDraft && (
+                          <Box
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              const container = stampPreviewRef.current;
+                              if (!container) return;
+                              const rect = container.getBoundingClientRect();
+                              setResizingStamp(sp.id);
+                              setResizeStartX(e.clientX - rect.left);
+                              setResizeStartWidth(sp.widthPct);
+                            }}
+                            sx={{
+                              position: 'absolute',
+                              bottom: -6,
+                              right: -6,
+                              width: 12,
+                              height: 12,
+                              bgcolor: 'primary.main',
+                              borderRadius: '50%',
+                              cursor: 'nwse-resize',
+                              border: '2px solid',
+                              borderColor: 'common.white',
+                              boxShadow: '0 0 4px rgba(0,0,0,0.3)',
+                              '&:hover': {
+                                bgcolor: 'primary.dark',
+                              },
+                            }}
+                          />
+                        )}
+                      </Box>
                       {isDraft && (
                         <IconButton
                           size="small"
@@ -2687,10 +2759,10 @@ export default function NdaDetailsPage({ params }) {
                           sx={{ height: 28, opacity: 0.85 }}
                         />
                         <Typography variant="body2">
-                          Stamp {idx + 1} — Page {sp.page}
+                          Stamp {idx + 1} — Page {sp.page} ({sp.widthPct.toFixed(1)}%)
                         </Typography>
                         <Typography variant="caption" color="text.secondary">
-                          (drag on preview to reposition)
+                          (drag on preview to move, blue circle to resize)
                         </Typography>
                       </Stack>
                       {isDraft && (
@@ -2877,23 +2949,35 @@ export default function NdaDetailsPage({ params }) {
                 loading={actionLoading}
                 startIcon={<Iconify icon="logos:microsoft-onedrive" />}
                 onClick={handleFinalize}
+                disabled={isExternalUpload && isUploadedWordDocument}
               >
-                Upload to OneDrive
+                {isExternalUpload && isUploadedWordDocument
+                  ? 'Convert to PDF to Upload'
+                  : 'Upload to OneDrive'}
               </LoadingButton>
+            )}
+
+            {isExternalUpload && isUploadedWordDocument && (
+              <Alert severity="warning" sx={{ py: 1 }}>
+                Convert the Word document to PDF before uploading so signatures and stamps can be
+                embedded correctly.
+              </Alert>
             )}
 
             {nda.documentSource === 'external_upload' && nda.uploadedDocumentBase64 && (
               <>
-                <LoadingButton
-                  variant="contained"
-                  size="small"
-                  fullWidth
-                  loading={downloadProcessing}
-                  startIcon={<Iconify icon="solar:download-bold" />}
-                  onClick={handleDownloadProcessed}
-                >
-                  Download with Stamps
-                </LoadingButton>
+                {isUploadedPdf && (
+                  <LoadingButton
+                    variant="contained"
+                    size="small"
+                    fullWidth
+                    loading={downloadProcessing}
+                    startIcon={<Iconify icon="solar:download-bold" />}
+                    onClick={handleDownloadProcessed}
+                  >
+                    Download with Stamps
+                  </LoadingButton>
+                )}
                 <Button
                   variant="outlined"
                   size="small"
