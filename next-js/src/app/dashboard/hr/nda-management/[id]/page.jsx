@@ -2890,7 +2890,7 @@ export default function NdaDetailsPage({ params }) {
           sx={{
             position: 'fixed',
             right: 24,
-            top: 88,
+            top: 160,
             zIndex: 1200,
             width: 214,
             p: 1.5,
