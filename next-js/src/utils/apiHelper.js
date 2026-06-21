@@ -4065,6 +4065,28 @@ export async function setNdaPartnerSignatureZones(id, partnerSignatureZones) {
   }
 }
 
+/**
+ * @summary Marks a manual (wet-signature) NDA as Fully Executed, optionally uploading the
+ *          physically-signed document to OneDrive.
+ * @param {string|number} id - The NDA ID.
+ * @param {string} markedBy - Email of the HR user performing the action.
+ * @param {string} [fileName] - Original filename of the fully-executed document.
+ * @param {string} [fileBase64] - base64-encoded file bytes to upload to OneDrive.
+ * @returns {Promise<object>} The updated NDA object.
+ */
+export async function markNdaFullyExecuted(id, markedBy, fileName, fileBase64) {
+  try {
+    const payload = { id, markedBy };
+    if (fileName) payload.fileName = fileName;
+    if (fileBase64) payload.fileBase64 = fileBase64;
+    const response = await axios.post(`${API_BASE_URL}ndas/${id}/mark-fully-executed`, payload);
+    return response.data.nda;
+  } catch (error) {
+    console.error('Error marking NDA as fully executed:', error);
+    throw error;
+  }
+}
+
 // ============================================================================
 // WEBHOOK EVENTS API FUNCTIONS
 // ============================================================================

@@ -42,6 +42,7 @@ import {
   remindPartnerSignatories,
   uploadExternalNdaDocument,
   setNdaPartnerSignatureZones,
+  markNdaFullyExecuted,
 } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -233,6 +234,9 @@ export default function NdaDetailsPage({ params }) {
   const [remindPartnerLoading, setRemindPartnerLoading] = useState(false);
   const [docBlobUrl, setDocBlobUrl] = useState(null);
   const [docUploading, setDocUploading] = useState(false);
+  const [wetSigFile, setWetSigFile] = useState(null); // { name, base64 } for fully-executed upload
+  const [wetSigLoading, setWetSigLoading] = useState(false);
+  const wetSigInputRef = useRef(null);
 
   const userEmail = user?.email || '';
   const uploadedDocumentName = nda?.uploadedDocumentName || '';
@@ -404,6 +408,45 @@ export default function NdaDetailsPage({ params }) {
       toast.error(err?.response?.data?.message || err?.message || 'Failed to send reminder');
     } finally {
       setRemindPartnerLoading(false);
+    }
+  };
+
+  const handleWetSigFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result.split(',')[1];
+      setWetSigFile({ name: file.name, base64 });
+    };
+    reader.readAsDataURL(file);
+    // reset input so the same file can be re-selected if needed
+    e.target.value = '';
+  };
+
+  const handleMarkFullyExecuted = async () => {
+    try {
+      setWetSigLoading(true);
+      const updated = await markNdaFullyExecuted(
+        id,
+        userEmail,
+        wetSigFile?.name,
+        wetSigFile?.base64
+      );
+      setNda(updated);
+      setWetSigFile(null);
+      toast.success(
+        wetSigFile
+          ? 'NDA marked as Fully Executed and document uploaded to OneDrive.'
+          : 'NDA marked as Fully Executed.'
+      );
+    } catch (err) {
+      console.error(err);
+      toast.error(
+        err?.response?.data?.message || err?.message || 'Failed to mark as fully executed'
+      );
+    } finally {
+      setWetSigLoading(false);
     }
   };
 
@@ -1493,8 +1536,72 @@ export default function NdaDetailsPage({ params }) {
                 <Typography variant="caption" color="text.secondary">
                   {isDraft && 'NDA is in draft. Use the action panel → to submit for signing.'}
                   {isPendingIota && 'Waiting for IOTA signatories to sign.'}
-                  {isPendingPartner && 'Waiting for partner signatories to sign.'}
+                  {isPendingPartner &&
+                    nda.partnerSigningMethod !== 'manual' &&
+                    'Waiting for partner signatories to sign.'}
+                  {isPendingPartner &&
+                    nda.partnerSigningMethod === 'manual' &&
+                    'Partner is signing manually. Once the wet-signed document is received, mark the NDA as Fully Executed below.'}
                 </Typography>
+              </Card>
+            )}
+
+            {/* ── Manual (Wet Signature) — Mark as Fully Executed ── */}
+            {isPendingPartner && nda.partnerSigningMethod === 'manual' && (
+              <Card sx={{ p: 3, border: '2px solid', borderColor: 'warning.main' }}>
+                <Stack spacing={2}>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={700}>
+                      Mark as Fully Executed
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      The partner is signing via wet (manual) signature. Once you have received the
+                      physically signed document, upload it here and mark the NDA as Fully Executed.
+                      Uploading the file is optional but recommended — it will be stored in
+                      OneDrive.
+                    </Typography>
+                  </Box>
+
+                  {/* Hidden file input */}
+                  <input
+                    ref={wetSigInputRef}
+                    type="file"
+                    accept=".pdf,.docx,.doc,.jpg,.jpeg,.png"
+                    style={{ display: 'none' }}
+                    onChange={handleWetSigFileChange}
+                  />
+
+                  {wetSigFile ? (
+                    <Stack direction="row" alignItems="center" spacing={1}>
+                      <Iconify icon="solar:file-check-bold" color="success.main" width={20} />
+                      <Typography variant="body2" sx={{ flex: 1 }} noWrap>
+                        {wetSigFile.name}
+                      </Typography>
+                      <Button size="small" color="error" onClick={() => setWetSigFile(null)}>
+                        Remove
+                      </Button>
+                    </Stack>
+                  ) : (
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      startIcon={<Iconify icon="solar:upload-bold" />}
+                      onClick={() => wetSigInputRef.current?.click()}
+                    >
+                      Upload Executed Document
+                    </Button>
+                  )}
+
+                  <LoadingButton
+                    variant="contained"
+                    color="success"
+                    loading={wetSigLoading}
+                    startIcon={<Iconify icon="solar:check-circle-bold" />}
+                    onClick={handleMarkFullyExecuted}
+                  >
+                    {wetSigFile ? 'Mark as Fully Executed & Upload' : 'Mark as Fully Executed'}
+                  </LoadingButton>
+                </Stack>
               </Card>
             )}
 
@@ -3275,6 +3382,20 @@ export default function NdaDetailsPage({ params }) {
                   Remind Partner
                 </LoadingButton>
               )}
+
+            {isPendingPartner && nda.partnerSigningMethod === 'manual' && (
+              <LoadingButton
+                variant="contained"
+                color="success"
+                size="small"
+                fullWidth
+                loading={wetSigLoading}
+                startIcon={<Iconify icon="solar:check-circle-bold" />}
+                onClick={handleMarkFullyExecuted}
+              >
+                {wetSigFile ? 'Mark Fully Executed & Upload' : 'Mark as Fully Executed'}
+              </LoadingButton>
+            )}
 
             {isFullyExecuted && !nda.onedriveFileId && (
               <LoadingButton
