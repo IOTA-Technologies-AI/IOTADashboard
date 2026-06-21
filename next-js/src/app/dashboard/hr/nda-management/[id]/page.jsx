@@ -21,6 +21,8 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import FormControl from '@mui/material/FormControl';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
@@ -202,6 +204,7 @@ export default function NdaDetailsPage({ params }) {
   const [partnerSigZonePreviewPage, setPartnerSigZonePreviewPage] = useState(1);
   const [draggingPartnerSigZone, setDraggingPartnerSigZone] = useState(null);
   const [selectedPartnerSigZoneSignatory, setSelectedPartnerSigZoneSignatory] = useState(0);
+  const [sigStampTab, setSigStampTab] = useState(0); // 0 = Signature Zones, 1 = Stamp Placement
   const partnerSigZonePreviewRef = useRef(null);
   const partnerSigZoneCanvasRef = useRef(null);
   const partnerSigZoneDragMovedRef = useRef(false);
@@ -1897,287 +1900,618 @@ export default function NdaDetailsPage({ params }) {
                 </Card>
               )}
 
-            {/* IOTA Signature Zones — mark where each IOTA rep signs on the vendor-uploaded PDF */}
-            {nda.documentSource === 'external_upload' &&
-              isUploadedPdf &&
-              (nda.status === 'draft' || nda.status === 'pending_iota_signatures') && (
-                <Card sx={{ p: 3 }}>
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="h6">IOTA Signature Zones</Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {isDraft
-                        ? 'Click on the page preview to mark where each IOTA representative should sign. Drag zones to reposition.'
-                        : 'Signature zones are locked once the NDA leaves draft status.'}
-                    </Typography>
-                  </Box>
+            {/* IOTA Signature & Stamp Placement — combined tabbed card */}
+            {nda.documentSource === 'external_upload' && isUploadedPdf && (
+              <Card sx={{ p: 3 }}>
+                <Box sx={{ mb: 1 }}>
+                  <Typography variant="h6">IOTA Signature &amp; Stamp Placement</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {isDraft
+                      ? 'Place signature zones and stamp positions on the document. Drag any overlay to reposition it (adjustments are only available in Draft status).'
+                      : 'Preview of IOTA signature and stamp placements. Signatures appear in their zones once IOTA signatories have signed.'}
+                  </Typography>
+                </Box>
 
-                  {/* Signatory selector (draft only) */}
-                  {isDraft &&
-                    Array.isArray(nda?.iotaSignatories) &&
-                    nda.iotaSignatories.length > 1 && (
-                      <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
-                        <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
-                          Drawing for:
+                <Tabs
+                  value={sigStampTab}
+                  onChange={(_, v) => setSigStampTab(v)}
+                  sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
+                >
+                  <Tab label="Signature Zones" />
+                  <Tab label="Stamp Placement" />
+                </Tabs>
+
+                {/* ── Tab 0: IOTA Signature Zones ── */}
+                {sigStampTab === 0 && (
+                  <>
+                    {/* Signatory selector (draft only) */}
+                    {isDraft &&
+                      Array.isArray(nda?.iotaSignatories) &&
+                      nda.iotaSignatories.length > 1 && (
+                        <Stack direction="row" alignItems="center" spacing={1.5} sx={{ mb: 2 }}>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ flexShrink: 0 }}
+                          >
+                            Drawing for:
+                          </Typography>
+                          <Stack direction="row" spacing={0.75} flexWrap="wrap">
+                            {nda.iotaSignatories.map((sig, idx) => {
+                              const color = SIG_ZONE_COLORS[idx % SIG_ZONE_COLORS.length];
+                              const isSelected = selectedSigZoneSignatory === idx;
+                              return (
+                                <Chip
+                                  key={idx}
+                                  label={sig.name || sig.email || `Signatory ${idx + 1}`}
+                                  size="small"
+                                  onClick={() => setSelectedSigZoneSignatory(idx)}
+                                  sx={{
+                                    cursor: 'pointer',
+                                    borderWidth: 2,
+                                    borderStyle: 'solid',
+                                    borderColor: color.border,
+                                    bgcolor: isSelected ? color.border : 'transparent',
+                                    color: isSelected ? '#fff' : color.border,
+                                    fontWeight: isSelected ? 700 : 400,
+                                    '&:hover': { bgcolor: color.bg },
+                                  }}
+                                />
+                              );
+                            })}
+                          </Stack>
+                        </Stack>
+                      )}
+
+                    {/* Page selector */}
+                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                      <Typography variant="caption" color="text.secondary">
+                        Page:
+                      </Typography>
+                      <IconButton
+                        size="small"
+                        onClick={() => setSigZonePreviewPage((p) => Math.max(1, p - 1))}
+                        disabled={sigZonePreviewPage <= 1}
+                      >
+                        <Iconify icon="solar:arrow-left-bold" width={16} />
+                      </IconButton>
+                      <Typography variant="body2">{sigZonePreviewPage}</Typography>
+                      <IconButton
+                        size="small"
+                        onClick={() => setSigZonePreviewPage((p) => p + 1)}
+                        disabled={pdfJsDoc ? sigZonePreviewPage >= pdfJsDoc.numPages : false}
+                      >
+                        <Iconify icon="solar:arrow-right-bold" width={16} />
+                      </IconButton>
+                      {pdfJsDoc && (
+                        <Typography variant="caption" color="text.secondary">
+                          / {pdfJsDoc.numPages}
                         </Typography>
-                        <Stack direction="row" spacing={0.75} flexWrap="wrap">
-                          {nda.iotaSignatories.map((sig, idx) => {
-                            const color = SIG_ZONE_COLORS[idx % SIG_ZONE_COLORS.length];
-                            const isSelected = selectedSigZoneSignatory === idx;
-                            return (
-                              <Chip
-                                key={idx}
-                                label={sig.name || sig.email || `Signatory ${idx + 1}`}
-                                size="small"
-                                onClick={() => setSelectedSigZoneSignatory(idx)}
+                      )}
+                    </Stack>
+
+                    {/* Visual page preview */}
+                    <Box
+                      ref={sigZonePreviewRef}
+                      onClick={isDraft ? handleSigZonePreviewClick : undefined}
+                      sx={{
+                        position: 'relative',
+                        width: '100%',
+                        paddingTop: '141.4%',
+                        bgcolor: 'common.white',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        overflow: 'hidden',
+                        cursor: isDraft ? 'crosshair' : 'default',
+                        boxShadow: 2,
+                        userSelect: 'none',
+                      }}
+                    >
+                      <canvas
+                        ref={sigZoneCanvasRef}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          display: 'block',
+                        }}
+                      />
+                      {!pdfJsDoc && (
+                        <Box sx={{ position: 'absolute', inset: 0, p: '8%' }}>
+                          {[...Array(14)].map((_, i) => (
+                            <Box
+                              key={i}
+                              sx={{
+                                height: 8,
+                                bgcolor: 'grey.200',
+                                borderRadius: 0.5,
+                                mb: 1,
+                                width: i % 3 === 0 ? '60%' : '100%',
+                              }}
+                            />
+                          ))}
+                        </Box>
+                      )}
+
+                      {/* Signature zone overlays — show actual signature image once signed */}
+                      {signatureZones
+                        .filter((z) => (z.page || 1) === sigZonePreviewPage)
+                        .map((zone) => {
+                          const sigIdx = zone.iotaSignatoryIndex ?? 0;
+                          const iotaSignatory = Array.isArray(nda?.iotaSignatories)
+                            ? nda.iotaSignatories[sigIdx]
+                            : null;
+                          const hasSigned = !!iotaSignatory?.signatureData;
+                          const zoneColor = SIG_ZONE_COLORS[sigIdx % SIG_ZONE_COLORS.length];
+                          const signatoryLabel = iotaSignatory
+                            ? iotaSignatory.name || iotaSignatory.email
+                            : `Signatory ${sigIdx + 1}`;
+                          return (
+                            <Box
+                              key={zone.id}
+                              onMouseDown={
+                                isDraft
+                                  ? (e) => {
+                                      e.stopPropagation();
+                                      setDraggingSigZone(zone.id);
+                                    }
+                                  : undefined
+                              }
+                              sx={{
+                                position: 'absolute',
+                                left: `${zone.xPct}%`,
+                                top: `${zone.yPct}%`,
+                                width: `${zone.widthPct}%`,
+                                height: `${zone.heightPct}%`,
+                                border: '2px dashed',
+                                borderColor: hasSigned ? 'success.main' : zoneColor.border,
+                                bgcolor: hasSigned ? 'rgba(76,175,80,0.10)' : zoneColor.bg,
+                                opacity: 0.9,
+                                borderRadius: 0.5,
+                                cursor: isDraft ? 'move' : 'default',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              {hasSigned ? (
+                                <img
+                                  src={iotaSignatory.signatureData}
+                                  alt="signature"
+                                  style={{
+                                    maxWidth: '100%',
+                                    maxHeight: '100%',
+                                    objectFit: 'contain',
+                                  }}
+                                />
+                              ) : (
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    fontSize: '0.55rem',
+                                    color: zoneColor.border,
+                                    textAlign: 'center',
+                                    px: 0.5,
+                                    fontWeight: 600,
+                                  }}
+                                >
+                                  {signatoryLabel}
+                                </Typography>
+                              )}
+                            </Box>
+                          );
+                        })}
+                    </Box>
+
+                    {/* Zone list */}
+                    {signatureZones.length > 0 && (
+                      <Stack spacing={1} sx={{ mt: 2 }}>
+                        {signatureZones.map((zone, idx) => {
+                          const sigIdx = zone.iotaSignatoryIndex ?? 0;
+                          const zoneColor = SIG_ZONE_COLORS[sigIdx % SIG_ZONE_COLORS.length];
+                          const iotaSignatory = Array.isArray(nda?.iotaSignatories)
+                            ? nda.iotaSignatories[sigIdx]
+                            : null;
+                          const hasSigned = !!iotaSignatory?.signatureData;
+                          const signatoryLabel = iotaSignatory
+                            ? iotaSignatory.name || iotaSignatory.email
+                            : `Signatory ${sigIdx + 1}`;
+                          return (
+                            <Stack
+                              key={zone.id}
+                              direction="row"
+                              alignItems="center"
+                              spacing={1}
+                              sx={{
+                                p: 1,
+                                bgcolor: 'background.neutral',
+                                borderRadius: 1,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                              }}
+                            >
+                              <Box
                                 sx={{
-                                  cursor: 'pointer',
-                                  borderWidth: 2,
-                                  borderStyle: 'solid',
-                                  borderColor: color.border,
-                                  bgcolor: isSelected ? color.border : 'transparent',
-                                  color: isSelected ? '#fff' : color.border,
-                                  fontWeight: isSelected ? 700 : 400,
-                                  '&:hover': { bgcolor: color.bg },
+                                  width: 10,
+                                  height: 10,
+                                  borderRadius: '50%',
+                                  bgcolor: hasSigned ? '#4caf50' : zoneColor.border,
+                                  flexShrink: 0,
                                 }}
                               />
-                            );
-                          })}
-                        </Stack>
+                              <Typography variant="caption" sx={{ flex: 1 }}>
+                                Zone {idx + 1} — Page {zone.page}
+                                {hasSigned && (
+                                  <Typography
+                                    component="span"
+                                    variant="caption"
+                                    sx={{ color: 'success.main', ml: 0.5 }}
+                                  >
+                                    ✓ Signed
+                                  </Typography>
+                                )}
+                              </Typography>
+                              {isDraft &&
+                              Array.isArray(nda?.iotaSignatories) &&
+                              nda.iotaSignatories.length > 1 ? (
+                                <FormControl size="small" sx={{ minWidth: 140 }}>
+                                  <Select
+                                    value={zone.iotaSignatoryIndex ?? 0}
+                                    onChange={(e) =>
+                                      setSignatureZones((prev) =>
+                                        prev.map((z) =>
+                                          z.id === zone.id
+                                            ? { ...z, iotaSignatoryIndex: e.target.value }
+                                            : z
+                                        )
+                                      )
+                                    }
+                                    sx={{ fontSize: '0.75rem' }}
+                                  >
+                                    {nda.iotaSignatories.map((sig, sIdx) => (
+                                      <MenuItem
+                                        key={sIdx}
+                                        value={sIdx}
+                                        sx={{ fontSize: '0.75rem' }}
+                                      >
+                                        {sig.name || sig.email || `Signatory ${sIdx + 1}`}
+                                      </MenuItem>
+                                    ))}
+                                  </Select>
+                                </FormControl>
+                              ) : (
+                                <Typography variant="caption" color="text.secondary">
+                                  {signatoryLabel}
+                                </Typography>
+                              )}
+                              {isDraft && (
+                                <IconButton
+                                  size="small"
+                                  onClick={() =>
+                                    setSignatureZones((prev) =>
+                                      prev.filter((z) => z.id !== zone.id)
+                                    )
+                                  }
+                                >
+                                  <Iconify icon="solar:trash-bin-minimalistic-bold" width={14} />
+                                </IconButton>
+                              )}
+                            </Stack>
+                          );
+                        })}
                       </Stack>
                     )}
 
-                  {/* Page selector */}
-                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
-                    <Typography variant="caption" color="text.secondary">
-                      Page:
-                    </Typography>
-                    <IconButton
-                      size="small"
-                      onClick={() => setSigZonePreviewPage((p) => Math.max(1, p - 1))}
-                      disabled={sigZonePreviewPage <= 1}
-                    >
-                      <Iconify icon="solar:arrow-left-bold" width={16} />
-                    </IconButton>
-                    <Typography variant="body2">{sigZonePreviewPage}</Typography>
-                    <IconButton
-                      size="small"
-                      onClick={() => setSigZonePreviewPage((p) => p + 1)}
-                      disabled={pdfJsDoc ? sigZonePreviewPage >= pdfJsDoc.numPages : false}
-                    >
-                      <Iconify icon="solar:arrow-right-bold" width={16} />
-                    </IconButton>
-                    {pdfJsDoc && (
-                      <Typography variant="caption" color="text.secondary">
-                        / {pdfJsDoc.numPages}
+                    {signatureZones.length === 0 && (
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+                        {isDraft
+                          ? 'No signature zones placed. Click the preview to add zones.'
+                          : 'No IOTA signature zones configured.'}
                       </Typography>
                     )}
-                  </Stack>
 
-                  {/* Visual page preview */}
-                  <Box
-                    ref={sigZonePreviewRef}
-                    onClick={isDraft ? handleSigZonePreviewClick : undefined}
-                    sx={{
-                      position: 'relative',
-                      width: '100%',
-                      paddingTop: '141.4%',
-                      bgcolor: 'common.white',
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      borderRadius: 1,
-                      overflow: 'hidden',
-                      cursor: isDraft ? 'crosshair' : 'default',
-                      boxShadow: 2,
-                      userSelect: 'none',
-                    }}
-                  >
-                    {/* Actual PDF page rendering via pdfjs */}
-                    <canvas
-                      ref={sigZoneCanvasRef}
-                      style={{
-                        position: 'absolute',
-                        top: 0,
-                        left: 0,
-                        width: '100%',
-                        height: '100%',
-                        display: 'block',
-                      }}
-                    />
-                    {/* Fallback placeholder when no PDF is loaded */}
-                    {!pdfJsDoc && (
-                      <Box sx={{ position: 'absolute', inset: 0, p: '8%' }}>
-                        {[...Array(14)].map((_, i) => (
-                          <Box
-                            key={i}
-                            sx={{
-                              height: 8,
-                              bgcolor: 'grey.200',
-                              borderRadius: 0.5,
-                              mb: 1,
-                              width: i % 3 === 0 ? '60%' : '100%',
-                            }}
-                          />
-                        ))}
+                    {isDraft && (
+                      <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
+                        <LoadingButton
+                          size="small"
+                          variant="contained"
+                          loading={sigZoneSaving}
+                          onClick={handleSaveSignatureZones}
+                        >
+                          Save Signature Zones
+                        </LoadingButton>
                       </Box>
                     )}
+                  </>
+                )}
 
-                    {/* Render signature zone overlays for current page */}
-                    {signatureZones
-                      .filter((z) => (z.page || 1) === sigZonePreviewPage)
-                      .map((zone) => {
-                        const sigIdx = zone.iotaSignatoryIndex ?? 0;
-                        const zoneColor = SIG_ZONE_COLORS[sigIdx % SIG_ZONE_COLORS.length];
-                        const signatoryLabel =
-                          Array.isArray(nda?.iotaSignatories) && nda.iotaSignatories[sigIdx]
-                            ? nda.iotaSignatories[sigIdx].name || nda.iotaSignatories[sigIdx].email
-                            : `Signatory ${sigIdx + 1}`;
-                        return (
+                {/* ── Tab 1: Stamp Placement ── */}
+                {sigStampTab === 1 && (
+                  <>
+                    {/* Page selector */}
+                    <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Preview page:
+                      </Typography>
+                      <IconButton
+                        size="small"
+                        disabled={stampPreviewPage <= 1}
+                        onClick={() => setStampPreviewPage((p) => p - 1)}
+                      >
+                        <Iconify icon="solar:arrow-left-bold" width={16} />
+                      </IconButton>
+                      <Typography variant="body2" fontWeight={600}>
+                        {stampPreviewPage}
+                      </Typography>
+                      <IconButton
+                        size="small"
+                        onClick={() => setStampPreviewPage((p) => p + 1)}
+                        disabled={pdfJsDoc ? stampPreviewPage >= pdfJsDoc.numPages : false}
+                      >
+                        <Iconify icon="solar:arrow-right-bold" width={16} />
+                      </IconButton>
+                      {pdfJsDoc && (
+                        <Typography variant="body2" color="text.secondary">
+                          / {pdfJsDoc.numPages}
+                        </Typography>
+                      )}
+                    </Stack>
+
+                    {/* Visual page preview with stamp overlay */}
+                    <Box
+                      ref={stampPreviewRef}
+                      onClick={isDraft ? handleStampPreviewClick : undefined}
+                      sx={{
+                        position: 'relative',
+                        width: '100%',
+                        paddingTop: '141.4%',
+                        bgcolor: 'common.white',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                        overflow: 'hidden',
+                        cursor: isDraft ? 'crosshair' : 'default',
+                        boxShadow: 2,
+                        userSelect: 'none',
+                      }}
+                    >
+                      <canvas
+                        ref={stampCanvasRef}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          height: '100%',
+                          display: 'block',
+                        }}
+                      />
+                      {!pdfJsDoc && (
+                        <Box sx={{ position: 'absolute', inset: 0, p: '8%' }}>
+                          {[...Array(14)].map((_, i) => (
+                            <Box
+                              key={i}
+                              sx={{ height: 8, bgcolor: 'grey.100', borderRadius: 0.5, mb: 1.2 }}
+                            />
+                          ))}
+                        </Box>
+                      )}
+                      <Box
+                        sx={{
+                          position: 'absolute',
+                          bottom: 8,
+                          left: 0,
+                          right: 0,
+                          textAlign: 'center',
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        <Typography variant="caption" color="text.disabled">
+                          Page {stampPreviewPage}
+                          {pdfJsDoc ? ` / ${pdfJsDoc.numPages}` : ''}
+                        </Typography>
+                      </Box>
+                      {stampPlacements
+                        .filter((sp) => sp.page === stampPreviewPage)
+                        .map((sp) => (
                           <Box
-                            key={zone.id}
-                            onMouseDown={
-                              isDraft
-                                ? (e) => {
-                                    e.stopPropagation();
-                                    setDraggingSigZone(zone.id);
-                                  }
-                                : undefined
-                            }
+                            key={sp.id}
+                            onMouseDown={(e) => {
+                              if (!isDraft) return;
+                              e.stopPropagation();
+                              setDraggingStamp(sp.id);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
                             sx={{
                               position: 'absolute',
-                              left: `${zone.xPct}%`,
-                              top: `${zone.yPct}%`,
-                              width: `${zone.widthPct}%`,
-                              height: `${zone.heightPct}%`,
-                              border: '2px dashed',
-                              borderColor: zoneColor.border,
-                              bgcolor: zoneColor.bg,
-                              opacity: 0.85,
-                              borderRadius: 0.5,
-                              cursor: isDraft ? 'move' : 'default',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              overflow: 'hidden',
+                              left: `${sp.xPct}%`,
+                              top: `${sp.yPct}%`,
+                              width: `${sp.widthPct}%`,
+                              transform: 'translate(-50%, -50%)',
+                              cursor: isDraft ? 'grab' : 'default',
+                              zIndex: 10,
+                              '&:active': { cursor: 'grabbing' },
                             }}
                           >
-                            <Typography
-                              variant="caption"
-                              sx={{
-                                fontSize: '0.55rem',
-                                color: zoneColor.border,
-                                textAlign: 'center',
-                                px: 0.5,
-                                fontWeight: 600,
-                              }}
-                            >
-                              {signatoryLabel}
-                            </Typography>
-                          </Box>
-                        );
-                      })}
-                  </Box>
-
-                  {/* Zone list */}
-                  {signatureZones.length > 0 && (
-                    <Stack spacing={1} sx={{ mt: 2 }}>
-                      {signatureZones.map((zone, idx) => {
-                        const sigIdx = zone.iotaSignatoryIndex ?? 0;
-                        const zoneColor = SIG_ZONE_COLORS[sigIdx % SIG_ZONE_COLORS.length];
-                        const signatoryLabel =
-                          Array.isArray(nda?.iotaSignatories) && nda.iotaSignatories[sigIdx]
-                            ? nda.iotaSignatories[sigIdx].name || nda.iotaSignatories[sigIdx].email
-                            : `Signatory ${sigIdx + 1}`;
-                        return (
-                          <Stack
-                            key={zone.id}
-                            direction="row"
-                            alignItems="center"
-                            spacing={1}
-                            sx={{
-                              p: 1,
-                              bgcolor: 'background.neutral',
-                              borderRadius: 1,
-                              border: '1px solid',
-                              borderColor: 'divider',
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                width: 10,
-                                height: 10,
-                                borderRadius: '50%',
-                                bgcolor: zoneColor.border,
-                                flexShrink: 0,
-                              }}
-                            />
-                            <Typography variant="caption" sx={{ flex: 1 }}>
-                              Zone {idx + 1} — Page {zone.page}
-                            </Typography>
-                            {isDraft &&
-                            Array.isArray(nda?.iotaSignatories) &&
-                            nda.iotaSignatories.length > 1 ? (
-                              <FormControl size="small" sx={{ minWidth: 140 }}>
-                                <Select
-                                  value={zone.iotaSignatoryIndex ?? 0}
-                                  onChange={(e) =>
-                                    setSignatureZones((prev) =>
-                                      prev.map((z) =>
-                                        z.id === zone.id
-                                          ? { ...z, iotaSignatoryIndex: e.target.value }
-                                          : z
-                                      )
-                                    )
-                                  }
-                                  sx={{ fontSize: '0.75rem' }}
-                                >
-                                  {nda.iotaSignatories.map((sig, sIdx) => (
-                                    <MenuItem key={sIdx} value={sIdx} sx={{ fontSize: '0.75rem' }}>
-                                      {sig.name || sig.email || `Signatory ${sIdx + 1}`}
-                                    </MenuItem>
-                                  ))}
-                                </Select>
-                              </FormControl>
-                            ) : (
-                              <Typography variant="caption" color="text.secondary">
-                                {signatoryLabel}
-                              </Typography>
-                            )}
+                            <Box sx={{ position: 'relative', width: '100%', display: 'block' }}>
+                              <Box
+                                component="img"
+                                src="/logo/iota-stamp.png"
+                                alt="IOTA Stamp"
+                                draggable={false}
+                                sx={{ width: '100%', opacity: 0.85, display: 'block' }}
+                              />
+                              {isDraft && (
+                                <Box
+                                  onMouseDown={(e) => {
+                                    e.stopPropagation();
+                                    const container = stampPreviewRef.current;
+                                    if (!container) return;
+                                    const rect = container.getBoundingClientRect();
+                                    setResizingStamp(sp.id);
+                                    setResizeStartX(e.clientX - rect.left);
+                                    setResizeStartWidth(sp.widthPct);
+                                  }}
+                                  sx={{
+                                    position: 'absolute',
+                                    bottom: -6,
+                                    right: -6,
+                                    width: 12,
+                                    height: 12,
+                                    bgcolor: 'primary.main',
+                                    borderRadius: '50%',
+                                    cursor: 'nwse-resize',
+                                    border: '2px solid',
+                                    borderColor: 'common.white',
+                                    boxShadow: '0 0 4px rgba(0,0,0,0.3)',
+                                    '&:hover': { bgcolor: 'primary.dark' },
+                                  }}
+                                />
+                              )}
+                            </Box>
                             {isDraft && (
                               <IconButton
                                 size="small"
-                                onClick={() =>
-                                  setSignatureZones((prev) => prev.filter((z) => z.id !== zone.id))
-                                }
+                                sx={{
+                                  position: 'absolute',
+                                  top: -10,
+                                  right: -10,
+                                  bgcolor: 'error.main',
+                                  color: 'common.white',
+                                  width: 18,
+                                  height: 18,
+                                  '&:hover': { bgcolor: 'error.dark' },
+                                }}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setStampPlacements((prev) => prev.filter((p) => p.id !== sp.id));
+                                }}
                               >
-                                <Iconify icon="solar:trash-bin-minimalistic-bold" width={14} />
+                                <Iconify icon="mingcute:close-line" width={12} />
                               </IconButton>
                             )}
-                          </Stack>
-                        );
-                      })}
-                    </Stack>
-                  )}
-
-                  {signatureZones.length === 0 && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                      No signature zones placed. Click the preview to add zones.
-                    </Typography>
-                  )}
-
-                  {isDraft && (
-                    <Box sx={{ mt: 2, display: 'flex', justifyContent: 'flex-end' }}>
-                      <LoadingButton
-                        size="small"
-                        variant="contained"
-                        loading={sigZoneSaving}
-                        onClick={handleSaveSignatureZones}
-                      >
-                        Save Signature Zones
-                      </LoadingButton>
+                          </Box>
+                        ))}
+                      {/* Read-only sig zone overlays */}
+                      {signatureZones
+                        .filter((z) => (z.page || 1) === stampPreviewPage)
+                        .map((zone) => {
+                          const sigIdx = zone.iotaSignatoryIndex ?? 0;
+                          const zoneColor = SIG_ZONE_COLORS[sigIdx % SIG_ZONE_COLORS.length];
+                          const signatoryLabel =
+                            Array.isArray(nda?.iotaSignatories) && nda.iotaSignatories[sigIdx]
+                              ? nda.iotaSignatories[sigIdx].name ||
+                                nda.iotaSignatories[sigIdx].email
+                              : `Sig ${sigIdx + 1}`;
+                          return (
+                            <Box
+                              key={zone.id}
+                              sx={{
+                                position: 'absolute',
+                                left: `${zone.xPct}%`,
+                                top: `${zone.yPct}%`,
+                                width: `${zone.widthPct}%`,
+                                height: `${zone.heightPct}%`,
+                                border: '2px dashed',
+                                borderColor: zoneColor.border,
+                                bgcolor: zoneColor.bg,
+                                opacity: 0.65,
+                                borderRadius: 0.5,
+                                pointerEvents: 'none',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                overflow: 'hidden',
+                                zIndex: 5,
+                              }}
+                            >
+                              <Typography
+                                variant="caption"
+                                sx={{
+                                  fontSize: '0.5rem',
+                                  color: zoneColor.border,
+                                  textAlign: 'center',
+                                  px: 0.5,
+                                  fontWeight: 600,
+                                }}
+                              >
+                                {signatoryLabel}
+                              </Typography>
+                            </Box>
+                          );
+                        })}
                     </Box>
-                  )}
-                </Card>
-              )}
+
+                    {stampPlacements.length === 0 ? (
+                      <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+                        No stamp placements configured.
+                        {isDraft && ' Click the preview to add stamp positions.'}
+                      </Typography>
+                    ) : (
+                      <Stack spacing={0} sx={{ mt: 1.5 }}>
+                        {stampPlacements.map((sp, idx) => (
+                          <Box
+                            key={sp.id}
+                            sx={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              py: 1,
+                              borderBottom: '1px solid',
+                              borderColor: 'divider',
+                            }}
+                          >
+                            <Stack direction="row" alignItems="center" spacing={1}>
+                              <Box
+                                component="img"
+                                src="/logo/iota-stamp.png"
+                                alt="IOTA Stamp"
+                                sx={{ height: 28, opacity: 0.85 }}
+                              />
+                              <Typography variant="body2">
+                                Stamp {idx + 1} — Page {sp.page} ({sp.widthPct.toFixed(1)}%)
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                (drag to move, blue circle to resize)
+                              </Typography>
+                            </Stack>
+                            {isDraft && (
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() =>
+                                  setStampPlacements((prev) => prev.filter((p) => p.id !== sp.id))
+                                }
+                              >
+                                <Iconify icon="solar:trash-bin-trash-bold" />
+                              </IconButton>
+                            )}
+                          </Box>
+                        ))}
+                      </Stack>
+                    )}
+
+                    {isDraft && (
+                      <Box sx={{ mt: 2 }}>
+                        <LoadingButton
+                          size="small"
+                          variant="contained"
+                          loading={stampSaving}
+                          onClick={handleSaveStampPlacements}
+                          startIcon={<Iconify icon="solar:diskette-bold" />}
+                        >
+                          Save Placements
+                        </LoadingButton>
+                      </Box>
+                    )}
+                  </>
+                )}
+              </Card>
+            )}
 
             {/* Partner Signature Zones — mark where each partner rep signs on the uploaded PDF */}
             {nda.documentSource === 'external_upload' &&
@@ -2497,304 +2831,306 @@ export default function NdaDetailsPage({ params }) {
                 </Card>
               )}
 
-            {/* IOTA Stamp Placements — drag-and-drop visual placer */}
-            <Card sx={{ p: 3 }}>
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="h6">IOTA Stamp Placements</Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {isDraft
-                    ? 'Click anywhere on the page preview to place the IOTA stamp. Drag placed stamps to reposition. Drag the blue circle in the bottom-right corner to resize. Stamps are embedded during the OneDrive upload.'
-                    : 'Stamp placements are locked once the NDA leaves draft status.'}
-                </Typography>
-              </Box>
-
-              {/* Page selector */}
-              <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
-                <Typography variant="body2" color="text.secondary">
-                  Preview page:
-                </Typography>
-                <IconButton
-                  size="small"
-                  disabled={stampPreviewPage <= 1}
-                  onClick={() => setStampPreviewPage((p) => p - 1)}
-                >
-                  <Iconify icon="solar:arrow-left-bold" width={16} />
-                </IconButton>
-                <Typography variant="body2" fontWeight={600}>
-                  {stampPreviewPage}
-                </Typography>
-                <IconButton
-                  size="small"
-                  onClick={() => setStampPreviewPage((p) => p + 1)}
-                  disabled={pdfJsDoc ? stampPreviewPage >= pdfJsDoc.numPages : false}
-                >
-                  <Iconify icon="solar:arrow-right-bold" width={16} />
-                </IconButton>
-                {pdfJsDoc && (
-                  <Typography variant="body2" color="text.secondary">
-                    / {pdfJsDoc.numPages}
-                  </Typography>
-                )}
-              </Stack>
-
-              {/* Visual page preview with stamp overlay */}
-              <Box
-                ref={stampPreviewRef}
-                onClick={isDraft ? handleStampPreviewClick : undefined}
-                sx={{
-                  position: 'relative',
-                  width: '100%',
-                  paddingTop: '141.4%',
-                  bgcolor: 'common.white',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 1,
-                  overflow: 'hidden',
-                  cursor: isDraft ? 'crosshair' : 'default',
-                  boxShadow: 2,
-                  userSelect: 'none',
-                }}
-              >
-                {/* Actual PDF page rendering via pdfjs */}
-                <canvas
-                  ref={stampCanvasRef}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    display: 'block',
-                  }}
-                />
-                {/* Fallback placeholder when no PDF is loaded */}
-                {!pdfJsDoc && (
-                  <Box sx={{ position: 'absolute', inset: 0, p: '8%' }}>
-                    {[...Array(14)].map((_, i) => (
-                      <Box
-                        key={i}
-                        sx={{ height: 8, bgcolor: 'grey.100', borderRadius: 0.5, mb: 1.2 }}
-                      />
-                    ))}
-                  </Box>
-                )}
-                <Box
-                  sx={{
-                    position: 'absolute',
-                    bottom: 8,
-                    left: 0,
-                    right: 0,
-                    textAlign: 'center',
-                    pointerEvents: 'none',
-                  }}
-                >
-                  <Typography variant="caption" color="text.disabled">
-                    Page {stampPreviewPage}
-                    {pdfJsDoc ? ` / ${pdfJsDoc.numPages}` : ''}
+            {/* IOTA Stamp Placements — standalone (only for iota_generated / word-doc NDAs) */}
+            {!(nda.documentSource === 'external_upload' && isUploadedPdf) && (
+              <Card sx={{ p: 3 }}>
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="h6">IOTA Stamp Placements</Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {isDraft
+                      ? 'Click anywhere on the page preview to place the IOTA stamp. Drag placed stamps to reposition. Drag the blue circle in the bottom-right corner to resize. Stamps are embedded during the OneDrive upload.'
+                      : 'Stamp placements are locked once the NDA leaves draft status.'}
                   </Typography>
                 </Box>
-                {stampPlacements
-                  .filter((sp) => sp.page === stampPreviewPage)
-                  .map((sp) => (
-                    <Box
-                      key={sp.id}
-                      onMouseDown={(e) => {
-                        if (!isDraft) return;
-                        e.stopPropagation();
-                        setDraggingStamp(sp.id);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      sx={{
-                        position: 'absolute',
-                        left: `${sp.xPct}%`,
-                        top: `${sp.yPct}%`,
-                        width: `${sp.widthPct}%`,
-                        transform: 'translate(-50%, -50%)',
-                        cursor: isDraft ? 'grab' : 'default',
-                        zIndex: 10,
-                        '&:active': { cursor: 'grabbing' },
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          position: 'relative',
-                          width: '100%',
-                          display: 'block',
-                        }}
-                      >
+
+                {/* Page selector */}
+                <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Preview page:
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    disabled={stampPreviewPage <= 1}
+                    onClick={() => setStampPreviewPage((p) => p - 1)}
+                  >
+                    <Iconify icon="solar:arrow-left-bold" width={16} />
+                  </IconButton>
+                  <Typography variant="body2" fontWeight={600}>
+                    {stampPreviewPage}
+                  </Typography>
+                  <IconButton
+                    size="small"
+                    onClick={() => setStampPreviewPage((p) => p + 1)}
+                    disabled={pdfJsDoc ? stampPreviewPage >= pdfJsDoc.numPages : false}
+                  >
+                    <Iconify icon="solar:arrow-right-bold" width={16} />
+                  </IconButton>
+                  {pdfJsDoc && (
+                    <Typography variant="body2" color="text.secondary">
+                      / {pdfJsDoc.numPages}
+                    </Typography>
+                  )}
+                </Stack>
+
+                {/* Visual page preview with stamp overlay */}
+                <Box
+                  ref={stampPreviewRef}
+                  onClick={isDraft ? handleStampPreviewClick : undefined}
+                  sx={{
+                    position: 'relative',
+                    width: '100%',
+                    paddingTop: '141.4%',
+                    bgcolor: 'common.white',
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    cursor: isDraft ? 'crosshair' : 'default',
+                    boxShadow: 2,
+                    userSelect: 'none',
+                  }}
+                >
+                  {/* Actual PDF page rendering via pdfjs */}
+                  <canvas
+                    ref={stampCanvasRef}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      display: 'block',
+                    }}
+                  />
+                  {/* Fallback placeholder when no PDF is loaded */}
+                  {!pdfJsDoc && (
+                    <Box sx={{ position: 'absolute', inset: 0, p: '8%' }}>
+                      {[...Array(14)].map((_, i) => (
                         <Box
-                          component="img"
-                          src="/logo/iota-stamp.png"
-                          alt="IOTA Stamp"
-                          draggable={false}
-                          sx={{ width: '100%', opacity: 0.85, display: 'block' }}
+                          key={i}
+                          sx={{ height: 8, bgcolor: 'grey.100', borderRadius: 0.5, mb: 1.2 }}
                         />
-                        {/* Resize handle in bottom-right corner */}
-                        {isDraft && (
-                          <Box
-                            onMouseDown={(e) => {
-                              e.stopPropagation();
-                              const container = stampPreviewRef.current;
-                              if (!container) return;
-                              const rect = container.getBoundingClientRect();
-                              setResizingStamp(sp.id);
-                              setResizeStartX(e.clientX - rect.left);
-                              setResizeStartWidth(sp.widthPct);
-                            }}
-                            sx={{
-                              position: 'absolute',
-                              bottom: -6,
-                              right: -6,
-                              width: 12,
-                              height: 12,
-                              bgcolor: 'primary.main',
-                              borderRadius: '50%',
-                              cursor: 'nwse-resize',
-                              border: '2px solid',
-                              borderColor: 'common.white',
-                              boxShadow: '0 0 4px rgba(0,0,0,0.3)',
-                              '&:hover': {
-                                bgcolor: 'primary.dark',
-                              },
-                            }}
-                          />
-                        )}
-                      </Box>
-                      {isDraft && (
-                        <IconButton
-                          size="small"
-                          sx={{
-                            position: 'absolute',
-                            top: -10,
-                            right: -10,
-                            bgcolor: 'error.main',
-                            color: 'common.white',
-                            width: 18,
-                            height: 18,
-                            '&:hover': { bgcolor: 'error.dark' },
-                          }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setStampPlacements((prev) => prev.filter((p) => p.id !== sp.id));
-                          }}
-                        >
-                          <Iconify icon="mingcute:close-line" width={12} />
-                        </IconButton>
-                      )}
+                      ))}
                     </Box>
-                  ))}
-                {/* Read-only sig zone overlays so user knows where signatures go */}
-                {signatureZones
-                  .filter((z) => (z.page || 1) === stampPreviewPage)
-                  .map((zone) => {
-                    const sigIdx = zone.iotaSignatoryIndex ?? 0;
-                    const zoneColor = SIG_ZONE_COLORS[sigIdx % SIG_ZONE_COLORS.length];
-                    const signatoryLabel =
-                      Array.isArray(nda?.iotaSignatories) && nda.iotaSignatories[sigIdx]
-                        ? nda.iotaSignatories[sigIdx].name || nda.iotaSignatories[sigIdx].email
-                        : `Sig ${sigIdx + 1}`;
-                    return (
+                  )}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      bottom: 8,
+                      left: 0,
+                      right: 0,
+                      textAlign: 'center',
+                      pointerEvents: 'none',
+                    }}
+                  >
+                    <Typography variant="caption" color="text.disabled">
+                      Page {stampPreviewPage}
+                      {pdfJsDoc ? ` / ${pdfJsDoc.numPages}` : ''}
+                    </Typography>
+                  </Box>
+                  {stampPlacements
+                    .filter((sp) => sp.page === stampPreviewPage)
+                    .map((sp) => (
                       <Box
-                        key={zone.id}
+                        key={sp.id}
+                        onMouseDown={(e) => {
+                          if (!isDraft) return;
+                          e.stopPropagation();
+                          setDraggingStamp(sp.id);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
                         sx={{
                           position: 'absolute',
-                          left: `${zone.xPct}%`,
-                          top: `${zone.yPct}%`,
-                          width: `${zone.widthPct}%`,
-                          height: `${zone.heightPct}%`,
-                          border: '2px dashed',
-                          borderColor: zoneColor.border,
-                          bgcolor: zoneColor.bg,
-                          opacity: 0.65,
-                          borderRadius: 0.5,
-                          pointerEvents: 'none',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          overflow: 'hidden',
-                          zIndex: 5,
+                          left: `${sp.xPct}%`,
+                          top: `${sp.yPct}%`,
+                          width: `${sp.widthPct}%`,
+                          transform: 'translate(-50%, -50%)',
+                          cursor: isDraft ? 'grab' : 'default',
+                          zIndex: 10,
+                          '&:active': { cursor: 'grabbing' },
                         }}
                       >
-                        <Typography
-                          variant="caption"
+                        <Box
                           sx={{
-                            fontSize: '0.5rem',
-                            color: zoneColor.border,
-                            textAlign: 'center',
-                            px: 0.5,
-                            fontWeight: 600,
+                            position: 'relative',
+                            width: '100%',
+                            display: 'block',
                           }}
                         >
-                          {signatoryLabel}
-                        </Typography>
+                          <Box
+                            component="img"
+                            src="/logo/iota-stamp.png"
+                            alt="IOTA Stamp"
+                            draggable={false}
+                            sx={{ width: '100%', opacity: 0.85, display: 'block' }}
+                          />
+                          {/* Resize handle in bottom-right corner */}
+                          {isDraft && (
+                            <Box
+                              onMouseDown={(e) => {
+                                e.stopPropagation();
+                                const container = stampPreviewRef.current;
+                                if (!container) return;
+                                const rect = container.getBoundingClientRect();
+                                setResizingStamp(sp.id);
+                                setResizeStartX(e.clientX - rect.left);
+                                setResizeStartWidth(sp.widthPct);
+                              }}
+                              sx={{
+                                position: 'absolute',
+                                bottom: -6,
+                                right: -6,
+                                width: 12,
+                                height: 12,
+                                bgcolor: 'primary.main',
+                                borderRadius: '50%',
+                                cursor: 'nwse-resize',
+                                border: '2px solid',
+                                borderColor: 'common.white',
+                                boxShadow: '0 0 4px rgba(0,0,0,0.3)',
+                                '&:hover': {
+                                  bgcolor: 'primary.dark',
+                                },
+                              }}
+                            />
+                          )}
+                        </Box>
+                        {isDraft && (
+                          <IconButton
+                            size="small"
+                            sx={{
+                              position: 'absolute',
+                              top: -10,
+                              right: -10,
+                              bgcolor: 'error.main',
+                              color: 'common.white',
+                              width: 18,
+                              height: 18,
+                              '&:hover': { bgcolor: 'error.dark' },
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setStampPlacements((prev) => prev.filter((p) => p.id !== sp.id));
+                            }}
+                          >
+                            <Iconify icon="mingcute:close-line" width={12} />
+                          </IconButton>
+                        )}
                       </Box>
-                    );
-                  })}
-              </Box>
-
-              {stampPlacements.length === 0 ? (
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
-                  No stamp placements configured.
-                  {isDraft && ' Click “Add Placement” to mark stamp positions.'}
-                </Typography>
-              ) : (
-                <Stack spacing={0} sx={{ mt: 1.5 }}>
-                  {stampPlacements.map((sp, idx) => (
-                    <Box
-                      key={sp.id}
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        py: 1,
-                        borderBottom: '1px solid',
-                        borderColor: 'divider',
-                      }}
-                    >
-                      <Stack direction="row" alignItems="center" spacing={1}>
+                    ))}
+                  {/* Read-only sig zone overlays so user knows where signatures go */}
+                  {signatureZones
+                    .filter((z) => (z.page || 1) === stampPreviewPage)
+                    .map((zone) => {
+                      const sigIdx = zone.iotaSignatoryIndex ?? 0;
+                      const zoneColor = SIG_ZONE_COLORS[sigIdx % SIG_ZONE_COLORS.length];
+                      const signatoryLabel =
+                        Array.isArray(nda?.iotaSignatories) && nda.iotaSignatories[sigIdx]
+                          ? nda.iotaSignatories[sigIdx].name || nda.iotaSignatories[sigIdx].email
+                          : `Sig ${sigIdx + 1}`;
+                      return (
                         <Box
-                          component="img"
-                          src="/logo/iota-stamp.png"
-                          alt="IOTA Stamp"
-                          sx={{ height: 28, opacity: 0.85 }}
-                        />
-                        <Typography variant="body2">
-                          Stamp {idx + 1} — Page {sp.page} ({sp.widthPct.toFixed(1)}%)
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          (drag on preview to move, blue circle to resize)
-                        </Typography>
-                      </Stack>
-                      {isDraft && (
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() =>
-                            setStampPlacements((prev) => prev.filter((p) => p.id !== sp.id))
-                          }
+                          key={zone.id}
+                          sx={{
+                            position: 'absolute',
+                            left: `${zone.xPct}%`,
+                            top: `${zone.yPct}%`,
+                            width: `${zone.widthPct}%`,
+                            height: `${zone.heightPct}%`,
+                            border: '2px dashed',
+                            borderColor: zoneColor.border,
+                            bgcolor: zoneColor.bg,
+                            opacity: 0.65,
+                            borderRadius: 0.5,
+                            pointerEvents: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            overflow: 'hidden',
+                            zIndex: 5,
+                          }}
                         >
-                          <Iconify icon="solar:trash-bin-trash-bold" />
-                        </IconButton>
-                      )}
-                    </Box>
-                  ))}
-                </Stack>
-              )}
-
-              {isDraft && (
-                <Box sx={{ mt: 2 }}>
-                  <LoadingButton
-                    size="small"
-                    variant="contained"
-                    loading={stampSaving}
-                    onClick={handleSaveStampPlacements}
-                    startIcon={<Iconify icon="solar:diskette-bold" />}
-                  >
-                    Save Placements
-                  </LoadingButton>
+                          <Typography
+                            variant="caption"
+                            sx={{
+                              fontSize: '0.5rem',
+                              color: zoneColor.border,
+                              textAlign: 'center',
+                              px: 0.5,
+                              fontWeight: 600,
+                            }}
+                          >
+                            {signatoryLabel}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
                 </Box>
-              )}
-            </Card>
+
+                {stampPlacements.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary" sx={{ mt: 1.5 }}>
+                    No stamp placements configured.
+                    {isDraft && ' Click “Add Placement” to mark stamp positions.'}
+                  </Typography>
+                ) : (
+                  <Stack spacing={0} sx={{ mt: 1.5 }}>
+                    {stampPlacements.map((sp, idx) => (
+                      <Box
+                        key={sp.id}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          py: 1,
+                          borderBottom: '1px solid',
+                          borderColor: 'divider',
+                        }}
+                      >
+                        <Stack direction="row" alignItems="center" spacing={1}>
+                          <Box
+                            component="img"
+                            src="/logo/iota-stamp.png"
+                            alt="IOTA Stamp"
+                            sx={{ height: 28, opacity: 0.85 }}
+                          />
+                          <Typography variant="body2">
+                            Stamp {idx + 1} — Page {sp.page} ({sp.widthPct.toFixed(1)}%)
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            (drag on preview to move, blue circle to resize)
+                          </Typography>
+                        </Stack>
+                        {isDraft && (
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() =>
+                              setStampPlacements((prev) => prev.filter((p) => p.id !== sp.id))
+                            }
+                          >
+                            <Iconify icon="solar:trash-bin-trash-bold" />
+                          </IconButton>
+                        )}
+                      </Box>
+                    ))}
+                  </Stack>
+                )}
+
+                {isDraft && (
+                  <Box sx={{ mt: 2 }}>
+                    <LoadingButton
+                      size="small"
+                      variant="contained"
+                      loading={stampSaving}
+                      onClick={handleSaveStampPlacements}
+                      startIcon={<Iconify icon="solar:diskette-bold" />}
+                    >
+                      Save Placements
+                    </LoadingButton>
+                  </Box>
+                )}
+              </Card>
+            )}
           </Stack>
         </Grid>
       </Grid>
