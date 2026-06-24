@@ -27,6 +27,7 @@ const ICONS = {
   lock: icon('ic-lock'),
   tour: icon('ic-tour'),
   order: icon('ic-order'),
+  vat: icon('ic-invoice'), // reuse invoice icon for VAT
   label: icon('ic-label'),
   blank: icon('ic-blank'),
   kanban: icon('ic-kanban'),
@@ -244,12 +245,13 @@ export const navData = [
         ],
       },
       {
-        title: 'Order',
-        path: paths.dashboard.order.root,
-        icon: ICONS.order,
+        title: 'VAT',
+        path: paths.dashboard.vat.root,
+        icon: ICONS.vat,
         children: [
-          { title: 'List', path: paths.dashboard.order.root },
-          { title: 'Details', path: paths.dashboard.order.demo.details },
+          { title: 'Summary', path: paths.dashboard.vat.root },
+          { title: 'AR', path: paths.dashboard.vat.ar },
+          { title: 'AP', path: paths.dashboard.vat.ap },
         ],
       },
       {
@@ -261,7 +263,6 @@ export const navData = [
           { title: 'Details', path: paths.dashboard.invoice.demo.details },
           { title: 'Create', path: paths.dashboard.invoice.new },
           { title: 'Edit', path: paths.dashboard.invoice.demo.edit },
-          { title: 'VAT', path: paths.dashboard.invoice.vat },
         ],
       },
       {

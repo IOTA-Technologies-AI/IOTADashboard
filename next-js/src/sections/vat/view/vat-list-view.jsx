@@ -321,8 +321,8 @@ export function VATListView() {
         heading="VAT Management"
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
-          { name: 'Invoice', href: paths.dashboard.invoice.root },
-          { name: 'VAT' },
+          { name: 'VAT', href: paths.dashboard.vat.root },
+          { name: 'Summary' },
         ]}
         action={
           <Stack direction="row" spacing={1.5}>

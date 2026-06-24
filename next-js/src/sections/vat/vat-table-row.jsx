@@ -6,6 +6,8 @@ import TableCell from '@mui/material/TableCell';
 
 import { RouterLink } from 'src/routes/components';
 
+import { paths } from 'src/routes/paths';
+
 import { fDate } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
 
@@ -40,6 +42,10 @@ export function VATTableRow({ row }) {
   // Check if this is an expense entry
   const isExpense = displayInvoiceNumber.startsWith('EXP-');
   const expenseReferenceId = isExpense ? displayInvoiceNumber.replace('EXP-', '') : null;
+
+  // For AR records, build a link to the Invoice detail page
+  const arInvoiceHref =
+    !isExpense && row.invoice_id ? paths.dashboard.invoice.details(row.invoice_id) : null;
 
   // Truncate invoice number after 3 words and add ellipsis
   const truncateInvoiceNumber = (invoiceNum) => {
@@ -78,7 +84,18 @@ export function VATTableRow({ row }) {
             color="inherit"
             underline="always"
             sx={{ cursor: 'pointer' }}
-            title={displayInvoiceNumber} // Show full text on hover
+            title={displayInvoiceNumber}
+          >
+            {truncatedInvoiceNumber}
+          </Link>
+        ) : arInvoiceHref ? (
+          <Link
+            component={RouterLink}
+            href={arInvoiceHref}
+            color="inherit"
+            underline="always"
+            sx={{ cursor: 'pointer' }}
+            title={displayInvoiceNumber}
           >
             {truncatedInvoiceNumber}
           </Link>
@@ -87,7 +104,7 @@ export function VATTableRow({ row }) {
             color="inherit"
             underline="always"
             sx={{ cursor: 'pointer' }}
-            title={displayInvoiceNumber} // Show full text on hover
+            title={displayInvoiceNumber}
           >
             {truncatedInvoiceNumber}
           </Link>
