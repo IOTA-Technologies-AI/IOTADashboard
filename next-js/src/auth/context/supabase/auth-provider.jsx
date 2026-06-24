@@ -1,7 +1,7 @@
 'use client';
 
 import { useSetState } from 'minimal-shared/hooks';
-import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 
 import { seedOneDriveToken } from 'src/utils/onedrive-helper';
 import { fetchUserEnabledPaths } from 'src/utils/apiHelper';
@@ -158,6 +158,11 @@ export function AuthProvider({ children }) {
   const [apiAppRoles, setApiAppRoles] = useState([]);
   const [allowedPaths, setAllowedPaths] = useState([]);
   const [permissionsLoading, setPermissionsLoading] = useState(false);
+  // Tracks whether permissions have been fetched at least once for this user.
+  // Prevents showing the full-page SplashScreen when a Supabase token-refresh
+  // silently re-fires the SIGNED_IN event (every ~60 min), which would otherwise
+  // cause PermissionGuard to unmount children and wipe any in-progress form data.
+  const permissionsInitialized = useRef(false);
 
   const checkUserSession = useCallback(async () => {
     try {
@@ -270,6 +275,7 @@ export function AuthProvider({ children }) {
   const refreshPermissions = useCallback(async () => {
     if (!state.user) {
       setAllowedPaths([]);
+      permissionsInitialized.current = false;
       return;
     }
 
@@ -295,7 +301,10 @@ export function AuthProvider({ children }) {
     const userEmail =
       state.user?.email || state.user?.user_metadata?.email || azureIdentityData(state.user)?.email;
 
-    setPermissionsLoading(true);
+    // Only show the loading spinner on the very first fetch for this user.
+    // Subsequent silent re-fetches (e.g. on Supabase token refresh) update
+    // allowedPaths in the background without unmounting the current page.
+    if (!permissionsInitialized.current) setPermissionsLoading(true);
     try {
       let newPaths;
 
@@ -317,6 +326,7 @@ export function AuthProvider({ children }) {
       console.error('[AuthProvider] Failed to load permissions:', err);
       setAllowedPaths([]);
     } finally {
+      permissionsInitialized.current = true;
       setPermissionsLoading(false);
     }
   }, [state.user, apiAppRoles]); // eslint-disable-line react-hooks/exhaustive-deps

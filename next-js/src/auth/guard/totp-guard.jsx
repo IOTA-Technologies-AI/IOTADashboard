@@ -148,21 +148,6 @@ export function TotpGuard({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, authenticated, email, isBypassPath]);
 
-  // Re-check TOTP on every navigation:
-  // - entering bypass path → grant access immediately
-  // - leaving bypass path → re-run the full TOTP check so the guard re-engages
-  useEffect(() => {
-    if (state === 'loading' || !authenticated || authLoading) return;
-    if (isBypassPath) {
-      setState('verified');
-    } else {
-      // Re-evaluate: user may have left the authenticator page without completing setup,
-      // or navigated somewhere after a bypass-granted session.
-      checkTotp();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pathname]);
-
   const handleVerify = async () => {
     const trimmed = otp.replace(/\s/g, '');
     if (trimmed.length !== 6) {
