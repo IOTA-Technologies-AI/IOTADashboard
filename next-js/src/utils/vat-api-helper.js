@@ -112,22 +112,36 @@ export async function getMonthlyVATData(year, month) {
     });
 
     // VAT liability is based on the date of supply (tax point), not payment status.
-    // Include all transactions within the period — only exclude voided/cancelled records.
+    // Only SAR-currency transactions are in scope for KSA VAT (ZATCA).
+    // Exclude voided/cancelled records and VAT-exempt AP expenses.
     const EXCLUDED_STATUSES = ['void', 'voided', 'cancelled', 'canceled'];
+
+    // AR: SAR currency only, non-void
     const vatARInvoices = arInvoices.filter((invoice) => {
       const s = invoice.status?.toLowerCase();
-      return !s || !EXCLUDED_STATUSES.includes(s);
+      if (s && EXCLUDED_STATUSES.includes(s)) return false;
+      const currency = invoice.currencyCode;
+      return !currency || currency === 'SAR'; // include SAR or unset (defaults to SAR)
     });
+
+    // AP: SAR currency only, non-void, non-VAT-exempt
     const vatAPPayments = apPayments.filter((payment) => {
       const s = payment.status?.toLowerCase();
-      return !s || !EXCLUDED_STATUSES.includes(s);
+      if (s && EXCLUDED_STATUSES.includes(s)) return false;
+      const currency = payment.currencyCode;
+      if (currency && currency !== 'SAR') return false; // exclude non-SAR
+      if (payment.isVATExempt) return false; // exclude VAT-exempt
+      return true;
     });
 
     console.log('📋 VAT-applicable records:', {
       totalAR: arInvoices.length,
       vatAR: vatARInvoices.length,
+      arExcludedNonSAR: arInvoices.length - vatARInvoices.length,
       totalAP: apPayments.length,
       vatAP: vatAPPayments.length,
+      apExcludedNonSAR: apPayments.filter((p) => p.currencyCode && p.currencyCode !== 'SAR').length,
+      apExcludedVATExempt: apPayments.filter((p) => p.isVATExempt).length,
     });
 
     const arRecords = vatARInvoices.map((invoice) =>
@@ -157,7 +171,7 @@ export async function getMonthlyVATData(year, month) {
           currency: payment.currencyCode || 'SAR',
           total: payment.totalAmount || 0,
           vatTaxPeriod: payment.vatTaxPeriod || null,
-          isVATExempt: payment.isVATExempt || false,
+          isVATExempt: false, // already filtered out above
         },
         'AP'
       )
@@ -225,33 +239,47 @@ export async function getQuarterlyVATData(year, quarter) {
     });
 
     // VAT liability is based on the date of supply (tax point), not payment status.
-    // Include all transactions within the period — only exclude voided/cancelled records.
+    // Only SAR-currency transactions are in scope for KSA VAT (ZATCA).
+    // Exclude voided/cancelled records and VAT-exempt AP expenses.
     const EXCLUDED_STATUSES = ['void', 'voided', 'cancelled', 'canceled'];
+
+    // AR: SAR currency only, non-void
     const vatARInvoices = arInvoices.filter((invoice) => {
       const s = invoice.status?.toLowerCase();
-      return !s || !EXCLUDED_STATUSES.includes(s);
+      if (s && EXCLUDED_STATUSES.includes(s)) return false;
+      const currency = invoice.currencyCode;
+      return !currency || currency === 'SAR'; // include SAR or unset (defaults to SAR)
     });
+
+    // AP: SAR currency only, non-void, non-VAT-exempt
     const vatAPPayments = apPayments.filter((payment) => {
       const s = payment.status?.toLowerCase();
-      return !s || !EXCLUDED_STATUSES.includes(s);
+      if (s && EXCLUDED_STATUSES.includes(s)) return false;
+      const currency = payment.currencyCode;
+      if (currency && currency !== 'SAR') return false; // exclude non-SAR
+      if (payment.isVATExempt) return false; // exclude VAT-exempt
+      return true;
     });
 
     console.log('📋 VAT-applicable records:', {
       totalAR: arInvoices.length,
       vatAR: vatARInvoices.length,
+      arExcludedNonSAR: arInvoices.length - vatARInvoices.length,
       totalAP: apPayments.length,
       vatAP: vatAPPayments.length,
+      apExcludedNonSAR: apPayments.filter((p) => p.currencyCode && p.currencyCode !== 'SAR').length,
+      apExcludedVATExempt: apPayments.filter((p) => p.isVATExempt).length,
     });
     const arRecords = vatARInvoices.map((invoice) =>
       processInvoiceVAT(
         {
           invoice_id: invoice.id,
-          invoice_number: invoice.invoiceNumber, // Changed from invoice_number
-          date: invoice.invoiceDate, // Changed from date
-          customer_name: invoice.customerName, // Changed from customer_name
+          invoice_number: invoice.invoiceNumber,
+          date: invoice.invoiceDate,
+          customer_name: invoice.customerName,
           country: invoice.country || 'Saudi Arabia',
-          currency: invoice.currencyCode || 'SAR', // Changed from currency_code
-          total: invoice.totalAmount || 0, // Changed from total
+          currency: invoice.currencyCode || 'SAR',
+          total: invoice.totalAmount || 0,
           vatTaxPeriod: invoice.vatTaxPeriod || null,
         },
         'AR'
@@ -262,14 +290,14 @@ export async function getQuarterlyVATData(year, quarter) {
       processInvoiceVAT(
         {
           payment_id: payment.id,
-          invoice_number: payment.billNumber, // Changed from payment_number
-          date: payment.billDate, // Changed from date
-          customer_name: payment.vendorName, // Changed from customer_name
+          invoice_number: payment.billNumber,
+          date: payment.billDate,
+          customer_name: payment.vendorName,
           country: payment.country || 'Saudi Arabia',
-          currency: payment.currencyCode || 'SAR', // Changed from currency_code
-          total: payment.totalAmount || 0, // Changed from amount
+          currency: payment.currencyCode || 'SAR',
+          total: payment.totalAmount || 0,
           vatTaxPeriod: payment.vatTaxPeriod || null,
-          isVATExempt: payment.isVATExempt || false, // VAT exemption flag
+          isVATExempt: false, // already filtered out above
         },
         'AP'
       )
