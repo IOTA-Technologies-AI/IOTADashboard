@@ -111,25 +111,26 @@ export async function getMonthlyVATData(year, month) {
       monthInfo,
     });
 
-    // Include paid invoices AND records without a status field (old records created before
-    // the status column was standardised). Explicitly unpaid records are excluded.
-    const paidARInvoices = arInvoices.filter((invoice) => {
+    // VAT liability is based on the date of supply (tax point), not payment status.
+    // Include all transactions within the period — only exclude voided/cancelled records.
+    const EXCLUDED_STATUSES = ['void', 'voided', 'cancelled', 'canceled'];
+    const vatARInvoices = arInvoices.filter((invoice) => {
       const s = invoice.status?.toLowerCase();
-      return !s || s === 'paid'; // null/undefined counts as applicable
+      return !s || !EXCLUDED_STATUSES.includes(s);
     });
-    const paidAPPayments = apPayments.filter((payment) => {
+    const vatAPPayments = apPayments.filter((payment) => {
       const s = payment.status?.toLowerCase();
-      return !s || s === 'paid';
+      return !s || !EXCLUDED_STATUSES.includes(s);
     });
 
-    console.log('📋 Filtered PAID invoices:', {
+    console.log('📋 VAT-applicable records:', {
       totalAR: arInvoices.length,
-      paidAR: paidARInvoices.length,
+      vatAR: vatARInvoices.length,
       totalAP: apPayments.length,
-      paidAP: paidAPPayments.length,
+      vatAP: vatAPPayments.length,
     });
 
-    const arRecords = paidARInvoices.map((invoice) =>
+    const arRecords = vatARInvoices.map((invoice) =>
       processInvoiceVAT(
         {
           invoice_id: invoice.id,
@@ -145,7 +146,7 @@ export async function getMonthlyVATData(year, month) {
       )
     );
 
-    const apRecords = paidAPPayments.map((payment) =>
+    const apRecords = vatAPPayments.map((payment) =>
       processInvoiceVAT(
         {
           payment_id: payment.id,
@@ -223,24 +224,25 @@ export async function getQuarterlyVATData(year, quarter) {
       quarterInfo,
     });
 
-    // Include paid invoices AND records without a status field (old records).
-    // Explicitly unpaid records are excluded from VAT calculation.
-    const paidARInvoices = arInvoices.filter((invoice) => {
+    // VAT liability is based on the date of supply (tax point), not payment status.
+    // Include all transactions within the period — only exclude voided/cancelled records.
+    const EXCLUDED_STATUSES = ['void', 'voided', 'cancelled', 'canceled'];
+    const vatARInvoices = arInvoices.filter((invoice) => {
       const s = invoice.status?.toLowerCase();
-      return !s || s === 'paid';
+      return !s || !EXCLUDED_STATUSES.includes(s);
     });
-    const paidAPPayments = apPayments.filter((payment) => {
+    const vatAPPayments = apPayments.filter((payment) => {
       const s = payment.status?.toLowerCase();
-      return !s || s === 'paid';
+      return !s || !EXCLUDED_STATUSES.includes(s);
     });
 
-    console.log('📋 Filtered PAID invoices:', {
+    console.log('📋 VAT-applicable records:', {
       totalAR: arInvoices.length,
-      paidAR: paidARInvoices.length,
+      vatAR: vatARInvoices.length,
       totalAP: apPayments.length,
-      paidAP: paidAPPayments.length,
+      vatAP: vatAPPayments.length,
     });
-    const arRecords = paidARInvoices.map((invoice) =>
+    const arRecords = vatARInvoices.map((invoice) =>
       processInvoiceVAT(
         {
           invoice_id: invoice.id,
@@ -256,7 +258,7 @@ export async function getQuarterlyVATData(year, quarter) {
       )
     );
 
-    const apRecords = paidAPPayments.map((payment) =>
+    const apRecords = vatAPPayments.map((payment) =>
       processInvoiceVAT(
         {
           payment_id: payment.id,
