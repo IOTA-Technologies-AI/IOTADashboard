@@ -942,15 +942,19 @@ export default function NdaDetailsPage({ params }) {
       toast.error('Only PDF, DOCX and DOC files are supported');
       return;
     }
-    // Warn for files > 15 MB (base64 overhead brings ~20 MB to the API)
-    if (file.size > 15 * 1024 * 1024) {
-      toast.error('File is too large (max 15 MB). Please compress or split the document.');
+    // Base64 encoding adds ~33% overhead. Cap at 8 MB so the encoded payload
+    // (~10.7 MB) stays comfortably within backend body limits.
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error(
+        `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 8 MB — please compress or reduce the document before uploading.`
+      );
       return;
     }
+    // Show loading immediately — before FileReader finishes (large files can take seconds)
+    setDocUploading(true);
     const reader = new FileReader();
     reader.onload = async () => {
       try {
-        setDocUploading(true);
         const result = reader.result;
         const base64 = typeof result === 'string' ? result.split(',')[1] : null;
         if (!base64) {

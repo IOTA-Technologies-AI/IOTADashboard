@@ -111,9 +111,16 @@ export async function getMonthlyVATData(year, month) {
       monthInfo,
     });
 
-    // Filter to only include PAID invoices for VAT calculation
-    const paidARInvoices = arInvoices.filter((invoice) => invoice.status?.toLowerCase() === 'paid');
-    const paidAPPayments = apPayments.filter((payment) => payment.status?.toLowerCase() === 'paid');
+    // Include paid invoices AND records without a status field (old records created before
+    // the status column was standardised). Explicitly unpaid records are excluded.
+    const paidARInvoices = arInvoices.filter((invoice) => {
+      const s = invoice.status?.toLowerCase();
+      return !s || s === 'paid'; // null/undefined counts as applicable
+    });
+    const paidAPPayments = apPayments.filter((payment) => {
+      const s = payment.status?.toLowerCase();
+      return !s || s === 'paid';
+    });
 
     console.log('📋 Filtered PAID invoices:', {
       totalAR: arInvoices.length,
@@ -216,10 +223,16 @@ export async function getQuarterlyVATData(year, quarter) {
       quarterInfo,
     });
 
-    // In getQuarterlyVATData function, update the processing:
-    // Filter to only include PAID invoices for VAT calculation
-    const paidARInvoices = arInvoices.filter((invoice) => invoice.status?.toLowerCase() === 'paid');
-    const paidAPPayments = apPayments.filter((payment) => payment.status?.toLowerCase() === 'paid');
+    // Include paid invoices AND records without a status field (old records).
+    // Explicitly unpaid records are excluded from VAT calculation.
+    const paidARInvoices = arInvoices.filter((invoice) => {
+      const s = invoice.status?.toLowerCase();
+      return !s || s === 'paid';
+    });
+    const paidAPPayments = apPayments.filter((payment) => {
+      const s = payment.status?.toLowerCase();
+      return !s || s === 'paid';
+    });
 
     console.log('📋 Filtered PAID invoices:', {
       totalAR: arInvoices.length,

@@ -86,6 +86,7 @@ export function VATListView() {
 
   const [vatRecords, setVATRecords] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
   const [popover, setPopover] = useState({ open: false, anchorEl: null });
   const [vatData, setVATData] = useState(null);
 
@@ -116,6 +117,7 @@ export function VATListView() {
   useEffect(() => {
     const fetchVATData = async () => {
       setLoading(true);
+      setFetchError(null);
       setPostResult(null); // Clear any previous post result
 
       try {
@@ -144,6 +146,7 @@ export function VATListView() {
       } catch (error) {
         console.error('❌ Failed to fetch VAT data:', error);
         console.error('Error details:', error.message, error.stack);
+        setFetchError(error?.message || 'Failed to load VAT records. Please try again.');
         setVATData(null);
         setVATRecords([]);
       } finally {
@@ -364,6 +367,30 @@ export function VATListView() {
         }
         sx={{ mb: { xs: 3, md: 5 } }}
       />
+
+      {/* Fetch Error Alert */}
+      {fetchError && (
+        <Alert
+          severity="error"
+          sx={{ mb: 3 }}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => {
+                setFetchError(null);
+                setLoading(true);
+                // Re-trigger the fetch effect by toggling a dummy value — simplest re-fetch
+                setFilters((prev) => ({ ...prev }));
+              }}
+            >
+              Retry
+            </Button>
+          }
+        >
+          {fetchError}
+        </Alert>
+      )}
 
       {/* Post Result Alert */}
       {postResult && (

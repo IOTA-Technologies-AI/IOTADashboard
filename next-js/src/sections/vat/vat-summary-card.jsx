@@ -39,7 +39,7 @@ export function VATSummaryCard({ quarterInfo, arVAT, apVAT, zatcaPayable }) {
               {label} VAT Summary
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {quarterStart} - {quarterEnd}
+              {quarterStart && quarterEnd ? `${quarterStart} \u2013 ${quarterEnd}` : null}
             </Typography>
           </Box>
 
