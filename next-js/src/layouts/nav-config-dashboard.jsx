@@ -27,7 +27,7 @@ const ICONS = {
   lock: icon('ic-lock'),
   tour: icon('ic-tour'),
   order: icon('ic-order'),
-  vat: icon('ic-invoice'), // reuse invoice icon for VAT
+  vat: icon('ic-tax'), // reuse invoice icon for VAT
   label: icon('ic-label'),
   blank: icon('ic-blank'),
   kanban: icon('ic-kanban'),
