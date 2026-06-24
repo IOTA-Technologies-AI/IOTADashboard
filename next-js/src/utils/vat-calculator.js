@@ -229,6 +229,25 @@ export function processInvoiceVAT(invoice, type = 'AR') {
   const hasBaseAmount = !!(invoice.baseAmount || invoice.base_amount);
   const isVATExempt = invoice.isVATExempt || false;
 
+  // Map full country names and currency codes to the keys used by getVATRate()
+  // getVATRate() hardcoded fallback keys: KSA, UAE, India, UK
+  const COUNTRY_NAME_TO_CODE = {
+    'Saudi Arabia': 'KSA',
+    KSA: 'KSA',
+    UAE: 'UAE',
+    'United Arab Emirates': 'UAE',
+    India: 'India',
+    UK: 'UK',
+    'United Kingdom': 'UK',
+  };
+  const CURRENCY_TO_CODE = {
+    SAR: 'KSA',
+    AED: 'UAE',
+    INR: 'India',
+    GBP: 'UK',
+  };
+  const countryCode = COUNTRY_NAME_TO_CODE[country] || CURRENCY_TO_CODE[currency] || 'KSA';
+
   let vatCalculation;
 
   // If VAT exempt, set VAT to 0
@@ -241,11 +260,11 @@ export function processInvoiceVAT(invoice, type = 'AR') {
       totalWithVAT: amount,
     };
   } else if (hasBaseAmount) {
-    // New invoices: baseAmount exists, calculate VAT by adding
-    vatCalculation = calculateVAT(amount, currency, country);
+    // New invoices: baseAmount exists, calculate VAT by adding on top
+    vatCalculation = calculateVAT(amount, countryCode, []);
   } else {
-    // Old invoices: only total exists, extract base amount
-    const vatRate = getVATRate(currency, country);
+    // Old invoices: only total exists — extract base amount via back-calculation
+    const vatRate = getVATRate(countryCode, []);
     if (vatRate === 0) {
       vatCalculation = {
         vatRate: 0,

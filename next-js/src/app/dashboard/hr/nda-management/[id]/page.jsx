@@ -414,10 +414,25 @@ export default function NdaDetailsPage({ params }) {
   const handleWetSigFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    // Warn for files > 15 MB (base64 overhead brings ~20 MB to the API)
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('File is too large (max 15 MB). Please compress or split the document.');
+      e.target.value = '';
+      return;
+    }
     const reader = new FileReader();
     reader.onload = () => {
-      const base64 = reader.result.split(',')[1];
+      const result = reader.result;
+      const base64 = typeof result === 'string' ? result.split(',')[1] : null;
+      if (!base64) {
+        toast.error('Failed to read file — the file may be empty or corrupted.');
+        return;
+      }
       setWetSigFile({ name: file.name, base64 });
+    };
+    reader.onerror = () => {
+      console.error('FileReader error for wet-sig file:', reader.error);
+      toast.error('Could not read the selected file. Please try a different file.');
     };
     reader.readAsDataURL(file);
     // reset input so the same file can be re-selected if needed
@@ -915,29 +930,47 @@ export default function NdaDetailsPage({ params }) {
   const handleUploadDocument = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const allowed = [
+    // Accept by MIME type OR by file extension for browsers that report octet-stream
+    const allowedMime = [
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/msword',
     ];
-    if (!allowed.includes(file.type)) {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const allowedExt = ['pdf', 'docx', 'doc'];
+    if (!allowedMime.includes(file.type) && !allowedExt.includes(ext)) {
       toast.error('Only PDF, DOCX and DOC files are supported');
+      return;
+    }
+    // Warn for files > 15 MB (base64 overhead brings ~20 MB to the API)
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error('File is too large (max 15 MB). Please compress or split the document.');
       return;
     }
     const reader = new FileReader();
     reader.onload = async () => {
       try {
         setDocUploading(true);
-        const base64 = reader.result.split(',')[1];
+        const result = reader.result;
+        const base64 = typeof result === 'string' ? result.split(',')[1] : null;
+        if (!base64) {
+          toast.error('Failed to read the file — it may be empty or corrupted.');
+          return;
+        }
         const updated = await uploadExternalNdaDocument(id, file.name, base64);
         setNda(updated);
         toast.success('Document uploaded successfully');
       } catch (err) {
         console.error(err);
-        toast.error('Failed to upload document');
+        toast.error(err?.response?.data?.message || err?.message || 'Failed to upload document');
       } finally {
         setDocUploading(false);
       }
+    };
+    reader.onerror = () => {
+      console.error('FileReader error for NDA document:', reader.error);
+      toast.error('Could not read the selected file. The file may be protected or corrupted.');
+      setDocUploading(false);
     };
     reader.readAsDataURL(file);
   };
