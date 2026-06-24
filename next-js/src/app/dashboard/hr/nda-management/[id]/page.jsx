@@ -40,9 +40,11 @@ import {
   setNdaStampPlacements,
   submitNdaForIotaSigning,
   remindPartnerSignatories,
-  uploadExternalNdaDocument,
   setNdaPartnerSignatureZones,
   markNdaFullyExecuted,
+  createNdaUploadSession,
+  linkNdaDocument,
+  fetchNdaDocumentContent,
 } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -234,6 +236,8 @@ export default function NdaDetailsPage({ params }) {
   const [remindPartnerLoading, setRemindPartnerLoading] = useState(false);
   const [docBlobUrl, setDocBlobUrl] = useState(null);
   const [docUploading, setDocUploading] = useState(false);
+  // base64 fetched lazily from the backend proxy (for new-style OneDrive uploads)
+  const [fetchedDocBase64, setFetchedDocBase64] = useState(null);
   const [wetSigFile, setWetSigFile] = useState(null); // { name, base64 } for fully-executed upload
   const [wetSigLoading, setWetSigLoading] = useState(false);
   const wetSigInputRef = useRef(null);
@@ -243,6 +247,9 @@ export default function NdaDetailsPage({ params }) {
   const isExternalUpload = nda?.documentSource === 'external_upload';
   const isUploadedPdf = isPdfDocument(uploadedDocumentName);
   const isUploadedWordDocument = isWordDocument(uploadedDocumentName);
+  // Unified base64 source: prefer the stored column (legacy uploads), fall back to
+  // the lazily-fetched value (new OneDrive-only uploads where the column is null).
+  const docBase64 = nda?.uploadedDocumentBase64 || fetchedDocBase64;
 
   const pendingIotaSignature =
     nda?.status === 'pending_iota_signatures' &&
@@ -276,10 +283,27 @@ export default function NdaDetailsPage({ params }) {
     if (nda?.signatureZones) setSignatureZones(nda.signatureZones);
   }, [nda?.signatureZones]);
 
+  // Lazily fetch document content from the backend proxy when the NDA has an
+  // OneDrive file but no locally-stored base64 (new-style uploads).
+  useEffect(() => {
+    if (!nda?.onedriveFileId || nda?.uploadedDocumentBase64) return;
+    if (nda.documentSource !== 'external_upload') return;
+    let cancelled = false;
+    setFetchedDocBase64(null);
+    fetchNdaDocumentContent(id)
+      .then(({ base64 }) => {
+        if (!cancelled) setFetchedDocBase64(base64);
+      })
+      .catch((err) => console.error('Failed to fetch NDA document content:', err));
+    return () => {
+      cancelled = true;
+    };
+  }, [nda?.onedriveFileId, nda?.uploadedDocumentBase64, nda?.documentSource, id]);
+
   useEffect(() => {
     let url = null;
-    if (nda?.uploadedDocumentBase64 && isUploadedPdf) {
-      const bytes = Uint8Array.from(atob(nda.uploadedDocumentBase64), (c) => c.charCodeAt(0));
+    if (docBase64 && isUploadedPdf) {
+      const bytes = Uint8Array.from(atob(docBase64), (c) => c.charCodeAt(0));
       const blob = new Blob([bytes], { type: 'application/pdf' });
       url = URL.createObjectURL(blob);
       setDocBlobUrl(url);
@@ -289,7 +313,7 @@ export default function NdaDetailsPage({ params }) {
     return () => {
       if (url) URL.revokeObjectURL(url);
     };
-  }, [nda?.uploadedDocumentBase64, nda?.uploadedDocumentName, isUploadedPdf]);
+  }, [docBase64, nda?.uploadedDocumentName, isUploadedPdf]);
 
   // Load pdfjs document whenever the blob URL changes
   useEffect(() => {
@@ -540,11 +564,22 @@ export default function NdaDetailsPage({ params }) {
       const docIsExternalUpload = latestNda.documentSource === 'external_upload';
 
       if (docIsExternalUpload) {
-        if (!latestNda.uploadedDocumentBase64) {
+        if (latestNda.uploadedDocumentBase64) {
+          // Legacy upload — base64 stored directly in the DB
+          fileBase64 = latestNda.uploadedDocumentBase64;
+        } else if (latestNda.onedriveFileId) {
+          // New-style upload — fetch from OneDrive via backend proxy
+          try {
+            const { base64 } = await fetchNdaDocumentContent(id);
+            fileBase64 = base64;
+          } catch (fetchErr) {
+            toast.error('Failed to retrieve the uploaded document. Please try again.');
+            return;
+          }
+        } else {
           toast.error('No document uploaded. Please upload the partner document first.');
           return;
         }
-        fileBase64 = latestNda.uploadedDocumentBase64;
       } else {
         // Generate PDF from react-pdf template
         const blob = await pdf(<NdaPdfDocument nda={latestNda} />).toBlob();
@@ -745,7 +780,7 @@ export default function NdaDetailsPage({ params }) {
     const isExternalPdf =
       nda.documentSource === 'external_upload' &&
       isPdfDocument(nda.uploadedDocumentName) &&
-      nda.uploadedDocumentBase64;
+      (nda.uploadedDocumentBase64 || nda.onedriveFileId);
 
     if (nda.documentSource === 'external_upload' && !isPdfDocument(nda.uploadedDocumentName)) {
       toast.error(
@@ -765,8 +800,9 @@ export default function NdaDetailsPage({ params }) {
         return btoa(binary);
       };
       try {
+        const printBase64 = docBase64 || (await fetchNdaDocumentContent(id).then((r) => r.base64));
         const { PDFDocument } = await import('pdf-lib');
-        const pdfBytes = Uint8Array.from(atob(nda.uploadedDocumentBase64), (c) => c.charCodeAt(0));
+        const pdfBytes = Uint8Array.from(atob(printBase64), (c) => c.charCodeAt(0));
         const pdfDoc = await PDFDocument.load(pdfBytes);
         const pages = pdfDoc.getPages();
 
@@ -930,7 +966,6 @@ export default function NdaDetailsPage({ params }) {
   const handleUploadDocument = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    // Accept by MIME type OR by file extension for browsers that report octet-stream
     const allowedMime = [
       'application/pdf',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -942,41 +977,40 @@ export default function NdaDetailsPage({ params }) {
       toast.error('Only PDF, DOCX and DOC files are supported');
       return;
     }
-    // Base64 encoding adds ~33% overhead. Cap at 8 MB so the encoded payload
-    // (~10.7 MB) stays comfortably within backend body limits.
-    if (file.size > 8 * 1024 * 1024) {
-      toast.error(
-        `File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 8 MB — please compress or reduce the document before uploading.`
-      );
-      return;
-    }
-    // Show loading immediately — before FileReader finishes (large files can take seconds)
     setDocUploading(true);
-    const reader = new FileReader();
-    reader.onload = async () => {
-      try {
-        const result = reader.result;
-        const base64 = typeof result === 'string' ? result.split(',')[1] : null;
-        if (!base64) {
-          toast.error('Failed to read the file — it may be empty or corrupted.');
-          return;
-        }
-        const updated = await uploadExternalNdaDocument(id, file.name, base64);
-        setNda(updated);
-        toast.success('Document uploaded successfully');
-      } catch (err) {
-        console.error(err);
-        toast.error(err?.response?.data?.message || err?.message || 'Failed to upload document');
-      } finally {
-        setDocUploading(false);
+    try {
+      // Step 1: Encore creates an OneDrive upload session (tiny request — no file data)
+      const contentType =
+        file.type || (ext === 'pdf' ? 'application/pdf' : 'application/octet-stream');
+      const { uploadUrl } = await createNdaUploadSession(id, file.name, contentType);
+
+      // Step 2: Browser uploads raw file bytes directly to OneDrive — bypasses Encore body limit entirely
+      const uploadRes = await fetch(uploadUrl, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': contentType,
+          'Content-Range': `bytes 0-${file.size - 1}/${file.size}`,
+          'Content-Length': String(file.size),
+        },
+        body: file,
+      });
+      if (!uploadRes.ok) {
+        const errText = await uploadRes.text().catch(() => '');
+        throw new Error(`OneDrive upload failed (${uploadRes.status}): ${errText}`);
       }
-    };
-    reader.onerror = () => {
-      console.error('FileReader error for NDA document:', reader.error);
-      toast.error('Could not read the selected file. The file may be protected or corrupted.');
+      const uploadData = await uploadRes.json();
+
+      // Step 3: Encore links the OneDrive file to the NDA record (tiny request — no file data)
+      const updated = await linkNdaDocument(id, file.name, uploadData.id, uploadData.webUrl);
+      setNda(updated);
+      setFetchedDocBase64(null); // clear cached base64 — will be re-fetched lazily
+      toast.success('Document uploaded successfully');
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to upload document');
+    } finally {
       setDocUploading(false);
-    };
-    reader.readAsDataURL(file);
+    }
   };
 
   // Drop a new stamp onto the preview canvas
@@ -1215,7 +1249,13 @@ export default function NdaDetailsPage({ params }) {
       return btoa(binary);
     };
 
-    if (!nda.uploadedDocumentBase64) {
+    const downloadBase64 =
+      docBase64 ||
+      (await fetchNdaDocumentContent(id)
+        .then((r) => r.base64)
+        .catch(() => null));
+
+    if (!downloadBase64) {
       toast.error('No document available to download.');
       return;
     }
@@ -1231,7 +1271,7 @@ export default function NdaDetailsPage({ params }) {
     if (!isUploadedPdf || !hasOverlays) {
       // No processing needed — just download the raw file
       const a = document.createElement('a');
-      a.href = `data:application/octet-stream;base64,${nda.uploadedDocumentBase64}`;
+      a.href = `data:application/octet-stream;base64,${downloadBase64}`;
       a.download = nda.uploadedDocumentName;
       a.click();
       return;
@@ -1240,7 +1280,7 @@ export default function NdaDetailsPage({ params }) {
     try {
       setDownloadProcessing(true);
       const { PDFDocument } = await import('pdf-lib');
-      const pdfBytes = Uint8Array.from(atob(nda.uploadedDocumentBase64), (c) => c.charCodeAt(0));
+      const pdfBytes = Uint8Array.from(atob(downloadBase64), (c) => c.charCodeAt(0));
       const pdfDoc = await PDFDocument.load(pdfBytes);
       const pages = pdfDoc.getPages();
 
@@ -1781,9 +1821,18 @@ export default function NdaDetailsPage({ params }) {
                         size="small"
                         variant="outlined"
                         startIcon={<Iconify icon="solar:document-bold" />}
-                        onClick={() => {
+                        onClick={async () => {
+                          const b64 =
+                            docBase64 ||
+                            (await fetchNdaDocumentContent(id)
+                              .then((r) => r.base64)
+                              .catch(() => null));
+                          if (!b64) {
+                            toast.error('Document not available');
+                            return;
+                          }
                           const a = document.createElement('a');
-                          a.href = `data:application/octet-stream;base64,${nda.uploadedDocumentBase64}`;
+                          a.href = `data:application/octet-stream;base64,${b64}`;
                           a.download = nda.uploadedDocumentName;
                           a.click();
                         }}

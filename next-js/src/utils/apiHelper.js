@@ -4087,6 +4087,56 @@ export async function markNdaFullyExecuted(id, markedBy, fileName, fileBase64) {
   }
 }
 
+/**
+ * Creates an OneDrive resumable upload session for a partner NDA document.
+ * The browser then PUTs the raw file bytes directly to the returned uploadUrl,
+ * completely bypassing Encore's JSON body size limit.
+ */
+export async function createNdaUploadSession(id, fileName, contentType) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}ndas/${id}/create-upload-session`, {
+      fileName,
+      contentType: contentType || 'application/octet-stream',
+    });
+    return response.data; // { uploadUrl, safeFileName }
+  } catch (error) {
+    console.error('Error creating NDA upload session:', error);
+    throw error;
+  }
+}
+
+/**
+ * Links an already-uploaded OneDrive file to the NDA record.
+ * Called after the browser completes the direct OneDrive upload.
+ */
+export async function linkNdaDocument(id, fileName, onedriveFileId, onedriveWebUrl) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}ndas/${id}/link-document`, {
+      fileName,
+      onedriveFileId,
+      onedriveWebUrl,
+    });
+    return response.data.nda;
+  } catch (error) {
+    console.error('Error linking NDA document:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fetches NDA document content (base64) for inline viewing.
+ * Returns stored base64 for legacy uploads; fetches from OneDrive for new uploads.
+ */
+export async function fetchNdaDocumentContent(id) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}ndas/${id}/document`);
+    return response.data; // { fileName, contentType, base64 }
+  } catch (error) {
+    console.error('Error fetching NDA document content:', error);
+    throw error;
+  }
+}
+
 // ============================================================================
 // WEBHOOK EVENTS API FUNCTIONS
 // ============================================================================

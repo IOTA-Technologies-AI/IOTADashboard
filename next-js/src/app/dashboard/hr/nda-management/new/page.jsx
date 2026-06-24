@@ -27,7 +27,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
-import { createNda, uploadExternalNdaDocument } from 'src/utils/apiHelper';
+import { createNda, createNdaUploadSession, linkNdaDocument } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -46,12 +46,12 @@ export default function NdaNewPage() {
   const [partnerSigningMethod, setPartnerSigningMethod] = useState('digital');
   const [requireOtp, setRequireOtp] = useState(false);
   const [requireConsent, setRequireConsent] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState(null); // { name, base64 }
+  const [uploadedFile, setUploadedFile] = useState(null); // native File object
   const newDocFileRef = useRef(null);
 
   const { users: msUsers, loading: msUsersLoading } = useMicrosoftUsers();
 
-  const handleNewDocFileChange = async (e) => {
+  const handleNewDocFileChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const allowed = [
@@ -59,16 +59,14 @@ export default function NdaNewPage() {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'application/msword',
     ];
-    if (!allowed.includes(file.type)) {
+    const ext = file.name.split('.').pop()?.toLowerCase();
+    const allowedExt = ['pdf', 'docx', 'doc'];
+    if (!allowed.includes(file.type) && !allowedExt.includes(ext)) {
       toast.error('Only PDF, DOCX and DOC files are supported');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const base64 = reader.result.split(',')[1];
-      setUploadedFile({ name: file.name, base64 });
-    };
-    reader.readAsDataURL(file);
+    // Store the raw File object — no FileReader needed (OneDrive session upload handles bytes directly)
+    setUploadedFile(file);
   };
 
   const {
@@ -142,9 +140,27 @@ export default function NdaNewPage() {
         requireConsent,
       });
 
-      // Step 2: if an external file was selected, upload it in a separate request
+      // Step 2: if an external file was selected, upload it via OneDrive session (no body size limit)
       if (documentSource === 'external_upload' && uploadedFile) {
-        await uploadExternalNdaDocument(nda.id, uploadedFile.name, uploadedFile.base64);
+        const ext = uploadedFile.name.split('.').pop()?.toLowerCase();
+        const contentType =
+          uploadedFile.type || (ext === 'pdf' ? 'application/pdf' : 'application/octet-stream');
+        const { uploadUrl } = await createNdaUploadSession(nda.id, uploadedFile.name, contentType);
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': contentType,
+            'Content-Range': `bytes 0-${uploadedFile.size - 1}/${uploadedFile.size}`,
+            'Content-Length': String(uploadedFile.size),
+          },
+          body: uploadedFile,
+        });
+        if (!uploadRes.ok) {
+          const errText = await uploadRes.text().catch(() => '');
+          throw new Error(`Document upload failed (${uploadRes.status}): ${errText}`);
+        }
+        const uploadData = await uploadRes.json();
+        await linkNdaDocument(nda.id, uploadedFile.name, uploadData.id, uploadData.webUrl);
       }
 
       toast.success(`NDA ${nda.ndaNumber} created`);
