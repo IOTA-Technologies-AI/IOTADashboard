@@ -15,7 +15,6 @@ import Divider from '@mui/material/Divider';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
-import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -166,13 +165,38 @@ export function SalesContactsView() {
   const handleApolloSaveContact = async (person) => {
     setApolloSavingId(person.id);
     try {
+      // If the caller already has email/phone (enriched card), skip the enrich call.
+      let email = person.email ?? null;
+      let phone = person.phone ?? null;
+      let title = person.title ?? null;
+      let company = person.company ?? null;
+
+      // person.enriched = true when called from the enriched contact card
+      const needsEnrich = !person.enriched && !email && !phone;
+      if (needsEnrich && person.id) {
+        try {
+          const enrichRes = await axios.post(endpoints.apollo.peopleEnrich, {
+            apolloId: person.id,
+            name: person.name,
+            organizationName: person.company,
+          });
+          const enriched = enrichRes?.data ?? enrichRes;
+          email = enriched?.email ?? null;
+          phone = enriched?.phone ?? null;
+          // Update displayed enriched person if it matches
+          if (enriched?.name) title = title ?? null; // title comes from search result
+        } catch (enrichErr) {
+          console.warn('Enrich before save failed, saving without email/phone', enrichErr);
+        }
+      }
+
       await axios.post(endpoints.apollo.saveContact, {
         apolloId: person.id,
         name: person.name,
-        title: person.title ?? null,
-        company: person.company ?? null,
-        email: person.email ?? null,
-        phone: person.phone ?? null,
+        title,
+        company,
+        email,
+        phone,
       });
       setApolloSavedIds((prev) => new Set([...prev, person.id]));
       fetchSavedApolloContacts();
@@ -496,6 +520,7 @@ export function SalesContactsView() {
                             company: apolloEnrichedPerson.company,
                             email: apolloEnrichedPerson.email,
                             phone: apolloEnrichedPerson.phone,
+                            enriched: true, // already have full details — skip enrich call
                           })
                         }
                       >
