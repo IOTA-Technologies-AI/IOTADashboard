@@ -166,6 +166,7 @@ export function SalesContactsView() {
     setApolloSavingId(person.id);
     try {
       // If the caller already has email/phone (enriched card), skip the enrich call.
+      let name = person.name ?? null;
       let email = person.email ?? null;
       let phone = person.phone ?? null;
       let title = person.title ?? null;
@@ -181,10 +182,10 @@ export function SalesContactsView() {
             organizationName: person.company,
           });
           const enriched = enrichRes?.data ?? enrichRes;
+          // Use the unmasked full name returned by enrichment when available
+          if (enriched?.name) name = enriched.name;
           email = enriched?.email ?? null;
           phone = enriched?.phone ?? null;
-          // Update displayed enriched person if it matches
-          if (enriched?.name) title = title ?? null; // title comes from search result
         } catch (enrichErr) {
           console.warn('Enrich before save failed, saving without email/phone', enrichErr);
         }
@@ -192,7 +193,7 @@ export function SalesContactsView() {
 
       await axios.post(endpoints.apollo.saveContact, {
         apolloId: person.id,
-        name: person.name,
+        name,
         title,
         company,
         email,
@@ -515,7 +516,9 @@ export function SalesContactsView() {
                         onClick={() =>
                           handleApolloSaveContact({
                             id: apolloEnrichedPerson.apolloId,
-                            name: apolloEnrichedPerson.displayName || apolloEnrichedPerson.name,
+                            // Prefer the full unmasked name from enrichment over the
+                            // obfuscated displayName from the search result
+                            name: apolloEnrichedPerson.name || apolloEnrichedPerson.displayName,
                             title: apolloEnrichedPerson.title,
                             company: apolloEnrichedPerson.company,
                             email: apolloEnrichedPerson.email,
