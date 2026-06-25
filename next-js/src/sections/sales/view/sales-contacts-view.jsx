@@ -1,7 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -20,6 +20,8 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
 import CircularProgress from '@mui/material/CircularProgress';
+import ToggleButton from '@mui/material/ToggleButton';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import LoadingButton from '@mui/lab/LoadingButton';
 
 import { useRouter } from 'src/routes/hooks';
@@ -42,11 +44,18 @@ export function SalesContactsView() {
   const [apolloSearchBy, setApolloSearchBy] = useState('name');
   const [apolloSearching, setApolloSearching] = useState(false);
   const [apolloResults, setApolloResults] = useState([]);
+  const [apolloPage, setApolloPage] = useState(1);
+  const [apolloTotalEntries, setApolloTotalEntries] = useState(0);
+  const [apolloHasMore, setApolloHasMore] = useState(false);
   const [apolloCredits, setApolloCredits] = useState(null);
   const [apolloCreditsChecked, setApolloCreditsChecked] = useState(false);
   const [apolloEnriching, setApolloEnriching] = useState(null);
   const [apolloEnrichedPerson, setApolloEnrichedPerson] = useState(null);
   const [apolloError, setApolloError] = useState(null);
+  const [apolloSavingId, setApolloSavingId] = useState(null);
+  const [apolloSavedIds, setApolloSavedIds] = useState(new Set());
+  const [apolloSavedContacts, setApolloSavedContacts] = useState([]);
+  const [apolloSavedLoading, setApolloSavedLoading] = useState(false);
 
   // Derive contacts from deals (deduplicated by email, then by name)
   const contacts = useMemo(() => {
@@ -83,16 +92,23 @@ export function SalesContactsView() {
     if (!apolloQuery.trim()) return;
     setApolloSearching(true);
     setApolloResults([]);
+    setApolloPage(1);
+    setApolloTotalEntries(0);
+    setApolloHasMore(false);
     setApolloEnrichedPerson(null);
     setApolloError(null);
     try {
       const res = await axios.post(endpoints.apollo.peopleSearch, {
         query: apolloQuery.trim(),
         searchBy: apolloSearchBy,
+        page: 1,
       });
       const people = res?.data?.people ?? res?.people ?? [];
+      const total = res?.data?.totalEntries ?? res?.totalEntries ?? 0;
       const credits = res?.data?.credits ?? null;
       setApolloResults(people);
+      setApolloTotalEntries(total);
+      setApolloHasMore(people.length > 0 && people.length < total);
       setApolloCredits(credits);
       setApolloCreditsChecked(true);
       if (people.length === 0) {
@@ -112,6 +128,65 @@ export function SalesContactsView() {
     }
   };
 
+  const handleApolloLoadMore = async () => {
+    const nextPage = apolloPage + 1;
+    setApolloSearching(true);
+    try {
+      const res = await axios.post(endpoints.apollo.peopleSearch, {
+        query: apolloQuery.trim(),
+        searchBy: apolloSearchBy,
+        page: nextPage,
+      });
+      const people = res?.data?.people ?? res?.people ?? [];
+      const total = res?.data?.totalEntries ?? res?.totalEntries ?? apolloTotalEntries;
+      const merged = [...apolloResults, ...people];
+      setApolloResults(merged);
+      setApolloPage(nextPage);
+      setApolloTotalEntries(total);
+      setApolloHasMore(merged.length < total && people.length > 0);
+    } catch (err) {
+      setApolloError(err?.response?.data?.message || 'Failed to load more results.');
+    } finally {
+      setApolloSearching(false);
+    }
+  };
+
+  const fetchSavedApolloContacts = async () => {
+    setApolloSavedLoading(true);
+    try {
+      const res = await axios.get(endpoints.apollo.savedContacts);
+      setApolloSavedContacts(res?.data?.contacts ?? []);
+    } catch (err) {
+      console.error('Failed to fetch saved Apollo contacts', err);
+    } finally {
+      setApolloSavedLoading(false);
+    }
+  };
+
+  const handleApolloSaveContact = async (person) => {
+    setApolloSavingId(person.id);
+    try {
+      await axios.post(endpoints.apollo.saveContact, {
+        apolloId: person.id,
+        name: person.name,
+        title: person.title ?? null,
+        company: person.company ?? null,
+        email: person.email ?? null,
+        phone: person.phone ?? null,
+      });
+      setApolloSavedIds((prev) => new Set([...prev, person.id]));
+      fetchSavedApolloContacts();
+    } catch (err) {
+      setApolloError(err?.response?.data?.message || 'Failed to save contact.');
+    } finally {
+      setApolloSavingId(null);
+    }
+  };
+
+  // Load saved Apollo contacts once on mount (superAdmin)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { if (user?.role === 'superAdmin') fetchSavedApolloContacts(); }, []);
+
   const handleApolloEnrich = async (person) => {
     setApolloEnriching(person.id);
     setApolloEnrichedPerson(null);
@@ -123,7 +198,13 @@ export function SalesContactsView() {
         organizationName: person.company,
       });
       const enriched = res?.data ?? res;
-      setApolloEnrichedPerson({ ...enriched, displayName: person.name });
+      setApolloEnrichedPerson({
+        ...enriched,
+        displayName: person.name,
+        apolloId: person.id,
+        title: person.title ?? null,
+        company: person.company ?? null,
+      });
       setApolloCredits(enriched?.credits ?? null);
       setApolloCreditsChecked(true);
     } catch (err) {

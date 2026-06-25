@@ -99,6 +99,8 @@ export const endpoints = {
   apollo: {
     peopleSearch: '/api/apollo/people-search',
     peopleEnrich: '/api/apollo/people-enrich',
+    saveContact: '/api/apollo/save-contact',
+    savedContacts: '/api/apollo/saved-contacts',
   },
   calendar: '/api/calendar',
   auth: {
