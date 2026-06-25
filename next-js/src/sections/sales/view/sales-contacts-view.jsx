@@ -185,7 +185,9 @@ export function SalesContactsView() {
 
   // Load saved Apollo contacts once on mount (superAdmin)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (user?.role === 'superAdmin') fetchSavedApolloContacts(); }, []);
+  useEffect(() => {
+    if (user?.role === 'superAdmin') fetchSavedApolloContacts();
+  }, []);
 
   const handleApolloEnrich = async (person) => {
     setApolloEnriching(person.id);
@@ -243,50 +245,70 @@ export function SalesContactsView() {
             <Chip label="Super Admin" size="small" color="warning" variant="soft" />
           </Stack>
 
-          <Stack direction="row" spacing={1} mb={2}>
-            <TextField
-              select
-              size="small"
-              label="Search by"
-              value={apolloSearchBy}
-              onChange={(e) => setApolloSearchBy(e.target.value)}
-              sx={{ minWidth: 170 }}
-            >
-              <MenuItem value="name">Search by Name</MenuItem>
-              <MenuItem value="company">Search by Company</MenuItem>
-            </TextField>
+          <Stack spacing={1.5} mb={2}>
+            {/* Search type toggle — prominent so users choose before typing */}
+            <Stack direction="row" alignItems="center" spacing={1.5}>
+              <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                Search by:
+              </Typography>
+              <ToggleButtonGroup
+                value={apolloSearchBy}
+                exclusive
+                onChange={(_, v) => {
+                  if (v) {
+                    setApolloSearchBy(v);
+                    setApolloResults([]);
+                    setApolloPage(1);
+                    setApolloTotalEntries(0);
+                    setApolloHasMore(false);
+                    setApolloEnrichedPerson(null);
+                    setApolloError(null);
+                  }
+                }}
+                size="small"
+              >
+                <ToggleButton value="name" sx={{ px: 2.5, fontWeight: 600 }}>
+                  Name
+                </ToggleButton>
+                <ToggleButton value="company" sx={{ px: 2.5, fontWeight: 600 }}>
+                  Company
+                </ToggleButton>
+              </ToggleButtonGroup>
+            </Stack>
 
-            <TextField
-              size="small"
-              placeholder={
-                apolloSearchBy === 'company'
-                  ? 'Enter company name (e.g. IOTA Technologies)'
-                  : 'Enter person/resource name'
-              }
-              value={apolloQuery}
-              onChange={(e) => setApolloQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleApolloSearch();
-              }}
-              sx={{ flex: 1 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Box component="span" sx={{ color: 'text.disabled', fontSize: 18 }}>
-                      🔍
-                    </Box>
-                  </InputAdornment>
-                ),
-              }}
-            />
-            <LoadingButton
-              loading={apolloSearching}
-              variant="contained"
-              onClick={handleApolloSearch}
-              disabled={!apolloQuery.trim()}
-            >
-              Search
-            </LoadingButton>
+            <Stack direction="row" spacing={1}>
+              <TextField
+                size="small"
+                placeholder={
+                  apolloSearchBy === 'company'
+                    ? 'Enter company name (e.g. IOTA Technologies)'
+                    : 'Enter person name (e.g. Ahmed Al-Rashid)'
+                }
+                value={apolloQuery}
+                onChange={(e) => setApolloQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleApolloSearch();
+                }}
+                sx={{ flex: 1 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Box component="span" sx={{ color: 'text.disabled', fontSize: 18 }}>
+                        🔍
+                      </Box>
+                    </InputAdornment>
+                  ),
+                }}
+              />
+              <LoadingButton
+                loading={apolloSearching}
+                variant="contained"
+                onClick={handleApolloSearch}
+                disabled={!apolloQuery.trim()}
+              >
+                Search
+              </LoadingButton>
+            </Stack>
           </Stack>
 
           {apolloError && (
@@ -334,7 +356,7 @@ export function SalesContactsView() {
               <Typography variant="caption" color="text.secondary" mb={1} display="block">
                 {apolloSearchBy === 'company'
                   ? `Found ${apolloResults.length} people under this company.`
-                  : `Found ${apolloResults.length} people matching this name query.`}{' '}
+                  : `Found ${apolloResults.length} people matching this name.`}{' '}
                 Click &quot;Fetch Details&quot; to retrieve email and phone.
               </Typography>
               <Table size="small">
@@ -345,6 +367,7 @@ export function SalesContactsView() {
                     <TableCell>Company</TableCell>
                     <TableCell>Has Email</TableCell>
                     <TableCell>Has Phone</TableCell>
+                    <TableCell>Save</TableCell>
                     <TableCell>Action</TableCell>
                   </TableRow>
                 </TableHead>
@@ -385,6 +408,18 @@ export function SalesContactsView() {
                       <TableCell>
                         <LoadingButton
                           size="small"
+                          variant={apolloSavedIds.has(person.id) ? 'contained' : 'outlined'}
+                          color={apolloSavedIds.has(person.id) ? 'success' : 'primary'}
+                          loading={apolloSavingId === person.id}
+                          disabled={apolloSavedIds.has(person.id)}
+                          onClick={() => handleApolloSaveContact(person)}
+                        >
+                          {apolloSavedIds.has(person.id) ? 'Saved ✓' : 'Save'}
+                        </LoadingButton>
+                      </TableCell>
+                      <TableCell>
+                        <LoadingButton
+                          size="small"
                           variant="outlined"
                           loading={apolloEnriching === person.id}
                           onClick={() => handleApolloEnrich(person)}
@@ -396,6 +431,22 @@ export function SalesContactsView() {
                   ))}
                 </TableBody>
               </Table>
+
+              {/* Load More */}
+              {apolloHasMore && (
+                <Box sx={{ mt: 2, display: 'flex', justifyContent: 'center' }}>
+                  <LoadingButton
+                    loading={apolloSearching}
+                    variant="outlined"
+                    onClick={handleApolloLoadMore}
+                  >
+                    Load More
+                    {apolloTotalEntries > apolloResults.length
+                      ? ` (≈${apolloTotalEntries - apolloResults.length} remaining)`
+                      : ''}
+                  </LoadingButton>
+                </Box>
+              )}
             </>
           )}
 
@@ -427,6 +478,33 @@ export function SalesContactsView() {
                       ? ` • Fetched: ${new Date(apolloEnrichedPerson.fetchedAt).toLocaleString()}`
                       : ''}
                   </Typography>
+                  {apolloEnrichedPerson.apolloId && (
+                    <Box sx={{ mt: 1.5 }}>
+                      <LoadingButton
+                        size="small"
+                        variant="contained"
+                        color={
+                          apolloSavedIds.has(apolloEnrichedPerson.apolloId) ? 'success' : 'primary'
+                        }
+                        loading={apolloSavingId === apolloEnrichedPerson.apolloId}
+                        disabled={apolloSavedIds.has(apolloEnrichedPerson.apolloId)}
+                        onClick={() =>
+                          handleApolloSaveContact({
+                            id: apolloEnrichedPerson.apolloId,
+                            name: apolloEnrichedPerson.displayName || apolloEnrichedPerson.name,
+                            title: apolloEnrichedPerson.title,
+                            company: apolloEnrichedPerson.company,
+                            email: apolloEnrichedPerson.email,
+                            phone: apolloEnrichedPerson.phone,
+                          })
+                        }
+                      >
+                        {apolloSavedIds.has(apolloEnrichedPerson.apolloId)
+                          ? 'Saved to Contacts ✓'
+                          : 'Save to Contacts'}
+                      </LoadingButton>
+                    </Box>
+                  )}
                 </Stack>
               </Box>
             </>
@@ -481,6 +559,61 @@ export function SalesContactsView() {
           </TableBody>
         </Table>
       </Card>
+
+      {/* ── Apollo Saved Contacts ─────────────────────────────────────────── */}
+      {user?.role === 'superAdmin' && (apolloSavedContacts.length > 0 || apolloSavedLoading) && (
+        <Card sx={{ mt: 3 }}>
+          <Stack direction="row" alignItems="center" spacing={1} sx={{ px: 2.5, py: 1.5 }}>
+            <Typography variant="subtitle2">Apollo Saved Contacts</Typography>
+            {apolloSavedLoading ? (
+              <CircularProgress size={14} />
+            ) : (
+              <Chip
+                label={apolloSavedContacts.length}
+                size="small"
+                color="primary"
+                variant="soft"
+              />
+            )}
+          </Stack>
+          <Divider />
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Contact</TableCell>
+                <TableCell>Title</TableCell>
+                <TableCell>Company</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Phone</TableCell>
+                <TableCell>Saved On</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {apolloSavedContacts.map((contact) => (
+                <TableRow key={contact.apolloId} hover>
+                  <TableCell>
+                    <Stack direction="row" alignItems="center" spacing={1.5}>
+                      <Avatar sx={{ width: 32, height: 32, fontSize: 12 }}>
+                        {initials(contact.name || '?')}
+                      </Avatar>
+                      <Typography variant="body2">{contact.name || '—'}</Typography>
+                    </Stack>
+                  </TableCell>
+                  <TableCell>{contact.title || '—'}</TableCell>
+                  <TableCell>{contact.company || '—'}</TableCell>
+                  <TableCell>{contact.email || '—'}</TableCell>
+                  <TableCell>{contact.phone || '—'}</TableCell>
+                  <TableCell>
+                    <Typography variant="caption" color="text.secondary">
+                      {contact.savedAt ? new Date(contact.savedAt).toLocaleDateString() : '—'}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Card>
+      )}
     </Box>
   );
 }
