@@ -1,0 +1,51 @@
+[2026-07-09T18:04:02.702Z] Extension activating. WorkspaceFolders found: ["/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard","/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTAApiServer","/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADocuments"]
+[2026-07-09T18:04:02.703Z] runFullScan started
+[2026-07-09T18:04:02.703Z] Discovering files...
+[2026-07-09T18:04:03.967Z] Scan complete: 1820 files found, 0 cached, 1820 freshly parsed, 1264ms
+[2026-07-09T18:04:03.967Z] runPostScanAnalysis started. Current nodes count: 1820
+[2026-07-09T18:04:03.975Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:04:03.975Z] runFullScan finished
+[2026-07-09T18:18:42.373Z] runPostScanAnalysis started. Current nodes count: 1
+[2026-07-09T18:18:42.376Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:18:46.304Z] runPostScanAnalysis started. Current nodes count: 1
+[2026-07-09T18:18:46.304Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:19:08.451Z] runPostScanAnalysis started. Current nodes count: 1
+[2026-07-09T18:19:08.452Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:19:14.132Z] runPostScanAnalysis started. Current nodes count: 1
+[2026-07-09T18:19:14.133Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:19:20.068Z] runPostScanAnalysis started. Current nodes count: 1
+[2026-07-09T18:19:20.070Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:19:27.803Z] runPostScanAnalysis started. Current nodes count: 1
+[2026-07-09T18:19:27.804Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:19:38.992Z] runPostScanAnalysis started. Current nodes count: 1
+[2026-07-09T18:19:38.993Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:19:48.351Z] runPostScanAnalysis started. Current nodes count: 1
+[2026-07-09T18:19:48.352Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:19:56.106Z] runPostScanAnalysis started. Current nodes count: 1
+[2026-07-09T18:19:56.107Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:20:13.726Z] runPostScanAnalysis started. Current nodes count: 1
+[2026-07-09T18:20:13.727Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:20:45.059Z] runPostScanAnalysis started. Current nodes count: 3
+[2026-07-09T18:20:45.061Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:20:45.796Z] runPostScanAnalysis started. Current nodes count: 3
+[2026-07-09T18:20:45.797Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:20:54.319Z] runPostScanAnalysis started. Current nodes count: 3
+[2026-07-09T18:20:54.320Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:20:56.515Z] runPostScanAnalysis started. Current nodes count: 3
+[2026-07-09T18:20:56.516Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:21:10.748Z] runPostScanAnalysis started. Current nodes count: 3
+[2026-07-09T18:21:10.749Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:22:23.722Z] runPostScanAnalysis started. Current nodes count: 3
+[2026-07-09T18:22:23.723Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:22:43.103Z] runPostScanAnalysis started. Current nodes count: 3
+[2026-07-09T18:22:43.104Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:22:49.234Z] runPostScanAnalysis started. Current nodes count: 3
+[2026-07-09T18:22:49.235Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:23:04.961Z] runPostScanAnalysis started. Current nodes count: 3
+[2026-07-09T18:23:04.962Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:23:13.932Z] runPostScanAnalysis started. Current nodes count: 3
+[2026-07-09T18:23:13.932Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:23:20.285Z] runPostScanAnalysis started. Current nodes count: 3
+[2026-07-09T18:23:20.287Z] No active DependencyGraphPanel webview open.
+[2026-07-09T18:23:37.364Z] runPostScanAnalysis started. Current nodes count: 3
+[2026-07-09T18:23:37.364Z] No active DependencyGraphPanel webview open.

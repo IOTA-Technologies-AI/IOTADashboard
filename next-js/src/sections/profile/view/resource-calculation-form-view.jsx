@@ -1,5 +1,6 @@
 'use client';
 
+import { pdf, Document, Page, Text, View, StyleSheet as PdfStyleSheet } from '@react-pdf/renderer';
 import useSWR from 'swr';
 import { useState, useEffect, useCallback, useRef } from 'react';
 
@@ -32,6 +33,9 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import Tooltip from '@mui/material/Tooltip';
+import Menu from '@mui/material/Menu';
+import ListItemIcon from '@mui/material/ListItemIcon';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
@@ -176,6 +180,77 @@ function fmtNumber(val) {
   });
 }
 
+/**
+ * When familyStatus is enabled, override insurance and ticket line items with
+ * family-based cost calculations (still editable by the user afterward).
+ * Insurance: insuranceCostPerPax × (dependentsCount + 1 wife) — annual
+ * Tickets:   ticketCostPerPax   × (dependentsCount + 2 [employee + wife]) — annual
+ * Single:    ticketCostPerPax   × 1 (employee only)
+ */
+function applyFamilyDefaults(items, familyOn, deps, insPerPax, ticketPerPax) {
+  const numDeps = Number(deps) || 0;
+  const numIns = Number(insPerPax) || 3000;
+  const numTicket = Number(ticketPerPax) || 2500;
+
+  return items.map((item) => {
+    // Insurance line — override when family is on
+    if (item.category === 'insurance' && familyOn) {
+      const familyPax = numDeps + 1; // kids + wife
+      const annual = Math.round(numIns * familyPax);
+      return { ...item, monthly: annual / 12, annual, isEditable: true };
+    }
+    // Ticket line — always recompute based on family status
+    if (item.category === 'government' && item.label?.toLowerCase().includes('ticket')) {
+      const totalPax = familyOn ? numDeps + 2 : 1; // employee + wife + kids OR just employee
+      const annual = Math.round(numTicket * totalPax);
+      return { ...item, monthly: annual / 12, annual, isEditable: true, isComputed: false };
+    }
+    return item;
+  });
+}
+
+// ── PDF Document styles ───────────────────────────────────────────────────────
+
+const pdfStyles = PdfStyleSheet.create({
+  page: { fontFamily: 'Helvetica', padding: 40, fontSize: 10, color: '#111111' },
+  header: {
+    backgroundColor: '#0B5E41',
+    padding: '12 20',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 0,
+  },
+  headerTitle: { color: '#FFFFFF', fontSize: 14, fontFamily: 'Helvetica-Bold' },
+  headerSub: { color: 'rgba(255,255,255,0.75)', fontSize: 9 },
+  tableHeader: {
+    backgroundColor: '#E8F3EF',
+    flexDirection: 'row',
+    padding: '8 10',
+    borderBottom: '1 solid #C5DDD4',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    padding: '10 10',
+    borderBottom: '1 solid #E8ECEF',
+  },
+  colDesc: { flex: 3 },
+  colAmt: { flex: 1.2, textAlign: 'right' },
+  label: { fontSize: 9, color: '#555555', marginTop: 2 },
+  bold: { fontFamily: 'Helvetica-Bold' },
+  totalsRow: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 2 },
+  divider: { borderBottom: '1 solid #CCCCCC', marginVertical: 6 },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginTop: 16,
+    paddingTop: 12,
+    borderTop: '1 solid #E0E0E0',
+  },
+  footerNote: { fontSize: 8.5, color: '#666666', maxWidth: 220, lineHeight: 1.6 },
+});
+
 function getUserEmail() {
   if (typeof window === 'undefined') return '';
   try {
@@ -216,6 +291,9 @@ export function ResourceCalculationFormView({ id }) {
   const [nationality, setNationality] = useState('');
   const [insurancePremiumFactor, setInsurancePremiumFactor] = useState(1.0);
   const [dependentsCount, setDependentsCount] = useState(0);
+  const [familyStatus, setFamilyStatus] = useState(false);
+  const [insuranceCostPerPax, setInsuranceCostPerPax] = useState(3000);
+  const [ticketCostPerPax, setTicketCostPerPax] = useState(2500);
   const [baseSalary, setBaseSalary] = useState(0);
   const [currency, setCurrency] = useState('SAR');
   const [lineItems, setLineItems] = useState([]);
@@ -238,6 +316,10 @@ export function ResourceCalculationFormView({ id }) {
   // ── Resume upload state ───────────────────────────────────────────────────
   const [resumeUploading, setResumeUploading] = useState(false);
   const [resumeUploadError, setResumeUploadError] = useState('');
+
+  // ── PDF / Share state ─────────────────────────────────────────────────────
+  const [pdfGenerating, setPdfGenerating] = useState(false);
+  const [shareAnchor, setShareAnchor] = useState(null);
 
   // ── Refs so callbacks always see the latest baseSalary / dependentsCount ─
   const baseSalaryRef = useRef(baseSalary);
@@ -262,6 +344,9 @@ export function ResourceCalculationFormView({ id }) {
     setCustomerId(rc.positionCode || '');
     setInsurancePremiumFactor(rc.insurancePremiumFactor);
     setDependentsCount(rc.dependentsCount);
+    setFamilyStatus(rc.familyStatus ?? false);
+    setInsuranceCostPerPax(rc.insuranceCostPerPax ?? 3000);
+    setTicketCostPerPax(rc.ticketCostPerPax ?? 2500);
     setBaseSalary(rc.baseSalary);
     setCurrency(rc.currency);
     setLineItems(rc.lineItems || []);
@@ -297,26 +382,68 @@ export function ResourceCalculationFormView({ id }) {
     setBaseSalary(num);
     setLineItems((prev) => {
       const seeded = prev.map((item) => {
-        // Only update the explicit 'basic' coded row (India template).
-        // Fall back to the first salary-category row for KSA template
-        // which has no code field.
         if (item.code === 'basic') {
           return { ...item, monthly: num, annual: num * 12 };
         }
-        // KSA: single salary row with no code — keep legacy behaviour
         if (!item.code && item.category === 'salary') {
           return { ...item, monthly: num, annual: num * 12 };
         }
         return item;
       });
-      return recompute(seeded, num, Number(dependentsCount) || 0);
+      const recomputed = recompute(seeded, num, Number(dependentsCount) || 0);
+      return familyStatus
+        ? applyFamilyDefaults(
+            recomputed,
+            true,
+            dependentsCount,
+            insuranceCostPerPax,
+            ticketCostPerPax
+          )
+        : recomputed;
     });
   };
 
   const handleDependentsCountChange = (val) => {
     const num = Number(val) || 0;
     setDependentsCount(num);
-    setLineItems((prev) => recompute(prev, baseSalary, num));
+    setLineItems((prev) => {
+      const recomputed = recompute(prev, baseSalary, num);
+      return familyStatus
+        ? applyFamilyDefaults(recomputed, true, num, insuranceCostPerPax, ticketCostPerPax)
+        : recomputed;
+    });
+  };
+
+  const handleFamilyStatusChange = (isFamily) => {
+    setFamilyStatus(isFamily);
+    setLineItems((prev) => {
+      const recomputed = recompute(prev, baseSalary, dependentsCount);
+      return applyFamilyDefaults(
+        recomputed,
+        isFamily,
+        dependentsCount,
+        insuranceCostPerPax,
+        ticketCostPerPax
+      );
+    });
+  };
+
+  const handleInsuranceCostPerPaxChange = (val) => {
+    const num = Number(val) || 3000;
+    setInsuranceCostPerPax(num);
+    if (familyStatus) {
+      setLineItems((prev) =>
+        applyFamilyDefaults(prev, true, dependentsCount, num, ticketCostPerPax)
+      );
+    }
+  };
+
+  const handleTicketCostPerPaxChange = (val) => {
+    const num = Number(val) || 2500;
+    setTicketCostPerPax(num);
+    setLineItems((prev) =>
+      applyFamilyDefaults(prev, familyStatus, dependentsCount, insuranceCostPerPax, num)
+    );
   };
 
   const handleIotaOfficeChange = (nextOffice) => {
@@ -446,6 +573,9 @@ export function ResourceCalculationFormView({ id }) {
         positionCode: String(customerDisplayName),
         insurancePremiumFactor: Number(insurancePremiumFactor) || 1,
         dependentsCount: Number(dependentsCount) || 0,
+        familyStatus,
+        insuranceCostPerPax: Number(insuranceCostPerPax) || 3000,
+        ticketCostPerPax: Number(ticketCostPerPax) || 2500,
         baseSalary: Number(baseSalary) || 0,
         currency,
         lineItems,
@@ -538,6 +668,179 @@ export function ResourceCalculationFormView({ id }) {
   const customerList = Array.isArray(customersData)
     ? customersData
     : customersData?.customers || [];
+
+  // ── PDF generation ────────────────────────────────────────────────────────
+  const buildPDFDoc = (countryMeta, subtotal, vatAmount, grandTotal) => {
+    const TAX_LABEL = countryMeta.taxLabel;
+    const VAT_RATE = countryMeta.taxRate;
+    const customerObj = customerList.find((cu) => String(cu.id) === String(customerId));
+    const customerName = customerObj?.customerNameEn || customerObj?.customerNameAr || '';
+    const dependentsWord = dependentsCount !== 1 ? 'dependents' : 'dependent';
+    const familyLine = familyStatus
+      ? `Family with ${dependentsCount} ${dependentsWord} + wife`
+      : 'Single';
+
+    return (
+      <Document>
+        <Page size="A4" style={pdfStyles.page}>
+          {/* Header */}
+          <View style={pdfStyles.header}>
+            <Text style={pdfStyles.headerTitle}>Quotation Summary</Text>
+            {customerName ? <Text style={pdfStyles.headerSub}>{customerName}</Text> : null}
+          </View>
+
+          {/* Table header */}
+          <View style={pdfStyles.tableHeader}>
+            <Text style={[pdfStyles.colDesc, pdfStyles.bold, { fontSize: 9 }]}>DESCRIPTION</Text>
+            <Text style={[pdfStyles.colAmt, pdfStyles.bold, { fontSize: 9 }]}>
+              MONTHLY{'\n'}(Excl. {TAX_LABEL})
+            </Text>
+            <Text style={[pdfStyles.colAmt, pdfStyles.bold, { fontSize: 9 }]}>
+              ANNUAL{'\n'}(12 Months)
+            </Text>
+          </View>
+
+          {/* Main row */}
+          <View style={pdfStyles.tableRow}>
+            <View style={pdfStyles.colDesc}>
+              <Text style={pdfStyles.bold}>
+                {nationality ? `${nationality} Employee` : 'Employee'}
+              </Text>
+              <Text style={pdfStyles.label}>• {familyLine}</Text>
+              {activeItems
+                .filter((i) => i.category === 'insurance')
+                .map((item) => (
+                  <Text key={item.id || item.label} style={pdfStyles.label}>
+                    • {resolveLabel(item.label, insurancePremiumFactor, dependentsCount)}
+                  </Text>
+                ))}
+              {activeItems.some(
+                (i) => i.category === 'government' && i.label.toLowerCase().includes('ticket')
+              ) && <Text style={pdfStyles.label}>• Annual Travel Benefits</Text>}
+              {activeItems.some((i) => i.category === 'statutory' || i.category === 'service') && (
+                <Text style={pdfStyles.label}>• Standard Employee Benefits</Text>
+              )}
+              {activeItems.some(
+                (i) =>
+                  i.category === 'statutory' && i.label.toLowerCase().includes('end of service')
+              ) && <Text style={pdfStyles.label}>• End of Service Benefits</Text>}
+            </View>
+            <Text style={[pdfStyles.colAmt, pdfStyles.bold]}>
+              {currency} {fmtNumber(totalMonthly)}
+            </Text>
+            <Text style={[pdfStyles.colAmt, pdfStyles.bold]}>
+              {currency} {fmtNumber(totalAnnual)}
+            </Text>
+          </View>
+
+          {/* Totals */}
+          <View style={{ marginTop: 20, paddingHorizontal: 10 }}>
+            <View style={pdfStyles.totalsRow}>
+              <Text style={pdfStyles.bold}>SUBTOTAL:</Text>
+              <Text style={pdfStyles.bold}>
+                {currency} {fmtNumber(subtotal)}
+              </Text>
+            </View>
+            <View style={pdfStyles.totalsRow}>
+              <Text style={pdfStyles.bold}>
+                {TAX_LABEL} ({(VAT_RATE * 100).toFixed(0)}%):
+              </Text>
+              <Text style={pdfStyles.bold}>
+                {currency} {fmtNumber(vatAmount)}
+              </Text>
+            </View>
+            <View style={pdfStyles.totalsRow}>
+              <Text style={pdfStyles.bold}>OTHERS:</Text>
+              <Text style={pdfStyles.bold}>{currency} 0</Text>
+            </View>
+            <View style={pdfStyles.divider} />
+            <View style={pdfStyles.totalsRow}>
+              <Text style={[pdfStyles.bold, { fontSize: 12 }]}>TOTAL:</Text>
+              <Text style={[pdfStyles.bold, { fontSize: 12, color: '#0B5E41' }]}>
+                {currency} {fmtNumber(grandTotal)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Footer note */}
+          <View style={pdfStyles.footer}>
+            <Text style={pdfStyles.footerNote}>
+              If you have any questions concerning this quotation,{'\n'}
+              please contact us at accounts@iotatechnologies.ai
+            </Text>
+            <Text style={[pdfStyles.label, { textAlign: 'right' }]}>
+              Generated by IOTA Technologies
+            </Text>
+          </View>
+        </Page>
+      </Document>
+    );
+  };
+
+  const handleDownloadPDF = async (countryMeta, subtotal, vatAmount, grandTotal) => {
+    setPdfGenerating(true);
+    try {
+      const doc = buildPDFDoc(countryMeta, subtotal, vatAmount, grandTotal);
+      const blob = await pdf(doc).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `quotation-${(title || 'summary').replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
+
+  const handlePrintPDF = async (countryMeta, subtotal, vatAmount, grandTotal) => {
+    setPdfGenerating(true);
+    try {
+      const doc = buildPDFDoc(countryMeta, subtotal, vatAmount, grandTotal);
+      const blob = await pdf(doc).toBlob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, '_blank');
+    } catch (err) {
+      console.error('Print failed:', err);
+    } finally {
+      setPdfGenerating(false);
+    }
+  };
+
+  const handleShareEmail = (countryMeta, grandTotal) => {
+    const customerObj = customerList.find((cu) => String(cu.id) === String(customerId));
+    const customerName = customerObj?.customerNameEn || customerObj?.customerNameAr || '';
+    const familyStatusText = familyStatus ? `Yes (${dependentsCount} children + wife)` : 'Single';
+    const subject = encodeURIComponent(`Resource Quotation — ${title || 'Proposal'}`);
+    const body = encodeURIComponent(
+      `Dear ${customerName || 'Team'},\n\nPlease find the resource quotation summary below.\n\n` +
+        `Position: ${title}\n` +
+        `Nationality: ${nationality}\n` +
+        `Family Status: ${familyStatusText}\n` +
+        `Total Monthly: ${currency} ${fmtNumber(totalMonthly)}\n` +
+        `Total Annual: ${currency} ${fmtNumber(totalAnnual)}\n` +
+        `Grand Total (incl. ${countryMeta.taxLabel}): ${currency} ${fmtNumber(grandTotal)}\n\n` +
+        `Best regards,\nIOTA Technologies\naccounts@iotatechnologies.ai`
+    );
+    window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
+
+  const handleShareWhatsApp = (countryMeta, grandTotal) => {
+    const employeeLabel = nationality ? `${nationality} Employee` : 'Employee';
+    const familyStatusText = familyStatus ? `Yes (${dependentsCount} children + wife)` : 'Single';
+    const text = encodeURIComponent(
+      `*Resource Quotation — ${title || 'Proposal'}*\n\n` +
+        `📋 Position: *${employeeLabel}*\n` +
+        `👨‍👩‍👧 Family: ${familyStatusText}\n` +
+        `💰 Monthly: *${currency} ${fmtNumber(totalMonthly)}*\n` +
+        `📅 Annual: *${currency} ${fmtNumber(totalAnnual)}*\n` +
+        `✅ Grand Total (incl. ${countryMeta.taxLabel}): *${currency} ${fmtNumber(grandTotal)}*\n\n` +
+        `_IOTA Technologies — accounts@iotatechnologies.ai_`
+    );
+    window.open(`https://wa.me/?text=${text}`, '_blank');
+  };
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -638,19 +941,90 @@ export function ResourceCalculationFormView({ id }) {
                 value={insurancePremiumFactor}
                 onChange={(e) => setInsurancePremiumFactor(e.target.value)}
                 inputProps={{ step: 0.1, min: 1 }}
-                helperText="e.g. 2.1 for Bupa Premium 2.1 plan"
+                helperText="e.g. 2.1 — used in plan label only"
                 fullWidth
               />
 
-              <TextField
-                label="Dependents Count"
-                type="number"
-                value={dependentsCount}
-                onChange={(e) => handleDependentsCountChange(e.target.value)}
-                inputProps={{ step: 1, min: 0 }}
-                helperText="Included in insurance & ticket calculations"
-                fullWidth
-              />
+              {/* ── Family Status ──────────────────────────────────────── */}
+              <Box
+                sx={{
+                  border: '1px solid',
+                  borderColor: 'divider',
+                  borderRadius: 1.5,
+                  p: 1.5,
+                  backgroundColor: familyStatus ? 'success.lighter' : 'background.neutral',
+                }}
+              >
+                <Stack direction="row" alignItems="center" justifyContent="space-between">
+                  <Box>
+                    <Typography variant="body2" fontWeight={700}>
+                      Family Status
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {familyStatus
+                        ? 'Resource has spouse & dependents'
+                        : 'Single — no family dependents'}
+                    </Typography>
+                  </Box>
+                  <Switch
+                    checked={familyStatus}
+                    onChange={(e) => handleFamilyStatusChange(e.target.checked)}
+                    color="success"
+                  />
+                </Stack>
+
+                {familyStatus && (
+                  <Stack spacing={2} sx={{ mt: 2 }}>
+                    <TextField
+                      label="Number of Dependents (Children)"
+                      type="number"
+                      value={dependentsCount}
+                      onChange={(e) => handleDependentsCountChange(e.target.value)}
+                      inputProps={{ step: 1, min: 0 }}
+                      helperText="Children only — wife is always +1"
+                      fullWidth
+                      size="small"
+                    />
+
+                    <TextField
+                      label="Insurance Cost Per Pax (Annual)"
+                      type="number"
+                      value={insuranceCostPerPax}
+                      onChange={(e) => handleInsuranceCostPerPaxChange(e.target.value)}
+                      inputProps={{ step: 500, min: 0 }}
+                      InputProps={{
+                        startAdornment: <InputAdornment position="start">SAR</InputAdornment>,
+                      }}
+                      helperText={`Total = SAR ${fmtNumber(insuranceCostPerPax * (dependentsCount + 1))} / yr  (${dependentsCount} children + 1 wife)`}
+                      fullWidth
+                      size="small"
+                    />
+                  </Stack>
+                )}
+              </Box>
+
+              {/* Annual Ticket cost per pax — always visible */}
+              {(() => {
+                const ticketPax = familyStatus ? dependentsCount + 2 : 1;
+                const ticketPaxLabel = familyStatus ? ` × ${dependentsCount + 2} pax` : ' × 1 pax';
+                const ticketPaxDesc = familyStatus
+                  ? `employee + wife + ${dependentsCount} children`
+                  : 'employee only';
+                return (
+                  <TextField
+                    label={`Annual Ticket Cost Per Pax${ticketPaxLabel}`}
+                    type="number"
+                    value={ticketCostPerPax}
+                    onChange={(e) => handleTicketCostPerPaxChange(e.target.value)}
+                    inputProps={{ step: 500, min: 0 }}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">SAR</InputAdornment>,
+                    }}
+                    helperText={`Total = SAR ${fmtNumber(ticketCostPerPax * ticketPax)} / yr  (${ticketPaxDesc})`}
+                    fullWidth
+                  />
+                );
+              })()}
 
               <FormControl fullWidth>
                 <InputLabel>Status</InputLabel>
@@ -1041,14 +1415,82 @@ export function ResourceCalculationFormView({ id }) {
                 justifyContent: 'space-between',
               }}
             >
-              <Typography variant="subtitle1" color="white" fontWeight={700} letterSpacing={0.5}>
-                Quotation Summary
-              </Typography>
-              {customerName && (
-                <Typography variant="caption" color="rgba(255,255,255,0.75)">
-                  {customerName}
+              <Box>
+                <Typography variant="subtitle1" color="white" fontWeight={700} letterSpacing={0.5}>
+                  Quotation Summary
                 </Typography>
-              )}
+                {customerName && (
+                  <Typography variant="caption" color="rgba(255,255,255,0.75)">
+                    {customerName}
+                  </Typography>
+                )}
+              </Box>
+
+              {/* Share / Export buttons */}
+              <Stack direction="row" spacing={0.5} alignItems="center">
+                <Tooltip title="Download PDF">
+                  <IconButton
+                    size="small"
+                    sx={{ color: 'white' }}
+                    disabled={pdfGenerating}
+                    onClick={() => handleDownloadPDF(countryMeta, subtotal, vatAmount, grandTotal)}
+                  >
+                    {pdfGenerating ? (
+                      <CircularProgress size={16} sx={{ color: 'white' }} />
+                    ) : (
+                      <Iconify icon="solar:file-download-bold" width={18} />
+                    )}
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Print / Open PDF">
+                  <IconButton
+                    size="small"
+                    sx={{ color: 'white' }}
+                    onClick={() => handlePrintPDF(countryMeta, subtotal, vatAmount, grandTotal)}
+                  >
+                    <Iconify icon="solar:printer-bold" width={18} />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Share">
+                  <IconButton
+                    size="small"
+                    sx={{ color: 'white' }}
+                    onClick={(e) => setShareAnchor(e.currentTarget)}
+                  >
+                    <Iconify icon="solar:share-bold" width={18} />
+                  </IconButton>
+                </Tooltip>
+                <Menu
+                  anchorEl={shareAnchor}
+                  open={Boolean(shareAnchor)}
+                  onClose={() => setShareAnchor(null)}
+                  transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                  anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                >
+                  <MenuItem
+                    onClick={() => {
+                      setShareAnchor(null);
+                      handleShareEmail(countryMeta, grandTotal);
+                    }}
+                  >
+                    <ListItemIcon>
+                      <Iconify icon="solar:letter-bold" width={18} />
+                    </ListItemIcon>
+                    Share via Email
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      setShareAnchor(null);
+                      handleShareWhatsApp(countryMeta, grandTotal);
+                    }}
+                  >
+                    <ListItemIcon>
+                      <Iconify icon="logos:whatsapp-icon" width={18} />
+                    </ListItemIcon>
+                    Share via WhatsApp
+                  </MenuItem>
+                </Menu>
+              </Stack>
             </Box>
 
             <TableContainer>
@@ -1116,12 +1558,18 @@ export function ResourceCalculationFormView({ id }) {
                         {nationality ? `${nationality} Employee` : 'Employee'}
                       </Typography>
                       <Box component="ul" sx={{ pl: 2.5, mt: 0.5, mb: 0 }}>
-                        {Number(dependentsCount) > 0 && (
-                          <Typography component="li" variant="body2" sx={{ mb: 0.3 }}>
-                            Family with {dependentsCount} Dependent
-                            {Number(dependentsCount) !== 1 ? 's' : ''}
-                          </Typography>
-                        )}
+                        {/* Family status bullet */}
+                        {(() => {
+                          const childLabel = dependentsCount !== 1 ? 'children' : 'child';
+                          const familyDesc = familyStatus
+                            ? `Family — ${dependentsCount} ${childLabel} + wife`
+                            : 'Single';
+                          return (
+                            <Typography component="li" variant="body2" sx={{ mb: 0.3 }}>
+                              {familyDesc}
+                            </Typography>
+                          );
+                        })()}
                         {insuranceItems.map((item, i) => (
                           <Typography key={i} component="li" variant="body2" sx={{ mb: 0.3 }}>
                             {resolveLabel(item.label, insurancePremiumFactor, dependentsCount)}
