@@ -1,6 +1,15 @@
 'use client';
 
-import { pdf, Document, Page, Text, View, StyleSheet as PdfStyleSheet } from '@react-pdf/renderer';
+import {
+  pdf,
+  Font,
+  Image as PdfImage,
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet as PdfStyleSheet,
+} from '@react-pdf/renderer';
 import useSWR from 'swr';
 import { useState, useEffect, useCallback, useRef } from 'react';
 
@@ -209,35 +218,50 @@ function applyFamilyDefaults(items, familyOn, deps, insPerPax, ticketPerPax) {
   });
 }
 
+// ── PDF Font registration ─────────────────────────────────────────────────────
+
+Font.register({
+  family: 'Roboto',
+  fonts: [{ src: '/fonts/Roboto-Regular.ttf' }, { src: '/fonts/Roboto-Bold.ttf', fontWeight: 700 }],
+});
+
+const IOTA_LOGO_WHITE = 'https://iotalogostorage.blob.core.windows.net/assets/iotaLogoWhite.png';
+
 // ── PDF Document styles ───────────────────────────────────────────────────────
 
 const pdfStyles = PdfStyleSheet.create({
-  page: { fontFamily: 'Helvetica', padding: 40, fontSize: 10, color: '#111111' },
+  page: { fontFamily: 'Roboto', padding: 40, fontSize: 10, color: '#111111' },
   header: {
     backgroundColor: '#0B5E41',
-    padding: '12 20',
+    paddingHorizontal: 24,
+    paddingVertical: 14,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 0,
   },
-  headerTitle: { color: '#FFFFFF', fontSize: 14, fontFamily: 'Helvetica-Bold' },
-  headerSub: { color: 'rgba(255,255,255,0.75)', fontSize: 9 },
+  headerLeft: { flexDirection: 'column', justifyContent: 'center' },
+  headerTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: 700 },
+  headerSub: { color: 'rgba(255,255,255,0.75)', fontSize: 8.5, marginTop: 2 },
+  headerLogo: { height: 28, objectFit: 'contain' },
   tableHeader: {
     backgroundColor: '#E8F3EF',
     flexDirection: 'row',
-    padding: '8 10',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderBottom: '1 solid #C5DDD4',
   },
   tableRow: {
     flexDirection: 'row',
-    padding: '10 10',
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     borderBottom: '1 solid #E8ECEF',
   },
-  colDesc: { flex: 3 },
+  colDesc: { flex: 3.2 },
   colAmt: { flex: 1.2, textAlign: 'right' },
-  label: { fontSize: 9, color: '#555555', marginTop: 2 },
-  bold: { fontFamily: 'Helvetica-Bold' },
+  bullet: { fontSize: 9, color: '#555555', marginTop: 3 },
+  bold: { fontWeight: 700 },
+  totalsSection: { marginTop: 20, paddingHorizontal: 12 },
   totalsRow: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 2 },
   divider: { borderBottom: '1 solid #CCCCCC', marginVertical: 6 },
   footer: {
@@ -249,6 +273,7 @@ const pdfStyles = PdfStyleSheet.create({
     borderTop: '1 solid #E0E0E0',
   },
   footerNote: { fontSize: 8.5, color: '#666666', maxWidth: 220, lineHeight: 1.6 },
+  footerTag: { fontSize: 8, color: '#999999', textAlign: 'right' },
 });
 
 function getUserEmail() {
@@ -683,76 +708,73 @@ export function ResourceCalculationFormView({ id }) {
     return (
       <Document>
         <Page size="A4" style={pdfStyles.page}>
-          {/* Header */}
+          {/* ── Header band ─── */}
           <View style={pdfStyles.header}>
-            <Text style={pdfStyles.headerTitle}>Quotation Summary</Text>
-            {customerName ? <Text style={pdfStyles.headerSub}>{customerName}</Text> : null}
+            <View style={pdfStyles.headerLeft}>
+              <Text style={pdfStyles.headerTitle}>Quotation Summary</Text>
+              {customerName ? <Text style={pdfStyles.headerSub}>{customerName}</Text> : null}
+            </View>
+            <PdfImage src={IOTA_LOGO_WHITE} style={pdfStyles.headerLogo} />
           </View>
 
-          {/* Table header */}
+          {/* ── Table header ─── */}
           <View style={pdfStyles.tableHeader}>
             <Text style={[pdfStyles.colDesc, pdfStyles.bold, { fontSize: 9 }]}>DESCRIPTION</Text>
             <Text style={[pdfStyles.colAmt, pdfStyles.bold, { fontSize: 9 }]}>
-              MONTHLY{'\n'}(Excl. {TAX_LABEL})
+              {'MONTHLY CHARGES\n'}(Excl. {TAX_LABEL})
             </Text>
             <Text style={[pdfStyles.colAmt, pdfStyles.bold, { fontSize: 9 }]}>
-              ANNUAL{'\n'}(12 Months)
+              {'ANNUAL CHARGES\n(12 Months)\n'}(Excl. {TAX_LABEL})
             </Text>
           </View>
 
-          {/* Main row */}
+          {/* ── Main data row ─── */}
           <View style={pdfStyles.tableRow}>
             <View style={pdfStyles.colDesc}>
               <Text style={pdfStyles.bold}>
                 {nationality ? `${nationality} Employee` : 'Employee'}
               </Text>
-              <Text style={pdfStyles.label}>• {familyLine}</Text>
+              <Text style={pdfStyles.bullet}>• {familyLine}</Text>
               {activeItems
                 .filter((i) => i.category === 'insurance')
                 .map((item) => (
-                  <Text key={item.id || item.label} style={pdfStyles.label}>
+                  <Text key={item.id || item.label} style={pdfStyles.bullet}>
                     • {resolveLabel(item.label, insurancePremiumFactor, dependentsCount)}
                   </Text>
                 ))}
               {activeItems.some(
                 (i) => i.category === 'government' && i.label.toLowerCase().includes('ticket')
-              ) && <Text style={pdfStyles.label}>• Annual Travel Benefits</Text>}
+              ) && <Text style={pdfStyles.bullet}>• Annual Travel Benefits</Text>}
               {activeItems.some((i) => i.category === 'statutory' || i.category === 'service') && (
-                <Text style={pdfStyles.label}>• Standard Employee Benefits</Text>
+                <Text style={pdfStyles.bullet}>• Standard Employee Benefits</Text>
               )}
               {activeItems.some(
                 (i) =>
                   i.category === 'statutory' && i.label.toLowerCase().includes('end of service')
-              ) && <Text style={pdfStyles.label}>• End of Service Benefits</Text>}
+              ) && <Text style={pdfStyles.bullet}>• End of Service Benefits</Text>}
             </View>
-            <Text style={[pdfStyles.colAmt, pdfStyles.bold]}>
+            <Text style={[pdfStyles.colAmt, pdfStyles.bold, { fontSize: 11 }]}>
               {currency} {fmtNumber(totalMonthly)}
             </Text>
-            <Text style={[pdfStyles.colAmt, pdfStyles.bold]}>
+            <Text style={[pdfStyles.colAmt, pdfStyles.bold, { fontSize: 11 }]}>
               {currency} {fmtNumber(totalAnnual)}
             </Text>
           </View>
 
-          {/* Totals */}
-          <View style={{ marginTop: 20, paddingHorizontal: 10 }}>
-            <View style={pdfStyles.totalsRow}>
-              <Text style={pdfStyles.bold}>SUBTOTAL:</Text>
-              <Text style={pdfStyles.bold}>
-                {currency} {fmtNumber(subtotal)}
-              </Text>
-            </View>
-            <View style={pdfStyles.totalsRow}>
-              <Text style={pdfStyles.bold}>
-                {TAX_LABEL} ({(VAT_RATE * 100).toFixed(0)}%):
-              </Text>
-              <Text style={pdfStyles.bold}>
-                {currency} {fmtNumber(vatAmount)}
-              </Text>
-            </View>
-            <View style={pdfStyles.totalsRow}>
-              <Text style={pdfStyles.bold}>OTHERS:</Text>
-              <Text style={pdfStyles.bold}>{currency} 0</Text>
-            </View>
+          {/* ── Totals ─── */}
+          <View style={pdfStyles.totalsSection}>
+            {[
+              { label: 'SUBTOTAL:', value: subtotal },
+              { label: `${TAX_LABEL} (${(VAT_RATE * 100).toFixed(0)}%):`, value: vatAmount },
+              { label: 'OTHERS:', value: 0 },
+            ].map(({ label, value }) => (
+              <View key={label} style={pdfStyles.totalsRow}>
+                <Text style={pdfStyles.bold}>{label}</Text>
+                <Text style={pdfStyles.bold}>
+                  {currency} {fmtNumber(value)}
+                </Text>
+              </View>
+            ))}
             <View style={pdfStyles.divider} />
             <View style={pdfStyles.totalsRow}>
               <Text style={[pdfStyles.bold, { fontSize: 12 }]}>TOTAL:</Text>
@@ -762,15 +784,13 @@ export function ResourceCalculationFormView({ id }) {
             </View>
           </View>
 
-          {/* Footer note */}
+          {/* ── Footer ─── */}
           <View style={pdfStyles.footer}>
             <Text style={pdfStyles.footerNote}>
               If you have any questions concerning this quotation,{'\n'}
               please contact us at accounts@iotatechnologies.ai
             </Text>
-            <Text style={[pdfStyles.label, { textAlign: 'right' }]}>
-              Generated by IOTA Technologies
-            </Text>
+            <Text style={pdfStyles.footerTag}>Generated by IOTA Technologies</Text>
           </View>
         </Page>
       </Document>
@@ -1512,7 +1532,7 @@ export function ResourceCalculationFormView({ id }) {
                       Description
                     </TableCell>
                     <TableCell
-                      align="center"
+                      align="right"
                       sx={{
                         color: '#111111',
                         fontWeight: 700,
@@ -1530,7 +1550,7 @@ export function ResourceCalculationFormView({ id }) {
                       (Excl. {TAX_LABEL})
                     </TableCell>
                     <TableCell
-                      align="center"
+                      align="right"
                       sx={{
                         color: '#111111',
                         fontWeight: 700,

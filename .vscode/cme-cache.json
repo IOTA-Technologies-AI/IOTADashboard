@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1783621417342,
+  "timestamp": 1783623594603,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_invoice.js": {
       "mtime": 1761284298333,
@@ -168999,34 +168999,20 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/profile/view/resource-calculation-form-view.jsx": {
-      "mtime": 1783621415746,
+      "mtime": 1783623592956,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/profile/view/resource-calculation-form-view.jsx",
         "relativePath": "next-js/src/sections/profile/view/resource-calculation-form-view.jsx",
         "fileType": "generic",
-        "lineCount": 1874,
+        "lineCount": 1894,
         "imports": [],
         "importedBy": [],
         "importInfos": [
           {
-            "source": "@react-pdf/renderer",
-            "resolved": "",
-            "isLocal": false,
-            "line": 2,
-            "names": [
-              "pdf",
-              "Document",
-              "Page",
-              "Text",
-              "View",
-              "StyleSheet"
-            ]
-          },
-          {
             "source": "swr",
             "resolved": "",
             "isLocal": false,
-            "line": 3,
+            "line": 12,
             "names": [
               "useSWR"
             ]
@@ -169035,7 +169021,7 @@
             "source": "react",
             "resolved": "",
             "isLocal": false,
-            "line": 4,
+            "line": 13,
             "names": [
               "useState",
               "useEffect",
@@ -169047,7 +169033,7 @@
             "source": "@mui/material/Box",
             "resolved": "",
             "isLocal": false,
-            "line": 6,
+            "line": 15,
             "names": [
               "Box"
             ]
@@ -169056,7 +169042,7 @@
             "source": "@mui/material/Card",
             "resolved": "",
             "isLocal": false,
-            "line": 7,
+            "line": 16,
             "names": [
               "Card"
             ]
@@ -169065,7 +169051,7 @@
             "source": "@mui/material/Chip",
             "resolved": "",
             "isLocal": false,
-            "line": 8,
+            "line": 17,
             "names": [
               "Chip"
             ]
@@ -169074,7 +169060,7 @@
             "source": "@mui/material/Grid",
             "resolved": "",
             "isLocal": false,
-            "line": 9,
+            "line": 18,
             "names": [
               "Grid"
             ]
@@ -169083,7 +169069,7 @@
             "source": "@mui/material/Stack",
             "resolved": "",
             "isLocal": false,
-            "line": 10,
+            "line": 19,
             "names": [
               "Stack"
             ]
@@ -169092,7 +169078,7 @@
             "source": "@mui/material/Alert",
             "resolved": "",
             "isLocal": false,
-            "line": 11,
+            "line": 20,
             "names": [
               "Alert"
             ]
@@ -169101,7 +169087,7 @@
             "source": "@mui/material/Table",
             "resolved": "",
             "isLocal": false,
-            "line": 12,
+            "line": 21,
             "names": [
               "Table"
             ]
@@ -169110,7 +169096,7 @@
             "source": "@mui/material/Button",
             "resolved": "",
             "isLocal": false,
-            "line": 13,
+            "line": 22,
             "names": [
               "Button"
             ]
@@ -169119,7 +169105,7 @@
             "source": "@mui/material/Select",
             "resolved": "",
             "isLocal": false,
-            "line": 14,
+            "line": 23,
             "names": [
               "Select"
             ]
@@ -169128,7 +169114,7 @@
             "source": "@mui/material/Divider",
             "resolved": "",
             "isLocal": false,
-            "line": 15,
+            "line": 24,
             "names": [
               "Divider"
             ]
@@ -169137,7 +169123,7 @@
             "source": "@mui/material/MenuItem",
             "resolved": "",
             "isLocal": false,
-            "line": 16,
+            "line": 25,
             "names": [
               "MenuItem"
             ]
@@ -169146,7 +169132,7 @@
             "source": "@mui/material/TableRow",
             "resolved": "",
             "isLocal": false,
-            "line": 17,
+            "line": 26,
             "names": [
               "TableRow"
             ]
@@ -169155,7 +169141,7 @@
             "source": "@mui/material/TableBody",
             "resolved": "",
             "isLocal": false,
-            "line": 18,
+            "line": 27,
             "names": [
               "TableBody"
             ]
@@ -169164,7 +169150,7 @@
             "source": "@mui/material/TableCell",
             "resolved": "",
             "isLocal": false,
-            "line": 19,
+            "line": 28,
             "names": [
               "TableCell"
             ]
@@ -169173,7 +169159,7 @@
             "source": "@mui/material/TableHead",
             "resolved": "",
             "isLocal": false,
-            "line": 20,
+            "line": 29,
             "names": [
               "TableHead"
             ]
@@ -169182,7 +169168,7 @@
             "source": "@mui/material/TextField",
             "resolved": "",
             "isLocal": false,
-            "line": 21,
+            "line": 30,
             "names": [
               "TextField"
             ]
@@ -169191,7 +169177,7 @@
             "source": "@mui/material/InputLabel",
             "resolved": "",
             "isLocal": false,
-            "line": 22,
+            "line": 31,
             "names": [
               "InputLabel"
             ]
@@ -169200,7 +169186,7 @@
             "source": "@mui/material/Typography",
             "resolved": "",
             "isLocal": false,
-            "line": 23,
+            "line": 32,
             "names": [
               "Typography"
             ]
@@ -169209,7 +169195,7 @@
             "source": "@mui/material/IconButton",
             "resolved": "",
             "isLocal": false,
-            "line": 24,
+            "line": 33,
             "names": [
               "IconButton"
             ]
@@ -169218,7 +169204,7 @@
             "source": "@mui/material/FormControl",
             "resolved": "",
             "isLocal": false,
-            "line": 25,
+            "line": 34,
             "names": [
               "FormControl"
             ]
@@ -169227,7 +169213,7 @@
             "source": "@mui/material/TableContainer",
             "resolved": "",
             "isLocal": false,
-            "line": 26,
+            "line": 35,
             "names": [
               "TableContainer"
             ]
@@ -169236,7 +169222,7 @@
             "source": "@mui/material/CircularProgress",
             "resolved": "",
             "isLocal": false,
-            "line": 27,
+            "line": 36,
             "names": [
               "CircularProgress"
             ]
@@ -169245,7 +169231,7 @@
             "source": "@mui/material/InputAdornment",
             "resolved": "",
             "isLocal": false,
-            "line": 28,
+            "line": 37,
             "names": [
               "InputAdornment"
             ]
@@ -169254,7 +169240,7 @@
             "source": "@mui/material/Switch",
             "resolved": "",
             "isLocal": false,
-            "line": 29,
+            "line": 38,
             "names": [
               "Switch"
             ]
@@ -169263,7 +169249,7 @@
             "source": "@mui/material/Dialog",
             "resolved": "",
             "isLocal": false,
-            "line": 30,
+            "line": 39,
             "names": [
               "Dialog"
             ]
@@ -169272,7 +169258,7 @@
             "source": "@mui/material/DialogTitle",
             "resolved": "",
             "isLocal": false,
-            "line": 31,
+            "line": 40,
             "names": [
               "DialogTitle"
             ]
@@ -169281,7 +169267,7 @@
             "source": "@mui/material/DialogContent",
             "resolved": "",
             "isLocal": false,
-            "line": 32,
+            "line": 41,
             "names": [
               "DialogContent"
             ]
@@ -169290,7 +169276,7 @@
             "source": "@mui/material/DialogActions",
             "resolved": "",
             "isLocal": false,
-            "line": 33,
+            "line": 42,
             "names": [
               "DialogActions"
             ]
@@ -169299,7 +169285,7 @@
             "source": "@mui/material/FormControlLabel",
             "resolved": "",
             "isLocal": false,
-            "line": 34,
+            "line": 43,
             "names": [
               "FormControlLabel"
             ]
@@ -169308,7 +169294,7 @@
             "source": "@mui/material/Tooltip",
             "resolved": "",
             "isLocal": false,
-            "line": 35,
+            "line": 44,
             "names": [
               "Tooltip"
             ]
@@ -169317,7 +169303,7 @@
             "source": "@mui/material/Menu",
             "resolved": "",
             "isLocal": false,
-            "line": 36,
+            "line": 45,
             "names": [
               "Menu"
             ]
@@ -169326,7 +169312,7 @@
             "source": "@mui/material/ListItemIcon",
             "resolved": "",
             "isLocal": false,
-            "line": 37,
+            "line": 46,
             "names": [
               "ListItemIcon"
             ]
@@ -169335,7 +169321,7 @@
             "source": "src/routes/paths",
             "resolved": "",
             "isLocal": false,
-            "line": 39,
+            "line": 48,
             "names": [
               "paths"
             ]
@@ -169344,7 +169330,7 @@
             "source": "src/routes/hooks",
             "resolved": "",
             "isLocal": false,
-            "line": 40,
+            "line": 49,
             "names": [
               "useRouter"
             ]
@@ -169353,7 +169339,7 @@
             "source": "src/components/iconify",
             "resolved": "",
             "isLocal": false,
-            "line": 56,
+            "line": 65,
             "names": [
               "Iconify"
             ]
@@ -169362,7 +169348,7 @@
             "source": "src/layouts/dashboard",
             "resolved": "",
             "isLocal": false,
-            "line": 57,
+            "line": 66,
             "names": [
               "DashboardContent"
             ]
@@ -169371,7 +169357,7 @@
         "functions": [
           {
             "name": "resolveLabel",
-            "line": 113,
+            "line": 122,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169384,7 +169370,7 @@
           },
           {
             "name": "evalFormula",
-            "line": 120,
+            "line": 129,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169406,7 +169392,7 @@
           },
           {
             "name": "recompute",
-            "line": 143,
+            "line": 152,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169428,7 +169414,7 @@
           },
           {
             "name": "fmtNumber",
-            "line": 175,
+            "line": 184,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169446,7 +169432,7 @@
           },
           {
             "name": "applyFamilyDefaults",
-            "line": 189,
+            "line": 198,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169462,13 +169448,14 @@
               "round",
               "toLowerCase",
               "includes",
+              "register",
               "create",
               "rgba"
             ]
           },
           {
             "name": "getUserEmail",
-            "line": 253,
+            "line": 278,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169485,7 +169472,7 @@
           },
           {
             "name": "ResourceCalculationFormView",
-            "line": 265,
+            "line": 290,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -169523,7 +169510,7 @@
           },
           {
             "name": "handleBaseSalaryChange",
-            "line": 379,
+            "line": 404,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169542,7 +169529,7 @@
           },
           {
             "name": "handleDependentsCountChange",
-            "line": 405,
+            "line": 430,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169558,7 +169545,7 @@
           },
           {
             "name": "handleFamilyStatusChange",
-            "line": 416,
+            "line": 441,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169573,7 +169560,7 @@
           },
           {
             "name": "handleInsuranceCostPerPaxChange",
-            "line": 430,
+            "line": 455,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169588,7 +169575,7 @@
           },
           {
             "name": "handleTicketCostPerPaxChange",
-            "line": 440,
+            "line": 465,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169603,7 +169590,7 @@
           },
           {
             "name": "handleIotaOfficeChange",
-            "line": 448,
+            "line": 473,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169626,7 +169613,7 @@
           },
           {
             "name": "handleAddLineItem",
-            "line": 491,
+            "line": 516,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -169640,7 +169627,7 @@
           },
           {
             "name": "handleRemoveLineItem",
-            "line": 511,
+            "line": 536,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169653,7 +169640,7 @@
           },
           {
             "name": "handleResumeUpload",
-            "line": 516,
+            "line": 541,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -169672,7 +169659,7 @@
           },
           {
             "name": "handleSubmit",
-            "line": 549,
+            "line": 574,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -169694,7 +169681,7 @@
           },
           {
             "name": "handleSubmitForApproval",
-            "line": 609,
+            "line": 634,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -169708,7 +169695,7 @@
           },
           {
             "name": "handleForward",
-            "line": 622,
+            "line": 647,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -169726,7 +169713,7 @@
           },
           {
             "name": "handleApproveReject",
-            "line": 642,
+            "line": 667,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -169743,7 +169730,7 @@
           },
           {
             "name": "buildPDFDoc",
-            "line": 672,
+            "line": 697,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169753,6 +169740,7 @@
             "callees": [
               "find",
               "String",
+              "n",
               "filter",
               "map",
               "resolveLabel",
@@ -169765,7 +169753,7 @@
           },
           {
             "name": "handleDownloadPDF",
-            "line": 779,
+            "line": 799,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -169787,7 +169775,7 @@
           },
           {
             "name": "handlePrintPDF",
-            "line": 797,
+            "line": 817,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -169805,7 +169793,7 @@
           },
           {
             "name": "handleShareEmail",
-            "line": 811,
+            "line": 831,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169822,7 +169810,7 @@
           },
           {
             "name": "handleShareWhatsApp",
-            "line": 829,
+            "line": 849,
             "isExported": false,
             "isAsync": false,
             "callers": [
