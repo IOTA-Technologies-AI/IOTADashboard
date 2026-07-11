@@ -221,16 +221,17 @@ function applyFamilyDefaults(items, familyOn, deps, insPerPax, ticketPerPax) {
 // ── PDF Font registration ─────────────────────────────────────────────────────
 
 Font.register({
-  family: 'Roboto',
-  fonts: [{ src: '/fonts/Roboto-Regular.ttf' }, { src: '/fonts/Roboto-Bold.ttf', fontWeight: 700 }],
+  family: 'Aptos',
+  fonts: [{ src: '/fonts/Aptos-Regular.ttf' }, { src: '/fonts/Aptos-Bold.ttf', fontWeight: 700 }],
 });
 
-const IOTA_LOGO_WHITE = 'https://iotalogostorage.blob.core.windows.net/assets/iotaLogoWhite.png';
+// Local copy of the white logo — avoids CORS block on Azure Blob URLs
+const IOTA_LOGO_WHITE_LOCAL = '/logo/iotaLogoWhite.png';
 
 // ── PDF Document styles ───────────────────────────────────────────────────────
 
 const pdfStyles = PdfStyleSheet.create({
-  page: { fontFamily: 'Roboto', padding: 40, fontSize: 10, color: '#111111' },
+  page: { fontFamily: 'Aptos', padding: 40, fontSize: 10, color: '#111111' },
   header: {
     backgroundColor: '#0B5E41',
     paddingHorizontal: 24,
@@ -714,7 +715,7 @@ export function ResourceCalculationFormView({ id }) {
               <Text style={pdfStyles.headerTitle}>Quotation Summary</Text>
               {customerName ? <Text style={pdfStyles.headerSub}>{customerName}</Text> : null}
             </View>
-            <PdfImage src={IOTA_LOGO_WHITE} style={pdfStyles.headerLogo} />
+            <PdfImage src={IOTA_LOGO_WHITE_LOCAL} style={pdfStyles.headerLogo} />
           </View>
 
           {/* ── Table header ─── */}
