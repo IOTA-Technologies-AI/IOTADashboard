@@ -241,7 +241,7 @@ const pdfStyles = PdfStyleSheet.create({
     alignItems: 'center',
     marginBottom: 0,
   },
-  headerLeft: { flexDirection: 'column', justifyContent: 'center' },
+  headerLeft: { flexDirection: 'column', justifyContent: 'center', alignItems: 'flex-end' },
   headerTitle: { color: '#FFFFFF', fontSize: 13, fontWeight: 700 },
   headerSub: { color: 'rgba(255,255,255,0.75)', fontSize: 8.5, marginTop: 2 },
   headerLogo: { height: 28, objectFit: 'contain' },
@@ -711,11 +711,20 @@ export function ResourceCalculationFormView({ id }) {
         <Page size="A4" style={pdfStyles.page}>
           {/* ── Header band ─── */}
           <View style={pdfStyles.header}>
+            {/* Logo — left */}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <PdfImage src={IOTA_LOGO_WHITE_LOCAL} style={pdfStyles.headerLogo} />
+              {/* Vertical separator */}
+              <View style={{ width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.35)', marginHorizontal: 16 }} />
+              <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+                Resource Quotation
+              </Text>
+            </View>
+            {/* Title + customer — right */}
             <View style={pdfStyles.headerLeft}>
               <Text style={pdfStyles.headerTitle}>Quotation Summary</Text>
               {customerName ? <Text style={pdfStyles.headerSub}>{customerName}</Text> : null}
             </View>
-            <PdfImage src={IOTA_LOGO_WHITE_LOCAL} style={pdfStyles.headerLogo} />
           </View>
 
           {/* ── Table header ─── */}

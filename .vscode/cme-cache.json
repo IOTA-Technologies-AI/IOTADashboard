@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1783761356750,
+  "timestamp": 1783762136211,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_invoice.js": {
       "mtime": 1761284298333,
@@ -168999,12 +168999,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/profile/view/resource-calculation-form-view.jsx": {
-      "mtime": 1783761355158,
+      "mtime": 1783762134618,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/profile/view/resource-calculation-form-view.jsx",
         "relativePath": "next-js/src/sections/profile/view/resource-calculation-form-view.jsx",
         "fileType": "generic",
-        "lineCount": 1922,
+        "lineCount": 1931,
         "imports": [],
         "importedBy": [],
         "importInfos": [
@@ -169741,6 +169741,7 @@
             "callees": [
               "find",
               "String",
+              "rgba",
               "n",
               "filter",
               "map",
@@ -169754,7 +169755,7 @@
           },
           {
             "name": "handleDownloadPDF",
-            "line": 800,
+            "line": 809,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -169776,7 +169777,7 @@
           },
           {
             "name": "handlePrintPDF",
-            "line": 818,
+            "line": 827,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -169794,7 +169795,7 @@
           },
           {
             "name": "handleShareEmail",
-            "line": 832,
+            "line": 841,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169811,7 +169812,7 @@
           },
           {
             "name": "handleShareWhatsApp",
-            "line": 850,
+            "line": 859,
             "isExported": false,
             "isAsync": true,
             "callers": [
