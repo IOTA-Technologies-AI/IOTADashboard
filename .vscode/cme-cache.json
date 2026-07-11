@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1783623594603,
+  "timestamp": 1783755749659,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_invoice.js": {
       "mtime": 1761284298333,
@@ -168999,12 +168999,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/profile/view/resource-calculation-form-view.jsx": {
-      "mtime": 1783623592956,
+      "mtime": 1783755748066,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/profile/view/resource-calculation-form-view.jsx",
         "relativePath": "next-js/src/sections/profile/view/resource-calculation-form-view.jsx",
         "fileType": "generic",
-        "lineCount": 1894,
+        "lineCount": 1921,
         "imports": [],
         "importedBy": [],
         "importInfos": [
@@ -169735,7 +169735,8 @@
             "isAsync": false,
             "callers": [
               "handleDownloadPDF",
-              "handlePrintPDF"
+              "handlePrintPDF",
+              "handleShareWhatsApp"
             ],
             "callees": [
               "find",
@@ -169812,11 +169813,21 @@
             "name": "handleShareWhatsApp",
             "line": 849,
             "isExported": false,
-            "isAsync": false,
+            "isAsync": true,
             "callers": [
               "handleShareWhatsApp"
             ],
             "callees": [
+              "replace",
+              "toLowerCase",
+              "setPdfGenerating",
+              "buildPDFDoc",
+              "pdf",
+              "toBlob",
+              "File",
+              "canShare",
+              "share",
+              "error",
               "Yes",
               "encodeURIComponent",
               "fmtNumber",
@@ -169851,10 +169862,8 @@
               "resolveLabel",
               "handleLineItemChange",
               "round",
-              "replace",
               "handleRemoveLineItem",
               "some",
-              "toLowerCase",
               "includes",
               "rgba",
               "handleDownloadPDF",

@@ -847,7 +847,34 @@ export function ResourceCalculationFormView({ id }) {
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
-  const handleShareWhatsApp = (countryMeta, grandTotal) => {
+  const handleShareWhatsApp = async (countryMeta, subtotal, vatAmount, grandTotal) => {
+    const fileName = `quotation-${(title || 'summary').replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`;
+
+    // ── Mobile: share the actual PDF file via Web Share API ──────────────
+    if (typeof navigator !== 'undefined' && navigator.canShare) {
+      setPdfGenerating(true);
+      try {
+        const doc = buildPDFDoc(countryMeta, subtotal, vatAmount, grandTotal);
+        const blob = await pdf(doc).toBlob();
+        const file = new File([blob], fileName, { type: 'application/pdf' });
+        if (navigator.canShare({ files: [file] })) {
+          await navigator.share({
+            title: `Resource Quotation — ${title || 'Proposal'}`,
+            text: 'Please find the attached resource quotation from IOTA Technologies.',
+            files: [file],
+          });
+          return;
+        }
+      } catch (err) {
+        // AbortError = user dismissed the share sheet — not an error
+        if (err?.name !== 'AbortError') console.error('WhatsApp share failed:', err);
+        return;
+      } finally {
+        setPdfGenerating(false);
+      }
+    }
+
+    // ── Desktop fallback: open WhatsApp with text summary ─────────────────
     const employeeLabel = nationality ? `${nationality} Employee` : 'Employee';
     const familyStatusText = familyStatus ? `Yes (${dependentsCount} children + wife)` : 'Single';
     const text = encodeURIComponent(
@@ -1501,7 +1528,7 @@ export function ResourceCalculationFormView({ id }) {
                   <MenuItem
                     onClick={() => {
                       setShareAnchor(null);
-                      handleShareWhatsApp(countryMeta, grandTotal);
+                      handleShareWhatsApp(countryMeta, subtotal, vatAmount, grandTotal);
                     }}
                   >
                     <ListItemIcon>
