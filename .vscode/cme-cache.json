@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1783762136211,
+  "timestamp": 1783779560276,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_invoice.js": {
       "mtime": 1761284298333,
@@ -168999,12 +168999,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/profile/view/resource-calculation-form-view.jsx": {
-      "mtime": 1783762134618,
+      "mtime": 1783779558696,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/profile/view/resource-calculation-form-view.jsx",
         "relativePath": "next-js/src/sections/profile/view/resource-calculation-form-view.jsx",
         "fileType": "generic",
-        "lineCount": 1931,
+        "lineCount": 1945,
         "imports": [],
         "importedBy": [],
         "importInfos": [
@@ -169755,7 +169755,7 @@
           },
           {
             "name": "handleDownloadPDF",
-            "line": 809,
+            "line": 823,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -169777,7 +169777,7 @@
           },
           {
             "name": "handlePrintPDF",
-            "line": 827,
+            "line": 841,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -169795,7 +169795,7 @@
           },
           {
             "name": "handleShareEmail",
-            "line": 841,
+            "line": 855,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169812,7 +169812,7 @@
           },
           {
             "name": "handleShareWhatsApp",
-            "line": 859,
+            "line": 873,
             "isExported": false,
             "isAsync": true,
             "callers": [
