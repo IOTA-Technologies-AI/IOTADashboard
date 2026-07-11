@@ -715,8 +715,22 @@ export function ResourceCalculationFormView({ id }) {
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <PdfImage src={IOTA_LOGO_WHITE_LOCAL} style={pdfStyles.headerLogo} />
               {/* Vertical separator */}
-              <View style={{ width: 1, height: 32, backgroundColor: 'rgba(255,255,255,0.35)', marginHorizontal: 16 }} />
-              <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 9, letterSpacing: 1.5, textTransform: 'uppercase' }}>
+              <View
+                style={{
+                  width: 1,
+                  height: 32,
+                  backgroundColor: 'rgba(255,255,255,0.35)',
+                  marginHorizontal: 16,
+                }}
+              />
+              <Text
+                style={{
+                  color: 'rgba(255,255,255,0.85)',
+                  fontSize: 9,
+                  letterSpacing: 1.5,
+                  textTransform: 'uppercase',
+                }}
+              >
                 Resource Quotation
               </Text>
             </View>
