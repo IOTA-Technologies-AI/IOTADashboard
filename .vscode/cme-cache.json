@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1783870536476,
+  "timestamp": 1783872241861,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_invoice.js": {
       "mtime": 1761284298333,
@@ -168999,12 +168999,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/profile/view/resource-calculation-form-view.jsx": {
-      "mtime": 1783870530131,
+      "mtime": 1783872236300,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/profile/view/resource-calculation-form-view.jsx",
         "relativePath": "next-js/src/sections/profile/view/resource-calculation-form-view.jsx",
         "fileType": "generic",
-        "lineCount": 1980,
+        "lineCount": 1981,
         "imports": [],
         "importedBy": [],
         "importInfos": [
@@ -169505,6 +169505,7 @@
               "useRef",
               "useEffect",
               "setTitle",
+              "setFullName",
               "setJdId",
               "setCandidateId",
               "setNationality",
@@ -169529,7 +169530,7 @@
           },
           {
             "name": "handleBaseSalaryChange",
-            "line": 423,
+            "line": 425,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169548,7 +169549,7 @@
           },
           {
             "name": "handleDependentsCountChange",
-            "line": 449,
+            "line": 451,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169564,7 +169565,7 @@
           },
           {
             "name": "handleFamilyStatusChange",
-            "line": 460,
+            "line": 462,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169579,7 +169580,7 @@
           },
           {
             "name": "handleInsuranceCostPerPaxChange",
-            "line": 474,
+            "line": 476,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169594,7 +169595,7 @@
           },
           {
             "name": "handleTicketCostPerPaxChange",
-            "line": 484,
+            "line": 486,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169609,7 +169610,7 @@
           },
           {
             "name": "handleIotaOfficeChange",
-            "line": 492,
+            "line": 494,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169632,7 +169633,7 @@
           },
           {
             "name": "handleAddLineItem",
-            "line": 535,
+            "line": 537,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -169646,7 +169647,7 @@
           },
           {
             "name": "handleRemoveLineItem",
-            "line": 555,
+            "line": 557,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169659,7 +169660,7 @@
           },
           {
             "name": "handleResumeUpload",
-            "line": 560,
+            "line": 562,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -169678,7 +169679,7 @@
           },
           {
             "name": "handleSubmit",
-            "line": 593,
+            "line": 595,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -169700,7 +169701,7 @@
           },
           {
             "name": "handleSubmitForApproval",
-            "line": 653,
+            "line": 656,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -169714,7 +169715,7 @@
           },
           {
             "name": "handleForward",
-            "line": 666,
+            "line": 669,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -169732,7 +169733,7 @@
           },
           {
             "name": "handleApproveReject",
-            "line": 686,
+            "line": 689,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -169749,7 +169750,7 @@
           },
           {
             "name": "buildPDFDoc",
-            "line": 716,
+            "line": 719,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169762,6 +169763,7 @@
               "String",
               "rgba",
               "n",
+              "trim",
               "filter",
               "map",
               "insuranceLabel",
@@ -169773,7 +169775,7 @@
           },
           {
             "name": "handleDownloadPDF",
-            "line": 846,
+            "line": 847,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -169794,7 +169796,7 @@
           },
           {
             "name": "handlePrintPDF",
-            "line": 864,
+            "line": 865,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -169812,7 +169814,7 @@
           },
           {
             "name": "handleShareEmail",
-            "line": 878,
+            "line": 879,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169828,7 +169830,7 @@
           },
           {
             "name": "handleShareWhatsApp",
-            "line": 897,
+            "line": 898,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -169850,6 +169852,9 @@
               "open",
               "push",
               "setTitle",
+              "setFullName",
+              "name",
+              "first",
               "handleIotaOfficeChange",
               "map",
               "setNationality",
@@ -169890,6 +169895,7 @@
               "Boolean",
               "handleShareEmail",
               "handleShareWhatsApp",
+              "trim",
               "insuranceLabel",
               "getUserEmail",
               "handleApproveReject",
@@ -169900,8 +169906,7 @@
               "Date",
               "setForwardEmail",
               "Message",
-              "setForwardNotes",
-              "trim"
+              "setForwardNotes"
             ]
           }
         ],
