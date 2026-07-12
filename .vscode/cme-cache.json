@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1783779560276,
+  "timestamp": 1783870536476,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_invoice.js": {
       "mtime": 1761284298333,
@@ -168999,12 +168999,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/profile/view/resource-calculation-form-view.jsx": {
-      "mtime": 1783779558696,
+      "mtime": 1783870530131,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/profile/view/resource-calculation-form-view.jsx",
         "relativePath": "next-js/src/sections/profile/view/resource-calculation-form-view.jsx",
         "fileType": "generic",
-        "lineCount": 1945,
+        "lineCount": 1980,
         "imports": [],
         "importedBy": [],
         "importInfos": [
@@ -169361,16 +169361,35 @@
             "isExported": false,
             "isAsync": false,
             "callers": [
+              "insuranceLabel",
+              "handleShareWhatsApp"
+            ],
+            "callees": [
+              "replace",
+              "wife"
+            ]
+          },
+          {
+            "name": "insuranceLabel",
+            "line": 134,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
               "buildPDFDoc",
               "handleShareWhatsApp"
             ],
             "callees": [
-              "replace"
+              "resolveLabel",
+              "String",
+              "replace",
+              "trim",
+              "Number",
+              "wife"
             ]
           },
           {
             "name": "evalFormula",
-            "line": 129,
+            "line": 147,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169392,7 +169411,7 @@
           },
           {
             "name": "recompute",
-            "line": 152,
+            "line": 170,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169414,7 +169433,7 @@
           },
           {
             "name": "fmtNumber",
-            "line": 184,
+            "line": 202,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169432,7 +169451,7 @@
           },
           {
             "name": "applyFamilyDefaults",
-            "line": 198,
+            "line": 216,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169455,7 +169474,7 @@
           },
           {
             "name": "getUserEmail",
-            "line": 279,
+            "line": 297,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169472,7 +169491,7 @@
           },
           {
             "name": "ResourceCalculationFormView",
-            "line": 291,
+            "line": 309,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -169510,7 +169529,7 @@
           },
           {
             "name": "handleBaseSalaryChange",
-            "line": 405,
+            "line": 423,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169529,7 +169548,7 @@
           },
           {
             "name": "handleDependentsCountChange",
-            "line": 431,
+            "line": 449,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169545,7 +169564,7 @@
           },
           {
             "name": "handleFamilyStatusChange",
-            "line": 442,
+            "line": 460,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169560,7 +169579,7 @@
           },
           {
             "name": "handleInsuranceCostPerPaxChange",
-            "line": 456,
+            "line": 474,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169575,7 +169594,7 @@
           },
           {
             "name": "handleTicketCostPerPaxChange",
-            "line": 466,
+            "line": 484,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169590,7 +169609,7 @@
           },
           {
             "name": "handleIotaOfficeChange",
-            "line": 474,
+            "line": 492,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169613,7 +169632,7 @@
           },
           {
             "name": "handleAddLineItem",
-            "line": 517,
+            "line": 535,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -169627,7 +169646,7 @@
           },
           {
             "name": "handleRemoveLineItem",
-            "line": 537,
+            "line": 555,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169640,7 +169659,7 @@
           },
           {
             "name": "handleResumeUpload",
-            "line": 542,
+            "line": 560,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -169659,7 +169678,7 @@
           },
           {
             "name": "handleSubmit",
-            "line": 575,
+            "line": 593,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -169681,7 +169700,7 @@
           },
           {
             "name": "handleSubmitForApproval",
-            "line": 635,
+            "line": 653,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -169695,7 +169714,7 @@
           },
           {
             "name": "handleForward",
-            "line": 648,
+            "line": 666,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -169713,7 +169732,7 @@
           },
           {
             "name": "handleApproveReject",
-            "line": 668,
+            "line": 686,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -169730,7 +169749,7 @@
           },
           {
             "name": "buildPDFDoc",
-            "line": 698,
+            "line": 716,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169745,17 +169764,16 @@
               "n",
               "filter",
               "map",
-              "resolveLabel",
+              "insuranceLabel",
               "some",
               "toLowerCase",
               "includes",
-              "fmtNumber",
-              "toFixed"
+              "fmtNumber"
             ]
           },
           {
             "name": "handleDownloadPDF",
-            "line": 823,
+            "line": 846,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -169768,8 +169786,7 @@
               "toBlob",
               "createObjectURL",
               "createElement",
-              "replace",
-              "toLowerCase",
+              "now",
               "click",
               "revokeObjectURL",
               "error"
@@ -169777,7 +169794,7 @@
           },
           {
             "name": "handlePrintPDF",
-            "line": 841,
+            "line": 864,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -169795,7 +169812,7 @@
           },
           {
             "name": "handleShareEmail",
-            "line": 855,
+            "line": 878,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -169806,21 +169823,19 @@
               "String",
               "Yes",
               "encodeURIComponent",
-              "fmtNumber",
-              "Total"
+              "fmtNumber"
             ]
           },
           {
             "name": "handleShareWhatsApp",
-            "line": 873,
+            "line": 897,
             "isExported": false,
             "isAsync": true,
             "callers": [
               "handleShareWhatsApp"
             ],
             "callees": [
-              "replace",
-              "toLowerCase",
+              "now",
               "setPdfGenerating",
               "buildPDFDoc",
               "pdf",
@@ -169832,7 +169847,6 @@
               "Yes",
               "encodeURIComponent",
               "fmtNumber",
-              "Total",
               "open",
               "push",
               "setTitle",
@@ -169845,6 +169859,7 @@
               "handleFamilyStatusChange",
               "Dependents",
               "handleDependentsCountChange",
+              "automatically",
               "Pax",
               "handleInsuranceCostPerPaxChange",
               "yr",
@@ -169863,8 +169878,10 @@
               "resolveLabel",
               "handleLineItemChange",
               "round",
+              "replace",
               "handleRemoveLineItem",
               "some",
+              "toLowerCase",
               "includes",
               "rgba",
               "handleDownloadPDF",
@@ -169873,7 +169890,7 @@
               "Boolean",
               "handleShareEmail",
               "handleShareWhatsApp",
-              "toFixed",
+              "insuranceLabel",
               "getUserEmail",
               "handleApproveReject",
               "setForwardDialogOpen",

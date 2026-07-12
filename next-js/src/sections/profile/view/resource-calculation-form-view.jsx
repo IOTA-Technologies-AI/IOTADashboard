@@ -126,6 +126,24 @@ function resolveLabel(label, insurancePremiumFactor, dependentsCount) {
     .replace(/\{dependents\}/g, dependentsCount);
 }
 
+/**
+ * Build the insurance line label with an explicit coverage breakdown.
+ * Insurance covers: 1 candidate + N dependents + 1 wife (= dependents + 2 pax).
+ * Strips the legacy "for {dependents}" tail from the stored template so the
+ * coverage isn't duplicated.
+ */
+function insuranceLabel(rawLabel, insurancePremiumFactor, familyStatus, dependentsCount) {
+  const base = resolveLabel(
+    String(rawLabel || '').replace(/\s*for\s*\{dependents\}\s*$/i, '').trim(),
+    insurancePremiumFactor,
+    dependentsCount
+  );
+  if (!familyStatus) return `${base} — 1 candidate`;
+  const deps = Number(dependentsCount) || 0;
+  const depWord = deps === 1 ? 'dependent' : 'dependents';
+  return `${base} — 1 candidate + ${deps} ${depWord} + 1 wife (${deps + 2} pax)`;
+}
+
 /** Evaluate simple formula expressions with baseSalary and dependentsCount context. */
 function evalFormula(formula, context = {}) {
   if (!formula) return 0;
@@ -192,7 +210,7 @@ function fmtNumber(val) {
 /**
  * When familyStatus is enabled, override insurance and ticket line items with
  * family-based cost calculations (still editable by the user afterward).
- * Insurance: insuranceCostPerPax × (dependentsCount + 1 wife) — annual
+ * Insurance: insuranceCostPerPax × (dependentsCount + 2 [candidate + wife]) — annual
  * Tickets:   ticketCostPerPax   × (dependentsCount + 2 [employee + wife]) — annual
  * Single:    ticketCostPerPax   × 1 (employee only)
  */
@@ -204,7 +222,7 @@ function applyFamilyDefaults(items, familyOn, deps, insPerPax, ticketPerPax) {
   return items.map((item) => {
     // Insurance line — override when family is on
     if (item.category === 'insurance' && familyOn) {
-      const familyPax = numDeps + 1; // kids + wife
+      const familyPax = numDeps + 2; // candidate + wife + dependents
       const annual = Math.round(numIns * familyPax);
       return { ...item, monthly: annual / 12, annual, isEditable: true };
     }
@@ -698,7 +716,6 @@ export function ResourceCalculationFormView({ id }) {
   // ── PDF generation ────────────────────────────────────────────────────────
   const buildPDFDoc = (countryMeta, subtotal, vatAmount, grandTotal) => {
     const TAX_LABEL = countryMeta.taxLabel;
-    const VAT_RATE = countryMeta.taxRate;
     const customerObj = customerList.find((cu) => String(cu.id) === String(customerId));
     const customerName = customerObj?.customerNameEn || customerObj?.customerNameAr || '';
     const dependentsWord = dependentsCount !== 1 ? 'dependents' : 'dependent';
@@ -763,7 +780,7 @@ export function ResourceCalculationFormView({ id }) {
                 .filter((i) => i.category === 'insurance')
                 .map((item) => (
                   <Text key={item.id || item.label} style={pdfStyles.bullet}>
-                    • {resolveLabel(item.label, insurancePremiumFactor, dependentsCount)}
+                    • {insuranceLabel(item.label, insurancePremiumFactor, familyStatus, dependentsCount)}
                   </Text>
                 ))}
               {activeItems.some(
@@ -789,7 +806,6 @@ export function ResourceCalculationFormView({ id }) {
           <View style={pdfStyles.totalsSection}>
             {[
               { label: 'SUBTOTAL:', value: subtotal },
-              { label: `${TAX_LABEL} (${(VAT_RATE * 100).toFixed(0)}%):`, value: vatAmount },
               { label: 'OTHERS:', value: 0 },
             ].map(({ label, value }) => (
               <View key={label} style={pdfStyles.totalsRow}>
@@ -799,6 +815,10 @@ export function ResourceCalculationFormView({ id }) {
                 </Text>
               </View>
             ))}
+            <View style={pdfStyles.totalsRow}>
+              <Text style={pdfStyles.bold}>{`${TAX_LABEL}:`}</Text>
+              <Text style={pdfStyles.bold}>As applicable</Text>
+            </View>
             <View style={pdfStyles.divider} />
             <View style={pdfStyles.totalsRow}>
               <Text style={[pdfStyles.bold, { fontSize: 12 }]}>TOTAL:</Text>
@@ -806,6 +826,9 @@ export function ResourceCalculationFormView({ id }) {
                 {currency} {fmtNumber(grandTotal)}
               </Text>
             </View>
+            <Text style={{ fontSize: 8, color: '#6B7280', marginTop: 4, textAlign: 'right' }}>
+              {`${TAX_LABEL} as applicable`}
+            </Text>
           </View>
 
           {/* ── Footer ─── */}
@@ -829,7 +852,7 @@ export function ResourceCalculationFormView({ id }) {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `quotation-${(title || 'summary').replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`;
+      a.download = `quotation-${Date.now()}.pdf`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
@@ -865,14 +888,15 @@ export function ResourceCalculationFormView({ id }) {
         `Family Status: ${familyStatusText}\n` +
         `Total Monthly: ${currency} ${fmtNumber(totalMonthly)}\n` +
         `Total Annual: ${currency} ${fmtNumber(totalAnnual)}\n` +
-        `Grand Total (incl. ${countryMeta.taxLabel}): ${currency} ${fmtNumber(grandTotal)}\n\n` +
+        `Grand Total: ${currency} ${fmtNumber(grandTotal)}\n` +
+        `${countryMeta.taxLabel} as applicable\n\n` +
         `Best regards,\nIOTA Technologies\naccounts@iotatechnologies.ai`
     );
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
   const handleShareWhatsApp = async (countryMeta, subtotal, vatAmount, grandTotal) => {
-    const fileName = `quotation-${(title || 'summary').replace(/[^a-z0-9]/gi, '-').toLowerCase()}.pdf`;
+    const fileName = `quotation-${Date.now()}.pdf`;
 
     // ── Mobile: share the actual PDF file via Web Share API ──────────────
     if (typeof navigator !== 'undefined' && navigator.canShare) {
@@ -907,7 +931,8 @@ export function ResourceCalculationFormView({ id }) {
         `👨‍👩‍👧 Family: ${familyStatusText}\n` +
         `💰 Monthly: *${currency} ${fmtNumber(totalMonthly)}*\n` +
         `📅 Annual: *${currency} ${fmtNumber(totalAnnual)}*\n` +
-        `✅ Grand Total (incl. ${countryMeta.taxLabel}): *${currency} ${fmtNumber(grandTotal)}*\n\n` +
+        `✅ Grand Total: *${currency} ${fmtNumber(grandTotal)}*\n` +
+        `🧾 ${countryMeta.taxLabel} as applicable\n\n` +
         `_IOTA Technologies — accounts@iotatechnologies.ai_`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
@@ -1052,7 +1077,7 @@ export function ResourceCalculationFormView({ id }) {
                       value={dependentsCount}
                       onChange={(e) => handleDependentsCountChange(e.target.value)}
                       inputProps={{ step: 1, min: 0 }}
-                      helperText="Children only — wife is always +1"
+                      helperText="Dependents only — candidate and wife are added automatically (+2)"
                       fullWidth
                       size="small"
                     />
@@ -1066,7 +1091,7 @@ export function ResourceCalculationFormView({ id }) {
                       InputProps={{
                         startAdornment: <InputAdornment position="start">SAR</InputAdornment>,
                       }}
-                      helperText={`Total = SAR ${fmtNumber(insuranceCostPerPax * (dependentsCount + 1))} / yr  (${dependentsCount} children + 1 wife)`}
+                      helperText={`Total = SAR ${fmtNumber(insuranceCostPerPax * (dependentsCount + 2))} / yr  (1 candidate + ${dependentsCount} dependents + 1 wife = ${dependentsCount + 2} pax)`}
                       fullWidth
                       size="small"
                     />
@@ -1447,11 +1472,11 @@ export function ResourceCalculationFormView({ id }) {
       {(() => {
         const countryMeta =
           IOTA_OFFICE_OPTIONS.find((c) => c.value === iotaOffice) || IOTA_OFFICE_OPTIONS[0];
-        const VAT_RATE = countryMeta.taxRate;
         const TAX_LABEL = countryMeta.taxLabel;
         const subtotal = totalAnnual;
-        const vatAmount = subtotal * VAT_RATE;
-        const grandTotal = subtotal + vatAmount;
+        // VAT is quoted as "applicable" and is NOT added into the quotation total.
+        const vatAmount = 0;
+        const grandTotal = subtotal;
 
         // Build description bullets from active line items
         const insuranceItems = activeItems.filter((i) => i.category === 'insurance');
@@ -1643,7 +1668,7 @@ export function ResourceCalculationFormView({ id }) {
                         })()}
                         {insuranceItems.map((item, i) => (
                           <Typography key={i} component="li" variant="body2" sx={{ mb: 0.3 }}>
-                            {resolveLabel(item.label, insurancePremiumFactor, dependentsCount)}
+                            {insuranceLabel(item.label, insurancePremiumFactor, familyStatus, dependentsCount)}
                           </Typography>
                         ))}
                         {hasStandardBenefits && (
@@ -1720,7 +1745,6 @@ export function ResourceCalculationFormView({ id }) {
               <Stack spacing={0.75} sx={{ minWidth: 300 }}>
                 {[
                   { label: 'SUBTOTAL:', value: subtotal },
-                  { label: `${TAX_LABEL} (${(VAT_RATE * 100).toFixed(0)}%):`, value: vatAmount },
                   { label: 'OTHERS:', value: 0 },
                 ].map(({ label, value }) => (
                   <Stack key={label} direction="row" justifyContent="space-between" spacing={4}>
@@ -1732,6 +1756,14 @@ export function ResourceCalculationFormView({ id }) {
                     </Typography>
                   </Stack>
                 ))}
+                <Stack direction="row" justifyContent="space-between" spacing={4}>
+                  <Typography variant="body2" fontWeight={700} sx={{ letterSpacing: 0.3 }}>
+                    {`${TAX_LABEL}:`}
+                  </Typography>
+                  <Typography variant="body2" fontWeight={700} color="text.secondary">
+                    As applicable
+                  </Typography>
+                </Stack>
                 <Divider sx={{ my: 0.5 }} />
                 <Stack direction="row" justifyContent="space-between" spacing={4}>
                   <Typography variant="body1" fontWeight={800} sx={{ letterSpacing: 0.3 }}>
@@ -1741,6 +1773,9 @@ export function ResourceCalculationFormView({ id }) {
                     {currency} {fmtNumber(grandTotal)}
                   </Typography>
                 </Stack>
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                  {`${TAX_LABEL} as applicable`}
+                </Typography>
               </Stack>
             </Box>
           </Card>
