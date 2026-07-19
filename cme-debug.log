@@ -165,3 +165,21 @@
 [2026-07-13T07:22:14.900Z] runPostScanAnalysis started. Current nodes count: 1820
 [2026-07-13T07:22:14.906Z] No active DependencyGraphPanel webview open.
 [2026-07-13T07:22:14.906Z] runFullScan finished
+[2026-07-17T14:17:47.421Z] Extension activating. WorkspaceFolders found: ["/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard","/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTAApiServer","/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADocuments"]
+[2026-07-17T14:17:47.433Z] runPostScanAnalysis started. Current nodes count: 1822
+[2026-07-17T14:17:47.460Z] No active DependencyGraphPanel webview open.
+[2026-07-17T14:17:47.460Z] runFullScan started
+[2026-07-17T14:17:47.461Z] Discovering files...
+[2026-07-17T14:17:49.614Z] Scan complete: 1820 files found, 1820 cached, 0 freshly parsed, 2153ms
+[2026-07-17T14:17:49.615Z] runPostScanAnalysis started. Current nodes count: 1820
+[2026-07-17T14:17:49.622Z] No active DependencyGraphPanel webview open.
+[2026-07-17T14:17:49.622Z] runFullScan finished
+[2026-07-19T16:37:18.161Z] Extension activating. WorkspaceFolders found: ["/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard","/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTAApiServer","/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADocuments"]
+[2026-07-19T16:37:18.176Z] runPostScanAnalysis started. Current nodes count: 1822
+[2026-07-19T16:37:18.286Z] No active DependencyGraphPanel webview open.
+[2026-07-19T16:37:18.287Z] runFullScan started
+[2026-07-19T16:37:18.288Z] Discovering files...
+[2026-07-19T16:37:19.289Z] Scan complete: 1820 files found, 1820 cached, 0 freshly parsed, 1001ms
+[2026-07-19T16:37:19.290Z] runPostScanAnalysis started. Current nodes count: 1820
+[2026-07-19T16:37:19.296Z] No active DependencyGraphPanel webview open.
+[2026-07-19T16:37:19.296Z] runFullScan finished
