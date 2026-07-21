@@ -121,7 +121,7 @@ export async function getMonthlyVATData(year, month) {
       const s = invoice.status?.toLowerCase();
       if (s && EXCLUDED_STATUSES.includes(s)) return false;
       const currency = invoice.currencyCode;
-      return !currency || currency === 'SAR'; // include SAR or unset (defaults to SAR)
+      return currency === 'SAR'; // KSA/ZATCA scope only — exclude UAE/AED and blank currency
     });
 
     // AP: SAR currency only, non-void, non-VAT-exempt
@@ -129,7 +129,7 @@ export async function getMonthlyVATData(year, month) {
       const s = payment.status?.toLowerCase();
       if (s && EXCLUDED_STATUSES.includes(s)) return false;
       const currency = payment.currencyCode;
-      if (currency && currency !== 'SAR') return false; // exclude non-SAR
+      if (currency !== 'SAR') return false; // KSA/ZATCA scope only — exclude UAE/AED and blank currency
       if (payment.isVATExempt) return false; // exclude VAT-exempt
       return true;
     });
@@ -248,7 +248,7 @@ export async function getQuarterlyVATData(year, quarter) {
       const s = invoice.status?.toLowerCase();
       if (s && EXCLUDED_STATUSES.includes(s)) return false;
       const currency = invoice.currencyCode;
-      return !currency || currency === 'SAR'; // include SAR or unset (defaults to SAR)
+      return currency === 'SAR'; // KSA/ZATCA scope only — exclude UAE/AED and blank currency
     });
 
     // AP: SAR currency only, non-void, non-VAT-exempt
@@ -256,7 +256,7 @@ export async function getQuarterlyVATData(year, quarter) {
       const s = payment.status?.toLowerCase();
       if (s && EXCLUDED_STATUSES.includes(s)) return false;
       const currency = payment.currencyCode;
-      if (currency && currency !== 'SAR') return false; // exclude non-SAR
+      if (currency !== 'SAR') return false; // KSA/ZATCA scope only — exclude UAE/AED and blank currency
       if (payment.isVATExempt) return false; // exclude VAT-exempt
       return true;
     });
