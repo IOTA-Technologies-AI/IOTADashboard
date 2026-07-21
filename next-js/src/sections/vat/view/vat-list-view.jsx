@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -10,6 +10,7 @@ import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
+import Checkbox from '@mui/material/Checkbox';
 import MenuList from '@mui/material/MenuList';
 import MenuItem from '@mui/material/MenuItem';
 import TableBody from '@mui/material/TableBody';
@@ -17,6 +18,7 @@ import { useTheme } from '@mui/material/styles';
 import Typography from '@mui/material/Typography';
 import TableContainer from '@mui/material/TableContainer';
 import CircularProgress from '@mui/material/CircularProgress';
+import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { paths } from 'src/routes/paths';
 
@@ -65,6 +67,12 @@ const TABLE_HEAD = [
   { id: 'vatPosted', label: 'ZATCA Status', width: 120 },
 ];
 
+// Columns the user is not allowed to hide (the record must stay identifiable).
+const MANDATORY_COLUMNS = ['invoiceNumber'];
+// localStorage key that remembers the user's column selection.
+const COLUMN_STORAGE_KEY = 'vatVisibleColumns';
+const ALL_COLUMN_IDS = TABLE_HEAD.map((c) => c.id);
+
 // ----------------------------------------------------------------------
 
 export function VATListView() {
@@ -89,6 +97,51 @@ export function VATListView() {
   const [fetchError, setFetchError] = useState(null);
   const [popover, setPopover] = useState({ open: false, anchorEl: null });
   const [vatData, setVATData] = useState(null);
+
+  // Column visibility (persisted per browser). Defaults to all columns; the
+  // saved selection is loaded on mount to avoid an SSR hydration mismatch.
+  const [visibleColumns, setVisibleColumns] = useState(ALL_COLUMN_IDS);
+  const [columnsPopover, setColumnsPopover] = useState({ open: false, anchorEl: null });
+  const columnsHydrated = useRef(false);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(window.localStorage.getItem(COLUMN_STORAGE_KEY) || 'null');
+      if (Array.isArray(saved) && saved.length) {
+        // Keep only known columns, and force mandatory ones to stay on.
+        const next = ALL_COLUMN_IDS.filter(
+          (id) => saved.includes(id) || MANDATORY_COLUMNS.includes(id)
+        );
+        setVisibleColumns(next);
+      }
+    } catch {
+      /* ignore malformed storage */
+    }
+    columnsHydrated.current = true;
+  }, []);
+
+  useEffect(() => {
+    if (!columnsHydrated.current) return;
+    try {
+      window.localStorage.setItem(COLUMN_STORAGE_KEY, JSON.stringify(visibleColumns));
+    } catch {
+      /* ignore quota/availability errors */
+    }
+  }, [visibleColumns]);
+
+  const handleToggleColumn = useCallback((id) => {
+    if (MANDATORY_COLUMNS.includes(id)) return; // can't hide mandatory columns
+    setVisibleColumns((prev) =>
+      prev.includes(id)
+        ? prev.filter((c) => c !== id)
+        : ALL_COLUMN_IDS.filter((c) => prev.includes(c) || c === id)
+    );
+  }, []);
+
+  const handleResetColumns = useCallback(() => setVisibleColumns(ALL_COLUMN_IDS), []);
+
+  // Header cells for the currently-selected columns (preserves canonical order).
+  const visibleHead = TABLE_HEAD.filter((c) => visibleColumns.includes(c.id));
 
   // VAT Posting state
   const [postingStatus, setPostingStatus] = useState(null);
@@ -358,6 +411,14 @@ export function VATListView() {
             <Button
               variant="outlined"
               color="inherit"
+              startIcon={<Iconify icon="solar:tuning-2-linear" />}
+              onClick={(e) => setColumnsPopover({ open: true, anchorEl: e.currentTarget })}
+            >
+              Columns
+            </Button>
+            <Button
+              variant="outlined"
+              color="inherit"
               startIcon={<Iconify icon="eva:download-outline" />}
               onClick={(e) => setPopover({ open: true, anchorEl: e.currentTarget })}
             >
@@ -477,11 +538,15 @@ export function VATListView() {
         <TableContainer sx={{ position: 'relative', overflow: 'unset' }}>
           <Scrollbar>
             <Table size={table.dense ? 'small' : 'medium'} sx={{ minWidth: 1200 }}>
-              <TableHeadCustom headCells={TABLE_HEAD} />
+              <TableHeadCustom headCells={visibleHead} />
 
               <TableBody>
                 {dataInPage.map((row) => (
-                  <VATTableRow key={row.invoice_id || row.payment_id} row={row} />
+                  <VATTableRow
+                    key={row.invoice_id || row.payment_id}
+                    row={row}
+                    visibleColumns={visibleColumns}
+                  />
                 ))}
 
                 <TableNoData notFound={notFound} />
@@ -528,6 +593,48 @@ export function VATListView() {
             JSON
           </MenuItem>
         </MenuList>
+      </CustomPopover>
+
+      {/* Column Chooser Popover */}
+      <CustomPopover
+        open={columnsPopover.open}
+        anchorEl={columnsPopover.anchorEl}
+        onClose={() => setColumnsPopover({ open: false, anchorEl: null })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Stack sx={{ p: 1.5, minWidth: 200 }}>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            sx={{ px: 1, pb: 0.5 }}
+          >
+            <Typography variant="subtitle2">Show columns</Typography>
+            <Button size="small" variant="text" onClick={handleResetColumns}>
+              Reset
+            </Button>
+          </Stack>
+          <Divider sx={{ mb: 0.5 }} />
+          {TABLE_HEAD.map((col) => {
+            const mandatory = MANDATORY_COLUMNS.includes(col.id);
+            return (
+              <FormControlLabel
+                key={col.id}
+                sx={{ m: 0, px: 1, py: 0.25 }}
+                control={
+                  <Checkbox
+                    size="small"
+                    checked={visibleColumns.includes(col.id)}
+                    disabled={mandatory}
+                    onChange={() => handleToggleColumn(col.id)}
+                  />
+                }
+                label={<Typography variant="body2">{col.label}</Typography>}
+              />
+            );
+          })}
+        </Stack>
       </CustomPopover>
 
       {/* Post VAT Confirmation Dialog */}

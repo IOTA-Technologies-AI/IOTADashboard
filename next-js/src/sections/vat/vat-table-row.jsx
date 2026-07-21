@@ -15,7 +15,9 @@ import { Label } from 'src/components/label';
 
 // ----------------------------------------------------------------------
 
-export function VATTableRow({ row }) {
+export function VATTableRow({ row, visibleColumns }) {
+  // When no selection is passed, show every column (backwards-safe default).
+  const show = (id) => !Array.isArray(visibleColumns) || visibleColumns.includes(id);
   const {
     invoice_number,
     invoiceNumber,
@@ -76,99 +78,117 @@ export function VATTableRow({ row }) {
       }}
     >
       {/* Invoice Number - Truncated and Clickable */}
-      <TableCell>
-        {isExpense && expenseReferenceId ? (
-          <Link
-            component={RouterLink}
-            href={`/dashboard/expense/${expenseReferenceId}`}
-            color="inherit"
-            underline="always"
-            sx={{ cursor: 'pointer' }}
-            title={displayInvoiceNumber}
-          >
-            {truncatedInvoiceNumber}
-          </Link>
-        ) : arInvoiceHref ? (
-          <Link
-            component={RouterLink}
-            href={arInvoiceHref}
-            color="inherit"
-            underline="always"
-            sx={{ cursor: 'pointer' }}
-            title={displayInvoiceNumber}
-          >
-            {truncatedInvoiceNumber}
-          </Link>
-        ) : (
-          <Link
-            color="inherit"
-            underline="always"
-            sx={{ cursor: 'pointer' }}
-            title={displayInvoiceNumber}
-          >
-            {truncatedInvoiceNumber}
-          </Link>
-        )}
-      </TableCell>
+      {show('invoiceNumber') && (
+        <TableCell>
+          {isExpense && expenseReferenceId ? (
+            <Link
+              component={RouterLink}
+              href={`/dashboard/expense/${expenseReferenceId}`}
+              color="inherit"
+              underline="always"
+              sx={{ cursor: 'pointer' }}
+              title={displayInvoiceNumber}
+            >
+              {truncatedInvoiceNumber}
+            </Link>
+          ) : arInvoiceHref ? (
+            <Link
+              component={RouterLink}
+              href={arInvoiceHref}
+              color="inherit"
+              underline="always"
+              sx={{ cursor: 'pointer' }}
+              title={displayInvoiceNumber}
+            >
+              {truncatedInvoiceNumber}
+            </Link>
+          ) : (
+            <Link
+              color="inherit"
+              underline="always"
+              sx={{ cursor: 'pointer' }}
+              title={displayInvoiceNumber}
+            >
+              {truncatedInvoiceNumber}
+            </Link>
+          )}
+        </TableCell>
+      )}
 
       {/* Date */}
-      <TableCell>{displayDate ? fDate(displayDate) : '-'}</TableCell>
+      {show('date') && <TableCell>{displayDate ? fDate(displayDate) : '-'}</TableCell>}
 
       {/* Customer/Vendor column removed as requested */}
 
       {/* Country */}
-      <TableCell>{displayCountry}</TableCell>
+      {show('country') && <TableCell>{displayCountry}</TableCell>}
 
       {/* Currency */}
-      <TableCell>
-        <Chip label={currency || 'SAR'} size="small" variant="soft" />
-      </TableCell>
+      {show('currency') && (
+        <TableCell>
+          <Chip label={currency || 'SAR'} size="small" variant="soft" />
+        </TableCell>
+      )}
 
       {/* Base Amount */}
-      <TableCell align="right">
-        {fCurrency(baseAmount || 0, { currency: currency || 'SAR' })}
-      </TableCell>
+      {show('amount') && (
+        <TableCell align="right">
+          {fCurrency(baseAmount || 0, { currency: currency || 'SAR' })}
+        </TableCell>
+      )}
 
       {/* VAT Rate */}
-      <TableCell align="center">
-        {isVATApplicable ? (
-          <Label color="info">{vatRatePercent?.toFixed(0)}%</Label>
-        ) : (
-          <Label color="default">0%</Label>
-        )}
-      </TableCell>
+      {show('vatRate') && (
+        <TableCell align="center">
+          {isVATApplicable ? (
+            <Label color="info">{vatRatePercent?.toFixed(0)}%</Label>
+          ) : (
+            <Label color="default">0%</Label>
+          )}
+        </TableCell>
+      )}
 
       {/* VAT Amount */}
-      <TableCell align="right">
-        <Box sx={{ fontWeight: 'bold', color: isVATApplicable ? 'error.main' : 'text.secondary' }}>
-          {fCurrency(vatAmount || 0, { currency: currency || 'SAR' })}
-        </Box>
-      </TableCell>
+      {show('vatAmount') && (
+        <TableCell align="right">
+          <Box
+            sx={{ fontWeight: 'bold', color: isVATApplicable ? 'error.main' : 'text.secondary' }}
+          >
+            {fCurrency(vatAmount || 0, { currency: currency || 'SAR' })}
+          </Box>
+        </TableCell>
+      )}
 
       {/* Total with VAT */}
-      <TableCell align="right">
-        {fCurrency(totalWithVAT || baseAmount || 0, { currency: currency || 'SAR' })}
-      </TableCell>
+      {show('total') && (
+        <TableCell align="right">
+          {fCurrency(totalWithVAT || baseAmount || 0, { currency: currency || 'SAR' })}
+        </TableCell>
+      )}
 
       {/* Type */}
-      <TableCell>
-        <Label variant="soft" color={type === 'AR' ? 'info' : 'warning'}>
-          {type}
-        </Label>
-      </TableCell>
+      {show('type') && (
+        <TableCell>
+          <Label variant="soft" color={type === 'AR' ? 'info' : 'warning'}>
+            {type}
+          </Label>
+        </TableCell>
+      )}
 
       {/* ZATCA Status */}
-      <TableCell>
-        {vatTaxPeriod ? (
-          <Label variant="soft" color="success" title={`Posted in ${vatTaxPeriod}`}>
-            Posted
-          </Label>
-        ) : (
-          <Label variant="soft" color="default">
-            Pending
-          </Label>
-        )}
-      </TableCell>
+      {show('vatPosted') && (
+        <TableCell>
+          {vatTaxPeriod ? (
+            <Label variant="soft" color="success" title={`Posted in ${vatTaxPeriod}`}>
+              Posted
+            </Label>
+          ) : (
+            <Label variant="soft" color="default">
+              Pending
+            </Label>
+          )}
+        </TableCell>
+      )}
     </TableRow>
   );
 }
