@@ -111,7 +111,17 @@ export function InvoiceListView() {
     4: 'superAdmin',
   };
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
-  const canEdit = normalizedRole === 'superAdmin';
+  const isSuperAdmin = normalizedRole === 'superAdmin';
+  // The creator may edit their own invoice only while it is still pending
+  // (before it is approved or rejected). Super-admins can edit any invoice.
+  const canEditRow = (row) => {
+    if (isSuperAdmin) return true;
+    const status = (row?.status || '').toLowerCase();
+    const rowIsPending = status === 'pending' || status === 'draft';
+    return rowIsPending && !!row?.createdByEmail && row.createdByEmail === user?.email;
+  };
+  // Delete stays restricted to super-admins (unchanged from before).
+  const canDelete = isSuperAdmin;
   const canApprove = normalizedRole === 'superAdmin';
   const canMarkPaid = ['admin', 'superAdmin'].includes(normalizedRole);
 
@@ -239,8 +249,8 @@ export function InvoiceListView() {
 
   const handleDeleteRow = useCallback(
     async (id) => {
-      if (!canEdit) {
-        toast.error('Only admins and super admins can edit or delete invoices');
+      if (!canDelete) {
+        toast.error('Only super admins can delete invoices');
         return;
       }
 
@@ -259,12 +269,12 @@ export function InvoiceListView() {
         toast.error('Failed to delete invoice');
       }
     },
-    [canEdit, dataInPage.length, table, tableData]
+    [canDelete, dataInPage.length, table, tableData]
   );
 
   const handleDeleteRows = useCallback(async () => {
-    if (!canEdit) {
-      toast.error('Only admins and super admins can edit or delete invoices');
+    if (!canDelete) {
+      toast.error('Only super admins can delete invoices');
       return;
     }
 
@@ -283,7 +293,7 @@ export function InvoiceListView() {
       console.error('Failed to delete invoices:', error);
       toast.error('Failed to delete invoices');
     }
-  }, [canEdit, dataFiltered.length, dataInPage.length, table, tableData]);
+  }, [canDelete, dataFiltered.length, dataInPage.length, table, tableData]);
 
   const handleFilterStatus = useCallback(
     (event, newValue) => {
@@ -470,7 +480,7 @@ export function InvoiceListView() {
                 );
               }}
               action={
-                canEdit ? (
+                canDelete ? (
                   <Box sx={{ display: 'flex' }}>
                     <Tooltip title="Sent">
                       <IconButton color="primary">
@@ -538,7 +548,8 @@ export function InvoiceListView() {
                             selected={table.selected.includes(row.id)}
                             onSelectRow={() => table.onSelectRow(row.id)}
                             onDeleteRow={() => handleDeleteRow(row.id)}
-                            canEdit={canEdit}
+                            canEdit={canEditRow(row)}
+                            canDelete={canDelete}
                             canApprove={canApprove}
                             canMarkPaid={canMarkPaid}
                             onOpenApproval={handleOpenApproval}

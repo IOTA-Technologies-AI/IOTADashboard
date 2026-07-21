@@ -36,6 +36,7 @@ export function InvoiceTableRow({
   onDeleteRow,
   detailsHref,
   canEdit = true,
+  canDelete = false,
   canApprove = false,
   canMarkPaid = false,
   onOpenApproval,
@@ -92,14 +93,16 @@ export function InvoiceTableRow({
         )}
 
         {canEdit && (
-          <>
-            <li>
-              <MenuItem component={RouterLink} href={editHref} onClick={menuActions.onClose}>
-                <Iconify icon="solar:pen-bold" />
-                Edit
-              </MenuItem>
-            </li>
+          <li>
+            <MenuItem component={RouterLink} href={editHref} onClick={menuActions.onClose}>
+              <Iconify icon="solar:pen-bold" />
+              Edit
+            </MenuItem>
+          </li>
+        )}
 
+        {canDelete && (
+          <>
             <Divider sx={{ borderStyle: 'dashed' }} />
 
             <MenuItem
@@ -174,8 +177,8 @@ export function InvoiceTableRow({
         <TableCell padding="checkbox">
           <Checkbox
             checked={selected}
-            disabled={!canEdit}
-            onClick={canEdit ? onSelectRow : undefined}
+            disabled={!canDelete}
+            onClick={canDelete ? onSelectRow : undefined}
             slotProps={{
               input: {
                 id: `${row.id}-checkbox`,

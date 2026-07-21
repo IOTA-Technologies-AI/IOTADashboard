@@ -2480,12 +2480,16 @@ export async function updateInvoice(invoiceId, invoiceData) {
   try {
     console.log('📤 Updating invoice:', invoiceId, invoiceData);
 
+    // Attach user context so the backend can enforce creator-only editing.
+    // These fields are stripped server-side and never written to the DB.
+    const userContext = getUserContext();
     const response = await axios.patch(
-      `https://staging-iotaapiserver-s572.encr.app/invoice/${invoiceId}`,
-      invoiceData,
+      `${API_BASE_URL}invoice/${invoiceId}`,
+      { ...invoiceData, ...(userContext || {}) },
       {
         headers: {
           'Content-Type': 'application/json',
+          ...getAuthHeaders(),
         },
       }
     );

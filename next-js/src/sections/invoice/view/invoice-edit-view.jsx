@@ -22,22 +22,24 @@ export function InvoiceEditView({ invoice: initialInvoice }) {
   const router = useRouter();
   const { user } = useAuthContext();
 
-  const roleIdToName = { 1: 'regular', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
-  const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
-  // SuperAdmins can always edit; the original creator can edit a rejected invoice to resubmit
-  const canEdit =
-    normalizedRole === 'superAdmin' ||
-    (invoice?.status === 'rejected' && invoice?.createdByEmail === user?.email);
-
   const [invoice, setInvoice] = useState(initialInvoice);
   const [loading, setLoading] = useState(!initialInvoice);
 
+  const roleIdToName = { 1: 'regular', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
+  const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
+  // SuperAdmins can always edit; the creator can edit only while the invoice is
+  // still pending (before it is approved or rejected).
+  const isPending = invoice?.status === 'pending' || invoice?.status === 'draft';
+  const canEdit =
+    normalizedRole === 'superAdmin' ||
+    (isPending && !!invoice?.createdByEmail && invoice?.createdByEmail === user?.email);
+
   useEffect(() => {
-    if (!canEdit && invoice && invoice.status !== 'rejected') {
-      toast.error('Only super admins can edit invoices');
+    if (!loading && invoice && !canEdit) {
+      toast.error('You can only edit your own pending invoices.');
       router.replace(paths.dashboard.invoice.root);
     }
-  }, [canEdit, invoice, router]);
+  }, [canEdit, invoice, loading, router]);
 
   useEffect(() => {
     if (!initialInvoice && params?.id) {

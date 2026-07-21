@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1784655745135,
+  "timestamp": 1784657270002,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_invoice.js": {
       "mtime": 1761284298333,
@@ -131027,7 +131027,7 @@
           "InvoiceApprovalDialog"
         ],
         "routes": [],
-        "healthScore": 85
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-analytic.jsx": {
@@ -133585,12 +133585,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-table-row.jsx": {
-      "mtime": 1781252451851,
+      "mtime": 1784657194663,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-table-row.jsx",
         "relativePath": "next-js/src/sections/invoice/invoice-table-row.jsx",
         "fileType": "generic",
-        "lineCount": 264,
+        "lineCount": 267,
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-list-view.jsx"
@@ -133821,7 +133821,7 @@
           },
           {
             "name": "renderMenuActions",
-            "line": 48,
+            "line": 49,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -133834,7 +133834,7 @@
           },
           {
             "name": "renderConfirmDialog",
-            "line": 120,
+            "line": 123,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -133844,7 +133844,7 @@
           },
           {
             "name": "handleMarkPaid",
-            "line": 134,
+            "line": 137,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -133858,7 +133858,7 @@
           },
           {
             "name": "renderPaidDialog",
-            "line": 151,
+            "line": 154,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -133881,7 +133881,7 @@
           "InvoiceTableRow"
         ],
         "routes": [],
-        "healthScore": 85
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/index.js": {
@@ -134197,12 +134197,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-edit-view.jsx": {
-      "mtime": 1775551163315,
+      "mtime": 1784657120111,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-edit-view.jsx",
         "relativePath": "next-js/src/sections/invoice/view/invoice-edit-view.jsx",
         "fileType": "generic",
-        "lineCount": 164,
+        "lineCount": 166,
         "imports": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-address.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-form.jsx"
@@ -134314,6 +134314,7 @@
               "useRouter",
               "useAuthContext",
               "useState",
+              "pending",
               "useEffect",
               "error",
               "replace",
@@ -134340,12 +134341,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-toolbar.jsx": {
-      "mtime": 1778966078006,
+      "mtime": 1784657223227,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-toolbar.jsx",
         "relativePath": "next-js/src/sections/invoice/invoice-toolbar.jsx",
         "fileType": "generic",
-        "lineCount": 198,
+        "lineCount": 212,
         "imports": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-pdf.jsx"
         ],
@@ -134498,35 +134499,53 @@
             ]
           },
           {
+            "source": "src/auth/hooks",
+            "resolved": "",
+            "isLocal": false,
+            "line": 21,
+            "names": [
+              "useAuthContext"
+            ]
+          },
+          {
             "source": "@react-pdf/renderer",
             "resolved": "",
             "isLocal": false,
-            "line": 53,
+            "line": 65,
             "names": []
           },
           {
             "source": "./invoice-pdf",
             "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-pdf.jsx",
             "isLocal": true,
-            "line": 54,
+            "line": 66,
             "names": []
           }
         ],
         "functions": [
           {
             "name": "InvoiceToolbar",
-            "line": 23,
+            "line": 25,
             "isExported": true,
             "isAsync": false,
             "callers": [],
             "callees": [
               "useBoolean",
-              "useState"
+              "useState",
+              "useAuthContext"
             ]
           },
           {
+            "name": "editStatus",
+            "line": 39,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [],
+            "callees": []
+          },
+          {
             "name": "handleCopyPublicLink",
-            "line": 36,
+            "line": 48,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -134539,7 +134558,7 @@
           },
           {
             "name": "handleIssue",
-            "line": 48,
+            "line": 60,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -134560,7 +134579,7 @@
           },
           {
             "name": "renderDetailsDialog",
-            "line": 78,
+            "line": 90,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -134579,7 +134598,7 @@
           "InvoiceToolbar"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-create-view.jsx": {
@@ -135249,12 +135268,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-list-view.jsx": {
-      "mtime": 1781252451818,
+      "mtime": 1784657263947,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-list-view.jsx",
         "relativePath": "next-js/src/sections/invoice/view/invoice-list-view.jsx",
         "fileType": "generic",
-        "lineCount": 658,
+        "lineCount": 669,
         "imports": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-analytic.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-table-row.jsx",
@@ -135587,7 +135606,7 @@
             "source": "src/utils/apiHelper",
             "resolved": "",
             "isLocal": false,
-            "line": 588,
+            "line": 599,
             "names": [
               "fetchInvoices: refetch"
             ]
@@ -135613,7 +135632,27 @@
             "isAsync": false,
             "callers": [],
             "callees": [
-              "useAuthContext",
+              "useAuthContext"
+            ]
+          },
+          {
+            "name": "canEditRow",
+            "line": 116,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
+              "renderConfirmDialog"
+            ],
+            "callees": []
+          },
+          {
+            "name": "status",
+            "line": 118,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [],
+            "callees": [
+              "admins",
               "includes",
               "useState",
               "useBoolean",
@@ -135624,7 +135663,7 @@
           },
           {
             "name": "loadInvoices",
-            "line": 127,
+            "line": 137,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -135653,7 +135692,7 @@
           },
           {
             "name": "notFound",
-            "line": 193,
+            "line": 203,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -135661,7 +135700,7 @@
           },
           {
             "name": "getInvoiceLength",
-            "line": 195,
+            "line": 205,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -135672,7 +135711,7 @@
           },
           {
             "name": "getTotalAmount",
-            "line": 197,
+            "line": 207,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -135685,7 +135724,7 @@
           },
           {
             "name": "getPercentByStatus",
-            "line": 203,
+            "line": 213,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -135714,7 +135753,7 @@
           },
           {
             "name": "renderConfirmDialog",
-            "line": 303,
+            "line": 313,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -135737,6 +135776,7 @@
               "includes",
               "onSelectRow",
               "handleDeleteRow",
+              "canEditRow",
               "setTableData",
               "edit",
               "details",
@@ -135751,7 +135791,7 @@
           },
           {
             "name": "applyFilter",
-            "line": 607,
+            "line": 618,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -135775,7 +135815,7 @@
           "InvoiceListView"
         ],
         "routes": [],
-        "healthScore": 50
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/job/job-filters-result.jsx": {
@@ -178089,7 +178129,7 @@
           "VATTableToolbar"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/vat/vat-return-export.js": {
@@ -178262,7 +178302,7 @@
           "prepareVATReturnForStorage"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/vat/view/vat-ap-view.jsx": {
@@ -179405,7 +179445,7 @@
           "VATListView"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 50
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/vat/view/index.js": {
@@ -185683,12 +185723,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/utils/apiHelper.js": {
-      "mtime": 1782288158761,
+      "mtime": 1784657101304,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/utils/apiHelper.js",
         "relativePath": "next-js/src/utils/apiHelper.js",
         "fileType": "util",
-        "lineCount": 5129,
+        "lineCount": 5133,
         "imports": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/utils/jwt-auth.js"
         ],
@@ -185768,6 +185808,7 @@
               "uploadDocument",
               "generateSalaryCertificate",
               "generateLetterDocument",
+              "updateInvoice",
               "createResourceCalculation",
               "updateResourceCalculation",
               "deleteResourceCalculation",
@@ -185797,7 +185838,8 @@
               "getExpense",
               "createExpense",
               "updateExpense",
-              "deleteExpense"
+              "deleteExpense",
+              "updateInvoice"
             ],
             "callees": [
               "localStorage",
@@ -187003,13 +187045,15 @@
             "callers": [],
             "callees": [
               "log",
+              "getUserContext",
               "patch",
+              "getAuthHeaders",
               "error"
             ]
           },
           {
             "name": "approveInvoice",
-            "line": 2510,
+            "line": 2514,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187021,7 +187065,7 @@
           },
           {
             "name": "markInvoicePaid",
-            "line": 2524,
+            "line": 2528,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187032,7 +187076,7 @@
           },
           {
             "name": "issueInvoice",
-            "line": 2546,
+            "line": 2550,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187044,7 +187088,7 @@
           },
           {
             "name": "getEmployees",
-            "line": 2578,
+            "line": 2582,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187055,7 +187099,7 @@
           },
           {
             "name": "getEmployeeById",
-            "line": 2597,
+            "line": 2601,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187067,7 +187111,7 @@
           },
           {
             "name": "createEmployee",
-            "line": 2616,
+            "line": 2620,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187078,7 +187122,7 @@
           },
           {
             "name": "updateEmployee",
-            "line": 2636,
+            "line": 2640,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187089,7 +187133,7 @@
           },
           {
             "name": "deleteEmployee",
-            "line": 2659,
+            "line": 2663,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187100,7 +187144,7 @@
           },
           {
             "name": "getBusinessVisaRequests",
-            "line": 2681,
+            "line": 2685,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187111,7 +187155,7 @@
           },
           {
             "name": "getBusinessVisaRequestById",
-            "line": 2700,
+            "line": 2704,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187123,7 +187167,7 @@
           },
           {
             "name": "createBusinessVisaRequest",
-            "line": 2719,
+            "line": 2723,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187134,7 +187178,7 @@
           },
           {
             "name": "updateBusinessVisaRequest",
-            "line": 2739,
+            "line": 2743,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187145,7 +187189,7 @@
           },
           {
             "name": "deleteBusinessVisaRequest",
-            "line": 2758,
+            "line": 2762,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187156,7 +187200,7 @@
           },
           {
             "name": "getLeaveRequests",
-            "line": 2780,
+            "line": 2784,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187167,7 +187211,7 @@
           },
           {
             "name": "getLeaveRequestById",
-            "line": 2799,
+            "line": 2803,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187179,7 +187223,7 @@
           },
           {
             "name": "createLeaveRequest",
-            "line": 2818,
+            "line": 2822,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187190,7 +187234,7 @@
           },
           {
             "name": "updateLeaveRequest",
-            "line": 2838,
+            "line": 2842,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187201,7 +187245,7 @@
           },
           {
             "name": "deleteLeaveRequest",
-            "line": 2857,
+            "line": 2861,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187212,7 +187256,7 @@
           },
           {
             "name": "fetchRoles",
-            "line": 2879,
+            "line": 2883,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187222,7 +187266,7 @@
           },
           {
             "name": "fetchUsersWithRoles",
-            "line": 2884,
+            "line": 2888,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187232,7 +187276,7 @@
           },
           {
             "name": "setUserRoleApi",
-            "line": 2898,
+            "line": 2902,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187244,7 +187288,7 @@
           },
           {
             "name": "assignManagerApi",
-            "line": 2917,
+            "line": 2921,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187256,7 +187300,7 @@
           },
           {
             "name": "fetchManagerUsers",
-            "line": 2936,
+            "line": 2940,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187268,7 +187312,7 @@
           },
           {
             "name": "fetchNavPermissions",
-            "line": 2956,
+            "line": 2960,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187278,7 +187322,7 @@
           },
           {
             "name": "refreshNavPermissionsCache",
-            "line": 2961,
+            "line": 2965,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187288,7 +187332,7 @@
           },
           {
             "name": "fetchUserNavPermissions",
-            "line": 2975,
+            "line": 2979,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187300,7 +187344,7 @@
           },
           {
             "name": "fetchUserEnabledPaths",
-            "line": 2992,
+            "line": 2996,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187312,7 +187356,7 @@
           },
           {
             "name": "setUserNavPermissions",
-            "line": 3012,
+            "line": 3016,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187323,7 +187367,7 @@
           },
           {
             "name": "grantDefaultPermissions",
-            "line": 3031,
+            "line": 3035,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187334,7 +187378,7 @@
           },
           {
             "name": "fetchEnterpriseAppUsers",
-            "line": 3045,
+            "line": 3049,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187344,7 +187388,7 @@
           },
           {
             "name": "addEnterpriseAppUser",
-            "line": 3050,
+            "line": 3054,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187355,7 +187399,7 @@
           },
           {
             "name": "removeEnterpriseAppUser",
-            "line": 3056,
+            "line": 3060,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187366,7 +187410,7 @@
           },
           {
             "name": "getJobs",
-            "line": 3074,
+            "line": 3078,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187380,7 +187424,7 @@
           },
           {
             "name": "getJobById",
-            "line": 3103,
+            "line": 3107,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187392,7 +187436,7 @@
           },
           {
             "name": "createJob",
-            "line": 3123,
+            "line": 3127,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187403,7 +187447,7 @@
           },
           {
             "name": "updateJob",
-            "line": 3145,
+            "line": 3149,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187414,7 +187458,7 @@
           },
           {
             "name": "deleteJob",
-            "line": 3170,
+            "line": 3174,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187425,7 +187469,7 @@
           },
           {
             "name": "syncJobToWebflow",
-            "line": 3190,
+            "line": 3194,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187436,7 +187480,7 @@
           },
           {
             "name": "testWebflowConnection",
-            "line": 3217,
+            "line": 3221,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187447,7 +187491,7 @@
           },
           {
             "name": "publishToWebflow",
-            "line": 3235,
+            "line": 3239,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187459,7 +187503,7 @@
           },
           {
             "name": "getIntegration",
-            "line": 3255,
+            "line": 3259,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187470,7 +187514,7 @@
           },
           {
             "name": "updateIntegration",
-            "line": 3278,
+            "line": 3282,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187481,7 +187525,7 @@
           },
           {
             "name": "getIntegrations",
-            "line": 3301,
+            "line": 3305,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187493,7 +187537,7 @@
           },
           {
             "name": "createIntegration",
-            "line": 3320,
+            "line": 3324,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187504,7 +187548,7 @@
           },
           {
             "name": "deleteIntegration",
-            "line": 3342,
+            "line": 3346,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187515,7 +187559,7 @@
           },
           {
             "name": "testIntegrationConnection",
-            "line": 3362,
+            "line": 3366,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187526,7 +187570,7 @@
           },
           {
             "name": "getOffers",
-            "line": 3386,
+            "line": 3390,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187537,7 +187581,7 @@
           },
           {
             "name": "getOffer",
-            "line": 3405,
+            "line": 3409,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187549,7 +187593,7 @@
           },
           {
             "name": "createOffer",
-            "line": 3424,
+            "line": 3428,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187560,7 +187604,7 @@
           },
           {
             "name": "updateOffer",
-            "line": 3444,
+            "line": 3448,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187571,7 +187615,7 @@
           },
           {
             "name": "approveOffer",
-            "line": 3465,
+            "line": 3469,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187582,7 +187626,7 @@
           },
           {
             "name": "rejectOffer",
-            "line": 3489,
+            "line": 3493,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187593,7 +187637,7 @@
           },
           {
             "name": "commentOnOffer",
-            "line": 3513,
+            "line": 3517,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187604,7 +187648,7 @@
           },
           {
             "name": "deleteOffer",
-            "line": 3535,
+            "line": 3539,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187615,7 +187659,7 @@
           },
           {
             "name": "sendOfferForSigning",
-            "line": 3556,
+            "line": 3560,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187626,7 +187670,7 @@
           },
           {
             "name": "iotaSignOffer",
-            "line": 3582,
+            "line": 3586,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187638,7 +187682,7 @@
           },
           {
             "name": "getOfferByToken",
-            "line": 3606,
+            "line": 3610,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187649,7 +187693,7 @@
           },
           {
             "name": "employeeSignOffer",
-            "line": 3627,
+            "line": 3631,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187661,7 +187705,7 @@
           },
           {
             "name": "setOfferSignatureZones",
-            "line": 3651,
+            "line": 3655,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187672,7 +187716,7 @@
           },
           {
             "name": "remindEmployeeToSign",
-            "line": 3674,
+            "line": 3678,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187684,7 +187728,7 @@
           },
           {
             "name": "finalizeOffer",
-            "line": 3697,
+            "line": 3701,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187695,7 +187739,7 @@
           },
           {
             "name": "getNdas",
-            "line": 3722,
+            "line": 3726,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187706,7 +187750,7 @@
           },
           {
             "name": "getNda",
-            "line": 3741,
+            "line": 3745,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187718,7 +187762,7 @@
           },
           {
             "name": "getNdaByToken",
-            "line": 3760,
+            "line": 3764,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187730,7 +187774,7 @@
           },
           {
             "name": "createNda",
-            "line": 3779,
+            "line": 3783,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187741,7 +187785,7 @@
           },
           {
             "name": "updateNda",
-            "line": 3799,
+            "line": 3803,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187752,7 +187796,7 @@
           },
           {
             "name": "submitNdaForIotaSigning",
-            "line": 3819,
+            "line": 3823,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187763,7 +187807,7 @@
           },
           {
             "name": "iotaSignNda",
-            "line": 3840,
+            "line": 3844,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187774,7 +187818,7 @@
           },
           {
             "name": "partnerSignNda",
-            "line": 3864,
+            "line": 3868,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187785,7 +187829,7 @@
           },
           {
             "name": "requestNdaOtp",
-            "line": 3884,
+            "line": 3888,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187796,7 +187840,7 @@
           },
           {
             "name": "verifyNdaOtp",
-            "line": 3900,
+            "line": 3904,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187807,7 +187851,7 @@
           },
           {
             "name": "finalizeNda",
-            "line": 3920,
+            "line": 3924,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187818,7 +187862,7 @@
           },
           {
             "name": "cancelNda",
-            "line": 3941,
+            "line": 3945,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187831,7 +187875,7 @@
           },
           {
             "name": "uploadExternalNdaDocument",
-            "line": 3962,
+            "line": 3966,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187843,7 +187887,7 @@
           },
           {
             "name": "setNdaStampPlacements",
-            "line": 3986,
+            "line": 3990,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187854,7 +187898,7 @@
           },
           {
             "name": "setNdaSignatureZones",
-            "line": 4009,
+            "line": 4013,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187865,7 +187909,7 @@
           },
           {
             "name": "remindPartnerSignatories",
-            "line": 4032,
+            "line": 4036,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187876,7 +187920,7 @@
           },
           {
             "name": "setNdaPartnerSignatureZones",
-            "line": 4054,
+            "line": 4058,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187888,7 +187932,7 @@
           },
           {
             "name": "markNdaFullyExecuted",
-            "line": 4076,
+            "line": 4080,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187899,7 +187943,7 @@
           },
           {
             "name": "createNdaUploadSession",
-            "line": 4094,
+            "line": 4098,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187910,7 +187954,7 @@
           },
           {
             "name": "linkNdaDocument",
-            "line": 4111,
+            "line": 4115,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187922,7 +187966,7 @@
           },
           {
             "name": "fetchNdaDocumentContent",
-            "line": 4129,
+            "line": 4133,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187933,7 +187977,7 @@
           },
           {
             "name": "getWebhookEvents",
-            "line": 4152,
+            "line": 4156,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187944,7 +187988,7 @@
           },
           {
             "name": "getLogDrainStatus",
-            "line": 4184,
+            "line": 4188,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187955,7 +187999,7 @@
           },
           {
             "name": "toggleLogDrain",
-            "line": 4203,
+            "line": 4207,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -187970,7 +188014,7 @@
           },
           {
             "name": "fetchQuranVerse",
-            "line": 4225,
+            "line": 4229,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -187987,7 +188031,7 @@
           },
           {
             "name": "fetchQuranTafsir",
-            "line": 4246,
+            "line": 4250,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -188000,7 +188044,7 @@
           },
           {
             "name": "getPolicies",
-            "line": 4269,
+            "line": 4273,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188011,7 +188055,7 @@
           },
           {
             "name": "getPolicyById",
-            "line": 4288,
+            "line": 4292,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188022,7 +188066,7 @@
           },
           {
             "name": "getPolicyAcknowledgements",
-            "line": 4306,
+            "line": 4310,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188033,7 +188077,7 @@
           },
           {
             "name": "getPolicyAcknowledgementsByEmployee",
-            "line": 4325,
+            "line": 4329,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188045,7 +188089,7 @@
           },
           {
             "name": "sendPolicyLinksToEmployee",
-            "line": 4347,
+            "line": 4351,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188057,7 +188101,7 @@
           },
           {
             "name": "sendPoliciesToSelectedEmployees",
-            "line": 4369,
+            "line": 4373,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188070,7 +188114,7 @@
           },
           {
             "name": "getPolicyBySigningToken",
-            "line": 4394,
+            "line": 4398,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188082,7 +188126,7 @@
           },
           {
             "name": "signPolicy",
-            "line": 4414,
+            "line": 4418,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188094,7 +188138,7 @@
           },
           {
             "name": "seedPolicies",
-            "line": 4432,
+            "line": 4436,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188105,7 +188149,7 @@
           },
           {
             "name": "updatePolicy",
-            "line": 4452,
+            "line": 4456,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188116,7 +188160,7 @@
           },
           {
             "name": "getPolicyRoleAssignments",
-            "line": 4466,
+            "line": 4470,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188129,7 +188173,7 @@
           },
           {
             "name": "assignPoliciesToRole",
-            "line": 4483,
+            "line": 4487,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188140,7 +188184,7 @@
           },
           {
             "name": "sendPoliciesByRole",
-            "line": 4503,
+            "line": 4507,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188151,7 +188195,7 @@
           },
           {
             "name": "listPipelineDeals",
-            "line": 4522,
+            "line": 4526,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188161,7 +188205,7 @@
           },
           {
             "name": "getPipelineDeal",
-            "line": 4527,
+            "line": 4531,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188171,7 +188215,7 @@
           },
           {
             "name": "createPipelineDeal",
-            "line": 4532,
+            "line": 4536,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188181,7 +188225,7 @@
           },
           {
             "name": "updatePipelineDeal",
-            "line": 4537,
+            "line": 4541,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188191,7 +188235,7 @@
           },
           {
             "name": "deletePipelineDeal",
-            "line": 4542,
+            "line": 4546,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188201,7 +188245,7 @@
           },
           {
             "name": "updatePipelineDealStage",
-            "line": 4547,
+            "line": 4551,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188211,7 +188255,7 @@
           },
           {
             "name": "addPipelineActivity",
-            "line": 4552,
+            "line": 4556,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188221,7 +188265,7 @@
           },
           {
             "name": "listLedgerEntries",
-            "line": 4566,
+            "line": 4570,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188231,7 +188275,7 @@
           },
           {
             "name": "getLedgerEntry",
-            "line": 4571,
+            "line": 4575,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188241,7 +188285,7 @@
           },
           {
             "name": "createLedgerEntry",
-            "line": 4576,
+            "line": 4580,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188251,7 +188295,7 @@
           },
           {
             "name": "updateLedgerEntry",
-            "line": 4581,
+            "line": 4585,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188261,7 +188305,7 @@
           },
           {
             "name": "deleteLedgerEntry",
-            "line": 4586,
+            "line": 4590,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188271,7 +188315,7 @@
           },
           {
             "name": "addLedgerActivity",
-            "line": 4591,
+            "line": 4595,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188281,7 +188325,7 @@
           },
           {
             "name": "listJobDescriptions",
-            "line": 4605,
+            "line": 4609,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188291,7 +188335,7 @@
           },
           {
             "name": "getJobDescription",
-            "line": 4610,
+            "line": 4614,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188301,7 +188345,7 @@
           },
           {
             "name": "createJobDescription",
-            "line": 4615,
+            "line": 4619,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188311,7 +188355,7 @@
           },
           {
             "name": "updateJobDescription",
-            "line": 4620,
+            "line": 4624,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188321,7 +188365,7 @@
           },
           {
             "name": "deleteJobDescription",
-            "line": 4625,
+            "line": 4629,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188331,7 +188375,7 @@
           },
           {
             "name": "listCandidates",
-            "line": 4630,
+            "line": 4634,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188341,7 +188385,7 @@
           },
           {
             "name": "getCandidate",
-            "line": 4635,
+            "line": 4639,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188351,7 +188395,7 @@
           },
           {
             "name": "updateCandidate",
-            "line": 4640,
+            "line": 4644,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188361,7 +188405,7 @@
           },
           {
             "name": "deleteCandidate",
-            "line": 4648,
+            "line": 4652,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188371,7 +188415,7 @@
           },
           {
             "name": "uploadResume",
-            "line": 4658,
+            "line": 4662,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188388,7 +188432,7 @@
           },
           {
             "name": "matchJDtoCandidates",
-            "line": 4680,
+            "line": 4684,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188398,7 +188442,7 @@
           },
           {
             "name": "getMatchResults",
-            "line": 4685,
+            "line": 4689,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188408,7 +188452,7 @@
           },
           {
             "name": "generateJobDescription",
-            "line": 4692,
+            "line": 4696,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188418,7 +188462,7 @@
           },
           {
             "name": "getResourceCalculationTemplates",
-            "line": 4697,
+            "line": 4701,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188428,7 +188472,7 @@
           },
           {
             "name": "listResourceCalculations",
-            "line": 4704,
+            "line": 4708,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188438,7 +188482,7 @@
           },
           {
             "name": "getResourceCalculation",
-            "line": 4709,
+            "line": 4713,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188448,7 +188492,7 @@
           },
           {
             "name": "createResourceCalculation",
-            "line": 4714,
+            "line": 4718,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188459,7 +188503,7 @@
           },
           {
             "name": "updateResourceCalculation",
-            "line": 4722,
+            "line": 4726,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188470,7 +188514,7 @@
           },
           {
             "name": "deleteResourceCalculation",
-            "line": 4732,
+            "line": 4736,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188481,7 +188525,7 @@
           },
           {
             "name": "submitRCForApproval",
-            "line": 4740,
+            "line": 4744,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188494,7 +188538,7 @@
           },
           {
             "name": "forwardRC",
-            "line": 4757,
+            "line": 4761,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188505,7 +188549,7 @@
           },
           {
             "name": "approveRC",
-            "line": 4767,
+            "line": 4771,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188516,7 +188560,7 @@
           },
           {
             "name": "getAzureBilling",
-            "line": 4783,
+            "line": 4787,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188526,7 +188570,7 @@
           },
           {
             "name": "generateCandidateIntakeToken",
-            "line": 4790,
+            "line": 4794,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188537,7 +188581,7 @@
           },
           {
             "name": "listCandidateIntakeTokens",
-            "line": 4797,
+            "line": 4801,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188548,7 +188592,7 @@
           },
           {
             "name": "revokeCandidateIntakeToken",
-            "line": 4805,
+            "line": 4809,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188559,7 +188603,7 @@
           },
           {
             "name": "listCandidateIntakeSubmissions",
-            "line": 4814,
+            "line": 4818,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188570,7 +188614,7 @@
           },
           {
             "name": "getCandidateIntakeSubmission",
-            "line": 4822,
+            "line": 4826,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188582,7 +188626,7 @@
           },
           {
             "name": "getCandidateIntakeToken",
-            "line": 4831,
+            "line": 4835,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188592,7 +188636,7 @@
           },
           {
             "name": "requestCandidateIntakeOtp",
-            "line": 4836,
+            "line": 4840,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188602,7 +188646,7 @@
           },
           {
             "name": "verifyCandidateIntakeOtp",
-            "line": 4843,
+            "line": 4847,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188612,7 +188656,7 @@
           },
           {
             "name": "submitCandidateIntakeForm",
-            "line": 4851,
+            "line": 4855,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188622,7 +188666,7 @@
           },
           {
             "name": "totpSetup",
-            "line": 5084,
+            "line": 5088,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188632,7 +188676,7 @@
           },
           {
             "name": "totpVerifySetup",
-            "line": 5094,
+            "line": 5098,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188643,7 +188687,7 @@
           },
           {
             "name": "totpVerify",
-            "line": 5105,
+            "line": 5109,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188653,7 +188697,7 @@
           },
           {
             "name": "totpStatus",
-            "line": 5114,
+            "line": 5118,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188664,7 +188708,7 @@
           },
           {
             "name": "totpUnlock",
-            "line": 5119,
+            "line": 5123,
             "isExported": true,
             "isAsync": true,
             "callers": [],
@@ -188674,7 +188718,7 @@
           },
           {
             "name": "totpReset",
-            "line": 5124,
+            "line": 5128,
             "isExported": true,
             "isAsync": true,
             "callers": [],

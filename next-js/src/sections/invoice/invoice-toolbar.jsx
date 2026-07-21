@@ -19,6 +19,8 @@ import { issueInvoice } from 'src/utils/apiHelper';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 
+import { useAuthContext } from 'src/auth/hooks';
+
 const DOCS_BASE_URL = 'https://docs.iotatechnologies.io';
 
 export function InvoiceToolbar({
@@ -30,6 +32,16 @@ export function InvoiceToolbar({
 }) {
   const { value: open, onFalse: onClose, onTrue: onOpen } = useBoolean();
   const [issuing, setIssuing] = useState(false);
+  const { user } = useAuthContext();
+
+  // Only the creator may edit, and only while pending; super-admins can always.
+  const roleIdToName = { 1: 'regular', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
+  const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
+  const editStatus = (currentStatus || invoice?.status || '').toLowerCase();
+  const isPending = editStatus === 'pending' || editStatus === 'draft';
+  const canEdit =
+    normalizedRole === 'superAdmin' ||
+    (isPending && !!invoice?.createdByEmail && invoice?.createdByEmail === user?.email);
 
   const isPaid = currentStatus === 'paid';
   const publicLink = invoice?.viewToken ? `${DOCS_BASE_URL}/view/${invoice.viewToken}` : null;
@@ -116,14 +128,16 @@ export function InvoiceToolbar({
             display: 'flex',
           }}
         >
-          <Tooltip title="Edit">
-            <IconButton
-              component={RouterLink}
-              href={paths.dashboard.invoice.edit(`${invoice?.id}`)}
-            >
-              <Iconify icon="solar:pen-bold" />
-            </IconButton>
-          </Tooltip>
+          {canEdit && (
+            <Tooltip title="Edit">
+              <IconButton
+                component={RouterLink}
+                href={paths.dashboard.invoice.edit(`${invoice?.id}`)}
+              >
+                <Iconify icon="solar:pen-bold" />
+              </IconButton>
+            </Tooltip>
+          )}
 
           <Tooltip title="View">
             <IconButton onClick={onOpen}>
