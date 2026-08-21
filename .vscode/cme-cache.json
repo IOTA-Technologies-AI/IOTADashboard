@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1787309614283,
+  "timestamp": 1787312783887,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_invoice.js": {
       "mtime": 1761284298333,
@@ -131011,7 +131011,7 @@
           "InvoiceApprovalDialog"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-analytic.jsx": {
@@ -131105,7 +131105,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-address.jsx": {
-      "mtime": 1787308503089,
+      "mtime": 1787312782283,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-address.jsx",
         "relativePath": "next-js/src/sections/invoice/invoice-create-edit-address.jsx",
@@ -132642,7 +132642,7 @@
           "InvoiceCreateEditForm"
         ],
         "routes": [],
-        "healthScore": 85
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-table-filters-result.jsx": {
@@ -134321,16 +134321,16 @@
           "InvoiceEditView"
         ],
         "routes": [],
-        "healthScore": 65
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-toolbar.jsx": {
-      "mtime": 1784657223227,
+      "mtime": 1787312767116,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-toolbar.jsx",
         "relativePath": "next-js/src/sections/invoice/invoice-toolbar.jsx",
         "fileType": "generic",
-        "lineCount": 212,
+        "lineCount": 226,
         "imports": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-pdf.jsx"
         ],
@@ -134344,7 +134344,8 @@
             "isLocal": false,
             "line": 0,
             "names": [
-              "useState"
+              "useState",
+              "useEffect"
             ]
           },
           {
@@ -134461,7 +134462,8 @@
             "isLocal": false,
             "line": 16,
             "names": [
-              "issueInvoice"
+              "issueInvoice",
+              "fetchOfficeConfigs"
             ]
           },
           {
@@ -134495,14 +134497,14 @@
             "source": "@react-pdf/renderer",
             "resolved": "",
             "isLocal": false,
-            "line": 65,
+            "line": 75,
             "names": []
           },
           {
             "source": "./invoice-pdf",
             "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-pdf.jsx",
             "isLocal": true,
-            "line": 66,
+            "line": 76,
             "names": []
           }
         ],
@@ -134516,12 +134518,16 @@
             "callees": [
               "useBoolean",
               "useState",
-              "useAuthContext"
+              "useAuthContext",
+              "useEffect",
+              "fetchOfficeConfigs",
+              "then",
+              "setLiveOffices"
             ]
           },
           {
             "name": "editStatus",
-            "line": 39,
+            "line": 49,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -134529,7 +134535,7 @@
           },
           {
             "name": "handleCopyPublicLink",
-            "line": 48,
+            "line": 58,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -134542,7 +134548,7 @@
           },
           {
             "name": "handleIssue",
-            "line": 60,
+            "line": 70,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -134563,7 +134569,7 @@
           },
           {
             "name": "renderDetailsDialog",
-            "line": 90,
+            "line": 104,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -134582,7 +134588,7 @@
           "InvoiceToolbar"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-create-view.jsx": {
@@ -136695,7 +136701,7 @@
           "InvoicePDFViewer"
         ],
         "routes": [],
-        "healthScore": 85
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/job/job-sort.jsx": {

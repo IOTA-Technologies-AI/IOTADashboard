@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useBoolean } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
@@ -14,7 +14,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
-import { issueInvoice } from 'src/utils/apiHelper';
+import { issueInvoice, fetchOfficeConfigs } from 'src/utils/apiHelper';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -32,7 +32,17 @@ export function InvoiceToolbar({
 }) {
   const { value: open, onFalse: onClose, onTrue: onOpen } = useBoolean();
   const [issuing, setIssuing] = useState(false);
+  const [liveOffices, setLiveOffices] = useState(null);
   const { user } = useAuthContext();
+
+  // Bank details, seller name and email come from the iotaOffice app config.
+  // Without this the issued PDF falls back to the hardcoded IOTA_OFFICES list,
+  // which is how invoices went out quoting the old bank.
+  useEffect(() => {
+    fetchOfficeConfigs().then((offices) => {
+      if (offices?.length) setLiveOffices(offices);
+    });
+  }, []);
 
   // Only the creator may edit, and only while pending; super-admins can always.
   const roleIdToName = { 1: 'regular', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
@@ -67,7 +77,11 @@ export function InvoiceToolbar({
         import('./invoice-pdf'),
       ]);
       const blob = await renderPdf(
-        <InvoicePdfDocument invoice={invoice} currentStatus={currentStatus} />
+        <InvoicePdfDocument
+          invoice={invoice}
+          currentStatus={currentStatus}
+          offices={liveOffices || undefined}
+        />
       ).toBlob();
       const arrayBuffer = await blob.arrayBuffer();
       // Convert to base64 without btoa size limit
