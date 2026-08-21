@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1787312783887,
+  "timestamp": 1787314796397,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_invoice.js": {
       "mtime": 1761284298333,
@@ -34462,12 +34462,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/invoice-print/[id]/page.jsx": {
-      "mtime": 1787309612594,
+      "mtime": 1787314687322,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/invoice-print/[id]/page.jsx",
         "relativePath": "next-js/src/app/invoice-print/[id]/page.jsx",
         "fileType": "generic",
-        "lineCount": 398,
+        "lineCount": 394,
         "imports": [],
         "importedBy": [],
         "importInfos": [
@@ -34519,6 +34519,7 @@
             "line": 7,
             "names": [
               "vatRateLabel",
+              "INVOICE_LABELS",
               "amountInWordsAr",
               "amountInWordsEn"
             ]
@@ -34536,7 +34537,7 @@
             "source": "qrcode",
             "resolved": "",
             "isLocal": false,
-            "line": 293,
+            "line": 289,
             "names": []
           }
         ],
@@ -34614,7 +34615,7 @@
           },
           {
             "name": "InvoicePrintPage",
-            "line": 189,
+            "line": 185,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -34638,7 +34639,7 @@
           },
           {
             "name": "customer",
-            "line": 215,
+            "line": 211,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -34661,7 +34662,7 @@
           },
           {
             "name": "write",
-            "line": 335,
+            "line": 331,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -34677,7 +34678,7 @@
           },
           {
             "name": "doPrint",
-            "line": 344,
+            "line": 340,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -131011,7 +131012,7 @@
           "InvoiceApprovalDialog"
         ],
         "routes": [],
-        "healthScore": 85
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-analytic.jsx": {
@@ -132642,7 +132643,7 @@
           "InvoiceCreateEditForm"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-table-filters-result.jsx": {
@@ -134321,7 +134322,7 @@
           "InvoiceEditView"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 65
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-toolbar.jsx": {
@@ -134588,7 +134589,7 @@
           "InvoiceToolbar"
         ],
         "routes": [],
-        "healthScore": 85
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-create-view.jsx": {
@@ -136489,12 +136490,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-pdf.jsx": {
-      "mtime": 1787309612594,
+      "mtime": 1787314794801,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-pdf.jsx",
         "relativePath": "next-js/src/sections/invoice/invoice-pdf.jsx",
         "fileType": "generic",
-        "lineCount": 763,
+        "lineCount": 782,
         "imports": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-address.jsx"
         ],
@@ -136584,14 +136585,14 @@
             "source": "qrcode",
             "resolved": "",
             "isLocal": false,
-            "line": 696,
+            "line": 715,
             "names": []
           },
           {
             "source": "qrcode",
             "resolved": "",
             "isLocal": false,
-            "line": 743,
+            "line": 762,
             "names": []
           }
         ],
@@ -136613,7 +136614,7 @@
           },
           {
             "name": "InvoicePdfDocument",
-            "line": 342,
+            "line": 361,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -136628,7 +136629,7 @@
           },
           {
             "name": "fmt",
-            "line": 369,
+            "line": 390,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -136643,7 +136644,7 @@
           },
           {
             "name": "BiRow",
-            "line": 379,
+            "line": 400,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -136655,7 +136656,7 @@
           },
           {
             "name": "InvoicePDFDownload",
-            "line": 689,
+            "line": 708,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -136669,7 +136670,7 @@
           },
           {
             "name": "renderButton",
-            "line": 703,
+            "line": 722,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -136681,7 +136682,7 @@
           },
           {
             "name": "InvoicePDFViewer",
-            "line": 736,
+            "line": 755,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -191384,19 +191385,19 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/utils/invoice-i18n.js": {
-      "mtime": 1787309553751,
+      "mtime": 1787314651809,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/utils/invoice-i18n.js",
         "relativePath": "next-js/src/utils/invoice-i18n.js",
         "fileType": "util",
-        "lineCount": 333,
+        "lineCount": 336,
         "imports": [],
         "importedBy": [],
         "importInfos": [],
         "functions": [
           {
             "name": "vatRateLabel",
-            "line": 59,
+            "line": 62,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -191406,7 +191407,7 @@
           },
           {
             "name": "arForms",
-            "line": 72,
+            "line": 75,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -191419,7 +191420,7 @@
           },
           {
             "name": "toWordsEn",
-            "line": 155,
+            "line": 158,
             "isExported": true,
             "isAsync": false,
             "callers": [
@@ -191433,7 +191434,7 @@
           },
           {
             "name": "amountInWordsEn",
-            "line": 172,
+            "line": 175,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -191447,7 +191448,7 @@
           },
           {
             "name": "arBelowThousand",
-            "line": 236,
+            "line": 239,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -191463,7 +191464,7 @@
           },
           {
             "name": "arCountedForm",
-            "line": 260,
+            "line": 263,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -191474,7 +191475,7 @@
           },
           {
             "name": "arDropNun",
-            "line": 273,
+            "line": 276,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -191488,7 +191489,7 @@
           },
           {
             "name": "arScale",
-            "line": 281,
+            "line": 284,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -191503,7 +191504,7 @@
           },
           {
             "name": "toWordsAr",
-            "line": 291,
+            "line": 294,
             "isExported": true,
             "isAsync": false,
             "callers": [
@@ -191519,7 +191520,7 @@
           },
           {
             "name": "amountInWordsAr",
-            "line": 310,
+            "line": 313,
             "isExported": true,
             "isAsync": false,
             "callers": [],

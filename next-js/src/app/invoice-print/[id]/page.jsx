@@ -5,7 +5,7 @@ import { useParams, useSearchParams } from 'next/navigation';
 
 import { fDate } from 'src/utils/format-time';
 import { fetchInvoice, getCustomers, fetchOfficeConfigs } from 'src/utils/apiHelper';
-import { vatRateLabel, amountInWordsAr, amountInWordsEn } from 'src/utils/invoice-i18n';
+import { vatRateLabel, INVOICE_LABELS, amountInWordsAr, amountInWordsEn } from 'src/utils/invoice-i18n';
 
 import { IOTA_OFFICES } from 'src/sections/invoice/invoice-create-edit-address';
 
@@ -107,13 +107,9 @@ function fillTemplate(templateHtml, invoice, officeList, qrCodeBlock) {
       </div>`
     : '';
 
-  // Seller identity — Arabic name is required on a KSA tax invoice
-  const sellerNameRow = office.name
-    ? `<div class="meta-line meta-seller bi">
-        <span class="en">${esc(office.name)}</span>
-        <span class="ar">${esc(office.nameAr || '')}</span>
-      </div>`
-    : '';
+  // Seller identity sits in the header next to the logo. The Arabic company
+  // name is required on a KSA tax invoice; the office config can override it.
+  const companyNameAr = office.nameAr || INVOICE_LABELS.companyName.ar;
 
   const customerVatHtml = invoice.invoiceTo.vatNumber
     ? `<div class="body-sm bi">
@@ -145,8 +141,8 @@ function fillTemplate(templateHtml, invoice, officeList, qrCodeBlock) {
     .join(customerVatHtml)
     .split('{{META_VAT_ROW}}')
     .join(metaVatRow)
-    .split('{{SELLER_NAME_ROW}}')
-    .join(sellerNameRow)
+    .split('{{COMPANY_NAME_AR}}')
+    .join(esc(companyNameAr))
     .split('{{INVOICE_DATE}}')
     .join(esc(fDate(invoice.createDate)))
     .split('{{DUE_DATE}}')

@@ -15,7 +15,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 export const INVOICE_LABELS = {
-  // Header
+  // Header — logo and company name on the left, invoice title centred.
+  // `companyName` is the legal entity; the Arabic form is overridden by the
+  // office config's nameAr when one is set.
+  companyName: { en: 'IOTA Technologies Company', ar: 'شركة آي أو تي إيه تيكنالوجيز' },
   invoiceTitle: { en: 'Invoice', ar: 'فاتورة ضريبية' },
 
   // Billing block

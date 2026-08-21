@@ -84,28 +84,47 @@ const useStyles = () =>
         biEn: { flexGrow: 1, flexBasis: 0, flexShrink: 1, paddingRight: 6 },
         biAr: { flexShrink: 0 },
         ar: { fontFamily: 'Cairo', textAlign: 'right' },
-        // ── Header ──
+        // ── Header: logo + company name left, title centred ──
+        // Equal-width flanks keep the title centred on the page, not on the
+        // space the logo happens to leave.
         header: {
           flexDirection: 'row',
-          justifyContent: 'space-between',
           alignItems: 'center',
           marginBottom: 16,
         },
-        invoiceTitle: {
-          fontSize: 22,
+        headerSide: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+        companyBlock: { flexShrink: 1 },
+        headerCenter: { alignItems: 'center' },
+        companyName: {
+          fontSize: 8.25, // 11px in the template
           fontWeight: 700,
-          letterSpacing: 8,
+          color: '#1a1a1a',
+          lineHeight: 1.3,
+        },
+        companyNameAr: {
+          fontFamily: 'Cairo',
+          fontSize: 7.5, // 10px in the template
+          fontWeight: 700,
+          color: '#1a1a1a',
+          lineHeight: 1.5,
+        },
+        invoiceTitle: {
+          fontSize: 21, // 28px in the template
+          fontWeight: 700,
+          letterSpacing: 6,
           color: '#1a1a1a',
           textTransform: 'uppercase',
+          textAlign: 'center',
         },
         invoiceTitleAr: {
           fontFamily: 'Cairo',
-          fontSize: 13,
+          fontSize: 11.25, // 15px in the template
           fontWeight: 700,
           color: '#1a1a1a',
           marginTop: 3,
+          textAlign: 'center',
         },
-        logo: { width: 44, height: 44 },
+        logo: { width: 36, height: 36, marginRight: 7.5 }, // 48px + 10px gap
         // ── Blue accent line ──
         accent: {
           height: 1.5,
@@ -360,6 +379,8 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
   const office = officeList.find((o) => o.currency === currencyCode) || officeList[0];
   const bank = office.bankDetails || {};
   const vatLabel = vatRateLabel(vatRate);
+  // Office config can override the Arabic company name without a deploy
+  const companyNameAr = office.nameAr || L.companyName.ar;
   const wordsEn = amountInWordsEn(totalAmount, currencyCode);
   const wordsAr = amountInWordsAr(totalAmount, currencyCode);
   // Amounts print as "SAR 48,428.80" (ISO code), not the ﷼ symbol that
@@ -388,13 +409,20 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.content}>
-          {/* ── HEADER: bilingual title left, logo right ── */}
+          {/* ── HEADER: logo + company name left, bilingual title centred ── */}
           <View style={styles.header}>
-            <View>
+            <View style={styles.headerSide}>
+              <Image source="/logo/logo-single.png" style={styles.logo} />
+              <View style={styles.companyBlock}>
+                <Text style={styles.companyName}>{L.companyName.en}</Text>
+                <Text style={styles.companyNameAr}>{companyNameAr}</Text>
+              </View>
+            </View>
+            <View style={styles.headerCenter}>
               <Text style={styles.invoiceTitle}>{L.invoiceTitle.en}</Text>
               <Text style={styles.invoiceTitleAr}>{L.invoiceTitle.ar}</Text>
             </View>
-            <Image source="/logo/logo-single.png" style={styles.logo} />
+            <View style={styles.headerSide} />
           </View>
 
           {/* Blue accent line */}
@@ -433,15 +461,6 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
 
             {/* Seller identity + invoice meta */}
             <View style={styles.metaCol}>
-              {office.name ? (
-                <BiRow
-                  en={office.name}
-                  ar={office.nameAr}
-                  enStyle={[styles.metaLine, styles.metaSeller]}
-                  arStyle={[styles.metaLineAr, styles.metaSeller]}
-                  style={styles.metaRow}
-                />
-              ) : null}
               {office.vatNumber ? (
                 <BiRow
                   en={`${L.sellerVatNumber.en}: ${office.vatNumber}`}
