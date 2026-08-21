@@ -16,74 +16,42 @@ import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { fDate } from 'src/utils/format-time';
-import { fCurrency } from 'src/utils/format-number';
+import { vatRateLabel, INVOICE_LABELS, amountInWordsAr, amountInWordsEn } from 'src/utils/invoice-i18n';
 
 import { Iconify } from 'src/components/iconify';
+
 import { IOTA_OFFICES } from './invoice-create-edit-address';
 
-// ── Number-to-words helper ────────────────────────────────────────────────────
-const ONES = [
-  '',
-  'One',
-  'Two',
-  'Three',
-  'Four',
-  'Five',
-  'Six',
-  'Seven',
-  'Eight',
-  'Nine',
-  'Ten',
-  'Eleven',
-  'Twelve',
-  'Thirteen',
-  'Fourteen',
-  'Fifteen',
-  'Sixteen',
-  'Seventeen',
-  'Eighteen',
-  'Nineteen',
-];
-const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+// ─────────────────────────────────────────────────────────────────────────────
+// Bilingual (English / Arabic) invoice PDF — this is the document attached to
+// the customer email when an invoice is issued (see invoice-toolbar.jsx).
+//
+// It mirrors, layout for layout, the print template at
+//   public/assets/template/IOTA Invoice Template.html
+// Every label is English-left / Arabic-right on the same line. Wording comes
+// from src/utils/invoice-i18n.js — keep the HTML template in step with it.
+// ─────────────────────────────────────────────────────────────────────────────
 
-function toWords(n) {
-  if (!n || n === 0) return 'Zero';
-  if (n < 20) return ONES[n];
-  if (n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? ' ' + ONES[n % 10] : '');
-  if (n < 1000)
-    return ONES[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + toWords(n % 100) : '');
-  if (n < 1_000_000)
-    return toWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + toWords(n % 1000) : '');
-  return (
-    toWords(Math.floor(n / 1_000_000)) +
-    ' Million' +
-    (n % 1_000_000 ? ' ' + toWords(n % 1_000_000) : '')
-  );
-}
+const L = INVOICE_LABELS;
 
-const CURRENCY_NAMES = {
-  SAR: 'Saudi Riyals',
-  AED: 'UAE Dirhams',
-  USD: 'US Dollars',
-  EUR: 'Euros',
-  GBP: 'British Pounds',
-};
-
-function amountInWords(amount, currencyCode = 'SAR') {
-  if (!amount || isNaN(amount)) return '';
-  const whole = Math.floor(amount);
-  const fraction = Math.round((amount - whole) * 100);
-  const currency = CURRENCY_NAMES[currencyCode] || currencyCode;
-  let words = toWords(whole) + ' ' + currency;
-  if (fraction > 0) words += ' and ' + toWords(fraction) + ' Fils';
-  return words + ' Only.';
-}
-
-// ── Font ──────────────────────────────────────────────────────────────────────
+// ── Fonts ─────────────────────────────────────────────────────────────────────
 
 Font.register({
   family: 'Roboto',
   fonts: [{ src: '/fonts/Roboto-Regular.ttf' }, { src: '/fonts/Roboto-Bold.ttf', fontWeight: 700 }],
+});
+
+// Arabic face — fontkit applies the Arabic shaper, so text is joined and
+// right-to-left ordered automatically; no manual reversing anywhere.
+//
+// Cairo, not Noto Naskh Arabic: react-pdf's subsetter drops glyphs from the
+// Noto Arabic faces, so words come out truncated in the generated PDF
+// ("فاتورة ضريبية" → "فاتورة ضر"). Cairo embeds cleanly. The print template
+// (public/assets/template/IOTA Invoice Template.html) uses the same face so
+// the printed and emailed invoices look identical.
+Font.register({
+  family: 'Cairo',
+  fonts: [{ src: '/fonts/Cairo-Regular.ttf' }, { src: '/fonts/Cairo-Bold.ttf', fontWeight: 700 }],
 });
 
 // ── Styles ────────────────────────────────────────────────────────────────────
@@ -104,6 +72,18 @@ const useStyles = () =>
           paddingHorizontal: 48,
           flexDirection: 'column',
         },
+        // ── Bilingual line: English left, Arabic right ──
+        biRow: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+        },
+        // English takes whatever width the Arabic label leaves and wraps within
+        // it; the Arabic label always keeps its natural width. Without this a
+        // long value (a 15-digit VAT number) overlaps the Arabic text.
+        biEn: { flexGrow: 1, flexBasis: 0, flexShrink: 1, paddingRight: 6 },
+        biAr: { flexShrink: 0 },
+        ar: { fontFamily: 'Cairo', textAlign: 'right' },
         // ── Header ──
         header: {
           flexDirection: 'row',
@@ -118,6 +98,13 @@ const useStyles = () =>
           color: '#1a1a1a',
           textTransform: 'uppercase',
         },
+        invoiceTitleAr: {
+          fontFamily: 'Cairo',
+          fontSize: 13,
+          fontWeight: 700,
+          color: '#1a1a1a',
+          marginTop: 3,
+        },
         logo: { width: 44, height: 44 },
         // ── Blue accent line ──
         accent: {
@@ -129,31 +116,44 @@ const useStyles = () =>
         billingRow: {
           flexDirection: 'row',
           justifyContent: 'space-between',
-          marginBottom: 28,
+          marginBottom: 26,
         },
-        billCol: { width: '50%' },
-        metaCol: { width: '48%', alignItems: 'flex-end' },
+        billCol: { width: '48%' },
+        metaCol: { width: '48%' },
         billLabel: {
           fontSize: 8,
           fontWeight: 700,
           color: '#1a1a1a',
           textTransform: 'uppercase',
-          marginBottom: 4,
         },
+        billLabelAr: {
+          fontFamily: 'Cairo',
+          fontSize: 8.5,
+          fontWeight: 700,
+          color: '#1a1a1a',
+          textAlign: 'right',
+        },
+        billLabelRow: { marginBottom: 4 },
         customerName: {
+          fontSize: 11,
+          fontWeight: 700,
+          color: '#1a1a1a',
+          marginBottom: 2,
+        },
+        customerNameAr: {
+          fontFamily: 'Cairo',
           fontSize: 11,
           fontWeight: 700,
           color: '#1a1a1a',
           marginBottom: 3,
         },
         bodySm: { fontSize: 9, color: '#1a1a1a', lineHeight: 1.65, marginBottom: 1 },
-        metaLine: {
-          fontSize: 9,
-          color: '#1a1a1a',
-          lineHeight: 1.85,
-          marginBottom: 1,
-          textAlign: 'right',
-        },
+        bodySmAr: { fontFamily: 'Cairo', fontSize: 8.5, color: '#1a1a1a' },
+        // Meta lines
+        metaRow: { marginBottom: 3 },
+        metaLine: { fontSize: 8.5, color: '#1a1a1a' },
+        metaLineAr: { fontFamily: 'Cairo', fontSize: 8, color: '#1a1a1a' },
+        metaSeller: { fontWeight: 700 },
         // ── Items table — outer blue border, flex:1 fills remaining page height ──
         tableOuter: {
           flex: 1,
@@ -170,21 +170,28 @@ const useStyles = () =>
           borderBottomColor: '#0166ff',
           borderBottomStyle: 'solid',
         },
-        thDesc: { flex: 1, paddingVertical: 10, paddingHorizontal: 14 },
+        thDesc: { flex: 1, paddingVertical: 9, paddingHorizontal: 14 },
         thAmount: {
-          width: 110,
-          paddingVertical: 10,
-          paddingHorizontal: 14,
+          width: 140,
+          paddingVertical: 9,
+          paddingHorizontal: 12,
           borderLeftWidth: 1.5,
           borderLeftColor: '#0166ff',
           borderLeftStyle: 'solid',
-          alignItems: 'flex-end',
         },
         thText: {
           fontSize: 8,
           fontWeight: 700,
           color: '#1a1a1a',
           textTransform: 'uppercase',
+        },
+        thTextRight: { textAlign: 'right', width: '100%' },
+        thTextAr: {
+          fontFamily: 'Cairo',
+          fontSize: 8.5,
+          fontWeight: 700,
+          color: '#1a1a1a',
+          textAlign: 'right',
         },
         // Item rows
         itemRow: {
@@ -195,18 +202,24 @@ const useStyles = () =>
         },
         tdDesc: { flex: 1, paddingVertical: 12, paddingHorizontal: 14 },
         tdAmount: {
-          width: 110,
+          width: 140,
           paddingTop: 12,
           paddingBottom: 12,
-          paddingHorizontal: 14,
+          paddingHorizontal: 12,
           borderLeftWidth: 1.5,
           borderLeftColor: '#0166ff',
           borderLeftStyle: 'solid',
-          alignItems: 'flex-end',
         },
         itemTitle: { fontSize: 9, fontWeight: 700, color: '#1a1a1a', marginBottom: 2 },
+        itemTitleAr: {
+          fontFamily: 'Cairo',
+          fontSize: 9,
+          fontWeight: 700,
+          color: '#1a1a1a',
+          textAlign: 'right',
+        },
         itemDesc: { fontSize: 8.5, color: '#1a1a1a', lineHeight: 1.5 },
-        itemAmount: { fontSize: 9, color: '#1a1a1a' },
+        itemAmount: { fontSize: 9, color: '#1a1a1a', width: '100%', textAlign: 'right' },
         // ── VAT row — compact ──
         vatRow: {
           flexDirection: 'row',
@@ -218,32 +231,38 @@ const useStyles = () =>
         },
         tdVatDesc: { flex: 1, paddingVertical: 7, paddingHorizontal: 14 },
         tdVatAmount: {
-          width: 110,
+          width: 140,
           paddingVertical: 7,
-          paddingHorizontal: 14,
+          paddingHorizontal: 12,
           borderLeftWidth: 1.5,
           borderLeftColor: '#0166ff',
           borderLeftStyle: 'solid',
-          alignItems: 'flex-end',
           justifyContent: 'center',
         },
         vatMain: { fontSize: 9, fontWeight: 700, color: '#1a1a1a' },
+        vatMainAr: {
+          fontFamily: 'Cairo',
+          fontSize: 9,
+          fontWeight: 700,
+          color: '#1a1a1a',
+          textAlign: 'right',
+        },
         vatSub: { fontSize: 8.5, color: '#1a1a1a' },
+        vatSubAr: { fontFamily: 'Cairo', fontSize: 8.5, color: '#1a1a1a', textAlign: 'right' },
         // ── Total row — compact, white bg ──
         totalRow: {
           flexDirection: 'row',
           minHeight: 42,
           alignItems: 'center',
         },
-        tdTotalDesc: { flex: 1, paddingVertical: 10, paddingHorizontal: 14 },
+        tdTotalDesc: { flex: 1, paddingVertical: 9, paddingHorizontal: 14 },
         tdTotalAmount: {
-          width: 110,
-          paddingVertical: 10,
-          paddingHorizontal: 14,
+          width: 140,
+          paddingVertical: 9,
+          paddingHorizontal: 12,
           borderLeftWidth: 1.5,
           borderLeftColor: '#0166ff',
           borderLeftStyle: 'solid',
-          alignItems: 'flex-end',
           justifyContent: 'center',
         },
         totalLabel: {
@@ -252,33 +271,69 @@ const useStyles = () =>
           color: '#1a1a1a',
           textTransform: 'uppercase',
         },
-        totalValue: { fontSize: 13, fontWeight: 700, color: '#1a1a1a' },
+        totalLabelAr: {
+          fontFamily: 'Cairo',
+          fontSize: 10,
+          fontWeight: 700,
+          color: '#1a1a1a',
+          textAlign: 'right',
+        },
+        totalValue: { fontSize: 13, fontWeight: 700, color: '#1a1a1a', width: '100%', textAlign: 'right' },
         // ── Amount in words ──
-        amountWords: { fontSize: 8, color: '#666666', textAlign: 'right', marginTop: 8 },
+        amountWordsBlock: { marginTop: 8 },
+        amountWords: { fontSize: 8, color: '#666666', textAlign: 'right' },
+        amountWordsAr: {
+          fontFamily: 'Cairo',
+          fontSize: 8,
+          color: '#666666',
+          textAlign: 'right',
+          lineHeight: 1.6,
+          marginTop: 1,
+        },
         // ── Footer ──
         footerDivider: {
           height: 1,
           backgroundColor: '#e0e0e0',
-          marginTop: 20,
-          marginBottom: 14,
+          marginTop: 18,
+          marginBottom: 12,
         },
         footerRow: { flexDirection: 'row', justifyContent: 'space-between' },
         footerCol: { width: '48%' },
-        footerColRight: { width: '48%', alignItems: 'flex-end' },
+        footerColRight: { width: '48%' },
         footerHeading: {
           fontSize: 7.5,
           fontWeight: 700,
           textTransform: 'uppercase',
           color: '#1a1a1a',
-          marginBottom: 5,
         },
-        footerText: { fontSize: 8.5, color: '#1a1a1a', lineHeight: 1.85 },
-        footerLink: { fontSize: 8.5, color: '#0166ff', lineHeight: 1.85 },
-        footerTextRight: { fontSize: 8.5, color: '#1a1a1a', lineHeight: 1.85, textAlign: 'right' },
+        footerHeadingAr: {
+          fontFamily: 'Cairo',
+          fontSize: 8,
+          fontWeight: 700,
+          color: '#1a1a1a',
+          textAlign: 'right',
+        },
+        footerHeadingRow: { marginBottom: 4 },
+        footerText: { fontSize: 8.5, color: '#1a1a1a', lineHeight: 1.8 },
+        footerTextAr: {
+          fontFamily: 'Cairo',
+          fontSize: 8,
+          color: '#333333',
+          textAlign: 'right',
+          lineHeight: 1.8,
+        },
+        footerLink: { fontSize: 8.5, color: '#0166ff', lineHeight: 1.8 },
         // ── QR code block ──
-        qrBlock: { marginTop: 14, alignItems: 'center' },
+        qrBlock: { marginTop: 12, alignItems: 'center' },
         qrImage: { width: 64, height: 64 },
         qrLabel: { fontSize: 7, color: '#888888', marginTop: 3, textAlign: 'center' },
+        qrLabelAr: {
+          fontFamily: 'Cairo',
+          fontSize: 7,
+          color: '#888888',
+          textAlign: 'center',
+          lineHeight: 1.5,
+        },
       }),
     []
   );
@@ -304,17 +359,41 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
   const officeList = offices?.length ? offices : IOTA_OFFICES;
   const office = officeList.find((o) => o.currency === currencyCode) || officeList[0];
   const bank = office.bankDetails || {};
-  const vatLabel = vatRate ? `VAT @ ${vatRate}%` : 'VAT';
-  const amountWords = amountInWords(totalAmount, currencyCode);
-  const fmt = (v) => fCurrency(v, { currency: currencyCode });
+  const vatLabel = vatRateLabel(vatRate);
+  const wordsEn = amountInWordsEn(totalAmount, currencyCode);
+  const wordsAr = amountInWordsAr(totalAmount, currencyCode);
+  // Amounts print as "SAR 48,428.80" (ISO code), not the ﷼ symbol that
+  // fCurrency emits: U+FDFC is absent from Roboto *and* is a right-to-left
+  // character, so react-pdf dropped the glyph and re-ordered the digits around
+  // it ("SAR 30,878.22" came out as "0,878.22"). The ISO code also matches what
+  // the print template and the public viewer show.
+  const fmt = (v) => {
+    if (v == null || Number.isNaN(Number(v))) return '';
+    const amount = new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(Number(v));
+    return `${currencyCode || 'SAR'} ${amount}`;
+  };
+
+  /** One bilingual line: English on the left, Arabic on the right. */
+  const BiRow = ({ en, ar, enStyle, arStyle, style }) => (
+    <View style={[styles.biRow, style]}>
+      <Text style={[styles.biEn, enStyle]}>{en}</Text>
+      {ar ? <Text style={[styles.biAr, arStyle]}>{ar}</Text> : null}
+    </View>
+  );
 
   return (
     <Document>
       <Page size="A4" style={styles.page}>
         <View style={styles.content}>
-          {/* ── HEADER: title left, logo right ── */}
+          {/* ── HEADER: bilingual title left, logo right ── */}
           <View style={styles.header}>
-            <Text style={styles.invoiceTitle}>INVOICE</Text>
+            <View>
+              <Text style={styles.invoiceTitle}>{L.invoiceTitle.en}</Text>
+              <Text style={styles.invoiceTitleAr}>{L.invoiceTitle.ar}</Text>
+            </View>
             <Image source="/logo/logo-single.png" style={styles.logo} />
           </View>
 
@@ -323,10 +402,19 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
 
           {/* ── BILLING ── */}
           <View style={styles.billingRow}>
-            {/* Bill To */}
+            {/* Bill To / تفاصيل العميل */}
             <View style={styles.billCol}>
-              <Text style={styles.billLabel}>Bill To</Text>
+              <BiRow
+                en={L.billTo.en}
+                ar={L.billTo.ar}
+                enStyle={styles.billLabel}
+                arStyle={styles.billLabelAr}
+                style={styles.billLabelRow}
+              />
               <Text style={styles.customerName}>{invoiceTo?.name}</Text>
+              {invoiceTo?.nameAr ? (
+                <Text style={styles.customerNameAr}>{invoiceTo.nameAr}</Text>
+              ) : null}
               {invoiceTo?.addressStreet ? (
                 <Text style={styles.bodySm}>{invoiceTo.addressStreet}</Text>
               ) : null}
@@ -334,18 +422,56 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
                 <Text style={styles.bodySm}>{invoiceTo.addressCity}</Text>
               ) : null}
               {invoiceTo?.vatNumber ? (
-                <Text style={styles.bodySm}>VAT #: {invoiceTo.vatNumber}</Text>
+                <BiRow
+                  en={`${L.buyerVatNumber.en}: ${invoiceTo.vatNumber}`}
+                  ar={L.buyerVatNumber.ar}
+                  enStyle={styles.bodySm}
+                  arStyle={styles.bodySmAr}
+                />
               ) : null}
             </View>
 
-            {/* Invoice meta */}
+            {/* Seller identity + invoice meta */}
             <View style={styles.metaCol}>
-              {office.vatNumber ? (
-                <Text style={styles.metaLine}>VAT Registration #: {office.vatNumber}</Text>
+              {office.name ? (
+                <BiRow
+                  en={office.name}
+                  ar={office.nameAr}
+                  enStyle={[styles.metaLine, styles.metaSeller]}
+                  arStyle={[styles.metaLineAr, styles.metaSeller]}
+                  style={styles.metaRow}
+                />
               ) : null}
-              <Text style={styles.metaLine}>Invoice #: {invoiceNumber}</Text>
-              <Text style={styles.metaLine}>Invoice Date: {fDate(createDate)}</Text>
-              <Text style={styles.metaLine}>Due Date: {fDate(dueDate)}</Text>
+              {office.vatNumber ? (
+                <BiRow
+                  en={`${L.sellerVatNumber.en}: ${office.vatNumber}`}
+                  ar={L.sellerVatNumber.ar}
+                  enStyle={styles.metaLine}
+                  arStyle={styles.metaLineAr}
+                  style={styles.metaRow}
+                />
+              ) : null}
+              <BiRow
+                en={`${L.invoiceNumber.en}: ${invoiceNumber}`}
+                ar={L.invoiceNumber.ar}
+                enStyle={styles.metaLine}
+                arStyle={styles.metaLineAr}
+                style={styles.metaRow}
+              />
+              <BiRow
+                en={`${L.invoiceDate.en}: ${fDate(createDate)}`}
+                ar={L.invoiceDate.ar}
+                enStyle={styles.metaLine}
+                arStyle={styles.metaLineAr}
+                style={styles.metaRow}
+              />
+              <BiRow
+                en={`${L.dueDate.en}: ${fDate(dueDate)}`}
+                ar={L.dueDate.ar}
+                enStyle={styles.metaLine}
+                arStyle={styles.metaLineAr}
+                style={styles.metaRow}
+              />
             </View>
           </View>
 
@@ -354,10 +480,17 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
             {/* Header row */}
             <View style={styles.tableHeaderRow}>
               <View style={styles.thDesc}>
-                <Text style={styles.thText}>Description</Text>
+                <BiRow
+                  en={L.description.en}
+                  ar={L.description.ar}
+                  enStyle={styles.thText}
+                  arStyle={styles.thTextAr}
+                />
               </View>
+              {/* The amount column is narrow, so its header stacks */}
               <View style={styles.thAmount}>
-                <Text style={styles.thText}>Amount</Text>
+                <Text style={[styles.thText, styles.thTextRight]}>{L.amount.en}</Text>
+                <Text style={styles.thTextAr}>{L.amount.ar}</Text>
               </View>
             </View>
 
@@ -380,7 +513,12 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
             {discount > 0 ? (
               <View style={styles.itemRow}>
                 <View style={styles.tdDesc}>
-                  <Text style={styles.itemTitle}>Discount</Text>
+                  <BiRow
+                    en={L.discount.en}
+                    ar={L.discount.ar}
+                    enStyle={styles.itemTitle}
+                    arStyle={styles.itemTitleAr}
+                  />
                 </View>
                 <View style={styles.tdAmount}>
                   <Text style={styles.itemAmount}>-{fmt(discount)}</Text>
@@ -392,7 +530,12 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
             {shipping > 0 ? (
               <View style={styles.itemRow}>
                 <View style={styles.tdDesc}>
-                  <Text style={styles.itemTitle}>Shipping</Text>
+                  <BiRow
+                    en={L.shipping.en}
+                    ar={L.shipping.ar}
+                    enStyle={styles.itemTitle}
+                    arStyle={styles.itemTitleAr}
+                  />
                 </View>
                 <View style={styles.tdAmount}>
                   <Text style={styles.itemAmount}>{fmt(shipping)}</Text>
@@ -403,8 +546,18 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
             {/* VAT row */}
             <View style={styles.vatRow}>
               <View style={styles.tdVatDesc}>
-                <Text style={styles.vatMain}>VAT</Text>
-                <Text style={styles.vatSub}>{vatLabel}</Text>
+                <BiRow
+                  en={L.vat.en}
+                  ar={L.vat.ar}
+                  enStyle={styles.vatMain}
+                  arStyle={styles.vatMainAr}
+                />
+                <BiRow
+                  en={vatLabel.en}
+                  ar={vatLabel.ar}
+                  enStyle={styles.vatSub}
+                  arStyle={styles.vatSubAr}
+                />
               </View>
               <View style={styles.tdVatAmount}>
                 <Text style={styles.itemAmount}>{fmt(vatAmount)}</Text>
@@ -414,7 +567,12 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
             {/* Total row */}
             <View style={styles.totalRow}>
               <View style={styles.tdTotalDesc}>
-                <Text style={styles.totalLabel}>Total Amount</Text>
+                <BiRow
+                  en={L.totalAmount.en}
+                  ar={L.totalAmount.ar}
+                  enStyle={styles.totalLabel}
+                  arStyle={styles.totalLabelAr}
+                />
               </View>
               <View style={styles.tdTotalAmount}>
                 <Text style={styles.totalValue}>{fmt(totalAmount)}</Text>
@@ -422,40 +580,92 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
             </View>
           </View>
 
-          {/* Amount in words */}
-          {amountWords ? <Text style={styles.amountWords}>{amountWords}</Text> : null}
+          {/* Amount in words — English then Arabic */}
+          {wordsEn ? (
+            <View style={styles.amountWordsBlock}>
+              <Text style={styles.amountWords}>
+                {L.amountInWords.en}: {wordsEn}
+              </Text>
+              {wordsAr ? (
+                <Text style={styles.amountWordsAr}>
+                  {L.amountInWords.ar}: {wordsAr}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
 
           {/* ── FOOTER ── */}
           <View style={styles.footerDivider} />
           <View style={styles.footerRow}>
             <View style={styles.footerCol}>
-              <Text style={styles.footerHeading}>Bank Transfer Details</Text>
-              <Text style={styles.footerText}>
-                A/c Name: {bank.accountName || 'IOTA Information Technology Services'}
-              </Text>
-              {bank.iban ? <Text style={styles.footerText}>IBAN: {bank.iban}</Text> : null}
-              {bank.bank ? <Text style={styles.footerText}>Bank: {bank.bank}</Text> : null}
-              {bank.city ? <Text style={styles.footerText}>City: {bank.city}</Text> : null}
+              <BiRow
+                en={L.bankDetails.en}
+                ar={L.bankDetails.ar}
+                enStyle={styles.footerHeading}
+                arStyle={styles.footerHeadingAr}
+                style={styles.footerHeadingRow}
+              />
+              <BiRow
+                en={`${L.accountName.en}: ${bank.accountName || 'IOTA Information Technology Services'}`}
+                ar={L.accountName.ar}
+                enStyle={styles.footerText}
+                arStyle={styles.footerTextAr}
+              />
+              {bank.iban ? (
+                <BiRow
+                  en={`${L.iban.en}: ${bank.iban}`}
+                  ar={L.iban.ar}
+                  enStyle={styles.footerText}
+                  arStyle={styles.footerTextAr}
+                />
+              ) : null}
+              {bank.bank ? (
+                <BiRow
+                  en={`${L.bankName.en}: ${bank.bank}`}
+                  ar={L.bankName.ar}
+                  enStyle={styles.footerText}
+                  arStyle={styles.footerTextAr}
+                />
+              ) : null}
+              {bank.city ? (
+                <BiRow
+                  en={`${L.bankCity.en}: ${bank.city}`}
+                  ar={L.bankCity.ar}
+                  enStyle={styles.footerText}
+                  arStyle={styles.footerTextAr}
+                />
+              ) : null}
             </View>
             <View style={styles.footerColRight}>
-              <Text style={styles.footerHeading}>In Case of Queries</Text>
-              <Text style={styles.footerTextRight}>Write to us at</Text>
+              <BiRow
+                en={L.queries.en}
+                ar={L.queries.ar}
+                enStyle={styles.footerHeading}
+                arStyle={styles.footerHeadingAr}
+                style={styles.footerHeadingRow}
+              />
+              <BiRow
+                en={L.writeToUs.en}
+                ar={L.writeToUs.ar}
+                enStyle={styles.footerText}
+                arStyle={styles.footerTextAr}
+              />
               <Text style={styles.footerLink}>
                 {office.email || 'accounts@iotatechnologies.ai'}
               </Text>
-              <Text style={styles.footerTextRight}>
-                Cite our Invoice # for reference and better tracking.
-              </Text>
+              <Text style={styles.footerText}>{L.citeInvoice.en}</Text>
+              <Text style={styles.footerTextAr}>{L.citeInvoice.ar}</Text>
             </View>
           </View>
 
           {/* QR codes row */}
           {viewQrBase64 || zatcaQrCode ? (
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 14 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 }}>
               {viewQrBase64 ? (
                 <View style={styles.qrBlock}>
                   <Image src={viewQrBase64} style={styles.qrImage} />
-                  <Text style={styles.qrLabel}>Scan to view invoice online</Text>
+                  <Text style={styles.qrLabel}>{L.viewOnlineQr.en}</Text>
+                  <Text style={styles.qrLabelAr}>{L.viewOnlineQr.ar}</Text>
                 </View>
               ) : (
                 <View />
@@ -463,7 +673,8 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
               {zatcaQrCode ? (
                 <View style={styles.qrBlock}>
                   <Image src={zatcaQrCode} style={styles.qrImage} />
-                  <Text style={styles.qrLabel}>ZATCA e-Invoice QR</Text>
+                  <Text style={styles.qrLabel}>{L.zatcaQr.en}</Text>
+                  <Text style={styles.qrLabelAr}>{L.zatcaQr.ar}</Text>
                 </View>
               ) : null}
             </View>

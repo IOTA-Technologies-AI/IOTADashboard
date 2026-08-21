@@ -8,8 +8,38 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Red+Hat+Display:wght@600;700;800;900&display=swap" rel="stylesheet">
   <style>
+    /* ══════════════════════════════════════════════════════════════════════
+       BILINGUAL (EN / AR) INVOICE TEMPLATE
+       Every label appears twice: English on the left, Arabic on the right of
+       the same line (.bi rows). Arabic text always sits in a `dir="rtl"`
+       element so the bidi algorithm never reorders adjacent Latin/numeric
+       runs. Arabic wording comes from src/utils/invoice-i18n.js — change both.
+
+       NOTE: an identical copy of this file lives in the IOTADocuments repo at
+       public/IOTA Invoice Template.html (the public docs.iotatechnologies.io
+       viewer). Keep the two in sync.
+       ══════════════════════════════════════════════════════════════════════ */
+
     /* ── Reset ── */
     *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ── Arabic face — self-hosted so print output matches the emailed PDF
+       Cairo, not Noto Naskh Arabic: @react-pdf/renderer's font subsetter drops
+       glyphs from the Noto Arabic faces (words render truncated in the emailed
+       PDF), while Cairo embeds cleanly. Both renderers must use the same face,
+       so the print template uses it too. ── */
+    @font-face {
+      font-family: 'Cairo';
+      src: url('/fonts/Cairo-Regular.ttf') format('truetype');
+      font-weight: 400;
+      font-display: swap;
+    }
+    @font-face {
+      font-family: 'Cairo';
+      src: url('/fonts/Cairo-Bold.ttf') format('truetype');
+      font-weight: 700;
+      font-display: swap;
+    }
 
     /* ── Print page setup ── */
     @page {
@@ -26,6 +56,24 @@
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
     }
+
+    /* ── Arabic text: isolated so it never reorders neighbouring Latin ── */
+    .ar {
+      font-family: 'Cairo', 'DM Sans', 'Geeza Pro', sans-serif;
+      direction: rtl;
+      unicode-bidi: isolate;
+      text-align: right;
+    }
+
+    /* ── Bilingual line: English left, Arabic right ── */
+    .bi {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+    }
+    .bi > .en { text-align: left; }
+    .bi > .ar { white-space: nowrap; }
 
     /* ── Screen toolbar (hidden on print) ── */
     .toolbar {
@@ -82,12 +130,19 @@
       margin-bottom: 6px;
     }
 
-    /* ── Header: INVOICE left, logo right ── */
+    /* ── Header: INVOICE / فاتورة ضريبية left, logo right ── */
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
     .invoice-title {
       font-family: 'Red Hat Display', sans-serif;
       font-size: 28px; font-weight: 900;
       letter-spacing: 8px; text-transform: uppercase; color: #1a1a1a;
+      line-height: 1.1;
+    }
+    .invoice-title-ar {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl; unicode-bidi: isolate; text-align: left;
+      font-size: 15px; font-weight: 700; color: #1a1a1a;
+      margin-top: 2px;
     }
     .logo { width: 48px; height: 48px; object-fit: contain; transform: scaleX(-1); }
 
@@ -95,19 +150,38 @@
     .accent { height: 1.5px; background: #0166ff; margin-bottom: 22px; }
 
     /* ── Billing section: Bill To left, meta right (no box) ── */
-    .billing { display: flex; justify-content: space-between; margin-bottom: 28px; }
+    .billing { display: flex; justify-content: space-between; margin-bottom: 26px; }
     .bill-col { width: 48%; }
-    .meta-col { width: 48%; text-align: right; }
+    .meta-col { width: 48%; }
 
     .bill-label {
       font-family: 'Red Hat Display', sans-serif;
       font-size: 9px; font-weight: 700; color: #1a1a1a;
-      text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px;
+      text-transform: uppercase; letter-spacing: 0.5px;
     }
-    .customer-name { font-size: 11px; font-weight: 700; color: #1a1a1a; margin-bottom: 3px; }
-    .body-sm { font-size: 9.5px; color: #1a1a1a; line-height: 1.65; }
+    .bill-label-ar {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl; unicode-bidi: isolate;
+      font-size: 9px; font-weight: 700; color: #1a1a1a;
+    }
+    .bill-label-row { margin-bottom: 5px; }
 
-    .meta-line { font-size: 9.5px; color: #1a1a1a; line-height: 1.85; }
+    .customer-name { font-size: 11px; font-weight: 700; color: #1a1a1a; margin-bottom: 2px; }
+    .customer-name-ar {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl; unicode-bidi: isolate; text-align: left;
+      font-size: 11px; font-weight: 700; color: #1a1a1a; margin-bottom: 3px;
+    }
+    .body-sm { font-size: 9.5px; color: #1a1a1a; line-height: 1.65; }
+    .body-sm-ar {
+      font-family: 'Cairo', sans-serif;
+      font-size: 9px; color: #1a1a1a; line-height: 1.65;
+    }
+
+    /* Meta lines — English label + value on the left, Arabic label on the right */
+    .meta-line { font-size: 9.5px; color: #1a1a1a; line-height: 1.8; }
+    .meta-line .ar { font-size: 9px; }
+    .meta-seller { font-weight: 700; }
 
     /* ── Items area: blue bordered box ── */
     .items-box {
@@ -123,9 +197,16 @@
       font-family: 'Red Hat Display', sans-serif;
       font-size: 9px; font-weight: 700; text-transform: uppercase;
       letter-spacing: 0.8px; color: #1a1a1a;
-      padding: 10px 14px; text-align: left;
+      padding: 9px 14px; text-align: left;
+      vertical-align: middle;
+    }
+    .items-box th .ar {
+      font-family: 'Cairo', sans-serif;
+      font-size: 9px; font-weight: 700; letter-spacing: 0; text-transform: none;
     }
     .items-box th.col-right { text-align: right; }
+    /* The amount column is narrow, so its header stacks instead of sitting inline */
+    .items-box th.col-right .ar { display: block; text-align: right; }
     /* Vertical divider between description and amount columns */
     .items-box th.col-right,
     .items-box td.col-right {
@@ -142,7 +223,6 @@
     .item-desc { font-size: 9px; color: #1a1a1a; line-height: 1.5; }
 
     /* ── VAT row (inside the box) — compact, two-line height ── */
-    .vat-row { height: 40px; }
     .vat-row td {
       border-bottom: 1.5px solid #0166ff;
       padding: 7px 14px;
@@ -150,33 +230,61 @@
     }
     .vat-label-main { font-size: 9.5px; font-weight: 700; color: #1a1a1a; }
     .vat-label-sub  { font-size: 9px; color: #1a1a1a; }
+    .vat-row .ar { font-size: 9px; }
+    .vat-row .vat-label-main.ar { font-size: 9.5px; font-weight: 700; }
 
     /* ── Total row (last row in the box, bold, white bg) — compact ── */
-    .total-row { height: 44px; }
     .total-row td {
       font-family: 'Red Hat Display', sans-serif;
-      padding: 10px 14px;
+      padding: 9px 14px;
       font-size: 11px; font-weight: 700; color: #1a1a1a;
       text-transform: uppercase; letter-spacing: 1px;
       border-bottom: none;
       vertical-align: middle;
     }
     .total-row td.col-right { font-size: 13px; font-weight: 700; }
+    .total-row .ar {
+      font-family: 'Cairo', sans-serif;
+      font-size: 10px; letter-spacing: 0; text-transform: none;
+    }
 
-    /* ── Amount in words ── */
-    .amount-words { font-size: 8.5px; color: #666; text-align: right; margin-top: 8px; font-style: normal; }
+    /* ── Amount in words (both languages) ── */
+    .amount-words { margin-top: 8px; text-align: right; }
+    .amount-words .aw-en { font-size: 8.5px; color: #666; }
+    .amount-words .aw-ar {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl; unicode-bidi: isolate;
+      font-size: 8.5px; color: #666; line-height: 1.7;
+    }
+    .aw-label { font-weight: 700; color: #1a1a1a; }
+
     /* ── Footer ── */
-    .footer-divider { height: 1px; background: #e0e0e0; margin: 20px 0 14px; }
+    .footer-divider { height: 1px; background: #e0e0e0; margin: 18px 0 12px; }
     .footer-row { display: flex; justify-content: space-between; }
     .footer-col { width: 48%; }
-    .footer-col-right { width: 48%; text-align: right; }
+    .footer-col-right { width: 48%; }
     .footer-heading {
       font-family: 'Red Hat Display', sans-serif;
       font-size: 8px; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 1.5px; color: #1a1a1a; margin-bottom: 6px;
+      letter-spacing: 1.5px; color: #1a1a1a;
     }
-    .footer-text { font-size: 9px; color: #1a1a1a; line-height: 1.85; }
-    .footer-link { font-size: 9px; color: #0166ff; line-height: 1.85; }
+    .footer-heading-ar {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl; unicode-bidi: isolate;
+      font-size: 8.5px; font-weight: 700; color: #1a1a1a;
+    }
+    .footer-heading-row { margin-bottom: 5px; }
+    .footer-text { font-size: 9px; color: #1a1a1a; line-height: 1.8; }
+    .footer-link { font-size: 9px; color: #0166ff; line-height: 1.8; }
+    .footer-row .ar { font-size: 8.5px; color: #333; }
+
+    /* ── QR captions ── */
+    .qr-caption { font-size: 8px; color: #888; margin-top: 3px; line-height: 1.5; }
+    .qr-caption-ar {
+      font-family: 'Cairo', sans-serif;
+      direction: rtl; unicode-bidi: isolate;
+      font-size: 8px; color: #888; line-height: 1.5;
+    }
 
     /* ── Print overrides ── */
     @media print {
@@ -258,9 +366,12 @@
     <div class="page">
       <div class="content">
 
-        <!-- Header: INVOICE left, logo right -->
+        <!-- Header: INVOICE / فاتورة ضريبية left, logo right -->
         <div class="header">
-          <span class="invoice-title">Invoice</span>
+          <div>
+            <div class="invoice-title">Invoice</div>
+            <div class="invoice-title-ar">فاتورة ضريبية</div>
+          </div>
           <img src="/logo/logo-single.png" class="logo" alt="IOTA">
         </div>
 
@@ -269,20 +380,34 @@
 
         <!-- Billing section -->
         <div class="billing">
-          <!-- Left: Bill To -->
+          <!-- Left: Bill To / تفاصيل العميل -->
           <div class="bill-col">
-            <div class="bill-label">Bill To</div>
+            <div class="bi bill-label-row">
+              <span class="bill-label en">Bill To</span>
+              <span class="bill-label-ar ar">تفاصيل العميل</span>
+            </div>
             <div class="customer-name">{{CUSTOMER_NAME}}</div>
+            {{CUSTOMER_NAME_AR_HTML}}
             {{CUSTOMER_ADDRESS_STREET_HTML}}
             <div class="body-sm">{{CUSTOMER_ADDRESS_CITY}}</div>
             {{CUSTOMER_VAT_HTML}}
           </div>
-          <!-- Right: Invoice meta (right-aligned) -->
+          <!-- Right: seller identity + invoice meta -->
           <div class="meta-col">
+            {{SELLER_NAME_ROW}}
             {{META_VAT_ROW}}
-            <div class="meta-line">Invoice #: {{INVOICE_NUMBER}}</div>
-            <div class="meta-line">Invoice Date: {{INVOICE_DATE}}</div>
-            <div class="meta-line">Due Date: {{DUE_DATE}}</div>
+            <div class="meta-line bi">
+              <span class="en">Invoice #: {{INVOICE_NUMBER}}</span>
+              <span class="ar">رقم الفاتورة</span>
+            </div>
+            <div class="meta-line bi">
+              <span class="en">Invoice Date: {{INVOICE_DATE}}</span>
+              <span class="ar">تاريخ إصدار الفاتورة</span>
+            </div>
+            <div class="meta-line bi">
+              <span class="en">Due Date: {{DUE_DATE}}</span>
+              <span class="ar">تاريخ استحقاق الدفعة</span>
+            </div>
           </div>
         </div>
 
@@ -291,8 +416,16 @@
         <table class="items-box">
           <thead>
             <tr>
-              <th>Description</th>
-              <th class="col-right">Amount</th>
+              <th>
+                <div class="bi">
+                  <span class="en">Description</span>
+                  <span class="ar">وصف السلعة أو الخدمة</span>
+                </div>
+              </th>
+              <th class="col-right">
+                <span>Amount</span>
+                <span class="ar">المبلغ</span>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -302,38 +435,74 @@
             <!-- VAT row -->
             <tr class="vat-row">
               <td>
-                <div class="vat-label-main">VAT</div>
-                <div class="vat-label-sub">{{VAT_LABEL}}</div>
+                <div class="bi">
+                  <span class="vat-label-main en">VAT</span>
+                  <span class="vat-label-main ar">ضريبة القيمة المضافة</span>
+                </div>
+                <div class="bi">
+                  <span class="vat-label-sub en">{{VAT_LABEL}}</span>
+                  <span class="vat-label-sub ar">{{VAT_LABEL_AR}}</span>
+                </div>
               </td>
               <td class="col-right">{{VAT_AMOUNT}}</td>
             </tr>
             <!-- Total row -->
             <tr class="total-row">
-              <td>Total Amount</td>
+              <td>
+                <div class="bi">
+                  <span class="en">Total Amount</span>
+                  <span class="ar">المبلغ الإجمالي المستحق</span>
+                </div>
+              </td>
               <td class="col-right">{{TOTAL_AMOUNT}}</td>
             </tr>
           </tbody>
         </table>
         </div><!-- /items-section -->
 
-        <!-- Amount in words -->
-        <div class="amount-words">{{AMOUNT_IN_WORDS}}</div>
+        <!-- Amount in words — English then Arabic -->
+        <div class="amount-words">
+          <div class="aw-en"><span class="aw-label">Amount in words:</span> {{AMOUNT_IN_WORDS}}</div>
+          <div class="aw-ar"><span class="aw-label">المبلغ بالكلمات:</span> {{AMOUNT_IN_WORDS_AR}}</div>
+        </div>
 
         <!-- Footer -->
         <div class="footer-divider"></div>
         <div class="footer-row">
           <div class="footer-col">
-            <div class="footer-heading">Bank Transfer Details</div>
-            <div class="footer-text">A/c Name: {{BANK_ACCOUNT_NAME}}</div>
-            <div class="footer-text">IBAN: {{BANK_IBAN}}</div>
-            <div class="footer-text">Bank: {{BANK_NAME}}</div>
-            <div class="footer-text">City: {{BANK_CITY}}</div>
+            <div class="bi footer-heading-row">
+              <span class="footer-heading en">Bank Transfer Details</span>
+              <span class="footer-heading-ar ar">تفاصيل التحويل البنكي</span>
+            </div>
+            <div class="bi footer-text">
+              <span class="en">A/c Name: {{BANK_ACCOUNT_NAME}}</span>
+              <span class="ar">اسم الحساب</span>
+            </div>
+            <div class="bi footer-text">
+              <span class="en">IBAN: {{BANK_IBAN}}</span>
+              <span class="ar">رقم الآيبان</span>
+            </div>
+            <div class="bi footer-text">
+              <span class="en">Bank: {{BANK_NAME}}</span>
+              <span class="ar">اسم البنك</span>
+            </div>
+            <div class="bi footer-text">
+              <span class="en">City: {{BANK_CITY}}</span>
+              <span class="ar">المدينة</span>
+            </div>
           </div>
           <div class="footer-col-right">
-            <div class="footer-heading">In Case of Queries</div>
-            <div class="footer-text">Write to us at {{OFFICE_EMAIL}}</div>
+            <div class="bi footer-heading-row">
+              <span class="footer-heading en">In Case of Queries</span>
+              <span class="footer-heading-ar ar">للاستفسارات</span>
+            </div>
+            <div class="bi footer-text">
+              <span class="en">Write to us at</span>
+              <span class="ar">راسلنا على</span>
+            </div>
             <div class="footer-link">{{OFFICE_EMAIL}}</div>
-            <div class="footer-text">cite our Invoice # for reference and better tracking.</div>
+            <div class="footer-text">Cite our Invoice # for reference and better tracking.</div>
+            <div class="footer-text ar">يرجى ذكر رقم الفاتورة عند المراسلة لسهولة المتابعة.</div>
           </div>
         </div>
 

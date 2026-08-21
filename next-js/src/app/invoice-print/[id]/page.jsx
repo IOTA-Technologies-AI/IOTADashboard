@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 
 import { fDate } from 'src/utils/format-time';
-import { fetchInvoice, fetchOfficeConfigs, getCustomers } from 'src/utils/apiHelper';
+import { fetchInvoice, getCustomers, fetchOfficeConfigs } from 'src/utils/apiHelper';
+import { vatRateLabel, amountInWordsAr, amountInWordsEn } from 'src/utils/invoice-i18n';
+
 import { IOTA_OFFICES } from 'src/sections/invoice/invoice-create-edit-address';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -17,66 +19,12 @@ import { IOTA_OFFICES } from 'src/sections/invoice/invoice-create-edit-address';
 //
 // To change the invoice layout/styles, edit only:
 //   next-js/public/assets/template/IOTA Invoice Template.html
+//
+// The template is bilingual (English / Arabic). Static Arabic labels live in the
+// template itself; Arabic values (customer name, seller name, amount in words)
+// are filled from here. Arabic wording is mirrored in src/utils/invoice-i18n.js,
+// which src/sections/invoice/invoice-pdf.jsx uses for the emailed PDF.
 // ─────────────────────────────────────────────────────────────────────────────
-
-// ── Number-to-words ───────────────────────────────────────────────────────────
-const ONES = [
-  '',
-  'One',
-  'Two',
-  'Three',
-  'Four',
-  'Five',
-  'Six',
-  'Seven',
-  'Eight',
-  'Nine',
-  'Ten',
-  'Eleven',
-  'Twelve',
-  'Thirteen',
-  'Fourteen',
-  'Fifteen',
-  'Sixteen',
-  'Seventeen',
-  'Eighteen',
-  'Nineteen',
-];
-const TENS = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-
-function toWords(n) {
-  if (!n || n === 0) return 'Zero';
-  if (n < 20) return ONES[n];
-  if (n < 100) return TENS[Math.floor(n / 10)] + (n % 10 ? ' ' + ONES[n % 10] : '');
-  if (n < 1000)
-    return ONES[Math.floor(n / 100)] + ' Hundred' + (n % 100 ? ' ' + toWords(n % 100) : '');
-  if (n < 1_000_000)
-    return toWords(Math.floor(n / 1000)) + ' Thousand' + (n % 1000 ? ' ' + toWords(n % 1000) : '');
-  return (
-    toWords(Math.floor(n / 1_000_000)) +
-    ' Million' +
-    (n % 1_000_000 ? ' ' + toWords(n % 1_000_000) : '')
-  );
-}
-
-const CURRENCY_NAMES = {
-  SAR: 'Saudi Riyals',
-  AED: 'UAE Dirhams',
-  USD: 'US Dollars',
-  EUR: 'Euros',
-  GBP: 'British Pounds',
-  INR: 'Indian Rupees',
-};
-
-function amountInWords(amount, currencyCode = 'SAR') {
-  if (!amount || isNaN(amount)) return '';
-  const currency = CURRENCY_NAMES[currencyCode] || currencyCode;
-  const whole = Math.floor(amount);
-  const cents = Math.round((amount - whole) * 100);
-  let words = toWords(whole) + ' ' + currency;
-  if (cents > 0) words += ' and ' + toWords(cents) + ' Fils';
-  return words + ' only.';
-}
 
 function formatCurrency(amount, currencyCode = 'SAR') {
   if (amount == null || isNaN(amount)) return '';
@@ -111,7 +59,7 @@ function fillTemplate(templateHtml, invoice, officeList, qrCodeBlock) {
   const office = getOffice(invoice.currencyCode, officeList);
   const bank = office.bankDetails || {};
   const qrHtml = qrCodeBlock || '';
-  const vatLabel = invoice.vatRate ? `VAT @ ${invoice.vatRate}%` : 'VAT';
+  const vatLabel = vatRateLabel(invoice.vatRate);
 
   const itemsRows = (invoice.items || [])
     .map(
@@ -129,7 +77,12 @@ function fillTemplate(templateHtml, invoice, officeList, qrCodeBlock) {
   const discountRow =
     invoice.discount > 0
       ? `<tr>
-          <td><div class="item-title">Discount</div></td>
+          <td>
+            <div class="bi">
+              <span class="item-title en">Discount</span>
+              <span class="item-title ar">الخصم</span>
+            </div>
+          </td>
           <td class="col-right">-${formatCurrency(invoice.discount, invoice.currencyCode)}</td>
         </tr>`
       : '';
@@ -137,17 +90,40 @@ function fillTemplate(templateHtml, invoice, officeList, qrCodeBlock) {
   const shippingRow =
     invoice.shipping > 0
       ? `<tr>
-          <td><div class="item-title">Shipping</div></td>
+          <td>
+            <div class="bi">
+              <span class="item-title en">Shipping</span>
+              <span class="item-title ar">الشحن</span>
+            </div>
+          </td>
           <td class="col-right">${formatCurrency(invoice.shipping, invoice.currencyCode)}</td>
         </tr>`
       : '';
 
   const metaVatRow = office.vatNumber
-    ? `<div class="meta-line">VAT Registration #: ${esc(office.vatNumber)}</div>`
+    ? `<div class="meta-line bi">
+        <span class="en">VAT Registration #: ${esc(office.vatNumber)}</span>
+        <span class="ar">الرقم الضريبي للمورد</span>
+      </div>`
+    : '';
+
+  // Seller identity — Arabic name is required on a KSA tax invoice
+  const sellerNameRow = office.name
+    ? `<div class="meta-line meta-seller bi">
+        <span class="en">${esc(office.name)}</span>
+        <span class="ar">${esc(office.nameAr || '')}</span>
+      </div>`
     : '';
 
   const customerVatHtml = invoice.invoiceTo.vatNumber
-    ? `<div class="body-sm">VAT #: ${esc(invoice.invoiceTo.vatNumber)}</div>`
+    ? `<div class="body-sm bi">
+        <span class="en">VAT #: ${esc(invoice.invoiceTo.vatNumber)}</span>
+        <span class="ar">الرقم الضريبي للعميل</span>
+      </div>`
+    : '';
+
+  const customerNameArHtml = invoice.invoiceTo.nameAr
+    ? `<div class="customer-name-ar">${esc(invoice.invoiceTo.nameAr)}</div>`
     : '';
 
   return templateHtml
@@ -163,10 +139,14 @@ function fillTemplate(templateHtml, invoice, officeList, qrCodeBlock) {
     )
     .split('{{CUSTOMER_ADDRESS_CITY}}')
     .join(esc(invoice.invoiceTo.addressCity))
+    .split('{{CUSTOMER_NAME_AR_HTML}}')
+    .join(customerNameArHtml)
     .split('{{CUSTOMER_VAT_HTML}}')
     .join(customerVatHtml)
     .split('{{META_VAT_ROW}}')
     .join(metaVatRow)
+    .split('{{SELLER_NAME_ROW}}')
+    .join(sellerNameRow)
     .split('{{INVOICE_DATE}}')
     .join(esc(fDate(invoice.createDate)))
     .split('{{DUE_DATE}}')
@@ -180,13 +160,17 @@ function fillTemplate(templateHtml, invoice, officeList, qrCodeBlock) {
     .split('{{SHIPPING_ROW}}')
     .join(shippingRow)
     .split('{{VAT_LABEL}}')
-    .join(esc(vatLabel))
+    .join(esc(vatLabel.en))
+    .split('{{VAT_LABEL_AR}}')
+    .join(esc(vatLabel.ar))
     .split('{{VAT_AMOUNT}}')
     .join(formatCurrency(invoice.vatAmount, invoice.currencyCode))
     .split('{{TOTAL_AMOUNT}}')
     .join(formatCurrency(invoice.totalAmount, invoice.currencyCode))
     .split('{{AMOUNT_IN_WORDS}}')
-    .join(esc(amountInWords(invoice.totalAmount, invoice.currencyCode)))
+    .join(esc(amountInWordsEn(invoice.totalAmount, invoice.currencyCode)))
+    .split('{{AMOUNT_IN_WORDS_AR}}')
+    .join(esc(amountInWordsAr(invoice.totalAmount, invoice.currencyCode)))
     .split('{{BANK_ACCOUNT_NAME}}')
     .join(esc(bank.accountName || ''))
     .split('{{BANK_IBAN}}')
@@ -262,6 +246,7 @@ export default function InvoicePrintPage() {
         currencyCode: data.currencyCode || 'SAR',
         invoiceTo: {
           name: customer?.customerNameEn || data.customerName || '',
+          nameAr: customer?.customerNameAr || '',
           addressStreet,
           addressCity,
           vatNumber: customer?.['VAT#'] || '',
@@ -311,7 +296,8 @@ export default function InvoicePrintPage() {
           const qrDataUrl = await QRCode.toDataURL(viewUrl, { width: 120, margin: 1 });
           viewQrHtml = `<div style="text-align:center;">
             <img src="${qrDataUrl}" width="80" height="80" style="display:inline-block;" alt="Scan to view invoice" />
-            <div style="font-size:9px;color:#888;margin-top:4px;">Scan to view invoice online</div>
+            <div class="qr-caption">Scan to view invoice online</div>
+            <div class="qr-caption-ar">امسح الرمز لعرض الفاتورة إلكترونياً</div>
           </div>`;
         } catch {
           viewQrHtml = '';
@@ -320,7 +306,8 @@ export default function InvoicePrintPage() {
       const zatcaQrHtml = data.zatcaQrCode
         ? `<div style="text-align:center;">
             <img src="${data.zatcaQrCode}" width="80" height="80" style="display:inline-block;" alt="ZATCA QR" />
-            <div style="font-size:9px;color:#888;margin-top:4px;">ZATCA e-Invoice QR</div>
+            <div class="qr-caption">ZATCA e-Invoice QR</div>
+            <div class="qr-caption-ar">رمز الفاتورة الإلكترونية — هيئة الزكاة والضريبة والجمارك</div>
           </div>`
         : '';
       const qrCodeBlock =

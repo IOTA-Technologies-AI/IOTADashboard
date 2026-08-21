@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1784657270002,
+  "timestamp": 1787309614283,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_invoice.js": {
       "mtime": 1761284298333,
@@ -29422,12 +29422,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/dashboard/invoice/[id]/page.jsx": {
-      "mtime": 1778954543454,
+      "mtime": 1787309612594,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/dashboard/invoice/[id]/page.jsx",
         "relativePath": "next-js/src/app/dashboard/invoice/[id]/page.jsx",
         "fileType": "generic",
-        "lineCount": 134,
+        "lineCount": 135,
         "imports": [],
         "importedBy": [],
         "importInfos": [
@@ -29445,7 +29445,7 @@
             "source": "next/navigation",
             "resolved": "",
             "isLocal": false,
-            "line": 4,
+            "line": 3,
             "names": [
               "useParams"
             ]
@@ -29454,7 +29454,7 @@
             "source": "src/utils/apiHelper",
             "resolved": "",
             "isLocal": false,
-            "line": 6,
+            "line": 5,
             "names": [
               "fetchInvoice",
               "getCustomers"
@@ -29464,7 +29464,7 @@
             "source": "src/sections/invoice/view",
             "resolved": "",
             "isLocal": false,
-            "line": 8,
+            "line": 7,
             "names": [
               "InvoiceDetailsView"
             ]
@@ -29473,7 +29473,7 @@
         "functions": [
           {
             "name": "Page",
-            "line": 10,
+            "line": 9,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -29489,7 +29489,7 @@
           },
           {
             "name": "customer",
-            "line": 18,
+            "line": 17,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -34462,12 +34462,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/invoice-print/[id]/page.jsx": {
-      "mtime": 1778966078035,
+      "mtime": 1787309612594,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/invoice-print/[id]/page.jsx",
         "relativePath": "next-js/src/app/invoice-print/[id]/page.jsx",
         "fileType": "generic",
-        "lineCount": 411,
+        "lineCount": 398,
         "imports": [],
         "importedBy": [],
         "importInfos": [
@@ -34477,9 +34477,9 @@
             "isLocal": false,
             "line": 2,
             "names": [
+              "useRef",
               "useState",
-              "useEffect",
-              "useRef"
+              "useEffect"
             ]
           },
           {
@@ -34508,15 +34508,26 @@
             "line": 6,
             "names": [
               "fetchInvoice",
-              "fetchOfficeConfigs",
-              "getCustomers"
+              "getCustomers",
+              "fetchOfficeConfigs"
+            ]
+          },
+          {
+            "source": "src/utils/invoice-i18n",
+            "resolved": "",
+            "isLocal": false,
+            "line": 7,
+            "names": [
+              "vatRateLabel",
+              "amountInWordsAr",
+              "amountInWordsEn"
             ]
           },
           {
             "source": "src/sections/invoice/invoice-create-edit-address",
             "resolved": "",
             "isLocal": false,
-            "line": 7,
+            "line": 9,
             "names": [
               "IOTA_OFFICES"
             ]
@@ -34525,43 +34536,14 @@
             "source": "qrcode",
             "resolved": "",
             "isLocal": false,
-            "line": 308,
+            "line": 293,
             "names": []
           }
         ],
         "functions": [
           {
-            "name": "toWords",
-            "line": 46,
-            "isExported": false,
-            "isAsync": false,
-            "callers": [
-              "toWords",
-              "amountInWords"
-            ],
-            "callees": [
-              "floor",
-              "toWords"
-            ]
-          },
-          {
-            "name": "amountInWords",
-            "line": 70,
-            "isExported": false,
-            "isAsync": false,
-            "callers": [
-              "itemsRows"
-            ],
-            "callees": [
-              "isNaN",
-              "floor",
-              "round",
-              "toWords"
-            ]
-          },
-          {
             "name": "formatCurrency",
-            "line": 80,
+            "line": 28,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -34577,7 +34559,7 @@
           },
           {
             "name": "getOffice",
-            "line": 93,
+            "line": 41,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -34589,7 +34571,7 @@
           },
           {
             "name": "esc",
-            "line": 99,
+            "line": 47,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -34602,19 +34584,20 @@
           },
           {
             "name": "fillTemplate",
-            "line": 109,
+            "line": 57,
             "isExported": false,
             "isAsync": false,
             "callers": [
               "customer"
             ],
             "callees": [
-              "getOffice"
+              "getOffice",
+              "vatRateLabel"
             ]
           },
           {
             "name": "itemsRows",
-            "line": 115,
+            "line": 63,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -34625,12 +34608,13 @@
               "join",
               "split",
               "fDate",
-              "amountInWords"
+              "amountInWordsEn",
+              "amountInWordsAr"
             ]
           },
           {
             "name": "InvoicePrintPage",
-            "line": 205,
+            "line": 189,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -34654,7 +34638,7 @@
           },
           {
             "name": "customer",
-            "line": 231,
+            "line": 215,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -34677,7 +34661,7 @@
           },
           {
             "name": "write",
-            "line": 348,
+            "line": 335,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -34693,7 +34677,7 @@
           },
           {
             "name": "doPrint",
-            "line": 357,
+            "line": 344,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -131121,12 +131105,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-address.jsx": {
-      "mtime": 1775211890963,
+      "mtime": 1787308503089,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-address.jsx",
         "relativePath": "next-js/src/sections/invoice/invoice-create-edit-address.jsx",
         "fileType": "generic",
-        "lineCount": 509,
+        "lineCount": 515,
         "imports": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/address/index.js"
         ],
@@ -131331,7 +131315,7 @@
         "functions": [
           {
             "name": "AddCustomerDialog",
-            "line": 129,
+            "line": 135,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -131341,7 +131325,7 @@
           },
           {
             "name": "handleChange",
-            "line": 133,
+            "line": 139,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -131351,7 +131335,7 @@
           },
           {
             "name": "handleSubmit",
-            "line": 135,
+            "line": 141,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -131372,7 +131356,7 @@
           },
           {
             "name": "InvoiceCreateEditAddress",
-            "line": 297,
+            "line": 303,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -131387,7 +131371,7 @@
           },
           {
             "name": "transformCustomer",
-            "line": 317,
+            "line": 323,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -131401,7 +131385,7 @@
           },
           {
             "name": "fetchCustomersData",
-            "line": 366,
+            "line": 372,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -131418,7 +131402,7 @@
           },
           {
             "name": "handleCustomerCreated",
-            "line": 384,
+            "line": 390,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -131436,7 +131420,7 @@
           "InvoiceCreateEditAddress"
         ],
         "routes": [],
-        "healthScore": 85
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/integration/view/integration-details-view.jsx": {
@@ -133881,7 +133865,7 @@
           "InvoiceTableRow"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/index.js": {
@@ -134598,7 +134582,7 @@
           "InvoiceToolbar"
         ],
         "routes": [],
-        "healthScore": 85
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-create-view.jsx": {
@@ -135815,7 +135799,7 @@
           "InvoiceListView"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 50
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/job/job-filters-result.jsx": {
@@ -136499,12 +136483,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-pdf.jsx": {
-      "mtime": 1778954543391,
+      "mtime": 1787309612594,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-pdf.jsx",
         "relativePath": "next-js/src/sections/invoice/invoice-pdf.jsx",
         "fileType": "generic",
-        "lineCount": 552,
+        "lineCount": 763,
         "imports": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-address.jsx"
         ],
@@ -136561,12 +136545,15 @@
             ]
           },
           {
-            "source": "src/utils/format-number",
+            "source": "src/utils/invoice-i18n",
             "resolved": "",
             "isLocal": false,
             "line": 18,
             "names": [
-              "fCurrency"
+              "vatRateLabel",
+              "INVOICE_LABELS",
+              "amountInWordsAr",
+              "amountInWordsEn"
             ]
           },
           {
@@ -136582,7 +136569,7 @@
             "source": "./invoice-create-edit-address",
             "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-address.jsx",
             "isLocal": true,
-            "line": 21,
+            "line": 22,
             "names": [
               "IOTA_OFFICES"
             ]
@@ -136591,51 +136578,21 @@
             "source": "qrcode",
             "resolved": "",
             "isLocal": false,
-            "line": 485,
+            "line": 696,
             "names": []
           },
           {
             "source": "qrcode",
             "resolved": "",
             "isLocal": false,
-            "line": 532,
+            "line": 743,
             "names": []
           }
         ],
         "functions": [
           {
-            "name": "toWords",
-            "line": 48,
-            "isExported": false,
-            "isAsync": false,
-            "callers": [
-              "toWords",
-              "amountInWords"
-            ],
-            "callees": [
-              "floor",
-              "toWords"
-            ]
-          },
-          {
-            "name": "amountInWords",
-            "line": 71,
-            "isExported": false,
-            "isAsync": false,
-            "callers": [
-              "InvoicePdfDocument"
-            ],
-            "callees": [
-              "isNaN",
-              "floor",
-              "round",
-              "toWords",
-              "register"
-            ]
-          },
-          {
             "name": "useStyles",
-            "line": 90,
+            "line": 58,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -136644,29 +136601,46 @@
             "callees": [
               "useMemo",
               "create",
+              "value",
               "document"
             ]
           },
           {
             "name": "InvoicePdfDocument",
-            "line": 287,
+            "line": 342,
             "isExported": true,
             "isAsync": false,
             "callers": [],
             "callees": [
               "useStyles",
               "find",
-              "amountInWords"
+              "vatRateLabel",
+              "amountInWordsEn",
+              "amountInWordsAr",
+              "it"
             ]
           },
           {
             "name": "fmt",
-            "line": 308,
+            "line": 369,
             "isExported": false,
             "isAsync": false,
             "callers": [
-              "fmt"
+              "BiRow"
             ],
+            "callees": [
+              "isNaN",
+              "Number",
+              "NumberFormat",
+              "format"
+            ]
+          },
+          {
+            "name": "BiRow",
+            "line": 379,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [],
             "callees": [
               "fDate",
               "map",
@@ -136675,7 +136649,7 @@
           },
           {
             "name": "InvoicePDFDownload",
-            "line": 478,
+            "line": 689,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -136689,7 +136663,7 @@
           },
           {
             "name": "renderButton",
-            "line": 492,
+            "line": 703,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -136701,7 +136675,7 @@
           },
           {
             "name": "InvoicePDFViewer",
-            "line": 525,
+            "line": 736,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -191401,6 +191375,168 @@
         "exports": [],
         "routes": [],
         "healthScore": 85
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/utils/invoice-i18n.js": {
+      "mtime": 1787309553751,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/utils/invoice-i18n.js",
+        "relativePath": "next-js/src/utils/invoice-i18n.js",
+        "fileType": "util",
+        "lineCount": 333,
+        "imports": [],
+        "importedBy": [],
+        "importInfos": [],
+        "functions": [
+          {
+            "name": "vatRateLabel",
+            "line": 59,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": [
+              "singular"
+            ]
+          },
+          {
+            "name": "arForms",
+            "line": 72,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
+              "arForms",
+              "arScale"
+            ],
+            "callees": [
+              "arForms"
+            ]
+          },
+          {
+            "name": "toWordsEn",
+            "line": 155,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [
+              "toWordsEn",
+              "amountInWordsEn"
+            ],
+            "callees": [
+              "floor",
+              "toWordsEn"
+            ]
+          },
+          {
+            "name": "amountInWordsEn",
+            "line": 172,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": [
+              "isNaN",
+              "floor",
+              "round",
+              "toWordsEn",
+              "words"
+            ]
+          },
+          {
+            "name": "arBelowThousand",
+            "line": 236,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
+              "arScale",
+              "toWordsAr"
+            ],
+            "callees": [
+              "floor",
+              "push",
+              "join",
+              "otherwise"
+            ]
+          },
+          {
+            "name": "arCountedForm",
+            "line": 260,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
+              "arScale",
+              "amountInWordsAr"
+            ],
+            "callees": []
+          },
+          {
+            "name": "arDropNun",
+            "line": 273,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
+              "arScale",
+              "amountInWordsAr"
+            ],
+            "callees": [
+              "replace",
+              "word"
+            ]
+          },
+          {
+            "name": "arScale",
+            "line": 281,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
+              "toWordsAr"
+            ],
+            "callees": [
+              "arCountedForm",
+              "arDropNun",
+              "arBelowThousand",
+              "arForms"
+            ]
+          },
+          {
+            "name": "toWordsAr",
+            "line": 291,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [
+              "amountInWordsAr"
+            ],
+            "callees": [
+              "floor",
+              "push",
+              "arScale",
+              "arBelowThousand",
+              "join"
+            ]
+          },
+          {
+            "name": "amountInWordsAr",
+            "line": 310,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": [
+              "isNaN",
+              "floor",
+              "round",
+              "arCountedForm",
+              "arDropNun",
+              "toWordsAr"
+            ]
+          }
+        ],
+        "classes": [],
+        "exports": [
+          "vatRateLabel",
+          "toWordsEn",
+          "amountInWordsEn",
+          "toWordsAr",
+          "amountInWordsAr"
+        ],
+        "routes": [],
+        "healthScore": 70
       }
     }
   }

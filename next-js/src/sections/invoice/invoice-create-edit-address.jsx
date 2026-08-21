@@ -27,10 +27,13 @@ import { AddressListDialog } from '../address';
 // ----------------------------------------------------------------------
 
 // IOTA office addresses
+// `nameAr` is the seller name printed in Arabic on the bilingual invoice; it is
+// only the fallback — live values come from the iotaOffice appConfig namespace.
 export const IOTA_OFFICES = [
   {
     id: 'iota-saudi',
     name: 'IOTA Saudi Arabia',
+    nameAr: 'شركة آي أو تي إيه تيكنالوجيز',
     fullAddress: '2885, Office #9, 1st Floor, Jarir Street, Al Malaz, Riyadh - 12836, Saudi Arabia',
     phoneNumber: '+966 50 534 0573',
     email: 'invoice@iotatechnologies.ai',
@@ -50,6 +53,7 @@ export const IOTA_OFFICES = [
   {
     id: 'iota-uae',
     name: 'IOTA UAE',
+    nameAr: 'شركة آي أو تي إيه تيكنالوجيز',
     fullAddress: 'Office 1215, ETA Star AlManara, Business Bay, Dubai, UAE',
     phoneNumber: '+971 54 37 44220',
     email: 'accounts@iotatechnologies.ai',
@@ -69,6 +73,7 @@ export const IOTA_OFFICES = [
   {
     id: 'iota-india',
     name: 'IOTA India',
+    nameAr: 'شركة آي أو تي إيه تيكنالوجيز',
     fullAddress: 'India',
     phoneNumber: '+91 00 0000 0000',
     email: 'invoice@iotatechnologies.ai',
@@ -88,6 +93,7 @@ export const IOTA_OFFICES = [
   {
     id: 'iota-uk',
     name: 'IOTA UK',
+    nameAr: 'شركة آي أو تي إيه تيكنالوجيز',
     fullAddress: 'United Kingdom',
     phoneNumber: '+44 00 0000 0000',
     email: 'invoice@iotatechnologies.ai',

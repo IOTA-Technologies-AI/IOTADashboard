@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-
 import { useParams } from 'next/navigation';
 
 import { fetchInvoice, getCustomers } from 'src/utils/apiHelper';
@@ -28,6 +27,8 @@ export default function Page() {
         invoiceTo: {
           id: data.customerId,
           name: customer?.customerNameEn || data.customerName,
+          // Arabic name — printed under the English one on the bilingual invoice
+          nameAr: customer?.customerNameAr || '',
           addressStreet: (() => {
             if (customer?.addresses) {
               const addr = customer.addresses;

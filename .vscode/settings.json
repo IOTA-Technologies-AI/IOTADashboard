@@ -1,28 +1,29 @@
 {
-  "editor.formatOnSave": true,
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
-  "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
-  },
-  "eslint.workingDirectories": [
-    {
-      "directory": "../next-js/src",
-      "changeProcessCWD": true
-    },
-    {
-      "directory": "../vite-js/src",
-      "changeProcessCWD": true
-    },
-    {
-      "directory": "../starter-next-js/src",
-      "changeProcessCWD": true
-    },
-    {
-      "directory": "../starter-vite-js/src",
-      "changeProcessCWD": true
-    }
-  ],
-  "[json]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  }
+	"editor.formatOnSave": true,
+	"editor.defaultFormatter": "esbenp.prettier-vscode",
+	"editor.codeActionsOnSave": {
+		"source.fixAll.eslint": "explicit"
+	},
+	"eslint.workingDirectories": [
+		{
+			"directory": "../next-js/src",
+			"changeProcessCWD": true
+		},
+		{
+			"directory": "../vite-js/src",
+			"changeProcessCWD": true
+		},
+		{
+			"directory": "../starter-next-js/src",
+			"changeProcessCWD": true
+		},
+		{
+			"directory": "../starter-vite-js/src",
+			"changeProcessCWD": true
+		}
+	],
+	"[json]": {
+		"editor.defaultFormatter": "esbenp.prettier-vscode"
+	},
+	"compilets.autoStart": true
 }
