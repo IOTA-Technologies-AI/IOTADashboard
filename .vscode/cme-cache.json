@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1787345156946,
+  "timestamp": 1787399681567,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_invoice.js": {
       "mtime": 1761284298333,
@@ -147,14 +147,14 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_invoice.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_files.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_order.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_others.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_overview.js",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_job.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_vendor.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_files.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_others.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_order.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_overview.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_user.js",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_tour.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_user.js"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_vendor.js"
         ],
         "importInfos": [
           {
@@ -37562,15 +37562,15 @@
         "lineCount": 26,
         "imports": [],
         "importedBy": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/assets/illustrations/coming-soon-illustration.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/assets/illustrations/forbidden-illustration.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/assets/illustrations/maintenance-illustration.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/assets/illustrations/motivation-illustration.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/assets/illustrations/page-not-found-illustration.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/assets/illustrations/seo-illustration.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/assets/illustrations/order-complete-illustration.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/assets/illustrations/server-error-illustration.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/assets/illustrations/upload-illustration.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/assets/illustrations/maintenance-illustration.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/assets/illustrations/seo-illustration.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/assets/illustrations/coming-soon-illustration.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/assets/illustrations/page-not-found-illustration.jsx"
         ],
         "importInfos": [
           {
@@ -38517,32 +38517,32 @@
         "lineCount": 40,
         "imports": [],
         "importedBy": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-sign-up-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-sign-in-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-reset-password-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-sign-up-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-update-password-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-reset-password-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-verify-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-verify-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-sign-in-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-reset-password-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-sign-in-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-sign-up-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-update-password-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-sign-in-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-verify-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-sign-in-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-sign-in-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-reset-password-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-sign-up-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-reset-password-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-verify-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-update-password-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-sign-up-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-reset-password-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-verify-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/jwt/jwt-sign-up-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/supabase/supabase-sign-in-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-sign-in-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-verify-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/jwt/jwt-sign-in-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/jwt/jwt-sign-up-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/supabase/supabase-reset-password-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/supabase/supabase-verify-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/supabase/supabase-sign-in-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/supabase/supabase-sign-up-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/supabase/supabase-update-password-view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/supabase/supabase-update-password-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/supabase/supabase-verify-view.jsx"
         ],
         "importInfos": [
           {
@@ -38594,11 +38594,11 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-update-password-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-verify-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-verify-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-update-password-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-verify-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-update-password-view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-update-password-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-verify-view.jsx"
         ],
         "importInfos": [
           {
@@ -38649,12 +38649,12 @@
         "lineCount": 22,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-sign-in-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-sign-up-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-sign-in-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-sign-in-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-sign-up-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-sign-in-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-sign-up-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-sign-up-view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-sign-up-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-sign-in-view.jsx"
         ],
         "importInfos": [
           {
@@ -38752,12 +38752,12 @@
         "lineCount": 39,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-sign-in-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-sign-up-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-sign-in-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-sign-in-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-sign-up-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-sign-in-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-sign-up-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-sign-up-view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-sign-up-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-sign-in-view.jsx"
         ],
         "importInfos": [
           {
@@ -38871,14 +38871,14 @@
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-reset-password-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-update-password-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-reset-password-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-verify-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-verify-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-reset-password-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-update-password-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-reset-password-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-verify-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-reset-password-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/split/split-update-password-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-reset-password-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-verify-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/auth-demo/centered/centered-verify-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/supabase/supabase-reset-password-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/supabase/supabase-verify-view.jsx"
         ],
@@ -39057,9 +39057,9 @@
         "lineCount": 4,
         "imports": [],
         "importedBy": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-sign-up-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-sign-in-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-reset-password-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-sign-up-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-update-password-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-verify-view.jsx"
         ],
@@ -39184,8 +39184,8 @@
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/context/amplify/auth-provider.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/context/auth0/auth-provider.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/context/firebase/auth-provider.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/context/jwt/auth-provider.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/context/firebase/auth-provider.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/context/supabase/auth-provider.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/hooks/use-auth-context.js"
         ],
@@ -39800,8 +39800,8 @@
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/context/jwt/constant.js"
         ],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/context/jwt/auth-provider.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/context/jwt/action.js"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/context/jwt/action.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/context/jwt/auth-provider.jsx"
         ],
         "importInfos": [
           {
@@ -40024,9 +40024,9 @@
         "lineCount": 5,
         "imports": [],
         "importedBy": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/context/jwt/action.js",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/context/jwt/auth-provider.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/context/jwt/utils.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/context/jwt/action.js"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/context/jwt/utils.js"
         ],
         "importInfos": [],
         "functions": [],
@@ -40560,13 +40560,13 @@
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/guard/auth-guard.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/guard/guest-guard.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/guard/role-guard.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/guard/permission-guard.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/guard/role-guard.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/guard/totp-guard.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-sign-in-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-sign-in-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/jwt/jwt-sign-up-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/jwt/jwt-sign-in-view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/jwt/jwt-sign-in-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/jwt/jwt-sign-up-view.jsx"
         ],
         "importInfos": [],
         "functions": [],
@@ -40585,8 +40585,8 @@
         "lineCount": 8,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/jwt/jwt-sign-up-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/jwt/jwt-sign-in-view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/jwt/jwt-sign-in-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/jwt/jwt-sign-up-view.jsx"
         ],
         "importInfos": [],
         "functions": [],
@@ -40734,8 +40734,8 @@
         ],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/hooks/use-microsoft-profile.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/hooks/use-mocked-user.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/hooks/use-microsoft-users.js"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/hooks/use-microsoft-users.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/hooks/use-mocked-user.js"
         ],
         "importInfos": [
           {
@@ -41089,13 +41089,13 @@
         "lineCount": 2,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-sign-in-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-sign-up-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-sign-in-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/amplify/amplify-sign-in-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-sign-up-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/firebase/firebase-sign-in-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/jwt/jwt-sign-in-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/jwt/jwt-sign-up-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/supabase/supabase-sign-in-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/jwt/jwt-sign-in-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/supabase/supabase-sign-up-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/auth/view/supabase/supabase-update-password-view.jsx"
         ],
@@ -48447,10 +48447,10 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/animate/variants/bounce.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/animate/variants/fade.js",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/animate/variants/flip.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/animate/variants/rotate.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/animate/variants/fade.js",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/animate/variants/scale.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/animate/variants/rotate.js",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/animate/variants/slide.js",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/animate/variants/zoom.js"
         ],
@@ -48536,14 +48536,14 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/carousel/carousel.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/carousel/components/carousel-dot-buttons.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/carousel/components/carousel-arrow-buttons.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/carousel/components/arrow-button.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/carousel/components/carousel-dot-buttons.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/carousel/components/carousel-progress-bar.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/carousel/components/carousel-thumb.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/carousel/components/carousel-slide.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/carousel/hooks/use-carousel-parallax.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/carousel/components/carousel-thumbs.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/carousel/components/carousel-thumbs.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/carousel/components/carousel-thumb.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/carousel/hooks/use-carousel-parallax.js"
         ],
         "importInfos": [
           {
@@ -50392,9 +50392,9 @@
         "lineCount": 20,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/chart/components/chart-legends.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/chart/chart.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/chart/components/chart-loading.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/chart/chart.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/chart/components/chart-legends.jsx"
         ],
         "importInfos": [
           {
@@ -50423,8 +50423,8 @@
         "lineCount": 19,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/color-utils/color-preview.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/color-utils/color-picker.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/color-utils/color-picker.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/color-utils/color-preview.jsx"
         ],
         "importInfos": [
           {
@@ -52545,11 +52545,11 @@
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/components/bubble-toolbar.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/components/code-highlight-block.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/components/image-block.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/components/link-block.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/components/image-block.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/components/toolbar.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/styles.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/editor.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/editor.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/styles.jsx"
         ],
         "importInfos": [
           {
@@ -53047,8 +53047,8 @@
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/components/bubble-toolbar.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/components/heading-block.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/components/image-block.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/components/link-block.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/components/image-block.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/components/toolbar.jsx"
         ],
         "importInfos": [
@@ -53505,8 +53505,8 @@
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/avatar/upload-avatar.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/components/multi-file-preview.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/components/single-file-preview.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/components/rejected-files.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/components/rejected-files.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/components/single-file-preview.jsx"
         ],
         "importInfos": [],
         "functions": [],
@@ -54561,14 +54561,14 @@
         "lineCount": 22,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/hook-form/rhf-code.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/hook-form/rhf-checkbox.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/hook-form/rhf-code.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/hook-form/rhf-radio-group.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/hook-form/rhf-rating.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/hook-form/rhf-switch.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/hook-form/rhf-slider.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/hook-form/rhf-upload.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/hook-form/rhf-select.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/hook-form/rhf-select.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/hook-form/rhf-switch.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/hook-form/rhf-upload.jsx"
         ],
         "importInfos": [
           {
@@ -56749,8 +56749,8 @@
         "lineCount": 14,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/image/styles.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/image/image.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/image/image.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/image/styles.jsx"
         ],
         "importInfos": [
           {
@@ -58222,8 +58222,8 @@
         "lineCount": 16,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/markdown/styles.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/markdown/markdown.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/markdown/markdown.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/markdown/styles.jsx"
         ],
         "importInfos": [
           {
@@ -58253,11 +58253,11 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/horizontal/mega-menu-horizontal.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/horizontal/nav-list.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/mobile/mega-menu-mobile.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/mobile/nav-list.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/vertical/mega-menu-vertical.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/vertical/nav-list.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/horizontal/nav-list.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/vertical/mega-menu-vertical.jsx"
         ],
         "importInfos": [],
         "functions": [],
@@ -59340,16 +59340,16 @@
         "lineCount": 6,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/components/nav-dropdown-content.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/components/nav-carousel.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/components/nav-dropdown-content.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/components/nav-elements.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/components/nav-dropdown.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/components/nav-sub-list.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/components/nav-item.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/components/nav-sub-list.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/horizontal/mega-menu-horizontal.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/horizontal/nav-list.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/mobile/mega-menu-mobile.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/vertical/mega-menu-vertical.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/horizontal/nav-list.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/vertical/mega-menu-vertical.jsx"
         ],
         "importInfos": [],
         "functions": [],
@@ -59737,8 +59737,8 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/desktop/nav-basic-desktop.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/mobile/nav-basic-mobile.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/desktop/nav-list.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/mobile/nav-basic-mobile.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/mobile/nav-list.jsx"
         ],
         "importInfos": [],
@@ -60857,12 +60857,12 @@
         "lineCount": 6,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/components/nav-elements.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/desktop/nav-basic-desktop.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/components/nav-collapse.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/mobile/nav-basic-mobile.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/desktop/nav-basic-desktop.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/components/nav-elements.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/desktop/nav-item.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/desktop/nav-list.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/mobile/nav-basic-mobile.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/mobile/nav-item.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/mobile/nav-list.jsx"
         ],
@@ -60901,11 +60901,11 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/horizontal/nav-list.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/horizontal/nav-section-horizontal.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/mini/nav-list.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/mini/nav-section-mini.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/vertical/nav-list.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/vertical/nav-section-vertical.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/vertical/nav-list.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/horizontal/nav-section-horizontal.jsx"
         ],
         "importInfos": [],
         "functions": [],
@@ -61964,13 +61964,13 @@
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/components/nav-subheader.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/horizontal/nav-item.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/horizontal/nav-list.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/horizontal/nav-section-horizontal.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/mini/nav-item.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/mini/nav-list.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/mini/nav-section-mini.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/vertical/nav-list.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/vertical/nav-item.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/vertical/nav-section-vertical.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/vertical/nav-list.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/horizontal/nav-section-horizontal.jsx"
         ],
         "importInfos": [],
         "functions": [],
@@ -64887,8 +64887,8 @@
         "lineCount": 8,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/context/use-settings-context.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/context/settings-provider.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/context/settings-provider.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/context/use-settings-context.js"
         ],
         "importInfos": [
           {
@@ -65657,9 +65657,9 @@
         ],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/font-options.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/nav-layout-option.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/presets-options.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/settings-drawer.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/presets-options.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/nav-layout-option.jsx"
         ],
         "importInfos": [
           {
@@ -67210,13 +67210,13 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/avatar/upload-avatar.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/avatar/styles.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/box/styles.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/components/multi-file-preview.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/components/rejected-files.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/avatar/styles.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/box/upload-box.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/components/single-file-preview.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/default/styles.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/components/rejected-files.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/default/upload-default.jsx"
         ],
         "importInfos": [
@@ -69079,8 +69079,8 @@
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/components/sign-out-button.jsx"
         ],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/layout.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/layout.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx"
         ],
         "importInfos": [
           {
@@ -69336,8 +69336,8 @@
         "lineCount": 35,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/components/account-drawer.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/components/account-popover.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/components/account-popover.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/components/account-drawer.jsx"
         ],
         "importInfos": [
           {
@@ -69414,8 +69414,8 @@
         "lineCount": 76,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/layout.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/layout.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx"
         ],
         "importInfos": [
           {
@@ -69628,8 +69628,8 @@
         "lineCount": 14,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/layout.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/main/layout.jsx"
         ],
         "importInfos": [
@@ -69866,8 +69866,8 @@
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/components/notifications-drawer/notification-item.jsx"
         ],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/layout.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/layout.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx"
         ],
         "importInfos": [
           {
@@ -70950,8 +70950,8 @@
         "lineCount": 72,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/components/account-drawer.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/components/account-popover.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/components/account-popover.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/components/account-drawer.jsx"
         ],
         "importInfos": [
           {
@@ -71155,10 +71155,10 @@
         "lineCount": 61,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/auth-split/layout.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/auth-centered/layout.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/auth-split/layout.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/layout.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/main/layout.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/simple/layout.jsx"
         ],
@@ -71365,8 +71365,8 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/core/header-section.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/core/layout-section.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/core/main-section.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/core/main-section.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/core/layout-section.jsx"
         ],
         "importInfos": [
           {
@@ -71395,16 +71395,16 @@
         "lineCount": 10,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/auth-centered/content.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/auth-split/content.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/auth-split/layout.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/auth-centered/layout.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/nav-horizontal.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/nav-vertical.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/auth-centered/content.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/auth-split/layout.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/auth-split/content.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/content.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/nav-mobile.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/layout.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/nav-horizontal.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/nav-mobile.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/nav-vertical.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/main/layout.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/simple/content.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/simple/layout.jsx"
@@ -72756,8 +72756,8 @@
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/core/index.js"
         ],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/layout.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/layout.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx"
         ],
         "importInfos": [
           {
@@ -74263,10 +74263,10 @@
         "lineCount": 4,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/main/nav/desktop/nav-desktop.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/main/nav/desktop/nav-desktop-list.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/main/nav/mobile/nav-mobile.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/main/nav/mobile/nav-mobile-list.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/main/nav/desktop/nav-desktop.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/main/nav/mobile/nav-mobile-list.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/main/nav/mobile/nav-mobile.jsx"
         ],
         "importInfos": [],
         "functions": [],
@@ -74568,8 +74568,8 @@
         "lineCount": 28,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/layout.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/layout.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx"
         ],
         "importInfos": [
           {
@@ -74624,8 +74624,8 @@
         "lineCount": 425,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/layout.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/layout.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/layouts/dashboard/minimal-layout.jsx"
         ],
         "importInfos": [
           {
@@ -75384,9 +75384,9 @@
         "lineCount": 130,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/locales/use-locales.js",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/locales/i18n-provider.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/locales/utils/number-format-locale.js"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/locales/utils/number-format-locale.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/locales/use-locales.js"
         ],
         "importInfos": [
           {
@@ -76761,9 +76761,9 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/animate-view/background/index.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/animate-view/dialog/index.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/animate-view/inview/index.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/animate-view/scroll/index.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/animate-view/dialog/index.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/animate-view/scroll/index.jsx"
         ],
         "importInfos": [
           {
@@ -79073,22 +79073,22 @@
         "lineCount": 59,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-align.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-autoplay.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-animation.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-auto-height.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-fade.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-opacity.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-parallax.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-scale.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-variable-widths.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-thumbs-x.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-align.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-auto-scroll.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-progress.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-autoplay.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-custom.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-yaxis.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-opacity.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-dots-number.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-thumbs-y.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-progress.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-scale.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-thumbs-x.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-variable-widths.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-parallax.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-thumbs-y.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-yaxis.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/carousel-fade.jsx"
         ],
         "importInfos": [
           {
@@ -82034,8 +82034,8 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/fields-demo.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/controls-demo.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/other-demo.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/other-demo.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/controls-demo.jsx"
         ],
         "importInfos": [
           {
@@ -82887,8 +82887,8 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/fields-demo.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/controls-demo.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/other-demo.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/other-demo.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/controls-demo.jsx"
         ],
         "importInfos": [],
         "functions": [],
@@ -83218,8 +83218,8 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/fields-demo.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/controls-demo.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/other-demo.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/other-demo.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/controls-demo.jsx"
         ],
         "importInfos": [
           {
@@ -84457,12 +84457,12 @@
         "lineCount": 19,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/map-view/map-draggable-markers.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/map-view/map-change-style.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/map-view/map-viewport-animation.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/map-view/map-heatmap.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/map-view/map-draggable-markers.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/map-view/map-side-by-side.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/map-view/map-interaction.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/map-view/map-side-by-side.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/map-view/map-viewport-animation.jsx"
         ],
         "importInfos": [
           {
@@ -85439,8 +85439,8 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/mega-menu-view/horizontal.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/mega-menu-view/vertical.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/mega-menu-view/mobile.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/mega-menu-view/mobile.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/mega-menu-view/vertical.jsx"
         ],
         "importInfos": [
           {
@@ -85858,10 +85858,10 @@
         "lineCount": 220,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/navigation-bar-view/nav-vertical.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/navigation-bar-view/nav-basic.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/navigation-bar-view/nav-horizontal.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/navigation-bar-view/nav-mini.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/navigation-bar-view/nav-basic.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/navigation-bar-view/nav-vertical.jsx"
         ],
         "importInfos": [
           {
@@ -91369,14 +91369,14 @@
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/animate-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/carousel-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/chart-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/editor-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/dnd-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/editor-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/fields-demo.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/other-demo.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/controls-demo.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-validation-view/other-demo.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/image-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/form-wizard-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/image-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/label-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/layout-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/lightbox-view/view.jsx",
@@ -91384,69 +91384,69 @@
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/markdown-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/mega-menu-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/multi-language-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/organizational-chart-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/navigation-bar-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/organizational-chart-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/scroll-progress-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/scrollbar-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/upload-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/snackbar-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/utilities-view/countdown.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/utilities-view/color-pickers.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/utilities-view/copy-to-clipboard.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/scroll-progress-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/utilities-view/color-pickers.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/utilities-view/countdown.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/utilities-view/gradients.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/utilities-view/number-inputs.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/utilities-view/phone-inputs.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/utilities-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/utilities-view/gradients.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/utilities-view/text-max-line.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/utilities-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/foundation/colors-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/foundation/grid-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/foundation/shadows-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/foundation/typography-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/foundation/icons-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/foundation/typography-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/accordion-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/autocomplete-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/alert-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/avatar-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/badge-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/breadcrumbs-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/button-view/button-variant.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/button-view/icon-buttons.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/button-view/floating-action-button.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/button-view/button-groups.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/button-view/button-variant.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/button-view/floating-action-button.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/button-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/button-view/toggle-buttons.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/checkbox-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/chip-view/chip-variant.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/data-grid-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/date-pickers-view/picker-date-range.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/chip-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/date-pickers-view/picker-time.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/date-pickers-view/picker-date.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/date-pickers-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/data-grid-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/button-view/icon-buttons.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/date-pickers-view/picker-date-time.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/date-pickers-view/picker-date.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/date-pickers-view/picker-time.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/date-pickers-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/dialog-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/menu-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/drawer-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/list-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/menu-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/popover-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/progress-view/progress-circular.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/progress-view/progress-linear.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/radio-button-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/progress-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/rating-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/switch-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/pagination-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/table-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/slider-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/progress-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/date-pickers-view/picker-date-range.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/radio-button-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/rating-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/progress-view/progress-linear.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/stepper-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/switch-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/table-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/tabs-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/slider-view/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/text-field-view/text-field-variant.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/text-field-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/timeline-view/view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/tooltip-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/text-field-view/text-field-variant.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/transfer-list-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/tree-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/tree-view/view.jsx"
         ],
         "importInfos": [],
         "functions": [],
@@ -98263,8 +98263,8 @@
         "lineCount": 121,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/table-view/view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/table-view/table-pagination-with-api.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/table-view/table-pagination-with-api.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/mui/table-view/view.jsx"
         ],
         "importInfos": [
           {
@@ -104853,8 +104853,8 @@
         "lineCount": 6,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/account/account-billing-plan.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/account/account-billing-address.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/account/account-billing-plan.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/checkout/checkout-billing-address.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-address.jsx"
         ],
@@ -106576,8 +106576,8 @@
         "lineCount": 62,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/blog/view/post-list-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/blog/view/post-list-home-view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/blog/view/post-list-home-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/blog/view/post-list-view.jsx"
         ],
         "importInfos": [
           {
@@ -106688,8 +106688,8 @@
         "lineCount": 150,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/blog/view/post-list-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/blog/view/post-list-home-view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/blog/view/post-list-home-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/blog/view/post-list-view.jsx"
         ],
         "importInfos": [
           {
@@ -106882,8 +106882,8 @@
         "lineCount": 184,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/blog/view/post-details-home-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/blog/post-list.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/blog/post-list.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/blog/view/post-details-home-view.jsx"
         ],
         "importInfos": [
           {
@@ -111495,8 +111495,8 @@
         "lineCount": 86,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/chat/chat-header-details.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/chat/chat-nav.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/chat/chat-header-details.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/chat/chat-room.jsx"
         ],
         "importInfos": [
@@ -113685,12 +113685,12 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/checkout/checkout-billing-address.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/checkout/checkout-payment.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/checkout/checkout-cart.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/checkout/checkout-payment.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/checkout/view/checkout-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/product/product-item.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/product/view/product-shop-details-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/product/view/product-shop-view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/product/view/product-shop-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/product/view/product-shop-details-view.jsx"
         ],
         "importInfos": [],
         "functions": [],
@@ -114895,8 +114895,8 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/checkout/checkout-billing-address.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/checkout/checkout-payment.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/checkout/checkout-cart.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/checkout/checkout-cart.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/checkout/checkout-payment.jsx"
         ],
         "importInfos": [
           {
@@ -121925,8 +121925,8 @@
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/file-manager/file-manager-invited-item.jsx"
         ],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/file-manager/file-manager-folder-item.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/file-manager/file-manager-file-item.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/file-manager/file-manager-folder-item.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/file-manager/file-manager-table-row.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/file-manager/file-recent-item.jsx"
         ],
@@ -123879,9 +123879,9 @@
         ],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/file-manager/file-manager-file-details.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/file-manager/file-manager-file-item.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/file-manager/file-manager-folder-item.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/file-manager/file-manager-grid-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/file-manager/file-manager-file-item.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/file-manager/file-manager-table-row.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/file-manager/file-recent-item.jsx"
         ],
@@ -125038,15 +125038,15 @@
         "lineCount": 99,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-hugepack-elements.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-faqs.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-for-designer.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-integrations.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-highlight-features.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-hugepack-elements.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-minimal.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-pricing.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-testimonials.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-zone-ui.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-highlight-features.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-testimonials.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-integrations.jsx"
         ],
         "importInfos": [
           {
@@ -127649,15 +127649,15 @@
         "lineCount": 284,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-advertisement.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-hugepack-elements.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-faqs.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-integrations.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-advertisement.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-highlight-features.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-hugepack-elements.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-minimal.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-pricing.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-testimonials.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-zone-ui.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-highlight-features.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-testimonials.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/home/home-integrations.jsx"
         ],
         "importInfos": [
           {
@@ -131117,8 +131117,8 @@
         ],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-form.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-edit-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-pdf.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-pdf.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-edit-view.jsx"
         ],
         "importInfos": [
           {
@@ -132357,8 +132357,8 @@
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-address.jsx"
         ],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-edit-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-create-view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-create-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-edit-view.jsx"
         ],
         "importInfos": [
           {
@@ -133488,8 +133488,8 @@
         "lineCount": 58,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-details.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-details.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-details.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-details.jsx"
         ],
         "importInfos": [
           {
@@ -137732,10 +137732,10 @@
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/column/styles.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/hooks/use-column-dnd.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/item/kanban-task-item.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/hooks/use-task-item-dnd.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/item/styles.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/utils/helpers.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/view/kanban-view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/view/kanban-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/hooks/use-task-item-dnd.jsx"
         ],
         "importInfos": [
           {
@@ -161745,8 +161745,8 @@
         "lineCount": 43,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/product/view/product-shop-details-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/product/view/product-shop-view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/product/view/product-shop-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/product/view/product-shop-details-view.jsx"
         ],
         "importInfos": [
           {
@@ -177987,8 +177987,8 @@
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/vat/view/vat-ap-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/vat/view/vat-list-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/vat/view/vat-ar-view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/vat/view/vat-ar-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/vat/view/vat-list-view.jsx"
         ],
         "importInfos": [
           {
@@ -185053,8 +185053,8 @@
         "lineCount": 326,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/components/index.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/components/form.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/components/form.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/components/index.js"
         ],
         "importInfos": [
           {
@@ -185151,17 +185151,17 @@
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/components/avatar.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/components/button-fab.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/components/button-group.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/components/button-icon.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/components/button-toggle.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/components/button-group.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/components/chip.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/components/button.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/components/progress.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/components/chip.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/components/pagination.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/components/progress.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/custom-shadows.js",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/shadows.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/with-settings/color-presets.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/create-theme.js"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/create-theme.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/with-settings/color-presets.js"
         ],
         "importInfos": [
           {
@@ -185225,10 +185225,10 @@
         "lineCount": 95,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/typography.js",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/palette.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/create-theme.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/create-classes.js"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/core/typography.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/create-classes.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/theme/create-theme.js"
         ],
         "importInfos": [],
         "functions": [],
@@ -191802,7 +191802,7 @@
           "Clock"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 50
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/ClockPointer.js": {
