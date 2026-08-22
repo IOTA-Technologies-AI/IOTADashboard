@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1787314796397,
+  "timestamp": 1787345156946,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_invoice.js": {
       "mtime": 1761284298333,
@@ -131012,7 +131012,7 @@
           "InvoiceApprovalDialog"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-analytic.jsx": {
@@ -131421,7 +131421,7 @@
           "InvoiceCreateEditAddress"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/integration/view/integration-details-view.jsx": {
@@ -134589,7 +134589,7 @@
           "InvoiceToolbar"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-create-view.jsx": {
@@ -136702,7 +136702,7 @@
           "InvoicePDFViewer"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/job/job-sort.jsx": {
@@ -191544,6 +191544,769 @@
         ],
         "routes": [],
         "healthScore": 70
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/Clock.js": {
+      "mtime": 1780853052757,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/Clock.js",
+        "relativePath": "next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/Clock.js",
+        "fileType": "generic",
+        "lineCount": 346,
+        "imports": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/ClockPointer.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/hooks/index.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/shared.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/clockClasses.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/internals/utils/date-utils.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/internals/hooks/usePickerPrivateContext.js"
+        ],
+        "importedBy": [],
+        "importInfos": [
+          {
+            "source": "@babel/runtime/helpers/esm/extends",
+            "resolved": "",
+            "isLocal": false,
+            "line": 0,
+            "names": [
+              "_extends"
+            ]
+          },
+          {
+            "source": "react",
+            "resolved": "",
+            "isLocal": false,
+            "line": 1,
+            "names": []
+          },
+          {
+            "source": "clsx",
+            "resolved": "",
+            "isLocal": false,
+            "line": 2,
+            "names": [
+              "clsx"
+            ]
+          },
+          {
+            "source": "@mui/material/IconButton",
+            "resolved": "",
+            "isLocal": false,
+            "line": 3,
+            "names": [
+              "IconButton"
+            ]
+          },
+          {
+            "source": "@mui/material/Typography",
+            "resolved": "",
+            "isLocal": false,
+            "line": 4,
+            "names": [
+              "Typography"
+            ]
+          },
+          {
+            "source": "@mui/material/styles",
+            "resolved": "",
+            "isLocal": false,
+            "line": 5,
+            "names": [
+              "styled",
+              "useThemeProps"
+            ]
+          },
+          {
+            "source": "@mui/utils/useEnhancedEffect",
+            "resolved": "",
+            "isLocal": false,
+            "line": 6,
+            "names": [
+              "useEnhancedEffect"
+            ]
+          },
+          {
+            "source": "@mui/utils/composeClasses",
+            "resolved": "",
+            "isLocal": false,
+            "line": 7,
+            "names": [
+              "composeClasses"
+            ]
+          },
+          {
+            "source": "./ClockPointer.js",
+            "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/ClockPointer.js",
+            "isLocal": true,
+            "line": 8,
+            "names": [
+              "ClockPointer"
+            ]
+          },
+          {
+            "source": "../hooks/index.js",
+            "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/hooks/index.js",
+            "isLocal": true,
+            "line": 9,
+            "names": [
+              "usePickerAdapter",
+              "usePickerTranslations"
+            ]
+          },
+          {
+            "source": "./shared.js",
+            "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/shared.js",
+            "isLocal": true,
+            "line": 10,
+            "names": [
+              "CLOCK_HOUR_WIDTH",
+              "getHours",
+              "getMinutes"
+            ]
+          },
+          {
+            "source": "./clockClasses.js",
+            "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/clockClasses.js",
+            "isLocal": true,
+            "line": 11,
+            "names": [
+              "getClockUtilityClass"
+            ]
+          },
+          {
+            "source": "../internals/utils/date-utils.js",
+            "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/internals/utils/date-utils.js",
+            "isLocal": true,
+            "line": 12,
+            "names": [
+              "formatMeridiem"
+            ]
+          },
+          {
+            "source": "../internals/hooks/usePickerPrivateContext.js",
+            "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/internals/hooks/usePickerPrivateContext.js",
+            "isLocal": true,
+            "line": 13,
+            "names": [
+              "usePickerPrivateContext"
+            ]
+          },
+          {
+            "source": "react/jsx-runtime",
+            "resolved": "",
+            "isLocal": false,
+            "line": 14,
+            "names": [
+              "jsx",
+              "jsxs"
+            ]
+          }
+        ],
+        "functions": [
+          {
+            "name": "useUtilityClasses",
+            "line": 15,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
+              "Clock"
+            ],
+            "callees": [
+              "composeClasses",
+              "styled",
+              "spacing",
+              "rgba",
+              "media",
+              "translate"
+            ]
+          },
+          {
+            "name": "meridiemButtonCommonStyles",
+            "line": 101,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
+              "meridiemButtonCommonStyles"
+            ],
+            "callees": [
+              "styled",
+              "_extends",
+              "meridiemButtonCommonStyles"
+            ]
+          },
+          {
+            "name": "Clock",
+            "line": 152,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": [
+              "useThemeProps",
+              "usePickerAdapter",
+              "usePickerTranslations",
+              "usePickerPrivateContext",
+              "_extends",
+              "useRef",
+              "useUtilityClasses",
+              "isTimeDisabled"
+            ]
+          },
+          {
+            "name": "handleValueChange",
+            "line": 190,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
+              "setTime"
+            ],
+            "callees": [
+              "isTimeDisabled",
+              "onChange"
+            ]
+          },
+          {
+            "name": "setTime",
+            "line": 199,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
+              "setTime"
+            ],
+            "callees": [
+              "getBoundingClientRect",
+              "getMinutes",
+              "getHours",
+              "Boolean",
+              "handleValueChange",
+              "setTime",
+              "preventDefault",
+              "useRef",
+              "useEnhancedEffect",
+              "focus",
+              "max",
+              "min",
+              "circleValue",
+              "clampValue",
+              "_jsxs",
+              "clsx",
+              "_jsx",
+              "clockLabelText",
+              "format",
+              "handleMeridiemChange",
+              "formatMeridiem"
+            ]
+          }
+        ],
+        "classes": [],
+        "exports": [
+          "Clock"
+        ],
+        "routes": [],
+        "healthScore": 100
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/ClockPointer.js": {
+      "mtime": 1780853052757,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/ClockPointer.js",
+        "relativePath": "next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/ClockPointer.js",
+        "fileType": "generic",
+        "lineCount": 117,
+        "imports": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/shared.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/clockPointerClasses.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/internals/hooks/usePickerPrivateContext.js"
+        ],
+        "importedBy": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/Clock.js"
+        ],
+        "importInfos": [
+          {
+            "source": "@babel/runtime/helpers/esm/extends",
+            "resolved": "",
+            "isLocal": false,
+            "line": 2,
+            "names": [
+              "_extends"
+            ]
+          },
+          {
+            "source": "@babel/runtime/helpers/esm/objectWithoutPropertiesLoose",
+            "resolved": "",
+            "isLocal": false,
+            "line": 3,
+            "names": [
+              "_objectWithoutPropertiesLoose"
+            ]
+          },
+          {
+            "source": "react",
+            "resolved": "",
+            "isLocal": false,
+            "line": 5,
+            "names": []
+          },
+          {
+            "source": "clsx",
+            "resolved": "",
+            "isLocal": false,
+            "line": 6,
+            "names": [
+              "clsx"
+            ]
+          },
+          {
+            "source": "@mui/material/styles",
+            "resolved": "",
+            "isLocal": false,
+            "line": 7,
+            "names": [
+              "styled",
+              "useThemeProps"
+            ]
+          },
+          {
+            "source": "@mui/utils/composeClasses",
+            "resolved": "",
+            "isLocal": false,
+            "line": 8,
+            "names": [
+              "composeClasses"
+            ]
+          },
+          {
+            "source": "./shared.js",
+            "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/shared.js",
+            "isLocal": true,
+            "line": 9,
+            "names": [
+              "CLOCK_WIDTH",
+              "CLOCK_HOUR_WIDTH"
+            ]
+          },
+          {
+            "source": "./clockPointerClasses.js",
+            "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/clockPointerClasses.js",
+            "isLocal": true,
+            "line": 10,
+            "names": [
+              "getClockPointerUtilityClass"
+            ]
+          },
+          {
+            "source": "../internals/hooks/usePickerPrivateContext.js",
+            "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/internals/hooks/usePickerPrivateContext.js",
+            "isLocal": true,
+            "line": 11,
+            "names": [
+              "usePickerPrivateContext"
+            ]
+          },
+          {
+            "source": "react/jsx-runtime",
+            "resolved": "",
+            "isLocal": false,
+            "line": 12,
+            "names": [
+              "jsx"
+            ]
+          }
+        ],
+        "functions": [
+          {
+            "name": "ClockPointer",
+            "line": 69,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": [
+              "useThemeProps",
+              "_objectWithoutPropertiesLoose",
+              "useRef",
+              "useEffect",
+              "usePickerPrivateContext",
+              "_extends",
+              "useUtilityClasses"
+            ]
+          },
+          {
+            "name": "getAngleStyle",
+            "line": 95,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
+              "getAngleStyle"
+            ],
+            "callees": [
+              "round",
+              "rotateZ",
+              "_jsx",
+              "_extends",
+              "getAngleStyle",
+              "clsx"
+            ]
+          }
+        ],
+        "classes": [],
+        "exports": [
+          "ClockPointer"
+        ],
+        "routes": [],
+        "healthScore": 100
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/hooks/index.js": {
+      "mtime": 1780853052757,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/hooks/index.js",
+        "relativePath": "next-js/node_modules/@mui/x-date-pickers/esm/hooks/index.js",
+        "fileType": "generic",
+        "lineCount": 7,
+        "imports": [],
+        "importedBy": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/Clock.js"
+        ],
+        "importInfos": [],
+        "functions": [],
+        "classes": [],
+        "exports": [
+          "usePickerTranslations",
+          "useSplitFieldProps",
+          "useParsedFormat",
+          "usePickerContext",
+          "usePickerActionsContext",
+          "useIsValidValue",
+          "usePickerAdapter"
+        ],
+        "routes": [],
+        "healthScore": 100
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/shared.js": {
+      "mtime": 1780853052757,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/shared.js",
+        "relativePath": "next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/shared.js",
+        "fileType": "generic",
+        "lineCount": 52,
+        "imports": [],
+        "importedBy": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/Clock.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/ClockPointer.js"
+        ],
+        "importInfos": [],
+        "functions": [
+          {
+            "name": "getAngleValue",
+            "line": 13,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
+              "getMinutes",
+              "getHours"
+            ],
+            "callees": [
+              "atan2",
+              "rad2deg",
+              "round",
+              "floor",
+              "sqrt"
+            ]
+          },
+          {
+            "name": "getMinutes",
+            "line": 28,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": [
+              "getAngleValue"
+            ]
+          },
+          {
+            "name": "getHours",
+            "line": 36,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": [
+              "getAngleValue"
+            ]
+          }
+        ],
+        "classes": [],
+        "exports": [
+          "getMinutes",
+          "getHours"
+        ],
+        "routes": [],
+        "healthScore": 100
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/clockClasses.js": {
+      "mtime": 1780853052757,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/clockClasses.js",
+        "relativePath": "next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/clockClasses.js",
+        "fileType": "generic",
+        "lineCount": 6,
+        "imports": [],
+        "importedBy": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/Clock.js"
+        ],
+        "importInfos": [
+          {
+            "source": "@mui/utils/generateUtilityClass",
+            "resolved": "",
+            "isLocal": false,
+            "line": 0,
+            "names": [
+              "generateUtilityClass"
+            ]
+          },
+          {
+            "source": "@mui/utils/generateUtilityClasses",
+            "resolved": "",
+            "isLocal": false,
+            "line": 1,
+            "names": [
+              "generateUtilityClasses"
+            ]
+          }
+        ],
+        "functions": [
+          {
+            "name": "getClockUtilityClass",
+            "line": 2,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": [
+              "generateUtilityClass",
+              "generateUtilityClasses"
+            ]
+          }
+        ],
+        "classes": [],
+        "exports": [
+          "getClockUtilityClass"
+        ],
+        "routes": [],
+        "healthScore": 100
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/internals/utils/date-utils.js": {
+      "mtime": 1780853052757,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/internals/utils/date-utils.js",
+        "relativePath": "next-js/node_modules/@mui/x-date-pickers/esm/internals/utils/date-utils.js",
+        "fileType": "util",
+        "lineCount": 124,
+        "imports": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/internals/utils/views.js"
+        ],
+        "importedBy": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/Clock.js"
+        ],
+        "importInfos": [
+          {
+            "source": "./views.js",
+            "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/internals/utils/views.js",
+            "isLocal": true,
+            "line": 0,
+            "names": [
+              "areViewsEqual"
+            ]
+          }
+        ],
+        "functions": [
+          {
+            "name": "mergeDateAndTime",
+            "line": 1,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [
+              "findClosestEnabledDate"
+            ],
+            "callees": [
+              "setHours",
+              "getHours",
+              "setMinutes",
+              "getMinutes",
+              "setSeconds",
+              "getSeconds",
+              "setMilliseconds",
+              "getMilliseconds"
+            ]
+          },
+          {
+            "name": "findClosestEnabledDate",
+            "line": 9,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": [
+              "mergeDateAndTime",
+              "date",
+              "isBefore",
+              "isAfter",
+              "isDateDisabled",
+              "addDays"
+            ]
+          },
+          {
+            "name": "replaceInvalidDateByNull",
+            "line": 60,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": []
+          },
+          {
+            "name": "applyDefaultDate",
+            "line": 61,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": [
+              "isValid"
+            ]
+          },
+          {
+            "name": "areDatesEqual",
+            "line": 67,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": [
+              "isValid",
+              "isEqual"
+            ]
+          },
+          {
+            "name": "getMonthsInYear",
+            "line": 73,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": [
+              "startOfYear",
+              "push",
+              "addMonths"
+            ]
+          },
+          {
+            "name": "getTodayDate",
+            "line": 82,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": []
+          },
+          {
+            "name": "formatMeridiem",
+            "line": 83,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": [
+              "setHours",
+              "date",
+              "format",
+              "includes"
+            ]
+          },
+          {
+            "name": "resolveDateFormat",
+            "line": 89,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": [
+              "areViewsEqual",
+              "hack",
+              "test",
+              "getCurrentLocaleCode"
+            ]
+          },
+          {
+            "name": "getWeekdays",
+            "line": 120,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": [
+              "startOfWeek",
+              "map",
+              "addDays"
+            ]
+          }
+        ],
+        "classes": [],
+        "exports": [
+          "mergeDateAndTime",
+          "findClosestEnabledDate",
+          "replaceInvalidDateByNull",
+          "applyDefaultDate",
+          "areDatesEqual",
+          "getMonthsInYear",
+          "getTodayDate",
+          "formatMeridiem",
+          "resolveDateFormat",
+          "getWeekdays"
+        ],
+        "routes": [],
+        "healthScore": 100
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/internals/hooks/usePickerPrivateContext.js": {
+      "mtime": 1780853052757,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/internals/hooks/usePickerPrivateContext.js",
+        "relativePath": "next-js/node_modules/@mui/x-date-pickers/esm/internals/hooks/usePickerPrivateContext.js",
+        "fileType": "generic",
+        "lineCount": 9,
+        "imports": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/internals/components/PickerProvider.js"
+        ],
+        "importedBy": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/Clock.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/TimeClock/ClockPointer.js"
+        ],
+        "importInfos": [
+          {
+            "source": "react",
+            "resolved": "",
+            "isLocal": false,
+            "line": 2,
+            "names": []
+          },
+          {
+            "source": "../components/PickerProvider.js",
+            "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/node_modules/@mui/x-date-pickers/esm/internals/components/PickerProvider.js",
+            "isLocal": true,
+            "line": 3,
+            "names": [
+              "PickerPrivateContext"
+            ]
+          }
+        ],
+        "functions": [
+          {
+            "name": "usePickerPrivateContext",
+            "line": 8,
+            "isExported": true,
+            "isAsync": false,
+            "callers": [],
+            "callees": []
+          }
+        ],
+        "classes": [],
+        "exports": [
+          "usePickerPrivateContext"
+        ],
+        "routes": [],
+        "healthScore": 100
       }
     }
   }
