@@ -16,7 +16,14 @@ import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { fDate } from 'src/utils/format-time';
-import { vatRateLabel, INVOICE_LABELS, amountInWordsAr, amountInWordsEn } from 'src/utils/invoice-i18n';
+import {
+  hijriDate,
+  vatRateLabel,
+  INVOICE_LABELS,
+  amountInWordsAr,
+  amountInWordsEn,
+  paymentTermsLabel,
+} from 'src/utils/invoice-i18n';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -109,22 +116,31 @@ const useStyles = () =>
           lineHeight: 1.5,
         },
         invoiceTitle: {
-          fontSize: 21, // 28px in the template
+          fontSize: 17.25, // 23px in the template
           fontWeight: 700,
-          letterSpacing: 6,
+          letterSpacing: 3.75,
           color: '#1a1a1a',
           textTransform: 'uppercase',
           textAlign: 'center',
         },
         invoiceTitleAr: {
           fontFamily: 'Cairo',
-          fontSize: 11.25, // 15px in the template
+          fontSize: 10.125, // 13.5px in the template
           fontWeight: 700,
           color: '#1a1a1a',
           marginTop: 3,
           textAlign: 'center',
         },
         logo: { width: 36, height: 36, marginRight: 7.5 }, // 48px + 10px gap
+        // Seller address / tel under the company name — ZATCA requires the
+        // seller's address on a standard tax invoice.
+        sellerLine: { fontSize: 6, color: '#444444', lineHeight: 1.45 },
+        sellerLineAr: {
+          fontFamily: 'Cairo',
+          fontSize: 6,
+          color: '#444444',
+          lineHeight: 1.5,
+        },
         // ── Blue accent line ──
         accent: {
           height: 1.5,
@@ -190,8 +206,24 @@ const useStyles = () =>
           borderBottomStyle: 'solid',
         },
         thDesc: { flex: 1, paddingVertical: 9, paddingHorizontal: 14 },
+        thQty: {
+          width: 38,
+          paddingVertical: 9,
+          paddingHorizontal: 6,
+          borderLeftWidth: 1.5,
+          borderLeftColor: '#0166ff',
+          borderLeftStyle: 'solid',
+        },
+        thUnit: {
+          width: 76,
+          paddingVertical: 9,
+          paddingHorizontal: 8,
+          borderLeftWidth: 1.5,
+          borderLeftColor: '#0166ff',
+          borderLeftStyle: 'solid',
+        },
         thAmount: {
-          width: 140,
+          width: 120,
           paddingVertical: 9,
           paddingHorizontal: 12,
           borderLeftWidth: 1.5,
@@ -220,8 +252,24 @@ const useStyles = () =>
           borderBottomStyle: 'solid',
         },
         tdDesc: { flex: 1, paddingVertical: 12, paddingHorizontal: 14 },
+        tdQty: {
+          width: 38,
+          paddingVertical: 12,
+          paddingHorizontal: 6,
+          borderLeftWidth: 1.5,
+          borderLeftColor: '#0166ff',
+          borderLeftStyle: 'solid',
+        },
+        tdUnit: {
+          width: 76,
+          paddingVertical: 12,
+          paddingHorizontal: 8,
+          borderLeftWidth: 1.5,
+          borderLeftColor: '#0166ff',
+          borderLeftStyle: 'solid',
+        },
         tdAmount: {
-          width: 140,
+          width: 120,
           paddingTop: 12,
           paddingBottom: 12,
           paddingHorizontal: 12,
@@ -238,6 +286,40 @@ const useStyles = () =>
           textAlign: 'right',
         },
         itemDesc: { fontSize: 8.5, color: '#1a1a1a', lineHeight: 1.5 },
+        itemDescAr: {
+          fontFamily: 'Cairo',
+          fontSize: 8.5,
+          color: '#1a1a1a',
+          textAlign: 'right',
+          lineHeight: 1.6,
+        },
+        // ── Summary rows (subtotal / discount / shipping): label fills the
+        // description + qty + unit-price width, value sits in the amount column ──
+        sumRow: {
+          flexDirection: 'row',
+          borderBottomWidth: 1,
+          borderBottomColor: '#d8e4ff',
+          borderBottomStyle: 'solid',
+          alignItems: 'center',
+        },
+        tdSumLabel: { flex: 1, paddingVertical: 7, paddingHorizontal: 14 },
+        tdSumAmount: {
+          width: 120,
+          paddingVertical: 7,
+          paddingHorizontal: 12,
+          borderLeftWidth: 1.5,
+          borderLeftColor: '#0166ff',
+          borderLeftStyle: 'solid',
+          justifyContent: 'center',
+        },
+        sumLabel: { fontSize: 9, fontWeight: 700, color: '#1a1a1a' },
+        sumLabelAr: {
+          fontFamily: 'Cairo',
+          fontSize: 9,
+          fontWeight: 700,
+          color: '#1a1a1a',
+          textAlign: 'right',
+        },
         itemAmount: { fontSize: 9, color: '#1a1a1a', width: '100%', textAlign: 'right' },
         // ── VAT row — compact ──
         vatRow: {
@@ -250,7 +332,7 @@ const useStyles = () =>
         },
         tdVatDesc: { flex: 1, paddingVertical: 7, paddingHorizontal: 14 },
         tdVatAmount: {
-          width: 140,
+          width: 120,
           paddingVertical: 7,
           paddingHorizontal: 12,
           borderLeftWidth: 1.5,
@@ -276,7 +358,7 @@ const useStyles = () =>
         },
         tdTotalDesc: { flex: 1, paddingVertical: 9, paddingHorizontal: 14 },
         tdTotalAmount: {
-          width: 140,
+          width: 120,
           paddingVertical: 9,
           paddingHorizontal: 12,
           borderLeftWidth: 1.5,
@@ -342,6 +424,12 @@ const useStyles = () =>
           lineHeight: 1.8,
         },
         footerLink: { fontSize: 8.5, color: '#0166ff', lineHeight: 1.8 },
+        footerValueAr: {
+          fontFamily: 'Cairo',
+          fontSize: 8,
+          color: '#333333',
+          lineHeight: 1.5,
+        },
         // ── QR code block ──
         qrBlock: { marginTop: 12, alignItems: 'center' },
         qrImage: { width: 64, height: 64 },
@@ -367,6 +455,9 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
     shipping,
     invoiceTo,
     createDate,
+    supplyDate,
+    poNumber,
+    subtotal,
     totalAmount,
     invoiceNumber,
     vatRate,
@@ -383,6 +474,20 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
   const companyNameAr = office.nameAr || L.companyName.ar;
   const wordsEn = amountInWordsEn(totalAmount, currencyCode);
   const wordsAr = amountInWordsAr(totalAmount, currencyCode);
+  // Line amount is quantity x unit price. Items saved before quantity was
+  // persisted carry none — they count as 1, which is what they were priced at.
+  const lineQty = (item) => Number(item.quantity ?? 1) || 1;
+  const lineUnit = (item) => Number(item.price ?? item.total ?? 0) || 0;
+  // Total excluding VAT — ZATCA-mandatory. Falls back to the line sum when the
+  // invoice carries no stored base amount.
+  // Hijri (Umm al-Qura) issue date and payment terms — both derived, so no
+  // extra field has to be captured for them
+  const hijri = hijriDate(createDate);
+  const terms = paymentTermsLabel(createDate, dueDate);
+  const taxableAmount =
+    subtotal != null
+      ? subtotal
+      : (items || []).reduce((sum, item) => sum + lineQty(item) * lineUnit(item), 0);
   // Amounts print as "SAR 48,428.80" (ISO code), not the ﷼ symbol that
   // fCurrency emits: U+FDFC is absent from Roboto *and* is a right-to-left
   // character, so react-pdf dropped the glyph and re-ordered the digits around
@@ -416,6 +521,18 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
               <View style={styles.companyBlock}>
                 <Text style={styles.companyName}>{L.companyName.en}</Text>
                 <Text style={styles.companyNameAr}>{companyNameAr}</Text>
+                {office.fullAddress ? (
+                  <Text style={styles.sellerLine}>{office.fullAddress}</Text>
+                ) : null}
+                {office.fullAddressAr ? (
+                  <Text style={styles.sellerLineAr}>{office.fullAddressAr}</Text>
+                ) : null}
+                {office.phoneNumber ? (
+                  <Text style={styles.sellerLine}>
+                    {L.phone.en}: {office.phoneNumber}
+                    {office.email ? `  ·  ${office.email}` : ''}
+                  </Text>
+                ) : null}
               </View>
             </View>
             <View style={styles.headerCenter}>
@@ -461,6 +578,15 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
 
             {/* Seller identity + invoice meta */}
             <View style={styles.metaCol}>
+              {office.registrationNumber ? (
+                <BiRow
+                  en={`${L.crNumber.en}: ${office.registrationNumber}`}
+                  ar={L.crNumber.ar}
+                  enStyle={styles.metaLine}
+                  arStyle={styles.metaLineAr}
+                  style={styles.metaRow}
+                />
+              ) : null}
               {office.vatNumber ? (
                 <BiRow
                   en={`${L.sellerVatNumber.en}: ${office.vatNumber}`}
@@ -484,6 +610,31 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
                 arStyle={styles.metaLineAr}
                 style={styles.metaRow}
               />
+              {hijri ? (
+                <BiRow
+                  en={`${L.invoiceDateHijri.en}: ${hijri.en}`}
+                  ar={hijri.ar}
+                  enStyle={styles.metaLine}
+                  arStyle={styles.metaLineAr}
+                  style={styles.metaRow}
+                />
+              ) : null}
+              <BiRow
+                en={`${L.supplyDate.en}: ${fDate(supplyDate || createDate)}`}
+                ar={L.supplyDate.ar}
+                enStyle={styles.metaLine}
+                arStyle={styles.metaLineAr}
+                style={styles.metaRow}
+              />
+              {poNumber ? (
+                <BiRow
+                  en={`${L.poNumber.en}: ${poNumber}`}
+                  ar={L.poNumber.ar}
+                  enStyle={styles.metaLine}
+                  arStyle={styles.metaLineAr}
+                  style={styles.metaRow}
+                />
+              ) : null}
               <BiRow
                 en={`${L.dueDate.en}: ${fDate(dueDate)}`}
                 ar={L.dueDate.ar}
@@ -491,6 +642,15 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
                 arStyle={styles.metaLineAr}
                 style={styles.metaRow}
               />
+              {terms ? (
+                <BiRow
+                  en={`${L.paymentTerms.en}: ${terms.en}`}
+                  ar={L.paymentTerms.ar}
+                  enStyle={styles.metaLine}
+                  arStyle={styles.metaLineAr}
+                  style={styles.metaRow}
+                />
+              ) : null}
             </View>
           </View>
 
@@ -506,7 +666,15 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
                   arStyle={styles.thTextAr}
                 />
               </View>
-              {/* The amount column is narrow, so its header stacks */}
+              {/* The numeric columns are narrow, so their headers stack */}
+              <View style={styles.thQty}>
+                <Text style={[styles.thText, styles.thTextRight]}>{L.quantity.en}</Text>
+                <Text style={styles.thTextAr}>{L.quantity.ar}</Text>
+              </View>
+              <View style={styles.thUnit}>
+                <Text style={[styles.thText, styles.thTextRight]}>{L.unitPrice.en}</Text>
+                <Text style={styles.thTextAr}>{L.unitPrice.ar}</Text>
+              </View>
               <View style={styles.thAmount}>
                 <Text style={[styles.thText, styles.thTextRight]}>{L.amount.en}</Text>
                 <Text style={styles.thTextAr}>{L.amount.ar}</Text>
@@ -518,28 +686,53 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
               <View key={index} style={styles.itemRow}>
                 <View style={styles.tdDesc}>
                   <Text style={styles.itemTitle}>{item.title}</Text>
+                  {item.titleAr ? <Text style={styles.itemTitleAr}>{item.titleAr}</Text> : null}
                   {item.description ? (
                     <Text style={styles.itemDesc}>{item.description}</Text>
                   ) : null}
+                  {item.descriptionAr ? (
+                    <Text style={styles.itemDescAr}>{item.descriptionAr}</Text>
+                  ) : null}
+                </View>
+                <View style={styles.tdQty}>
+                  <Text style={styles.itemAmount}>{lineQty(item)}</Text>
+                </View>
+                <View style={styles.tdUnit}>
+                  <Text style={styles.itemAmount}>{fmt(lineUnit(item))}</Text>
                 </View>
                 <View style={styles.tdAmount}>
-                  <Text style={styles.itemAmount}>{fmt(item.price ?? item.total)}</Text>
+                  <Text style={styles.itemAmount}>{fmt(lineQty(item) * lineUnit(item))}</Text>
                 </View>
               </View>
             ))}
 
+            {/* Total excluding VAT — ZATCA-mandatory taxable amount */}
+            <View style={styles.sumRow}>
+              <View style={styles.tdSumLabel}>
+                <BiRow
+                  en={L.subtotal.en}
+                  ar={L.subtotal.ar}
+                  enStyle={styles.sumLabel}
+                  arStyle={styles.sumLabelAr}
+                />
+              </View>
+              <View style={styles.tdSumAmount}>
+                <Text style={styles.itemAmount}>{fmt(taxableAmount)}</Text>
+              </View>
+            </View>
+
             {/* Discount row */}
             {discount > 0 ? (
-              <View style={styles.itemRow}>
-                <View style={styles.tdDesc}>
+              <View style={styles.sumRow}>
+                <View style={styles.tdSumLabel}>
                   <BiRow
                     en={L.discount.en}
                     ar={L.discount.ar}
-                    enStyle={styles.itemTitle}
-                    arStyle={styles.itemTitleAr}
+                    enStyle={styles.sumLabel}
+                    arStyle={styles.sumLabelAr}
                   />
                 </View>
-                <View style={styles.tdAmount}>
+                <View style={styles.tdSumAmount}>
                   <Text style={styles.itemAmount}>-{fmt(discount)}</Text>
                 </View>
               </View>
@@ -547,16 +740,16 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
 
             {/* Shipping row */}
             {shipping > 0 ? (
-              <View style={styles.itemRow}>
-                <View style={styles.tdDesc}>
+              <View style={styles.sumRow}>
+                <View style={styles.tdSumLabel}>
                   <BiRow
                     en={L.shipping.en}
                     ar={L.shipping.ar}
-                    enStyle={styles.itemTitle}
-                    arStyle={styles.itemTitleAr}
+                    enStyle={styles.sumLabel}
+                    arStyle={styles.sumLabelAr}
                   />
                 </View>
-                <View style={styles.tdAmount}>
+                <View style={styles.tdSumAmount}>
                   <Text style={styles.itemAmount}>{fmt(shipping)}</Text>
                 </View>
               </View>
@@ -646,6 +839,7 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
                   arStyle={styles.footerTextAr}
                 />
               ) : null}
+              {bank.bankAr ? <Text style={styles.footerValueAr}>{bank.bankAr}</Text> : null}
               {bank.city ? (
                 <BiRow
                   en={`${L.bankCity.en}: ${bank.city}`}
@@ -654,6 +848,7 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
                   arStyle={styles.footerTextAr}
                 />
               ) : null}
+              {bank.cityAr ? <Text style={styles.footerValueAr}>{bank.cityAr}</Text> : null}
             </View>
             <View style={styles.footerColRight}>
               <BiRow

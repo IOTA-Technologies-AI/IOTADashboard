@@ -5,7 +5,14 @@ import { useParams, useSearchParams } from 'next/navigation';
 
 import { fDate } from 'src/utils/format-time';
 import { fetchInvoice, getCustomers, fetchOfficeConfigs } from 'src/utils/apiHelper';
-import { vatRateLabel, INVOICE_LABELS, amountInWordsAr, amountInWordsEn } from 'src/utils/invoice-i18n';
+import {
+  hijriDate,
+  vatRateLabel,
+  INVOICE_LABELS,
+  amountInWordsAr,
+  amountInWordsEn,
+  paymentTermsLabel,
+} from 'src/utils/invoice-i18n';
 
 import { IOTA_OFFICES } from 'src/sections/invoice/invoice-create-edit-address';
 
@@ -61,26 +68,34 @@ function fillTemplate(templateHtml, invoice, officeList, qrCodeBlock) {
   const qrHtml = qrCodeBlock || '';
   const vatLabel = vatRateLabel(invoice.vatRate);
 
+  // Line amount is quantity x unit price, so the column sums to the subtotal.
+  // Items saved before quantity was persisted have none — they count as 1.
   const itemsRows = (invoice.items || [])
-    .map(
-      (item) => `
+    .map((item) => {
+      const qty = Number(item.quantity ?? 1) || 1;
+      const unitPrice = Number(item.price ?? 0) || 0;
+      return `
         <tr>
           <td>
             <div class="item-title">${esc(item.title)}</div>
+            ${item.titleAr ? `<div class="item-title-ar">${esc(item.titleAr)}</div>` : ''}
             ${item.description ? `<div class="item-desc">${esc(item.description)}</div>` : ''}
+            ${item.descriptionAr ? `<div class="item-desc-ar">${esc(item.descriptionAr)}</div>` : ''}
           </td>
-          <td class="col-right">${formatCurrency(item.price, invoice.currencyCode)}</td>
-        </tr>`
-    )
+          <td class="col-right">${qty}</td>
+          <td class="col-right">${formatCurrency(unitPrice, invoice.currencyCode)}</td>
+          <td class="col-right">${formatCurrency(qty * unitPrice, invoice.currencyCode)}</td>
+        </tr>`;
+    })
     .join('');
 
   const discountRow =
     invoice.discount > 0
-      ? `<tr>
-          <td>
+      ? `<tr class="sum-row">
+          <td colspan="3">
             <div class="bi">
-              <span class="item-title en">Discount</span>
-              <span class="item-title ar">الخصم</span>
+              <span class="sum-label en">Discount</span>
+              <span class="sum-label ar">الخصم</span>
             </div>
           </td>
           <td class="col-right">-${formatCurrency(invoice.discount, invoice.currencyCode)}</td>
@@ -89,11 +104,11 @@ function fillTemplate(templateHtml, invoice, officeList, qrCodeBlock) {
 
   const shippingRow =
     invoice.shipping > 0
-      ? `<tr>
-          <td>
+      ? `<tr class="sum-row">
+          <td colspan="3">
             <div class="bi">
-              <span class="item-title en">Shipping</span>
-              <span class="item-title ar">الشحن</span>
+              <span class="sum-label en">Shipping</span>
+              <span class="sum-label ar">الشحن</span>
             </div>
           </td>
           <td class="col-right">${formatCurrency(invoice.shipping, invoice.currencyCode)}</td>
@@ -105,6 +120,60 @@ function fillTemplate(templateHtml, invoice, officeList, qrCodeBlock) {
         <span class="en">VAT Registration #: ${esc(office.vatNumber)}</span>
         <span class="ar">الرقم الضريبي للمورد</span>
       </div>`
+    : '';
+
+  // The seller's address is mandatory on a KSA tax invoice; the CR number is
+  // printed alongside the VAT registration, as on the Finance samples.
+  const sellerAddressHtml = office.fullAddress
+    ? `<div class="seller-line">${esc(office.fullAddress)}</div>`
+    : '';
+  const sellerAddressArHtml = office.fullAddressAr
+    ? `<div class="seller-line-ar">${esc(office.fullAddressAr)}</div>`
+    : '';
+  const sellerPhoneHtml = office.phoneNumber
+    ? `<div class="seller-line">${INVOICE_LABELS.phone.en}: ${esc(office.phoneNumber)} &nbsp;·&nbsp; ${esc(office.email || '')}</div>`
+    : '';
+  const metaCrRow = office.registrationNumber
+    ? `<div class="meta-line bi">
+        <span class="en">${INVOICE_LABELS.crNumber.en}: ${esc(office.registrationNumber)}</span>
+        <span class="ar">${INVOICE_LABELS.crNumber.ar}</span>
+      </div>`
+    : '';
+
+  // Hijri (Umm al-Qura) issue date — the row carries the date in both scripts
+  const hijri = hijriDate(invoice.createDate);
+  const hijriRow = hijri
+    ? `<div class="meta-line bi">
+        <span class="en">${INVOICE_LABELS.invoiceDateHijri.en}: ${esc(hijri.en)}</span>
+        <span class="ar">${esc(hijri.ar)}</span>
+      </div>`
+    : '';
+
+  // Payment terms, read off the invoice's own dates
+  const terms = paymentTermsLabel(invoice.createDate, invoice.dueDate);
+  const paymentTermsRow = terms
+    ? `<div class="meta-line bi">
+        <span class="en">${INVOICE_LABELS.paymentTerms.en}: ${esc(terms.en)}</span>
+        <span class="ar">${INVOICE_LABELS.paymentTerms.ar}</span>
+      </div>`
+    : '';
+
+  // PO / reference number — only printed when the invoice carries one
+  const poRow = invoice.poNumber
+    ? `<div class="meta-line bi">
+        <span class="en">${INVOICE_LABELS.poNumber.en}: ${esc(invoice.poNumber)}</span>
+        <span class="ar">${INVOICE_LABELS.poNumber.ar}</span>
+      </div>`
+    : '';
+
+  // Arabic bank name / city, printed under their English lines when configured.
+  // The account name and IBAN stay in Latin script — they must match the bank's
+  // own record.
+  const bankNameArHtml = bank.bankAr
+    ? `<div class="footer-value-ar">${esc(bank.bankAr)}</div>`
+    : '';
+  const bankCityArHtml = bank.cityAr
+    ? `<div class="footer-value-ar">${esc(bank.cityAr)}</div>`
     : '';
 
   // Seller identity sits in the header next to the logo. The Arabic company
@@ -141,10 +210,30 @@ function fillTemplate(templateHtml, invoice, officeList, qrCodeBlock) {
     .join(customerVatHtml)
     .split('{{META_VAT_ROW}}')
     .join(metaVatRow)
+    .split('{{META_CR_ROW}}')
+    .join(metaCrRow)
+    .split('{{PO_ROW}}')
+    .join(poRow)
+    .split('{{HIJRI_DATE_ROW}}')
+    .join(hijriRow)
+    .split('{{PAYMENT_TERMS_ROW}}')
+    .join(paymentTermsRow)
+    .split('{{SELLER_ADDRESS_HTML}}')
+    .join(sellerAddressHtml)
+    .split('{{SELLER_ADDRESS_AR_HTML}}')
+    .join(sellerAddressArHtml)
+    .split('{{SELLER_PHONE_HTML}}')
+    .join(sellerPhoneHtml)
+    .split('{{BANK_NAME_AR_HTML}}')
+    .join(bankNameArHtml)
+    .split('{{BANK_CITY_AR_HTML}}')
+    .join(bankCityArHtml)
     .split('{{COMPANY_NAME_AR}}')
     .join(esc(companyNameAr))
     .split('{{INVOICE_DATE}}')
     .join(esc(fDate(invoice.createDate)))
+    .split('{{SUPPLY_DATE}}')
+    .join(esc(fDate(invoice.supplyDate || invoice.createDate)))
     .split('{{DUE_DATE}}')
     .join(esc(fDate(invoice.dueDate)))
     .split('{{ITEMS_ROWS}}')
@@ -238,6 +327,9 @@ export default function InvoicePrintPage() {
       const invoice = {
         invoiceNumber: data.invoiceNumber,
         createDate: data.invoiceDate,
+        // Falls back to the issue date when no separate supply date is stored
+        supplyDate: data.supplyDate || null,
+        poNumber: data.poNumber || '',
         dueDate: data.dueDate,
         currencyCode: data.currencyCode || 'SAR',
         invoiceTo: {

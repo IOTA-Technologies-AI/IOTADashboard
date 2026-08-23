@@ -19,7 +19,11 @@ export const INVOICE_LABELS = {
   // `companyName` is the legal entity; the Arabic form is overridden by the
   // office config's nameAr when one is set.
   companyName: { en: 'IOTA Technologies Company', ar: 'شركة آي أو تي إيه تيكنالوجيز' },
-  invoiceTitle: { en: 'Invoice', ar: 'فاتورة ضريبية' },
+  invoiceTitle: { en: 'Tax Invoice', ar: 'فاتورة ضريبية' },
+
+  // Seller identity block (header, under the company name)
+  phone: { en: 'Tel', ar: 'هاتف' },
+  crNumber: { en: 'CR #', ar: 'رقم السجل التجاري' },
 
   // Billing block
   billTo: { en: 'Bill To', ar: 'تفاصيل العميل' },
@@ -27,11 +31,22 @@ export const INVOICE_LABELS = {
   buyerVatNumber: { en: 'VAT #', ar: 'الرقم الضريبي للعميل' },
   invoiceNumber: { en: 'Invoice #', ar: 'رقم الفاتورة' },
   invoiceDate: { en: 'Invoice Date', ar: 'تاريخ إصدار الفاتورة' },
+  // ZATCA requires the date of supply whenever it differs from the issue date;
+  // invoices with no stored supply date fall back to the issue date.
+  supplyDate: { en: 'Supply Date', ar: 'تاريخ التوريد' },
+  // The Hijri row carries the date itself in both scripts, so its only label is
+  // the short "Hijri" prefix on the English side.
+  invoiceDateHijri: { en: 'Hijri', ar: 'هجري' },
+  paymentTerms: { en: 'Payment Terms', ar: 'شروط الدفع' },
+  poNumber: { en: 'PO / Reference #', ar: 'رقم أمر الشراء / المرجع' },
   dueDate: { en: 'Due Date', ar: 'تاريخ استحقاق الدفعة' },
 
   // Items table
   description: { en: 'Description', ar: 'وصف السلعة أو الخدمة' },
+  quantity: { en: 'Qty', ar: 'الكمية' },
+  unitPrice: { en: 'Unit Price', ar: 'سعر الوحدة' },
   amount: { en: 'Amount', ar: 'المبلغ' },
+  subtotal: { en: 'Total (Excluding VAT)', ar: 'الإجمالي غير شامل الضريبة' },
   discount: { en: 'Discount', ar: 'الخصم' },
   shipping: { en: 'Shipping', ar: 'الشحن' },
   vat: { en: 'VAT', ar: 'ضريبة القيمة المضافة' },
@@ -45,6 +60,8 @@ export const INVOICE_LABELS = {
   iban: { en: 'IBAN', ar: 'رقم الآيبان' },
   bankName: { en: 'Bank', ar: 'اسم البنك' },
   bankCity: { en: 'City', ar: 'المدينة' },
+  // The account name and IBAN are deliberately printed in Latin script only —
+  // they must match the record the bank holds, so they are never translated.
 
   // Footer — queries
   queries: { en: 'In Case of Queries', ar: 'للاستفسارات' },
@@ -58,6 +75,44 @@ export const INVOICE_LABELS = {
   viewOnlineQr: { en: 'Scan to view invoice online', ar: 'امسح الرمز لعرض الفاتورة إلكترونياً' },
   zatcaQr: { en: 'ZATCA e-Invoice QR', ar: 'رمز الفاتورة الإلكترونية — هيئة الزكاة والضريبة والجمارك' },
 };
+
+/**
+ * The invoice date on the Umm al-Qura calendar — the civil calendar of Saudi
+ * Arabia, printed beside the Gregorian date on the Finance samples. Returns the
+ * date in both scripts ("Rabiʻ I 9, 1448 AH" / "9 ربيع الأول 1448 هـ"), or null
+ * when the date is missing or unparseable so callers can skip the row.
+ * Month names are spelled out: a numeric Hijri date is easily misread as
+ * day/month in the wrong order.
+ */
+export function hijriDate(date) {
+  if (!date) return null;
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return null;
+  const opts = { day: 'numeric', month: 'long', year: 'numeric' };
+  try {
+    return {
+      en: new Intl.DateTimeFormat('en-u-ca-islamic-umalqura-nu-latn', opts).format(d),
+      ar: new Intl.DateTimeFormat('ar-SA-u-ca-islamic-umalqura-nu-latn', opts).format(d),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Payment terms read off the invoice's own dates — "Net 30 days" / "صافي 30
+ * يوماً" — so no extra field has to be captured. Returns null when the two
+ * dates are missing or identical (nothing meaningful to state).
+ */
+export function paymentTermsLabel(invoiceDate, dueDate) {
+  if (!invoiceDate || !dueDate) return null;
+  const from = new Date(invoiceDate);
+  const to = new Date(dueDate);
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return null;
+  const days = Math.round((to - from) / 86400000);
+  if (days <= 0) return null;
+  return { en: `Net ${days} days`, ar: `صافي ${days} يوماً` };
+}
 
 /** `VAT @ 15%` / `نسبة الضريبة 15%` — built from the invoice's stored rate. */
 export function vatRateLabel(rate) {

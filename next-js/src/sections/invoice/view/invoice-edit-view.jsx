@@ -55,14 +55,23 @@ export function InvoiceEditView({ invoice: initialInvoice }) {
               try {
                 const parsed = JSON.parse(data.description);
                 if (Array.isArray(parsed) && parsed.length > 0) {
-                  defaultItems = parsed.map((item) => ({
-                    title: item.title || '',
-                    service: data.invoiceTypeName || 'General Service',
-                    description: item.description || '',
-                    quantity: 1,
-                    price: item.price ?? baseAmount,
-                    total: item.price ?? baseAmount,
-                  }));
+                  defaultItems = parsed.map((item) => {
+                    // Items saved before quantity was persisted carry none —
+                    // they were priced as a single unit.
+                    const quantity = Number(item.quantity ?? 1) || 1;
+                    const price = item.price ?? baseAmount;
+                    return {
+                      title: item.title || '',
+                      // Arabic title / description printed on the bilingual invoice
+                      titleAr: item.titleAr || '',
+                      service: item.service || data.invoiceTypeName || 'General Service',
+                      description: item.description || '',
+                      descriptionAr: item.descriptionAr || '',
+                      quantity,
+                      price,
+                      total: quantity * price,
+                    };
+                  });
                 }
               } catch {
                 // Plain text description — single item
@@ -102,6 +111,8 @@ export function InvoiceEditView({ invoice: initialInvoice }) {
               invoiceId: data.invoiceId,
               invoiceNumber: data.invoiceNumber,
               createDate: data.invoiceDate,
+              supplyDate: data.supplyDate || null,
+              poNumber: data.poNumber || '',
               dueDate: data.dueDate,
               invoiceTo: {
                 id: data.customerId,

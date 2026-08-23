@@ -27,14 +27,17 @@ import { AddressListDialog } from '../address';
 // ----------------------------------------------------------------------
 
 // IOTA office addresses
-// `nameAr` is the seller name printed in Arabic on the bilingual invoice; it is
-// only the fallback — live values come from the iotaOffice appConfig namespace.
+// `nameAr`, `fullAddressAr` and the Arabic bank fields are printed on the
+// bilingual invoice; these entries are only the fallback — live values come from
+// the iotaOffice appConfig namespace. The account name and IBAN are never
+// translated: they must match the record the bank holds.
 export const IOTA_OFFICES = [
   {
     id: 'iota-saudi',
     name: 'IOTA Saudi Arabia',
     nameAr: 'شركة آي أو تي إيه تيكنالوجيز',
     fullAddress: '2885, Office #9, 1st Floor, Jarir Street, Al Malaz, Riyadh - 12836, Saudi Arabia',
+    fullAddressAr: '2885، مكتب رقم 9، الدور الأول، شارع جرير، الملز، الرياض 12836، المملكة العربية السعودية',
     phoneNumber: '+966 50 534 0573',
     email: 'accounts@iotatechnologies.ai',
     vatNumber: '313081317100003',
@@ -47,7 +50,9 @@ export const IOTA_OFFICES = [
       accountName: 'IOTA Technology Company',
       iban: 'SA9465000000101747273001',
       bank: 'Saudi Investment Bank',
+      bankAr: 'البنك السعودي للاستثمار',
       city: 'Riyadh, Saudi Arabia',
+      cityAr: 'الرياض، المملكة العربية السعودية',
     },
   },
   {
@@ -55,6 +60,7 @@ export const IOTA_OFFICES = [
     name: 'IOTA UAE',
     nameAr: 'شركة آي أو تي إيه تيكنالوجيز',
     fullAddress: 'Office 1215, ETA Star AlManara, Business Bay, Dubai, UAE',
+    fullAddressAr: 'مكتب 1215، إيتا ستار المنارة، الخليج التجاري، دبي، الإمارات العربية المتحدة',
     phoneNumber: '+971 54 37 44220',
     email: 'accounts@iotatechnologies.ai',
     vatNumber: '310000165800003',
@@ -67,7 +73,9 @@ export const IOTA_OFFICES = [
       accountName: 'IOTA Information Technology Services.',
       iban: 'AE480260001015933487201',
       bank: 'Emirates NBD',
+      bankAr: 'بنك الإمارات دبي الوطني',
       city: 'Dubai, United Arab Emirates',
+      cityAr: 'دبي، الإمارات العربية المتحدة',
     },
   },
   {

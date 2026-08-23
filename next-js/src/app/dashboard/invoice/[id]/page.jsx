@@ -22,6 +22,10 @@ export default function Page() {
         invoiceId: data.invoiceId,
         invoiceNumber: data.invoiceNumber,
         createDate: data.invoiceDate,
+        // Date of supply — ZATCA requires it whenever it differs from the issue
+        // date; invoices with none stored fall back to the issue date.
+        supplyDate: data.supplyDate || null,
+        poNumber: data.poNumber || '',
         dueDate: data.dueDate,
         status: data.status || 'draft',
         invoiceTo: {
@@ -92,13 +96,21 @@ export default function Page() {
             try {
               const parsed = JSON.parse(data.description);
               if (Array.isArray(parsed) && parsed.length > 0) {
-                return parsed.map((item) => ({
-                  title: item.title || data.invoiceTypeName || 'Service',
-                  description: item.description || '',
-                  quantity: 1,
-                  price: item.price ?? baseAmount,
-                  total: item.price ?? baseAmount,
-                }));
+                return parsed.map((item) => {
+                  // Items saved before quantity was persisted carry none —
+                  // they were priced as a single unit.
+                  const quantity = Number(item.quantity ?? 1) || 1;
+                  const price = item.price ?? baseAmount;
+                  return {
+                    title: item.title || data.invoiceTypeName || 'Service',
+                    titleAr: item.titleAr || '',
+                    description: item.description || '',
+                    descriptionAr: item.descriptionAr || '',
+                    quantity,
+                    price,
+                    total: quantity * price,
+                  };
+                });
               }
             } catch {
               // plain text fallback

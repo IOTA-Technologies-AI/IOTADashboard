@@ -22,7 +22,11 @@ import { InvoiceTotalSummary } from './invoice-total-summary';
 
 export const defaultItem = {
   title: '',
+  // Arabic title / description — printed under the English text on the
+  // bilingual invoice. Optional: the line renders English-only when blank.
+  titleAr: '',
   description: '',
+  descriptionAr: '',
   service: '',
   price: 0.0,
   quantity: 1,
@@ -31,7 +35,9 @@ export const defaultItem = {
 
 const getFieldNames = (index) => ({
   title: `items[${index}].title`,
+  titleAr: `items[${index}].titleAr`,
   description: `items[${index}].description`,
+  descriptionAr: `items[${index}].descriptionAr`,
   service: `items[${index}].service`,
   quantity: `items[${index}].quantity`,
   price: `items[${index}].price`,
@@ -186,6 +192,14 @@ export function InvoiceItem({ onRemoveItem, fieldNames, currency }) {
         <Field.Text name={fieldNames.title} label="Title" InputLabelProps={{ shrink: true }} />
 
         <Field.Text
+          name={fieldNames.titleAr}
+          label="Title (Arabic)"
+          placeholder="اختياري"
+          InputLabelProps={{ shrink: true }}
+          inputProps={{ dir: 'rtl' }}
+        />
+
+        <Field.Text
           name={fieldNames.quantity}
           label="Quantity"
           type="number"
@@ -236,6 +250,16 @@ export function InvoiceItem({ onRemoveItem, fieldNames, currency }) {
           name={fieldNames.description}
           label="Description"
           InputLabelProps={{ shrink: true }}
+        />
+
+        <Field.Text
+          multiline
+          rows={3}
+          name={fieldNames.descriptionAr}
+          label="Description (Arabic)"
+          placeholder="اختياري"
+          InputLabelProps={{ shrink: true }}
+          inputProps={{ dir: 'rtl' }}
         />
 
         <Button

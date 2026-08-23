@@ -48,14 +48,22 @@ export const InvoiceCreateSchema = z
     }),
     createDate: schemaUtils.date({ error: { required: 'Create date is required!' } }),
     dueDate: schemaUtils.date({ error: { required: 'Due date is required!' } }),
+    // Date of supply — ZATCA requires it when it differs from the issue date.
+    // Optional: blank means "same as the invoice date".
+    supplyDate: schemaUtils.date().nullable().optional(),
+    poNumber: z.string().optional(),
     items: z.array(
       z.object({
         title: z.string().min(1, { error: 'Title is required!' }),
+        // Arabic title / description — printed under the English text on the
+        // bilingual invoice. Optional; the line renders English-only without it.
+        titleAr: z.string().optional(),
         service: z.string().optional(),
         quantity: z.number().int().positive().min(1, { error: 'Quantity must be more than 0' }),
         price: z.number(),
         total: z.number(),
         description: z.string(),
+        descriptionAr: z.string().optional(),
       })
     ),
     taxes: z.number(),
@@ -123,6 +131,8 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
   const defaultValues = {
     invoiceNumber: `INV-${Date.now()}`,
     createDate: today(),
+    supplyDate: null,
+    poNumber: '',
     dueDate: null,
     taxes: 0,
     shipping: 0,
@@ -207,6 +217,10 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         companyName: data.invoiceTo?.name || '',
         createdByEmail: user?.email || '',
         invoiceDate: data.createDate,
+        // Null when the supply date matches the issue date — the invoice
+        // renderers fall back to invoiceDate in that case.
+        supplyDate: data.supplyDate || null,
+        poNumber: data.poNumber || null,
         dueDate: data.dueDate,
         status: 'draft', // Save as draft
         total: parseFloat((data.totalAmount || 0).toFixed(2)),
@@ -219,11 +233,19 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         vatAmount: parseFloat((data.vatAmount || 0).toFixed(2)),
         vatRate: parseFloat((data.vatRate || 0).toFixed(2)),
         shippingCharge: parseFloat((data.shipping || 0).toFixed(2)),
-        // Serialize line items (title + description + price) as JSON into the description column
+        adjustment: parseFloat((data.discount || 0).toFixed(2)),
+        // Serialize line items as JSON into the description column. Quantity and
+        // the Arabic title/description are part of the record: the invoice
+        // prints Qty x Unit Price per line, so dropping quantity would make the
+        // line amounts disagree with the total.
         description: JSON.stringify(
           (data.items || []).map((item) => ({
             title: item.title || '',
+            titleAr: item.titleAr || '',
             description: item.description || '',
+            descriptionAr: item.descriptionAr || '',
+            service: item.service || '',
+            quantity: Number(item.quantity ?? 1) || 1,
             price: parseFloat((item.price || 0).toFixed(2)),
           }))
         ),
@@ -290,6 +312,10 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         companyName: data.invoiceTo?.name || '',
         createdByEmail: user?.email || '',
         invoiceDate: data.createDate,
+        // Null when the supply date matches the issue date — the invoice
+        // renderers fall back to invoiceDate in that case.
+        supplyDate: data.supplyDate || null,
+        poNumber: data.poNumber || null,
         dueDate: data.dueDate,
         status: 'pending', // Always pending when submitted for approval
         baseAmount: parseFloat((data.subtotal || 0).toFixed(2)),
@@ -303,11 +329,18 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         currencySymbol: CURRENCY_SYMBOLS[data.invoiceFrom?.currency] || 'ر.س',
         exchangeRate: 1,
         costcenterId: data.costcenterId ? Number(data.costcenterId) : null,
-        // Serialize line items (title + description + price) as JSON into the description column
+        // Serialize line items as JSON into the description column. Quantity and
+        // the Arabic title/description are part of the record: the invoice
+        // prints Qty x Unit Price per line, so dropping quantity would make the
+        // line amounts disagree with the total.
         description: JSON.stringify(
           (data.items || []).map((item) => ({
             title: item.title || '',
+            titleAr: item.titleAr || '',
             description: item.description || '',
+            descriptionAr: item.descriptionAr || '',
+            service: item.service || '',
+            quantity: Number(item.quantity ?? 1) || 1,
             price: parseFloat((item.price || 0).toFixed(2)),
           }))
         ),
