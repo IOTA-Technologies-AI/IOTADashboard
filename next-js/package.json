@@ -1,7 +1,7 @@
 {
   "name": "iotadashboard",
   "author": "Jaffar",
-  "version": "9.9",
+  "version": "1.0.0",
   "description": "IOTA Technologies Dashboard",
   "private": true,
   "scripts": {

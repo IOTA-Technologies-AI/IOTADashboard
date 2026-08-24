@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1787593036941,
+  "timestamp": 1787593784768,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_files.js": {
       "mtime": 1754638870000,
@@ -31442,7 +31442,7 @@
           "Page"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/dashboard/proforma-invoice/page.jsx": {
@@ -56823,38 +56823,10 @@
         "lineCount": 6,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/animate/back-to-top-button.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/color-utils/color-picker.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/custom-breadcrumbs/back-link.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/chart/components/chart-select.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/custom-data-grid/toolbar-core.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/custom-data-grid/toolbar-extend-settings.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/components/heading-block.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/file-thumbnail/file-thumbnail.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/filters-result/filters-result.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/lightbox/lightbox.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/map/map-marker.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/components/nav-dropdown-content.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/components/nav-item.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/components/nav-drawer.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/desktop/nav-item.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/mobile/mega-menu-mobile.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-basic/mobile/nav-item.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/components/nav-subheader.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/horizontal/nav-item.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/mini/nav-item.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/vertical/nav-item.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/phone-input/list-popover.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/phone-input/phone-input.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/number-input/number-input.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/base-option.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/fullscreen-button.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/settings-drawer.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/base-option.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/styles.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/snackbar/snackbar.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/box/upload-box.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/components/multi-file-preview.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/default/upload-default.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/fullscreen-button.jsx"
         ],
         "importInfos": [],
         "functions": [],
@@ -64691,9 +64663,6 @@
         "lineCount": 4,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/mobile/nav-list.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/mega-menu/mobile/mega-menu-mobile.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/nav-section/horizontal/nav-section-horizontal.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/settings-drawer.jsx"
         ],
         "importInfos": [],
@@ -65369,7 +65338,7 @@
         "classes": [],
         "exports": [],
         "routes": [],
-        "healthScore": 85
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/index.js": {
@@ -65734,12 +65703,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/settings-drawer.jsx": {
-      "mtime": 1754638878000,
+      "mtime": 1787593783169,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/settings-drawer.jsx",
         "relativePath": "next-js/src/components/settings/drawer/settings-drawer.jsx",
         "fileType": "generic",
-        "lineCount": 336,
+        "lineCount": 352,
         "imports": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/label/index.js",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/icons.jsx",
@@ -65848,10 +65817,19 @@
             ]
           },
           {
-            "source": "src/theme/theme-config",
+            "source": "src/global-config",
             "resolved": "",
             "isLocal": false,
             "line": 14,
+            "names": [
+              "CONFIG"
+            ]
+          },
+          {
+            "source": "src/theme/theme-config",
+            "resolved": "",
+            "isLocal": false,
+            "line": 15,
             "names": [
               "themeConfig"
             ]
@@ -65860,7 +65838,7 @@
             "source": "src/theme/with-settings",
             "resolved": "",
             "isLocal": false,
-            "line": 15,
+            "line": 16,
             "names": [
               "primaryColorPresets"
             ]
@@ -65869,7 +65847,7 @@
             "source": "../../label",
             "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/label/index.js",
             "isLocal": true,
-            "line": 17,
+            "line": 18,
             "names": [
               "Label"
             ]
@@ -65878,7 +65856,7 @@
             "source": "./icons",
             "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/icons.jsx",
             "isLocal": true,
-            "line": 18,
+            "line": 19,
             "names": [
               "settingIcons"
             ]
@@ -65887,7 +65865,7 @@
             "source": "../../iconify",
             "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/iconify/index.js",
             "isLocal": true,
-            "line": 19,
+            "line": 20,
             "names": [
               "Iconify"
             ]
@@ -65896,7 +65874,7 @@
             "source": "./base-option",
             "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/base-option.jsx",
             "isLocal": true,
-            "line": 20,
+            "line": 21,
             "names": [
               "BaseOption"
             ]
@@ -65905,7 +65883,7 @@
             "source": "../../scrollbar",
             "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/scrollbar/index.js",
             "isLocal": true,
-            "line": 21,
+            "line": 22,
             "names": [
               "Scrollbar"
             ]
@@ -65914,7 +65892,7 @@
             "source": "./styles",
             "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/styles.jsx",
             "isLocal": true,
-            "line": 22,
+            "line": 23,
             "names": [
               "SmallBlock",
               "LargeBlock"
@@ -65924,7 +65902,7 @@
             "source": "./presets-options",
             "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/presets-options.jsx",
             "isLocal": true,
-            "line": 23,
+            "line": 24,
             "names": [
               "PresetsOptions"
             ]
@@ -65933,7 +65911,7 @@
             "source": "./fullscreen-button",
             "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/fullscreen-button.jsx",
             "isLocal": true,
-            "line": 24,
+            "line": 25,
             "names": [
               "FullScreenButton"
             ]
@@ -65942,7 +65920,7 @@
             "source": "./font-options",
             "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/font-options.jsx",
             "isLocal": true,
-            "line": 25,
+            "line": 26,
             "names": [
               "FontSizeOptions",
               "FontFamilyOptions"
@@ -65952,7 +65930,7 @@
             "source": "../context/use-settings-context",
             "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/context/use-settings-context.js",
             "isLocal": true,
-            "line": 26,
+            "line": 27,
             "names": [
               "useSettingsContext"
             ]
@@ -65961,7 +65939,7 @@
             "source": "./nav-layout-option",
             "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/nav-layout-option.jsx",
             "isLocal": true,
-            "line": 27,
+            "line": 28,
             "names": [
               "NavColorOptions",
               "NavLayoutOptions"
@@ -65971,7 +65949,7 @@
         "functions": [
           {
             "name": "SettingsDrawer",
-            "line": 31,
+            "line": 32,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -65988,21 +65966,21 @@
           },
           {
             "name": "renderHead",
-            "line": 59,
+            "line": 60,
             "isExported": false,
             "isAsync": false,
             "callers": [
-              "renderFont"
+              "renderVersion"
             ],
             "callees": []
           },
           {
             "name": "renderMode",
-            "line": 91,
+            "line": 92,
             "isExported": false,
             "isAsync": false,
             "callers": [
-              "renderFont"
+              "renderVersion"
             ],
             "callees": [
               "setMode",
@@ -66011,11 +65989,11 @@
           },
           {
             "name": "renderContrast",
-            "line": 117,
+            "line": 118,
             "isExported": false,
             "isAsync": false,
             "callers": [
-              "renderFont"
+              "renderVersion"
             ],
             "callees": [
               "setState"
@@ -66023,11 +66001,11 @@
           },
           {
             "name": "renderDirection",
-            "line": 130,
+            "line": 131,
             "isExported": false,
             "isAsync": false,
             "callers": [
-              "renderFont"
+              "renderVersion"
             ],
             "callees": [
               "setState"
@@ -66035,11 +66013,11 @@
           },
           {
             "name": "renderCompactLayout",
-            "line": 141,
+            "line": 142,
             "isExported": false,
             "isAsync": false,
             "callers": [
-              "renderFont"
+              "renderVersion"
             ],
             "callees": [
               "1600px",
@@ -66048,11 +66026,11 @@
           },
           {
             "name": "renderPresets",
-            "line": 153,
+            "line": 154,
             "isExported": false,
             "isAsync": false,
             "callers": [
-              "renderFont"
+              "renderVersion"
             ],
             "callees": [
               "setState",
@@ -66062,11 +66040,11 @@
           },
           {
             "name": "renderNav",
-            "line": 175,
+            "line": 176,
             "isExported": false,
             "isAsync": false,
             "callers": [
-              "renderFont"
+              "renderVersion"
             ],
             "callees": [
               "setState"
@@ -66074,14 +66052,25 @@
           },
           {
             "name": "renderFont",
-            "line": 242,
+            "line": 243,
             "isExported": false,
             "isAsync": false,
             "callers": [
-              "renderFont"
+              "renderVersion"
             ],
             "callees": [
-              "setState",
+              "setState"
+            ]
+          },
+          {
+            "name": "renderVersion",
+            "line": 291,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
+              "renderVersion"
+            ],
+            "callees": [
               "paperStyles",
               "varAlpha",
               "isArray",
@@ -66093,7 +66082,8 @@
               "renderCompactLayout",
               "renderNav",
               "renderPresets",
-              "renderFont"
+              "renderFont",
+              "renderVersion"
             ]
           }
         ],
@@ -66102,7 +66092,7 @@
           "SettingsDrawer"
         ],
         "routes": [],
-        "healthScore": 50
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/signature-pad/index.js": {
@@ -66125,32 +66115,20 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/settings-config.js": {
-      "mtime": 1754638878000,
+      "mtime": 1787593745620,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/settings-config.js",
         "relativePath": "next-js/src/components/settings/settings-config.js",
         "fileType": "generic",
-        "lineCount": 20,
+        "lineCount": 28,
         "imports": [],
-        "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/context/settings-provider.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/server.js"
-        ],
+        "importedBy": [],
         "importInfos": [
-          {
-            "source": "src/global-config",
-            "resolved": "",
-            "isLocal": false,
-            "line": 0,
-            "names": [
-              "CONFIG"
-            ]
-          },
           {
             "source": "src/theme/theme-config",
             "resolved": "",
             "isLocal": false,
-            "line": 1,
+            "line": 0,
             "names": [
               "themeConfig"
             ]
@@ -66160,7 +66138,7 @@
         "classes": [],
         "exports": [],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/server.js": {
@@ -66228,10 +66206,10 @@
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/iconify/index.js"
         ],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/nav-layout-option.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/settings-drawer.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/presets-options.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/font-options.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/settings-drawer.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/settings/drawer/nav-layout-option.jsx"
         ],
         "importInfos": [
           {
@@ -68174,18 +68152,16 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/global-config.js": {
-      "mtime": 1768640749982,
+      "mtime": 1787593763908,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/global-config.js",
         "relativePath": "next-js/src/global-config.js",
         "fileType": "generic",
-        "lineCount": 61,
+        "lineCount": 74,
         "imports": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/package.json"
         ],
-        "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/logo/logo.jsx"
-        ],
+        "importedBy": [],
         "importInfos": [
           {
             "source": "src/routes/paths",
@@ -68210,7 +68186,7 @@
         "classes": [],
         "exports": [],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 65
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/upload/box/upload-box.jsx": {
@@ -193983,6 +193959,25 @@
         "exports": [
           "Page"
         ],
+        "routes": [],
+        "healthScore": 85
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/package.json": {
+      "mtime": 1787593745615,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/package.json",
+        "relativePath": "next-js/package.json",
+        "fileType": "generic",
+        "lineCount": 141,
+        "imports": [],
+        "importedBy": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/global-config.js"
+        ],
+        "importInfos": [],
+        "functions": [],
+        "classes": [],
+        "exports": [],
         "routes": [],
         "healthScore": 100
       }

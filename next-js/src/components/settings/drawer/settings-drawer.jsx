@@ -12,6 +12,7 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import { useColorScheme } from '@mui/material/styles';
 
+import { CONFIG } from 'src/global-config';
 import { themeConfig } from 'src/theme/theme-config';
 import { primaryColorPresets } from 'src/theme/with-settings';
 
@@ -286,6 +287,19 @@ export function SettingsDrawer({ sx, defaultSettings }) {
     </LargeBlock>
   );
 
+  // Quoted in bug reports: which release, and the exact commit it was built
+  // from. buildSha is stamped at build time by next.config.mjs.
+  const renderVersion = () => (
+    <Typography
+      variant="caption"
+      sx={{ color: 'text.disabled', textAlign: 'center', display: 'block' }}
+    >
+      {CONFIG.appName} v{CONFIG.appVersion}
+      {CONFIG.buildSha !== 'unknown' && ` · ${CONFIG.buildSha}`}
+      {CONFIG.buildDate && ` · ${CONFIG.buildDate}`}
+    </Typography>
+  );
+
   return (
     <Drawer
       anchor="right"
@@ -328,6 +342,8 @@ export function SettingsDrawer({ sx, defaultSettings }) {
           {(visibility.navColor || visibility.navLayout) && renderNav()}
           {visibility.primaryColor && renderPresets()}
           {(visibility.fontFamily || visibility.fontSize) && renderFont()}
+
+          {renderVersion()}
         </Box>
       </Scrollbar>
     </Drawer>

@@ -1,4 +1,24 @@
+import { execSync } from 'node:child_process';
+
 import { withSentryConfig } from '@sentry/nextjs';
+
+// ----------------------------------------------------------------------
+// Build stamp — the commit and date this bundle was built from. Baked in at
+// build time because git is not available at runtime on the deploy target.
+// Falls back to the CI-provided SHA, then to 'unknown', so a build never
+// fails just because git is missing.
+// ----------------------------------------------------------------------
+const buildSha = (() => {
+  try {
+    return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] })
+      .toString()
+      .trim();
+  } catch {
+    return (process.env.VERCEL_GIT_COMMIT_SHA || 'unknown').slice(0, 7);
+  }
+})();
+
+const buildDate = new Date().toISOString().slice(0, 10);
 
 /**
  * Static Exports in Next.js
@@ -20,6 +40,8 @@ const nextConfig = {
   output: isStaticExport ? 'export' : undefined,
   env: {
     BUILD_STATIC_EXPORT: JSON.stringify(isStaticExport),
+    NEXT_PUBLIC_BUILD_SHA: buildSha,
+    NEXT_PUBLIC_BUILD_DATE: buildDate,
   },
   // Allow Vercel builds to proceed even if ESLint finds warnings/errors
   eslint: { ignoreDuringBuilds: true },

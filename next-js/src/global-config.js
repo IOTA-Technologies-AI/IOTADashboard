@@ -6,7 +6,20 @@ import packageJson from '../package.json';
 
 export const CONFIG = {
   appName: 'IOTA Dashboard',
+  /**
+   * Release version — semver, single source of truth is package.json.
+   * Bump with `npm version patch|minor|major`, which applies the cascading
+   * resets (minor bump zeroes patch; major bump zeroes both) and tags the
+   * commit. Record what changed in CHANGELOG.md in the same commit.
+   */
   appVersion: packageJson.version,
+  /** Commit and date this bundle was built from — stamped in next.config.mjs. */
+  buildSha: process.env.NEXT_PUBLIC_BUILD_SHA ?? 'unknown',
+  buildDate: process.env.NEXT_PUBLIC_BUILD_DATE ?? '',
+  /** "1.0.0 (b68819f)" — what to quote in a bug report. */
+  get buildLabel() {
+    return `${this.appVersion} (${this.buildSha})`;
+  },
   serverUrl: process.env.NEXT_PUBLIC_SERVER_URL ?? '',
   assetsDir: process.env.NEXT_PUBLIC_ASSETS_DIR ?? '',
   isStaticExport: JSON.parse(process.env.BUILD_STATIC_EXPORT ?? 'false'),
