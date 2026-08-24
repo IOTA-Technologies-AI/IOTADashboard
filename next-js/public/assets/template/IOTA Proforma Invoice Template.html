@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{PROFORMA_NUMBER}}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+  <style>
+    /* ══════════════════════════════════════════════════════════════════════
+       PROFORMA INVOICE TEMPLATE — three A4 pages
+
+         Page 1  Cover        brand + document title + prepared by/for
+         Page 2  Details      customer block, line items, totals, signature
+         Page 3  Back cover   fixed IOTA closing page, no placeholders
+
+       Only page 2 carries invoice data; it is snapshotted onto the proforma
+       when the source invoice is approved. Page 3 never changes.
+
+       The decorative halftone arcs on pages 1 and 3 are drawn with CSS
+       radial-gradients rather than bitmaps so this file stays self-contained
+       and prints at full resolution. Swap them for the brand artwork by
+       replacing the .dots background on each page.
+
+       To change the layout, edit only this file — it is filled by
+       next-js/src/app/proforma-print/[id]/page.jsx, which replaces every
+       {{PLACEHOLDER}} below.
+       ══════════════════════════════════════════════════════════════════════ */
+
+    /* ── Reset ── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ── Print page setup ── */
+    @page {
+      size: 210mm 297mm;
+      margin: 0;
+    }
+
+    html, body {
+      width: 210mm;
+      font-family: 'DM Sans', 'Helvetica Neue', Arial, sans-serif;
+      background: #e8e8e8;
+      color: #103b2c;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* ── Screen toolbar (hidden on print) ── */
+    .toolbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+      background: #013927; padding: 10px 24px;
+      display: flex; align-items: center; gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    }
+    .toolbar-title { color: white; font-size: 14px; font-weight: 600; flex: 1; }
+    .btn {
+      border: none; padding: 8px 20px; border-radius: 6px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .btn-print { background: #0166ff; color: white; }
+    .btn-print:hover { background: #0050cc; }
+    .btn-close {
+      background: rgba(255,255,255,0.15); color: white;
+      border: 1px solid rgba(255,255,255,0.3);
+    }
+
+    /* ── Screen: centred preview stack ── */
+    .page-wrapper { padding: 58px 20px 20px; }
+
+    /* ── A4 page card. Every page is exactly one printed sheet. ── */
+    .page {
+      position: relative;
+      width: 210mm;
+      height: 297mm;
+      background: white;
+      margin: 0 auto 20px;
+      overflow: hidden;
+      box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+    }
+    .page:last-child { margin-bottom: 0; }
+
+    /* ══ Shared brand marks ══════════════════════════════════════════════ */
+
+    /* Wordmark: stacked "IOTA / TECHNOLOGIES" beside the logo glyph */
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .brand-mark { width: 34px; height: 46px; flex-shrink: 0; object-fit: contain; }
+    .brand-name { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; line-height: 1.15; }
+    .brand-sub { font-size: 11px; font-weight: 400; letter-spacing: 0.06em; line-height: 1.15; }
+    .brand-right { text-align: right; }
+
+    /* Halftone arc — concentric rings of dots sweeping in from a corner */
+    .dots {
+      position: absolute;
+      pointer-events: none;
+      background-image: radial-gradient(circle, currentColor 1.6px, transparent 1.7px);
+      background-size: 13px 13px;
+    }
+
+    /* ══ PAGE 1 — Cover ══════════════════════════════════════════════════ */
+
+    .cover {
+      background:
+        radial-gradient(120% 90% at 8% 100%, #46e0c0 0%, #7fe9d6 22%, #d8f6ee 52%, #f2fbf8 76%, #ffffff 100%);
+    }
+    /* Two overlapping arcs give the sweep density of the printed original */
+    .cover-dots-a {
+      color: rgba(16, 59, 44, 0.16);
+      top: -60mm; right: -70mm;
+      width: 200mm; height: 220mm;
+      border-radius: 50%;
+      -webkit-mask-image: radial-gradient(closest-side, transparent 46%, black 52%, black 88%, transparent 96%);
+      mask-image: radial-gradient(closest-side, transparent 46%, black 52%, black 88%, transparent 96%);
+    }
+    .cover-dots-b {
+      color: rgba(16, 59, 44, 0.10);
+      top: 40mm; right: -95mm;
+      width: 210mm; height: 230mm;
+      border-radius: 50%;
+      -webkit-mask-image: radial-gradient(closest-side, transparent 58%, black 64%, black 90%, transparent 97%);
+      mask-image: radial-gradient(closest-side, transparent 58%, black 64%, black 90%, transparent 97%);
+    }
+
+    .cover-inner {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      padding: 24mm 20mm 22mm;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .cover-head { display: flex; align-items: flex-start; justify-content: space-between; }
+    .cover-docid { font-size: 12px; line-height: 1.6; }
+    .cover-month { font-size: 12px; font-weight: 700; letter-spacing: 0.02em; }
+
+    /* Title block sits roughly a third of the way down, as on the sample */
+    .cover-title-block { margin-top: 46mm; }
+    .cover-brand-title,
+    .cover-doc-title {
+      font-size: 42px;
+      font-weight: 700;
+      line-height: 1.12;
+      letter-spacing: -0.01em;
+      color: #0d3b2e;
+      text-transform: uppercase;
+    }
+    .cover-customer {
+      margin-top: 4px;
+      font-size: 25px;
+      font-weight: 400;
+      line-height: 1.25;
+      color: #16443a;
+      text-transform: uppercase;
+    }
+
+    .cover-parties {
+      margin-top: 26mm;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0 12mm;
+      max-width: 130mm;
+    }
+    .party-label { font-size: 12.5px; font-weight: 400; margin-bottom: 7px; }
+    .party-name { font-size: 12.5px; font-weight: 700; margin-bottom: 5px; }
+    .party-org { font-size: 12.5px; font-weight: 400; }
+
+    .cover-contact { margin-top: auto; }
+    .cover-contact-label { font-size: 12.5px; margin-bottom: 10px; }
+    .cover-contact-row { display: flex; align-items: center; gap: 10px; }
+    .mail-icon {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: #0d3b2e; color: #ffffff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; line-height: 1; flex-shrink: 0;
+    }
+    .cover-contact-email { font-size: 12.5px; font-weight: 700; }
+
+    /* ══ PAGE 2 — Details ════════════════════════════════════════════════ */
+
+    .details { background: #f7faf8; }
+    .details-inner {
+      height: 100%;
+      padding: 18mm 16mm 14mm;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .doc-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12mm; }
+    .doc-number { font-size: 26px; font-weight: 400; color: #0d3b2e; line-height: 1.2; }
+
+    .meta-row {
+      margin-top: 9mm;
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 12mm;
+    }
+    .meta-left { font-size: 11.5px; line-height: 1.85; }
+    .meta-left b { font-weight: 700; }
+    .meta-right { font-size: 11.5px; line-height: 1.85; text-align: right; }
+
+    .section-row {
+      margin-top: 10mm;
+      display: flex; justify-content: space-between; gap: 12mm;
+    }
+    .section-title { font-size: 13.5px; font-weight: 700; color: #0d3b2e; letter-spacing: 0.01em; }
+
+    .party-row {
+      margin-top: 4mm;
+      display: flex; justify-content: space-between; gap: 12mm;
+    }
+    .customer-block { font-size: 11.5px; line-height: 1.75; white-space: pre-line; }
+    .instructions-block {
+      font-size: 11.5px; line-height: 1.75; text-align: right;
+      max-width: 80mm; white-space: pre-line;
+    }
+
+    /* ── Items table ── */
+    .items {
+      margin-top: 8mm;
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      font-size: 11px;
+    }
+    .items th, .items td {
+      border: 1px solid #a8cabd;
+      padding: 9px 12px;
+      vertical-align: middle;
+    }
+    .items thead th {
+      font-size: 10.5px;
+      font-weight: 700;
+      color: #0d3b2e;
+      letter-spacing: 0.04em;
+      text-align: center;
+      padding: 11px 12px;
+    }
+    .items thead th.col-desc { text-align: left; }
+    .items td { color: #16443a; line-height: 1.55; }
+    .items td.col-desc { text-align: left; }
+    .items td.col-center { text-align: center; }
+    .item-title { font-weight: 400; }
+    .item-desc { white-space: pre-line; }
+
+    /* ── Footer note + totals ── */
+    .foot-row {
+      margin-top: 6mm;
+      display: flex; justify-content: space-between; align-items: flex-start; gap: 10mm;
+    }
+    .foot-note { font-size: 11.5px; line-height: 1.65; max-width: 82mm; }
+    .foot-note b { font-weight: 700; }
+
+    .totals { min-width: 78mm; }
+    .total-line {
+      display: flex; justify-content: space-between; gap: 10mm;
+      padding: 4px 0;
+      font-size: 11px;
+    }
+    .total-line .label { font-weight: 700; letter-spacing: 0.02em; }
+    .total-line .value { font-weight: 700; }
+    .total-line.grand { padding-top: 8px; font-size: 14px; }
+
+    .signature {
+      margin-top: auto;
+      padding-top: 10mm;
+      text-align: center;
+      width: 78mm;
+    }
+    .signature-line { border-top: 1px solid #16443a; margin-bottom: 6px; }
+    .signature-caption { font-size: 11.5px; line-height: 1.7; }
+
+    /* ══ PAGE 3 — Back cover (static) ════════════════════════════════════ */
+
+    .back { background: #0d3b2e; }
+    .back-dots-a {
+      color: rgba(255, 255, 255, 0.07);
+      top: -40mm; left: -60mm;
+      width: 240mm; height: 250mm;
+      border-radius: 50%;
+      -webkit-mask-image: radial-gradient(closest-side, transparent 40%, black 48%, black 92%, transparent 99%);
+      mask-image: radial-gradient(closest-side, transparent 40%, black 48%, black 92%, transparent 99%);
+    }
+    .back-dots-b {
+      color: rgba(255, 255, 255, 0.06);
+      top: -20mm; right: -70mm;
+      width: 180mm; height: 190mm;
+      border-radius: 50%;
+      -webkit-mask-image: radial-gradient(closest-side, transparent 52%, black 60%, black 92%, transparent 99%);
+      mask-image: radial-gradient(closest-side, transparent 52%, black 60%, black 92%, transparent 99%);
+    }
+    /* Concentric rings echoing the ripple motif under the cover photo */
+    .back-rings {
+      position: absolute;
+      top: 68mm; right: 26mm;
+      width: 62mm; height: 62mm;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.18);
+      box-shadow:
+        0 0 0 7mm rgba(255,255,255,0.001),
+        inset 0 0 0 7mm rgba(255,255,255,0.0);
+    }
+    .back-rings::before,
+    .back-rings::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.14);
+    }
+    .back-rings::before { inset: 8mm; }
+    .back-rings::after { inset: 16mm; }
+
+    .back-inner {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      padding: 40mm 20mm 26mm;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      color: #ffffff;
+    }
+    .back-mark { width: 26mm; height: 34mm; object-fit: contain; margin-bottom: 12mm; }
+    .back-name { font-size: 22px; font-weight: 700; letter-spacing: 0.02em; line-height: 1.35; }
+    .back-name span { font-weight: 400; display: block; }
+    .back-url {
+      position: absolute;
+      bottom: 26mm; left: 0; right: 0;
+      font-size: 14px;
+      letter-spacing: 0.22em;
+    }
+
+    /* ── Print overrides ─────────────────────────────────────────────────
+       height: 100% resolves to exactly the @page height, which is what tells
+       the print engine each .page is one sheet. height: 297mm does NOT — it
+       sets the box but leaves the flow unconstrained, adding blank pages. ── */
+    @media print {
+      @page {
+        size: 210mm 297mm;
+        margin: 0;
+      }
+
+      html, body {
+        width: 210mm !important;
+        height: auto !important;
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+
+      .toolbar { display: none !important; }
+
+      .page-wrapper {
+        display: block !important;
+        width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      .page {
+        width: 100% !important;
+        height: 100vh !important;
+        overflow: hidden !important;
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        page-break-after: always;
+        break-after: page;
+      }
+      /* Without this the final sheet emits a trailing blank page */
+      .page:last-child {
+        page-break-after: auto;
+        break-after: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Screen-only toolbar -->
+  <div class="toolbar">
+    <span class="toolbar-title">{{PROFORMA_NUMBER}} &mdash; {{CUSTOMER_NAME}}</span>
+    <button class="btn btn-close" onclick="window.close()">Close</button>
+    <button class="btn btn-print" onclick="window.print()">&#x1F5A8;&nbsp; Print / Save as PDF</button>
+  </div>
+
+  <div class="page-wrapper">
+
+    <!-- ═══ PAGE 1 — Cover ═══════════════════════════════════════════════ -->
+    <div class="page cover">
+      <div class="dots cover-dots-a"></div>
+      <div class="dots cover-dots-b"></div>
+
+      <div class="cover-inner">
+        <div class="cover-head">
+          <div class="brand">
+            <img src="/logo/logo-single.png" class="brand-mark" alt="IOTA">
+            <div>
+              <div class="brand-name">IOTA</div>
+              <div class="brand-sub">TECHNOLOGIES</div>
+            </div>
+          </div>
+          <div class="brand-right">
+            <div class="cover-docid">Document ID: {{DOCUMENT_ID}}</div>
+            <div class="cover-month">{{DOCUMENT_MONTH}}</div>
+          </div>
+        </div>
+
+        <div class="cover-title-block">
+          {{BRAND_TITLE_HTML}}
+          <div class="cover-doc-title">{{DOCUMENT_TITLE}}</div>
+          <div class="cover-customer">{{CUSTOMER_NAME}}</div>
+        </div>
+
+        <div class="cover-parties">
+          <div>
+            <div class="party-label">Prepared By:</div>
+            <div class="party-name">{{PREPARED_BY_TEAM}}</div>
+            <div class="party-org">{{PREPARED_BY_COMPANY}}</div>
+          </div>
+          <div>
+            <div class="party-label">Prepared For:</div>
+            <div class="party-name">{{PREPARED_FOR_NAME}}</div>
+            <div class="party-org">{{PREPARED_FOR_COMPANY}}</div>
+          </div>
+        </div>
+
+        <div class="cover-contact">
+          <div class="cover-contact-label">Contact Details:</div>
+          <div class="cover-contact-row">
+            <span class="mail-icon">&#9993;</span>
+            <span class="cover-contact-email">{{CONTACT_EMAIL}}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PAGE 2 — Details ═════════════════════════════════════════════ -->
+    <div class="page details">
+      <div class="details-inner">
+
+        <div class="doc-head">
+          <div class="doc-number">Proforma Invoice #{{DOCUMENT_ID}}</div>
+          <div class="brand">
+            <div class="brand-right">
+              <div class="brand-name">IOTA</div>
+              <div class="brand-sub">TECHNOLOGIES</div>
+            </div>
+            <img src="/logo/logo-single.png" class="brand-mark" alt="IOTA">
+          </div>
+        </div>
+
+        <div class="meta-row">
+          <div class="meta-left">
+            <div><b>Date:</b> {{ISSUE_DATE}}</div>
+            <div><b>Valid Until:</b> {{VALID_UNTIL}}</div>
+            {{CUSTOMER_REF_ROW}}
+          </div>
+          <div class="meta-right">{{SELLER_ADDRESS_HTML}}</div>
+        </div>
+
+        <div class="section-row">
+          <div class="section-title">CUSTOMER</div>
+          <div class="section-title">SPECIAL INSTRUCTIONS:</div>
+        </div>
+
+        <div class="party-row">
+          <div class="customer-block">{{CUSTOMER_BLOCK_HTML}}</div>
+          <div class="instructions-block">{{SPECIAL_INSTRUCTIONS}}</div>
+        </div>
+
+        <table class="items">
+          <thead>
+            <tr>
+              <th class="col-desc" style="width: 46%;">DESCRIPTION</th>
+              <th style="width: 12%;">QTY</th>
+              <th style="width: 21%;">PRICE</th>
+              <th style="width: 21%;">TOTAL</th>
+            </tr>
+          </thead>
+          <tbody>
+            {{ITEMS_ROWS}}
+          </tbody>
+        </table>
+
+        <div class="foot-row">
+          <div class="foot-note">{{FOOTER_NOTE_HTML}}</div>
+          <div class="totals">
+            <div class="total-line">
+              <span class="label">SUBTOTAL:</span>
+              <span class="value">{{SUBTOTAL}}</span>
+            </div>
+            {{DISCOUNT_ROW}}
+            {{SHIPPING_ROW}}
+            <div class="total-line">
+              <span class="label">{{VAT_LABEL}}</span>
+              <span class="value">{{VAT_AMOUNT}}</span>
+            </div>
+            <div class="total-line grand">
+              <span class="label">TOTAL:</span>
+              <span class="value">{{TOTAL_AMOUNT}}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="signature">
+          <div class="signature-line"></div>
+          <div class="signature-caption">Signature over printed name</div>
+          <div class="signature-caption">{{CUSTOMER_NAME}}</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ═══ PAGE 3 — Back cover (static, never changes) ═══════════════════ -->
+    <div class="page back">
+      <div class="dots back-dots-a"></div>
+      <div class="dots back-dots-b"></div>
+      <div class="back-rings"></div>
+
+      <div class="back-inner">
+        <img src="/logo/iotaLogoWhite.png" class="back-mark" alt="IOTA"
+             onerror="this.src='/logo/logo-single.png'">
+        <div class="back-name">
+          IOTA TECHNOLOGIES
+          <span>COMPANY</span>
+        </div>
+      </div>
+      <div class="back-url">iotatechnologies.ai</div>
+    </div>
+
+  </div>
+
+</body>
+</html>

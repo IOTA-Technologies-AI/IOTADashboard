@@ -334,6 +334,13 @@ export const paths = {
         edit: `${ROOTS.DASHBOARD}/invoice/${MOCK_ID}/edit`,
       },
     },
+    // Proforma invoices are raised automatically when an invoice is approved,
+    // so there is no `new` route — they are only ever listed, opened and edited.
+    proformaInvoice: {
+      root: `${ROOTS.DASHBOARD}/proforma-invoice`,
+      details: (id) => `${ROOTS.DASHBOARD}/proforma-invoice/${id}`,
+      edit: (id) => `${ROOTS.DASHBOARD}/proforma-invoice/${id}/edit`,
+    },
     post: {
       root: `${ROOTS.DASHBOARD}/post`,
       new: `${ROOTS.DASHBOARD}/post/new`,

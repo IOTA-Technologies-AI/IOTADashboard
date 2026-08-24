@@ -37,6 +37,7 @@ const ICONS = {
   banking: icon('ic-banking'),
   booking: icon('ic-booking'),
   invoice: icon('ic-invoice'),
+  proformaInvoice: icon('ic-invoice'), // reuse the invoice glyph
   product: icon('ic-product'),
   calendar: icon('ic-calendar'),
   disabled: icon('ic-disabled'),
@@ -264,6 +265,12 @@ export const navData = [
           { title: 'Create', path: paths.dashboard.invoice.new },
           { title: 'Edit', path: paths.dashboard.invoice.demo.edit },
         ],
+      },
+      {
+        title: 'Proforma Invoice',
+        path: paths.dashboard.proformaInvoice.root,
+        icon: ICONS.proformaInvoice,
+        children: [{ title: 'List', path: paths.dashboard.proformaInvoice.root }],
       },
       {
         title: 'Vendor',

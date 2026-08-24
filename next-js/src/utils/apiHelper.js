@@ -2568,6 +2568,111 @@ export async function issueInvoice(invoiceId, pdfBase64) {
   }
 }
 
+
+// ============================================================================
+// PROFORMA INVOICE API FUNCTIONS
+//
+// Proformas are raised automatically by the backend when an invoice is
+// approved — there is deliberately no create function here.
+// ============================================================================
+
+/**
+ * @summary Fetches all proforma invoice records.
+ * @returns {Promise<object[]>} Array of proforma objects, or empty array on error.
+ */
+export async function fetchProformaInvoices() {
+  try {
+    const response = await axios.get(`${API_BASE_URL}proforma-invoices`, {
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.data.proformas || [];
+  } catch (error) {
+    console.error('❌ Failed to fetch proforma invoices:', error.response?.data || error.message);
+    return [];
+  }
+}
+
+/**
+ * @summary Fetches a single proforma invoice by its proformaId.
+ * @param {string} proformaId
+ * @returns {Promise<object|null>} The proforma object, or null if not found.
+ */
+export async function fetchProformaInvoice(proformaId) {
+  try {
+    const response = await axios.get(
+      `${API_BASE_URL}proforma-invoices/${encodeURIComponent(proformaId)}`,
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    return response.data.proforma;
+  } catch (error) {
+    console.error('❌ Failed to fetch proforma invoice:', error.response?.data || error.message);
+    return null;
+  }
+}
+
+/**
+ * @summary Updates the editable fields of a proforma (supplier, cover page,
+ * special instructions). The line items and totals snapshotted from the
+ * invoice are not updatable — the backend ignores them.
+ * @param {string} proformaId
+ * @param {object} data
+ * @returns {Promise<object>} The updated proforma.
+ */
+export async function updateProformaInvoice(proformaId, data) {
+  try {
+    const response = await axios.patch(
+      `${API_BASE_URL}proforma-invoices/${encodeURIComponent(proformaId)}`,
+      data,
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    return response.data.proforma;
+  } catch (error) {
+    console.error('❌ Failed to update proforma invoice:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+/**
+ * @summary Approves or rejects a proforma. A rejection requires a reason.
+ * @param {string} proformaId
+ * @param {{approved: boolean, approverName: string, approverEmail?: string, rejectionReason?: string}} data
+ * @returns {Promise<object>} The updated proforma.
+ */
+export async function approveProformaInvoice(proformaId, data) {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}proforma-invoices/${encodeURIComponent(proformaId)}/approve`,
+      data,
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    return response.data.proforma;
+  } catch (error) {
+    console.error('❌ Failed to approve proforma invoice:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+/**
+ * @summary Emails the rendered proforma PDF to the tagged supplier and marks
+ * it dispatched. Requires an approved proforma carrying a supplier email.
+ * @param {string} proformaId
+ * @param {string} pdfBase64 - Base64-encoded PDF content.
+ * @returns {Promise<object>} Dispatch confirmation including the recipient.
+ */
+export async function dispatchProformaInvoice(proformaId, pdfBase64) {
+  try {
+    const response = await axios.post(
+      `${API_BASE_URL}proforma-invoices/${encodeURIComponent(proformaId)}/dispatch`,
+      { proformaId, pdfBase64 },
+      { headers: { 'Content-Type': 'application/json' } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('❌ Failed to dispatch proforma invoice:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
 // ============================================================================
 // EMPLOYEE API FUNCTIONS
 // ============================================================================
@@ -4889,6 +4994,11 @@ export const apiHelper = {
   issueInvoice,
   approveInvoice,
   markInvoicePaid,
+  fetchProformaInvoices,
+  fetchProformaInvoice,
+  updateProformaInvoice,
+  approveProformaInvoice,
+  dispatchProformaInvoice,
   getEmployees,
   getEmployeeById,
   createEmployee,
