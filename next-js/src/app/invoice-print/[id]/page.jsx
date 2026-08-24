@@ -22,7 +22,7 @@ import { IOTA_OFFICES } from 'src/sections/invoice/invoice-create-edit-address';
 //   2. Fetches invoice data from the API
 //   3. Replaces every {{PLACEHOLDER}} in the template with real values
 //   4. Renders the filled HTML via dangerouslySetInnerHTML
-//   5. Auto-opens the print dialog after 800 ms
+//   5. Auto-opens the print dialog once fonts and images have loaded
 //
 // To change the invoice layout/styles, edit only:
 //   next-js/public/assets/template/IOTA Invoice Template.html
@@ -278,24 +278,25 @@ export default function InvoicePrintPage() {
   const isPreview = searchParams.get('preview') === 'true';
   const [html, setHtml] = useState(null);
   const [invoiceNumber, setInvoiceNumber] = useState('');
-  const [liveOffices, setLiveOffices] = useState(null);
   const iframeRef = useRef(null);
-
-  // Fetch live office configs once on mount so PDF uses up-to-date bank details
-  useEffect(() => {
-    fetchOfficeConfigs().then((offices) => {
-      if (offices?.length) setLiveOffices(offices);
-    });
-  }, []);
+  // The iframe document must be written exactly once. Rewriting it after
+  // print() has been called wipes the page the print dialog is rendering,
+  // which is what produced blank saved PDFs.
+  const writtenRef = useRef(false);
 
   useEffect(() => {
     if (!id) return;
 
+    // The office configs are fetched alongside everything else rather than in
+    // their own effect: arriving later they would rebuild the HTML a second
+    // time, mid-print. They also carry the live bank details, so the first
+    // (and only) build must already have them.
     Promise.all([
       fetch('/assets/template/IOTA Invoice Template.html').then((r) => r.text()),
       fetchInvoice(id),
       getCustomers(),
-    ]).then(async ([templateHtml, data, allCustomers]) => {
+      fetchOfficeConfigs().catch(() => null),
+    ]).then(async ([templateHtml, data, allCustomers, offices]) => {
       if (!data) return;
 
       const customer = (allCustomers || []).find((c) => String(c.id) === String(data?.customerId));
@@ -402,7 +403,12 @@ export default function InvoicePrintPage() {
         viewQrHtml || zatcaQrHtml
           ? `<div style="display:flex;justify-content:space-between;margin-top:16px;">${viewQrHtml}${zatcaQrHtml}</div>`
           : '';
-      let finalHtml = fillTemplate(templateHtml, invoice, liveOffices, qrCodeBlock);
+      let finalHtml = fillTemplate(
+        templateHtml,
+        invoice,
+        offices?.length ? offices : null,
+        qrCodeBlock
+      );
       // In preview mode, hide the print toolbar
       if (isPreview) {
         finalHtml = finalHtml.replace(
@@ -412,11 +418,17 @@ export default function InvoicePrintPage() {
       }
       setHtml(finalHtml);
     });
-  }, [id, liveOffices]);
+  }, [id, isPreview]);
 
   // Write the filled HTML into the iframe's own document and print from there
   useEffect(() => {
     if (!html || !iframeRef.current) return;
+    // Guard against a second write: React's dev double-invoke, or any later
+    // render, would call doc.open() on the document the print dialog is
+    // rendering and hand the user a blank PDF.
+    if (writtenRef.current) return;
+    writtenRef.current = true;
+
     document.title = invoiceNumber || 'IOTA Invoice';
 
     const iframe = iframeRef.current;
@@ -428,15 +440,29 @@ export default function InvoicePrintPage() {
       doc.write(html);
       doc.close();
 
-      // Wait for fonts/images then print (skip in preview mode)
-      if (!isPreview) {
-        const doPrint = () => iframe.contentWindow?.print();
-        if (iframe.contentDocument?.fonts) {
-          iframe.contentDocument.fonts.ready.then(() => setTimeout(doPrint, 300));
-        } else {
-          setTimeout(doPrint, 800);
-        }
-      }
+      if (isPreview) return;
+
+      // Print only once the page has everything it draws with. fonts.ready on
+      // its own is not enough — the logo and the QR codes decode separately,
+      // and printing ahead of them drops them from the output.
+      const imagesReady = Promise.all(
+        Array.from(doc.images || []).map(
+          (img) =>
+            img.complete ||
+            new Promise((resolve) => {
+              img.addEventListener('load', resolve, { once: true });
+              img.addEventListener('error', resolve, { once: true });
+            })
+        )
+      );
+      const assetsReady = Promise.all([doc.fonts ? doc.fonts.ready : null, imagesReady]);
+      // A font or image that never resolves must not swallow the print dialog.
+      const deadline = new Promise((resolve) => setTimeout(resolve, 4000));
+
+      Promise.race([assetsReady, deadline]).then(() => {
+        // One more frame so the final layout is committed before the snapshot.
+        setTimeout(() => iframe.contentWindow?.print(), 250);
+      });
     };
 
     // iframe may not be interactive yet on first render
@@ -445,7 +471,7 @@ export default function InvoicePrintPage() {
     } else {
       iframe.addEventListener('load', write, { once: true });
     }
-  }, [html, invoiceNumber]);
+  }, [html, invoiceNumber, isPreview]);
 
   if (!html) {
     return (
