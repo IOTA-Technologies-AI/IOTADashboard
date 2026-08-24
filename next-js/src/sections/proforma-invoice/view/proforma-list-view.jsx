@@ -217,6 +217,7 @@ export function ProformaListView() {
                           key={row.id}
                           row={row}
                           detailsHref={paths.dashboard.proformaInvoice.details(row.id)}
+                          editHref={paths.dashboard.proformaInvoice.edit(row.id)}
                           canApprove={canApprove}
                           onOpenApproval={(target) => setApprovalTarget(target.raw)}
                         />

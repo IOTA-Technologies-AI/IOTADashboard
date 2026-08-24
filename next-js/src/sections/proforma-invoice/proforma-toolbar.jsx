@@ -144,6 +144,24 @@ export function ProformaToolbar({
             </span>
           </Tooltip>
 
+          <Tooltip
+            title={
+              canEditDetails
+                ? 'Edit addressee, line items & pricing'
+                : 'Dispatched proformas can no longer be edited'
+            }
+          >
+            <span>
+              <IconButton
+                component={RouterLink}
+                href={paths.dashboard.proformaInvoice.edit(proforma?.proformaId)}
+                disabled={!canEditDetails}
+              >
+                <Iconify icon="solar:bill-list-bold" />
+              </IconButton>
+            </span>
+          </Tooltip>
+
           {canApprove && (status === 'draft' || status === 'pending') && (
             <Tooltip title="Review & Approve">
               <IconButton onClick={onOpenApproval} sx={{ color: 'success.main' }}>

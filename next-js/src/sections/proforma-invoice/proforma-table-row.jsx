@@ -29,7 +29,13 @@ const STATUS_COLOR = {
   rejected: 'error',
 };
 
-export function ProformaTableRow({ row, detailsHref, canApprove = false, onOpenApproval }) {
+export function ProformaTableRow({
+  row,
+  detailsHref,
+  editHref,
+  canApprove = false,
+  onOpenApproval,
+}) {
   const menuActions = usePopover();
 
   const renderMenuActions = () => (
@@ -42,10 +48,19 @@ export function ProformaTableRow({ row, detailsHref, canApprove = false, onOpenA
       <MenuList>
         <li>
           <MenuItem component={RouterLink} href={detailsHref} onClick={menuActions.onClose}>
-            <Iconify icon="solar:eye-bold" />
+            <Iconify icon='solar:eye-bold' />
             View
           </MenuItem>
         </li>
+
+        {row.status !== 'dispatched' && (
+          <li>
+            <MenuItem component={RouterLink} href={editHref} onClick={menuActions.onClose}>
+              <Iconify icon='solar:pen-bold' />
+              Edit
+            </MenuItem>
+          </li>
+        )}
 
         {canApprove && (row.status === 'draft' || row.status === 'pending') && (
           <li>
