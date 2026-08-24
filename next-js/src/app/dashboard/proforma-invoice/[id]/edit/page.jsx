@@ -7,6 +7,8 @@ import { fetchProformaInvoice } from 'src/utils/apiHelper';
 
 import { ProformaEditView } from 'src/sections/proforma-invoice/view';
 
+import { PageGuard } from 'src/auth/guard';
+
 export default function Page() {
   const { id } = useParams();
   const [proforma, setProforma] = useState(null);
@@ -18,6 +20,9 @@ export default function Page() {
     });
   }, [id]);
 
-  if (!proforma) return null;
-  return <ProformaEditView proforma={proforma} />;
+  return (
+    <PageGuard>
+      {proforma ? <ProformaEditView proforma={proforma} /> : null}
+    </PageGuard>
+  );
 }

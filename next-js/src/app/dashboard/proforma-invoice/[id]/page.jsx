@@ -7,6 +7,8 @@ import { fetchProformaInvoice } from 'src/utils/apiHelper';
 
 import { ProformaDetailsView } from 'src/sections/proforma-invoice/view';
 
+import { PageGuard } from 'src/auth/guard';
+
 export default function Page() {
   const { id } = useParams();
   const [proforma, setProforma] = useState(null);
@@ -21,6 +23,9 @@ export default function Page() {
     load();
   }, [load]);
 
-  if (!proforma) return null;
-  return <ProformaDetailsView proforma={proforma} onRefresh={load} />;
+  return (
+    <PageGuard>
+      {proforma ? <ProformaDetailsView proforma={proforma} onRefresh={load} /> : null}
+    </PageGuard>
+  );
 }

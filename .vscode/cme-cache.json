@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1787592211397,
+  "timestamp": 1787593036941,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/_mock/_files.js": {
       "mtime": 1754638870000,
@@ -31361,12 +31361,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/dashboard/proforma-invoice/[id]/page.jsx": {
-      "mtime": 1787579603011,
+      "mtime": 1787593035331,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/dashboard/proforma-invoice/[id]/page.jsx",
         "relativePath": "next-js/src/app/dashboard/proforma-invoice/[id]/page.jsx",
         "fileType": "generic",
-        "lineCount": 27,
+        "lineCount": 32,
         "imports": [],
         "importedBy": [],
         "importInfos": [
@@ -31407,12 +31407,21 @@
             "names": [
               "ProformaDetailsView"
             ]
+          },
+          {
+            "source": "src/auth/guard",
+            "resolved": "",
+            "isLocal": false,
+            "line": 9,
+            "names": [
+              "PageGuard"
+            ]
           }
         ],
         "functions": [
           {
             "name": "Page",
-            "line": 9,
+            "line": 11,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -31433,7 +31442,7 @@
           "Page"
         ],
         "routes": [],
-        "healthScore": 85
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/dashboard/proforma-invoice/page.jsx": {
@@ -36396,7 +36405,7 @@
           "ProformaPrintPage"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 70
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/pricing/layout.jsx": {
@@ -193897,12 +193906,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/dashboard/proforma-invoice/[id]/edit/page.jsx": {
-      "mtime": 1787592078820,
+      "mtime": 1787593035330,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/dashboard/proforma-invoice/[id]/edit/page.jsx",
         "relativePath": "next-js/src/app/dashboard/proforma-invoice/[id]/edit/page.jsx",
         "fileType": "generic",
-        "lineCount": 24,
+        "lineCount": 29,
         "imports": [],
         "importedBy": [],
         "importInfos": [
@@ -193942,12 +193951,21 @@
             "names": [
               "ProformaEditView"
             ]
+          },
+          {
+            "source": "src/auth/guard",
+            "resolved": "",
+            "isLocal": false,
+            "line": 9,
+            "names": [
+              "PageGuard"
+            ]
           }
         ],
         "functions": [
           {
             "name": "Page",
-            "line": 9,
+            "line": 11,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -193966,7 +193984,7 @@
           "Page"
         ],
         "routes": [],
-        "healthScore": 85
+        "healthScore": 100
       }
     }
   }
