@@ -3,6 +3,7 @@ import MoneyOffIcon from '@mui/icons-material/MoneyOff';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import LeaderboardIcon from '@mui/icons-material/Leaderboard';
+import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
 
@@ -37,7 +38,6 @@ const ICONS = {
   banking: icon('ic-banking'),
   booking: icon('ic-booking'),
   invoice: icon('ic-invoice'),
-  proformaInvoice: icon('ic-invoice'), // reuse the invoice glyph
   product: icon('ic-product'),
   calendar: icon('ic-calendar'),
   disabled: icon('ic-disabled'),
@@ -52,6 +52,7 @@ const ICONS = {
   commission: <BusinessIcon style={{ width: 24, height: 24 }} />,
   payroll: <AttachMoneyIcon style={{ width: 24, height: 24 }} />,
   sales: <LeaderboardIcon style={{ width: 24, height: 24 }} />,
+  proformaInvoice: <RequestQuoteIcon style={{ width: 24, height: 24 }} />,
   todo: <FormatListNumberedIcon style={{ width: 24, height: 24 }} />,
   profile: icon('ic-user'),
 };
