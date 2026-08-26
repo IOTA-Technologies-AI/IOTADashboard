@@ -35,3 +35,6 @@ build
 .vscode
 tsconfig.tsbuildinfo
 .ncurc.js
+
+# payslip render-check harness (local visual diff against the design export)
+.payslip-render-check

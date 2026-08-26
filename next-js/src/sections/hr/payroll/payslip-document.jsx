@@ -396,7 +396,7 @@ export function PayslipDocument({
   payroll,
   ytd = null,
   companyName = 'IOTA Technologies',
-  companyAddress = '2885, Office #9, Jarir Street, AlMalaz, Riyadh 12836 · CR 1010XXXXXX',
+  companyAddress = '2885, Office #9, Jarir Street, AlMalaz, Riyadh 12836',
   logoSrc = '/logo/iota-mark.png',
 }) {
   const month = MONTHS[payroll.periodMonth - 1] || '';
