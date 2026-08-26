@@ -12,6 +12,7 @@ import Table from '@mui/material/Table';
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 import TableRow from '@mui/material/TableRow';
 import TableHead from '@mui/material/TableHead';
@@ -25,6 +26,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import TableContainer from '@mui/material/TableContainer';
 import InputAdornment from '@mui/material/InputAdornment';
+import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
 
@@ -32,8 +34,10 @@ import { fCurrency } from 'src/utils/format-number';
 import {
   getEmployees,
   fetchPayrollRun,
+  fetchPayrollYtd,
   approvePayrollRun,
   postPayrollToBank,
+  sendPayrollPayslips,
   updatePayrollLineItemDeductions,
 } from 'src/utils/apiHelper';
 
@@ -44,6 +48,38 @@ import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
+// Payslips are only worth sending once the run is committed — emailing a
+// figure that is still pending approval invites a correction email after it.
+const SENDABLE_STATUSES = ['approved', 'processed', 'paid'];
+
+const payslipDeliveryIcon = (item) => {
+  if (item.payslipEmailStatus === 'sent') return 'mdi:email-check-outline';
+  if (item.payslipEmailStatus === 'failed') return 'mdi:email-alert-outline';
+  if (item.payslipEmailStatus === 'skipped') return 'mdi:email-off-outline';
+  return 'mdi:email-outline';
+};
+
+const payslipDeliveryColor = (item) => {
+  if (item.payslipEmailStatus === 'sent') return 'success';
+  if (item.payslipEmailStatus === 'failed') return 'error';
+  if (item.payslipEmailStatus === 'skipped') return 'warning';
+  return 'inherit';
+};
+
+const payslipDeliveryHint = (item) => {
+  if (item.payslipEmailStatus === 'sent') {
+    const when = item.payslipEmailedAt ? new Date(item.payslipEmailedAt).toLocaleString() : '';
+    return `Sent to ${item.employeeEmail || 'employee'}${when ? ` on ${when}` : ''}`;
+  }
+  if (item.payslipEmailStatus === 'failed') {
+    return `Last attempt failed: ${item.payslipEmailError || 'unknown error'}`;
+  }
+  if (item.payslipEmailStatus === 'skipped' || !item.employeeEmail) {
+    return 'No email address on file for this employee';
+  }
+  return `Email this payslip to ${item.employeeEmail}`;
+};
+
 export default function PayrollDetailPage({ params }) {
   const router = useRouter();
   const { id } = params;
@@ -51,6 +87,9 @@ export default function PayrollDetailPage({ params }) {
   const [payroll, setPayroll] = useState(null);
   const [lineItems, setLineItems] = useState([]);
   const [employees, setEmployees] = useState([]);
+  const [ytdByEmployee, setYtdByEmployee] = useState({});
+  const [sendingAll, setSendingAll] = useState(false);
+  const [sendingId, setSendingId] = useState(null);
   const [approving, setApproving] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -60,6 +99,8 @@ export default function PayrollDetailPage({ params }) {
   const [adjustAmount, setAdjustAmount] = useState('');
   const [adjustRemarks, setAdjustRemarks] = useState('');
   const [adjusting, setAdjusting] = useState(false);
+
+  const isPayrollFinal = SENDABLE_STATUSES.includes(payroll?.status);
 
   const formatStatus = (status) => {
     if (!status) return '-';
@@ -79,6 +120,18 @@ export default function PayrollDetailPage({ params }) {
       } catch (error) {
         console.error('Failed to load payroll', error);
         setPayroll(null);
+      }
+
+      // YTD feeds the payslip's right-hand column. A failure here degrades the
+      // payslip to a current-period-only document rather than blocking the page.
+      try {
+        const entries = await fetchPayrollYtd(payrollId);
+        setYtdByEmployee(
+          Object.fromEntries(entries.map((entry) => [entry.employeeDbId, entry]))
+        );
+      } catch (error) {
+        console.error('Failed to load year-to-date totals', error);
+        setYtdByEmployee({});
       }
     };
     if (Number.isFinite(payrollId)) {
@@ -252,13 +305,16 @@ export default function PayrollDetailPage({ params }) {
         prev.map((li) => {
           if (li.id !== adjustTarget.id) return li;
           if (saved) return saved;
-          // Fallback: compute locally if API didn't return the item
+          // Fallback: compute locally if API didn't return the item. Statutory
+          // and attendance deductions stand alongside the manual one — only the
+          // manual component is being edited here.
+          const standing = Number(li.gosiDeduction || 0) + Number(li.lopAmount || 0);
           return {
             ...li,
             manualDeductionAmount: amount,
             manualDeductionRemarks: adjustRemarks || null,
-            deductions: amount,
-            netSalary: (li.grossSalary || 0) - amount,
+            deductions: standing + amount,
+            netSalary: (li.grossSalary || 0) - standing - amount,
           };
         })
       );
@@ -272,27 +328,47 @@ export default function PayrollDetailPage({ params }) {
     }
   }, [adjustTarget, adjustAmount, adjustRemarks, handleCloseAdjust]);
 
-  // ── Payslip download ───────────────────────────────────────────────────
+  // ── Payslips ───────────────────────────────────────────────────────────
+  // One renderer serves both the download and the email, so the PDF an
+  // employee receives is byte-for-byte the one HR can pull from this page.
+  const renderPayslipBlob = useCallback(
+    async (item) => {
+      const [{ pdf }, { PayslipDocument }, { createElement }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('src/sections/hr/payroll/payslip-document'),
+        import('react'),
+      ]);
+      return pdf(
+        createElement(PayslipDocument, {
+          lineItem: item,
+          payroll,
+          ytd: ytdByEmployee[item.employeeDbId] || null,
+        })
+      ).toBlob();
+    },
+    [payroll, ytdByEmployee]
+  );
+
+  const payslipFileName = useCallback(
+    (item) => {
+      const monthName = new Date(payroll.periodYear, payroll.periodMonth - 1).toLocaleString(
+        'default',
+        { month: 'short' }
+      );
+      return `Payslip_${(item.employeeName || 'employee').replace(/\s+/g, '_')}_${monthName}_${payroll.periodYear}.pdf`;
+    },
+    [payroll]
+  );
+
   const handleDownloadPayslip = useCallback(
     async (item) => {
       if (!payroll) return;
       try {
-        const [{ pdf }, { PayslipDocument }] = await Promise.all([
-          import('@react-pdf/renderer'),
-          import('src/sections/hr/payroll/payslip-document'),
-        ]);
-        const { createElement } = await import('react');
-        const blob = await pdf(
-          createElement(PayslipDocument, { lineItem: item, payroll })
-        ).toBlob();
+        const blob = await renderPayslipBlob(item);
         const blobUrl = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = blobUrl;
-        const monthName = new Date(payroll.periodYear, payroll.periodMonth - 1).toLocaleString(
-          'default',
-          { month: 'short' }
-        );
-        link.download = `Payslip_${(item.employeeName || 'employee').replace(/\s+/g, '_')}_${monthName}_${payroll.periodYear}.pdf`;
+        link.download = payslipFileName(item);
         link.click();
         URL.revokeObjectURL(blobUrl);
       } catch (error) {
@@ -300,7 +376,7 @@ export default function PayrollDetailPage({ params }) {
         toast.error('Failed to generate payslip PDF');
       }
     },
-    [payroll]
+    [payroll, payslipFileName, renderPayslipBlob]
   );
 
   const handleDownloadAllPayslips = useCallback(async () => {
@@ -309,6 +385,102 @@ export default function PayrollDetailPage({ params }) {
       await handleDownloadPayslip(item);
     }
   }, [handleDownloadPayslip, lineItems, payroll]);
+
+  // ── Payslip email delivery ─────────────────────────────────────────────
+  const toBase64 = async (blob) => {
+    const bytes = new Uint8Array(await blob.arrayBuffer());
+    // Chunked rather than a single spread: btoa is fine with the string, but
+    // String.fromCharCode(...bytes) blows the argument limit on a large PDF.
+    let binary = '';
+    const CHUNK = 0x8000;
+    for (let i = 0; i < bytes.length; i += CHUNK) {
+      binary += String.fromCharCode.apply(null, bytes.subarray(i, i + CHUNK));
+    }
+    return btoa(binary);
+  };
+
+  const applyDeliveryResults = useCallback((results) => {
+    const byLineItem = new Map(results.map((r) => [r.lineItemId, r]));
+    setLineItems((prev) =>
+      prev.map((li) => {
+        const result = byLineItem.get(li.id);
+        if (!result) return li;
+        return {
+          ...li,
+          payslipEmailStatus: result.status,
+          payslipEmailedAt: result.status === 'sent' ? new Date().toISOString() : null,
+          payslipEmailError: result.error || null,
+        };
+      })
+    );
+  }, []);
+
+  const sendPayslipsFor = useCallback(
+    async (items) => {
+      const payslips = [];
+      for (const item of items) {
+        // Sequential: react-pdf is single-threaded here, and rendering a whole
+        // payroll's worth of documents at once starves the UI thread.
+        const blob = await renderPayslipBlob(item);
+        payslips.push({ lineItemId: item.id, pdfBase64: await toBase64(blob) });
+      }
+
+      const summary = await sendPayrollPayslips(payrollId, payslips);
+      applyDeliveryResults(summary.results || []);
+      return summary;
+    },
+    [applyDeliveryResults, payrollId, renderPayslipBlob]
+  );
+
+  const describeDelivery = ({ sent, failed, skipped }) => {
+    const parts = [`${sent} sent`];
+    if (failed) parts.push(`${failed} failed`);
+    if (skipped) parts.push(`${skipped} without an email address`);
+    return parts.join(', ');
+  };
+
+  const handleEmailAllPayslips = useCallback(async () => {
+    if (!payroll || !lineItems.length) return;
+    setSendingAll(true);
+    try {
+      const summary = await sendPayslipsFor(lineItems);
+      const message = describeDelivery(summary);
+      if (summary.failed || summary.skipped) {
+        toast.warning(`Payslips: ${message}`);
+      } else {
+        toast.success(`Payslips emailed — ${message}`);
+      }
+    } catch (error) {
+      console.error('Failed to email payslips', error);
+      toast.error('Failed to email payslips');
+    } finally {
+      setSendingAll(false);
+    }
+  }, [lineItems, payroll, sendPayslipsFor]);
+
+  const handleEmailPayslip = useCallback(
+    async (item) => {
+      if (!payroll) return;
+      setSendingId(item.id);
+      try {
+        const summary = await sendPayslipsFor([item]);
+        const result = summary.results?.[0];
+        if (result?.status === 'sent') {
+          toast.success(`Payslip emailed to ${result.toEmail}`);
+        } else if (result?.status === 'skipped') {
+          toast.warning(`${item.employeeName} has no email address on file`);
+        } else {
+          toast.error(`Failed to email payslip: ${result?.error || 'unknown error'}`);
+        }
+      } catch (error) {
+        console.error('Failed to email payslip', error);
+        toast.error('Failed to email payslip');
+      } finally {
+        setSendingId(null);
+      }
+    },
+    [payroll, sendPayslipsFor]
+  );
 
   return (
     <DashboardContent>
@@ -339,6 +511,23 @@ export default function PayrollDetailPage({ params }) {
                 onClick={handleDownloadAllPayslips}
               >
                 Download All Payslips
+              </Button>
+            )}
+            {lineItems.length > 0 && (
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={
+                  sendingAll ? (
+                    <CircularProgress size={16} color="inherit" />
+                  ) : (
+                    <Iconify icon="mdi:email-fast-outline" />
+                  )
+                }
+                onClick={handleEmailAllPayslips}
+                disabled={sendingAll || !isPayrollFinal}
+              >
+                {sendingAll ? 'Sending…' : 'Email Payslips'}
               </Button>
             )}
             {payroll?.status === 'pending_approval' && (
@@ -624,6 +813,26 @@ export default function PayrollDetailPage({ params }) {
                                 >
                                   Payslip
                                 </Button>
+                                <Tooltip title={payslipDeliveryHint(item)}>
+                                  <span>
+                                    <Button
+                                      size="small"
+                                      variant="outlined"
+                                      color={payslipDeliveryColor(item)}
+                                      startIcon={
+                                        sendingId === item.id ? (
+                                          <CircularProgress size={14} color="inherit" />
+                                        ) : (
+                                          <Iconify icon={payslipDeliveryIcon(item)} />
+                                        )
+                                      }
+                                      onClick={() => handleEmailPayslip(item)}
+                                      disabled={sendingAll || sendingId === item.id || !isPayrollFinal}
+                                    >
+                                      {item.payslipEmailStatus === 'sent' ? 'Resend' : 'Email'}
+                                    </Button>
+                                  </span>
+                                </Tooltip>
                               </Stack>
                             </TableCell>
                           </TableRow>

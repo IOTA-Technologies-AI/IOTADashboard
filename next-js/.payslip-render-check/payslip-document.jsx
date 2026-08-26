@@ -1,6 +1,7 @@
+import React from 'react';
 import { Font, Page, Text, View, Image, Document, StyleSheet } from '@react-pdf/renderer';
 
-import { toWordsEn } from 'src/utils/invoice-i18n';
+import { toWordsEn } from '/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/utils/invoice-i18n';
 
 // ---------------------------------------------------------------------------
 // Fonts
@@ -14,19 +15,19 @@ import { toWordsEn } from 'src/utils/invoice-i18n';
 Font.register({
   family: 'PlusJakartaSans',
   fonts: [
-    { src: '/fonts/PlusJakartaSans-400.ttf', fontWeight: 400 },
-    { src: '/fonts/PlusJakartaSans-500.ttf', fontWeight: 500 },
-    { src: '/fonts/PlusJakartaSans-700.ttf', fontWeight: 700 },
-    { src: '/fonts/PlusJakartaSans-800.ttf', fontWeight: 800 },
+    { src: '/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/public/fonts/PlusJakartaSans-400.ttf', fontWeight: 400 },
+    { src: '/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/public/fonts/PlusJakartaSans-500.ttf', fontWeight: 500 },
+    { src: '/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/public/fonts/PlusJakartaSans-700.ttf', fontWeight: 700 },
+    { src: '/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/public/fonts/PlusJakartaSans-800.ttf', fontWeight: 800 },
   ],
 });
 
 Font.register({
   family: 'JetBrainsMono',
   fonts: [
-    { src: '/fonts/JetBrainsMono-400.ttf', fontWeight: 400 },
-    { src: '/fonts/JetBrainsMono-500.ttf', fontWeight: 500 },
-    { src: '/fonts/JetBrainsMono-700.ttf', fontWeight: 700 },
+    { src: '/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/public/fonts/JetBrainsMono-400.ttf', fontWeight: 400 },
+    { src: '/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/public/fonts/JetBrainsMono-500.ttf', fontWeight: 500 },
+    { src: '/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/public/fonts/JetBrainsMono-700.ttf', fontWeight: 700 },
   ],
 });
 
@@ -397,7 +398,7 @@ export function PayslipDocument({
   ytd = null,
   companyName = 'IOTA Technologies',
   companyAddress = '2885, Office #9, Jarir Street, AlMalaz, Riyadh 12836 · CR 1010XXXXXX',
-  logoSrc = '/logo/iota-mark.png',
+  logoSrc = '/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/public/logo/iota-mark.png',
 }) {
   const month = MONTHS[payroll.periodMonth - 1] || '';
   const period = `${month} ${payroll.periodYear}`;

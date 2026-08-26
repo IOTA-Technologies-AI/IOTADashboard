@@ -196,15 +196,21 @@ const calculateProRataSalary = (employee, totalWorkingDaysInMonth, employeeWorki
   const payableTransport = proRatedTransport - lopDays * perDayTransport;
   const payableOther = proRatedOther - lopDays * perDayOther;
 
+  // GOSI is a fixed monthly amount held on the employee record, not a
+  // pro-rated component: the contribution is assessed on the contractual wage
+  // and does not shrink with unpaid leave.
+  const gosiDeduction = Number(employee.gosiDeduction) || 0;
+
   const grossSalary = payableBasic + payableHousing + payableTransport + payableOther;
-  const deductions = lopAmount;
-  const netSalary = grossSalary;
+  const deductions = lopAmount + gosiDeduction;
+  const netSalary = grossSalary - gosiDeduction;
 
   return {
     actualDaysWorked,
     eligibleWorkingDays: employeeWorkingDays,
     lop: lopDays,
     lopAmount,
+    gosiDeduction,
     basicSalary: payableBasic,
     housingAllowance: payableHousing,
     transportAllowance: payableTransport,
@@ -332,6 +338,7 @@ export default function GeneratePayrollPage() {
             eligibleWorkingDays: proRata.eligibleWorkingDays,
             lop: proRata.lop,
             lopAmount: proRata.lopAmount,
+            gosiDeduction: proRata.gosiDeduction,
             workingDays: employeeWorkingDays,
             totalWorkingDays: workingDays,
             basicSalary: proRata.basicSalary,
@@ -532,6 +539,17 @@ export default function GeneratePayrollPage() {
       flex: 1.2,
       minWidth: 130,
       valueFormatter: (value) => `SAR ${value?.toFixed(2) || 0}`,
+    },
+    {
+      field: 'gosiDeduction',
+      headerName: 'GOSI',
+      width: 120,
+      valueFormatter: (value) => (value > 0 ? `SAR ${Number(value).toFixed(2)}` : '—'),
+      renderHeader: () => (
+        <span title="GOSI employee contribution held on the employee record. Edit it on the employee profile.">
+          GOSI
+        </span>
+      ),
     },
     {
       field: 'manualDeductionAmount',
@@ -867,9 +885,9 @@ export default function GeneratePayrollPage() {
                       transportAllowance: updated.transportAllowance,
                       otherAllowances: updated.otherAllowances,
                       grossSalary: updated.grossSalary,
-                      // deductions = LOP deduction + manual deduction for display
+                      // deductions = LOP + GOSI + manual deduction for display
                       deductions: updated.deductions + manualDeductionAmount,
-                      // net = pro-rata net (already LOP-adjusted) minus any manual deduction
+                      // net = pro-rata net (already LOP- and GOSI-adjusted) minus any manual deduction
                       netSalary: updated.netSalary - manualDeductionAmount,
                       manualDeductionAmount,
                       manualDeductionRemarks,

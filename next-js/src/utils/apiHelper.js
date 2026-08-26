@@ -573,6 +573,42 @@ export async function approvePayrollRun({ id, approvedBy, status, notes }) {
 }
 
 /**
+ * @summary Fetches year-to-date earnings and deductions for every employee in a payroll run.
+ * @description Totals are computed server-side across all non-rejected runs of the same
+ * calendar year up to and including this run's period, keyed by employee DB id.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-08-26
+ * @modified 2026-08-26
+ * @param {string|number} id - The payroll run ID.
+ * @returns {Promise<object[]>} Array of YTD entries, one per employee.
+ */
+export async function fetchPayrollYtd(id) {
+  const url = `${API_BASE_URL}/payroll/runs/${id}/ytd`;
+  const response = await axios.get(url);
+  return response.data?.entries || [];
+}
+
+/**
+ * @summary Emails rendered payslips to the employees in a payroll run.
+ * @description Each payslip PDF is rendered in the browser and posted as base64, matching
+ * the invoice issue flow. Delivery is per-employee best-effort: the response reports the
+ * outcome of every row so failures can be retried individually.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-08-26
+ * @modified 2026-08-26
+ * @param {string|number} id - The payroll run ID.
+ * @param {Array<{ lineItemId: number, pdfBase64: string, toEmail?: string }>} payslips - Rendered payslips.
+ * @returns {Promise<{ sent: number, failed: number, skipped: number, results: object[] }>} Delivery summary.
+ */
+export async function sendPayrollPayslips(id, payslips) {
+  const url = `${API_BASE_URL}/payroll/runs/${id}/send-payslips`;
+  const response = await axios.post(url, { payslips });
+  return response.data;
+}
+
+/**
  * @summary Updates manual deduction amount and remarks on a single payroll line item.
  * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
  * @version 1.0.0

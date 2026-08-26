@@ -56,6 +56,8 @@ const EmployeeSchema = z.object({
   bankName: z.string().optional(),
   bankAccountNumber: z.string().optional(),
   iban: z.string().optional(),
+  gosiNumber: z.string().optional(),
+  gosiDeduction: z.number().min(0).optional(),
 });
 
 // ----------------------------------------------------------------------
@@ -109,6 +111,8 @@ export function EmployeeNewEditForm({ currentEmployee }) {
       bankName: currentEmployee?.bankName || '',
       bankAccountNumber: currentEmployee?.bankAccountNumber || '',
       iban: currentEmployee?.iban || '',
+      gosiNumber: currentEmployee?.gosiNumber || '',
+      gosiDeduction: Number(currentEmployee?.gosiDeduction ?? 0),
     }),
     [currentEmployee]
   );
@@ -145,6 +149,7 @@ export function EmployeeNewEditForm({ currentEmployee }) {
         transportAllowance: Number(data.transportationAllowance ?? 0),
         transportationAllowance: Number(data.transportationAllowance ?? 0),
         otherAllowances: Number(data.otherAllowances ?? 0),
+        gosiDeduction: Number(data.gosiDeduction ?? 0),
         employmentStatus: data.employmentStatus,
       };
 
@@ -171,6 +176,7 @@ export function EmployeeNewEditForm({ currentEmployee }) {
       if (data.bankAccountNumber?.trim())
         employeeData.bankAccountNumber = data.bankAccountNumber.trim();
       if (data.iban?.trim()) employeeData.iban = data.iban.trim();
+      if (data.gosiNumber?.trim()) employeeData.gosiNumber = data.gosiNumber.trim();
 
       if (currentEmployee) {
         await updateEmployee(currentEmployee.id, employeeData);
@@ -286,6 +292,13 @@ export function EmployeeNewEditForm({ currentEmployee }) {
                 <Field.Text name="bankAccountNumber" label="Bank Account Number" />
                 <Field.Text name="iban" label="IBAN" />
                 <Field.Text name="currencyCode" label="Currency Code" required />
+                <Field.Text name="gosiNumber" label="GOSI Number" />
+                <Field.Text
+                  name="gosiDeduction"
+                  label="GOSI Employee Contribution"
+                  type="number"
+                  helperText="Monthly amount withheld. Payroll copies this onto each payslip."
+                />
               </Box>
             </Card>
           </Stack>
