@@ -1913,6 +1913,91 @@ export async function updateLetterRequest(id, data) {
 }
 
 /**
+ * @summary Lists Monthly Salary Increment (MSI) requests, newest first.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-08-28
+ * @modified 2026-08-28
+ * @param {{ employeeId?: number, status?: string, limit?: number, offset?: number }} [params] - Optional filters.
+ * @returns {Promise<object[]>} The MSI request records.
+ */
+export async function listMsiRequests(params = {}) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}employee-requests/msi`, {
+      params,
+      headers: getAuthHeaders(),
+    });
+    return response.data?.msiRequests || [];
+  } catch (error) {
+    console.error('❌ listMsiRequests error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+/**
+ * @summary Raises a salary increment for an employee and sends it for approval.
+ * @description Only the revised figures, effective date and narrative are sent. The current
+ * salary snapshot, gross totals, increase percentage and letter reference are all derived
+ * server-side from the employee record.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-08-28
+ * @modified 2026-08-28
+ * @param {object} data - { employeeId, effectiveDate, revisedBasic, revisedHousing, revisedTransport, revisedOther, reason, notes, createdBy }.
+ * @returns {Promise<object>} The created MSI request.
+ */
+export async function createMsiRequest(data) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}employee-requests/msi`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data?.request;
+  } catch (error) {
+    console.error('❌ createMsiRequest error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+/**
+ * @summary Amends an MSI request that has not yet been approved or rejected.
+ * @description The API rejects the call once a decision has been recorded, so the caller
+ * should hide the edit affordance for settled requests rather than rely on the error.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-08-28
+ * @modified 2026-08-28
+ * @param {string|number} id - The MSI request ID.
+ * @param {object} data - Fields to update.
+ * @returns {Promise<object>} The updated MSI request.
+ */
+export async function updateMsiRequest(id, data) {
+  try {
+    const response = await axios.patch(`${API_BASE_URL}employee-requests/msi/${id}`, data, {
+      headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+    });
+    return response.data?.request;
+  } catch (error) {
+    console.error('❌ updateMsiRequest error:', error.response?.data || error.message);
+    throw error;
+  }
+}
+
+/**
+ * @summary Fetches one MSI request together with its approval history.
+ * @description Uses the shared request endpoint, which serves every request table.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-08-28
+ * @modified 2026-08-28
+ * @param {string|number} id - The MSI request ID.
+ * @returns {Promise<{ request: object, approvals: object[] }>} The request and its approvals.
+ */
+export async function getMsiRequest(id) {
+  const data = await getRequestWithApprovals('employeeMsiRequests', id);
+  return { request: data?.request, approvals: data?.approvals || [] };
+}
+
+/**
  * @summary Uploads a document file (base64-encoded) to cloud storage.
  * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
  * @version 1.0.0

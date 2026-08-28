@@ -168,6 +168,10 @@ export const navData = [
                     title: 'Payroll',
                     path: paths.dashboard.hr.employee.finance.payroll.root,
                   },
+                  {
+                    title: 'MSI',
+                    path: paths.dashboard.hr.employee.finance.msi.root,
+                  },
                 ],
               },
               {

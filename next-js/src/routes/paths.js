@@ -191,6 +191,12 @@ export const paths = {
             root: path(ROOTS.DASHBOARD, '/hr/employee/finance/payroll'),
             generate: path(ROOTS.DASHBOARD, '/hr/employee/finance/payroll/generate'),
           },
+          msi: {
+            root: path(ROOTS.DASHBOARD, '/hr/employee/finance/msi'),
+            new: path(ROOTS.DASHBOARD, '/hr/employee/finance/msi/new'),
+            details: (id) => path(ROOTS.DASHBOARD, `/hr/employee/finance/msi/${id}`),
+            edit: (id) => path(ROOTS.DASHBOARD, `/hr/employee/finance/msi/${id}/edit`),
+          },
         },
       },
 
