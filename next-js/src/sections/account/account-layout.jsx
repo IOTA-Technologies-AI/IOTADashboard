@@ -14,6 +14,8 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
+import { useAuthContext } from 'src/auth/hooks';
+
 // ----------------------------------------------------------------------
 
 const NAV_ITEMS = [
@@ -49,10 +51,24 @@ const NAV_ITEMS = [
   },
 ];
 
+// Shown only to super-admins — it hosts the record edit-mode switch.
+const ADMIN_NAV_ITEM = {
+  label: 'Admin Settings',
+  icon: <Iconify width={24} icon="solar:settings-bold" />,
+  href: `${paths.dashboard.user.account}/admin-settings`,
+};
+
+const roleIdToName = { 1: 'regular', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
+
 // ----------------------------------------------------------------------
 
 export function AccountLayout({ children, ...other }) {
   const pathname = usePathname();
+  const { user } = useAuthContext();
+
+  const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
+  const navItems =
+    normalizedRole === 'superAdmin' ? [...NAV_ITEMS, ADMIN_NAV_ITEM] : NAV_ITEMS;
 
   return (
     <DashboardContent {...other}>
@@ -67,7 +83,7 @@ export function AccountLayout({ children, ...other }) {
       />
 
       <Tabs value={removeLastSlash(pathname)} sx={{ mb: { xs: 3, md: 5 } }}>
-        {NAV_ITEMS.map((tab) => (
+        {navItems.map((tab) => (
           <Tab
             component={RouterLink}
             key={tab.href}

@@ -21,11 +21,11 @@ import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
 
-import { apiHelper } from 'src/utils/apiHelper';
-import { deleteExpense } from 'src/utils/apiHelper';
 import { fDate, fIsAfter } from 'src/utils/format-time';
+import { apiHelper , deleteExpense } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
+import { useEditMode } from 'src/actions/admin-edit-mode';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -80,10 +80,13 @@ export function ExpenseListView({ expenses: initialExpenses = [], permissionErro
   const isAdmin = normalizedRole === 'admin';
   // canApprove: only admins/super-admins can approve or reject
   const canApprove = isSuperAdmin || isAdmin;
-  // canEditRow: super-admin can always edit; regular user can only edit their own pending expenses
+  // canEditRow: a regular user can only edit their own pending expenses. A
+  // super-admin can also edit an approved/rejected one, but only while Record
+  // Edit Mode is switched on in Account > Admin Settings.
+  const { editModeActive } = useEditMode();
   const canEditRow = (row) => {
-    if (isSuperAdmin) return true;
     const isPending = row.expenseApprovalStatus === null || row.expenseApprovalStatus === undefined;
+    if (isSuperAdmin) return isPending || editModeActive;
     const isOwner = row.expenseBy === user?.name || row.expenseBy === user?.displayName;
     return isPending && isOwner;
   };

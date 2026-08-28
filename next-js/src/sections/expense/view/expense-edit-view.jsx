@@ -9,6 +9,7 @@ import { paths } from 'src/routes/paths';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import { ForbiddenIllustration } from 'src/assets/illustrations';
+import { useCanEditLockedRecord } from 'src/actions/admin-edit-mode';
 
 import { varBounce, MotionContainer } from 'src/components/animate';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
@@ -29,13 +30,22 @@ export function ExpenseEditView({ expense }) {
   const isPending =
     expense?.expenseApprovalStatus === null || expense?.expenseApprovalStatus === undefined;
   const isOwner = expense?.expenseBy === user?.name || expense?.expenseBy === user?.displayName;
-  const canEdit = isSuperAdmin || (isPending && isOwner);
+  // A super-admin can edit an approved/rejected expense, but only while Record
+  // Edit Mode is switched on in Account > Admin Settings. The backend enforces
+  // the same rule and audits every field that changes.
+  const { canEditLocked, editModeLoading } = useCanEditLockedRecord(isPending);
+  const canEdit = canEditLocked || (isPending && isOwner);
 
   const deniedReason = !canEdit
     ? isPending
       ? 'You can only edit your own expenses.'
-      : 'This expense has already been approved or rejected and cannot be edited.'
+      : isSuperAdmin
+        ? 'This expense has already been approved or rejected. Switch on Record Edit Mode in Account > Admin Settings to edit it.'
+        : 'This expense has already been approved or rejected and cannot be edited.'
     : null;
+
+  // Don't flash "permission denied" while the edit-mode window is still loading.
+  if (editModeLoading) return null;
 
   if (!canEdit) {
     return (

@@ -8,6 +8,7 @@ import { paths } from 'src/routes/paths';
 import { fetchInvoice } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
+import { useCanEditLockedRecord } from 'src/actions/admin-edit-mode';
 
 import { toast } from 'src/components/snackbar';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
@@ -27,19 +28,26 @@ export function InvoiceEditView({ invoice: initialInvoice }) {
 
   const roleIdToName = { 1: 'regular', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
-  // SuperAdmins can always edit; the creator can edit only while the invoice is
-  // still pending (before it is approved or rejected).
+  // The creator can edit only while the invoice is still pending. A super-admin
+  // can also edit it once it is approved/paid/rejected, but only while Record
+  // Edit Mode is switched on in Account > Admin Settings.
   const isPending = invoice?.status === 'pending' || invoice?.status === 'draft';
+  const { canEditLocked, editModeLoading } = useCanEditLockedRecord(isPending);
   const canEdit =
-    normalizedRole === 'superAdmin' ||
+    canEditLocked ||
     (isPending && !!invoice?.createdByEmail && invoice?.createdByEmail === user?.email);
 
   useEffect(() => {
-    if (!loading && invoice && !canEdit) {
-      toast.error('You can only edit your own pending invoices.');
+    // Wait for the edit-mode window to resolve before bouncing a super-admin out.
+    if (!loading && !editModeLoading && invoice && !canEdit) {
+      toast.error(
+        normalizedRole === 'superAdmin'
+          ? 'This invoice is locked. Switch on Record Edit Mode in Account > Admin Settings to edit it.'
+          : 'You can only edit your own pending invoices.'
+      );
       router.replace(paths.dashboard.invoice.root);
     }
-  }, [canEdit, invoice, loading, router]);
+  }, [canEdit, invoice, loading, editModeLoading, normalizedRole, router]);
 
   useEffect(() => {
     if (!initialInvoice && params?.id) {
@@ -153,7 +161,7 @@ export function InvoiceEditView({ invoice: initialInvoice }) {
     }
   }, [initialInvoice, params?.id]);
 
-  if (loading || !canEdit) {
+  if (loading || editModeLoading || !canEdit) {
     return <div>Loading...</div>;
   }
 

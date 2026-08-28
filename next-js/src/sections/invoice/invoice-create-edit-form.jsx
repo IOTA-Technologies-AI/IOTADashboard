@@ -4,8 +4,6 @@ import { useState, useEffect } from 'react';
 import { useBoolean } from 'minimal-shared/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 
-import CircularProgress from '@mui/material/CircularProgress';
-
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Alert from '@mui/material/Alert';
@@ -13,6 +11,7 @@ import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Autocomplete from '@mui/material/Autocomplete';
+import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
@@ -20,8 +19,11 @@ import { useRouter } from 'src/routes/hooks';
 import { today, fIsAfter } from 'src/utils/format-time';
 import { createInvoice, updateInvoice, getCostCenters, getInvoiceTypes } from 'src/utils/apiHelper';
 
+import { useCanEditLockedRecord } from 'src/actions/admin-edit-mode';
+
 import { toast } from 'src/components/snackbar';
-import { Field, Form, schemaUtils } from 'src/components/hook-form';
+import { Form, Field, schemaUtils } from 'src/components/hook-form';
+
 import { useAuthContext } from 'src/auth/hooks';
 import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 
@@ -123,9 +125,18 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
 
   const isEdit = !!currentInvoice?.id;
 
-  // Paid/approved invoices cannot be edited; rejected invoices CAN be re-edited and resubmitted
-  const isNotEditable = currentInvoice?.status === 'paid' || currentInvoice?.status === 'approved';
+  // Paid/approved invoices are locked; rejected invoices CAN be re-edited and resubmitted.
+  const isLockedStage = currentInvoice?.status === 'paid' || currentInvoice?.status === 'approved';
   const isRejected = currentInvoice?.status === 'rejected';
+
+  // A super-admin can reopen a locked invoice, but only while Record Edit Mode
+  // is switched on in Account > Admin Settings. The backend enforces the same
+  // rule and audits every field that changes.
+  const isPendingStage = currentInvoice?.status === 'pending' || currentInvoice?.status === 'draft';
+  const { editModeActive } = useCanEditLockedRecord(isPendingStage);
+  const canUnlock = canEditByRole && editModeActive;
+
+  const isNotEditable = isLockedStage && !canUnlock;
   const canSubmitChanges = isEdit ? canEditByRole && !isNotEditable : !isNotEditable;
 
   const defaultValues = {
@@ -196,7 +207,9 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
     }
 
     if (!canSubmitChanges) {
-      toast.error('Cannot edit paid or approved invoices');
+      toast.error(
+        'This invoice is locked. Switch on Record Edit Mode in Account > Admin Settings to edit it.'
+      );
       return;
     }
 
@@ -253,7 +266,7 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         invoiceTypeId: data.invoiceTypeId ? Number(data.invoiceTypeId) : null,
         invoiceTypeName: data.invoiceTypeName || selectedInvoiceType?.invoiceTypeDesc || null,
         // Employee-related fields (derived from invoice type)
-        isEmployeeRelated: isEmployeeRelated,
+        isEmployeeRelated,
         ...(isEmployeeRelated && data.employeeId && { employeeId: data.employeeId }),
         ...(isEmployeeRelated && data.employeeName && { employeeName: data.employeeName }),
         ...(!isEdit && {
@@ -291,7 +304,9 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
     }
 
     if (!canSubmitChanges) {
-      toast.error('Cannot edit paid or approved invoices');
+      toast.error(
+        'This invoice is locked. Switch on Record Edit Mode in Account > Admin Settings to edit it.'
+      );
       return;
     }
 
@@ -348,7 +363,7 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
         invoiceTypeId: data.invoiceTypeId ? Number(data.invoiceTypeId) : null,
         invoiceTypeName: data.invoiceTypeName || selectedInvoiceType?.invoiceTypeDesc || null,
         // Employee-related fields (derived from invoice type)
-        isEmployeeRelated: isEmployeeRelated,
+        isEmployeeRelated,
         ...(isEmployeeRelated && data.employeeId && { employeeId: data.employeeId }),
         ...(isEmployeeRelated && data.employeeName && { employeeName: data.employeeName }),
         ...(!isEdit && {
@@ -394,6 +409,16 @@ export function InvoiceCreateEditForm({ currentInvoice }) {
       {isNotEditable && (
         <Alert severity="warning" sx={{ mb: 3 }}>
           This invoice has been {currentInvoice?.status} and cannot be edited.
+          {canEditByRole
+            ? ' Switch on Record Edit Mode in Account > Admin Settings to edit it.'
+            : ''}
+        </Alert>
+      )}
+
+      {isLockedStage && canUnlock && (
+        <Alert severity="info" sx={{ mb: 3 }}>
+          <strong>Record edit mode is on.</strong> You are editing an invoice that is already{' '}
+          {currentInvoice?.status}. Every field you change is written to the audit trail.
         </Alert>
       )}
 

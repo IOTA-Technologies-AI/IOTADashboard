@@ -4,6 +4,7 @@ import { paths } from 'src/routes/paths';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
+import { EditAuditTimeline } from 'src/components/edit-audit';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 import { ExpenseDetails } from '../expense-details';
@@ -24,6 +25,14 @@ export function ExpenseDetailsView({ expense }) {
       />
 
       <ExpenseDetails expense={expense} />
+
+      {/* Only rendered once this expense has actually been edited under
+          Record Edit Mode — otherwise it stays out of the way. */}
+      <EditAuditTimeline
+        entityType="expense"
+        entityId={expense?.referenceId}
+        sx={{ mt: 3 }}
+      />
     </DashboardContent>
   );
 }

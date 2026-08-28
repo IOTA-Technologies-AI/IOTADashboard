@@ -96,6 +96,10 @@ export const endpoints = {
     stages: '/api/sales/stages',
     deals: '/api/sales/deals',
   },
+  admin: {
+    editMode: '/api/admin/edit-mode',
+    editAudit: '/api/admin/edit-audit',
+  },
   apollo: {
     peopleSearch: '/api/apollo/people-search',
     peopleEnrich: '/api/apollo/people-enrich',

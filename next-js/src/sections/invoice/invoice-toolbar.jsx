@@ -16,6 +16,8 @@ import { RouterLink } from 'src/routes/components';
 
 import { issueInvoice, fetchOfficeConfigs } from 'src/utils/apiHelper';
 
+import { useCanEditLockedRecord } from 'src/actions/admin-edit-mode';
+
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 
@@ -44,13 +46,13 @@ export function InvoiceToolbar({
     });
   }, []);
 
-  // Only the creator may edit, and only while pending; super-admins can always.
-  const roleIdToName = { 1: 'regular', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
-  const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
+  // Only the creator may edit, and only while pending. A super-admin can also
+  // edit a locked invoice, but only while Record Edit Mode is switched on.
   const editStatus = (currentStatus || invoice?.status || '').toLowerCase();
   const isPending = editStatus === 'pending' || editStatus === 'draft';
+  const { canEditLocked } = useCanEditLockedRecord(isPending);
   const canEdit =
-    normalizedRole === 'superAdmin' ||
+    canEditLocked ||
     (isPending && !!invoice?.createdByEmail && invoice?.createdByEmail === user?.email);
 
   const isPaid = currentStatus === 'paid';

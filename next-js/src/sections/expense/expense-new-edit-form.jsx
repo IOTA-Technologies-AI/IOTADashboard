@@ -14,13 +14,13 @@ import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
-import Autocomplete from '@mui/material/Autocomplete';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
-import LinearProgress from '@mui/material/LinearProgress';
+import Autocomplete from '@mui/material/Autocomplete';
 import ToggleButton from '@mui/material/ToggleButton';
-import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import LinearProgress from '@mui/material/LinearProgress';
 import CircularProgress from '@mui/material/CircularProgress'; // ✅ Added for loading state
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
@@ -29,8 +29,10 @@ import { clearFormData } from 'src/hooks/use-form-autosave';
 
 import { fCurrency } from 'src/utils/format-number'; // ✅ Added for formatting
 import { apiHelper, getCostCenters, getExpenseTypes } from 'src/utils/apiHelper';
-import { getOneDriveToken, seedOneDriveToken, refreshAccessToken } from 'src/utils/onedrive-helper';
 import { EXPENSE_CURRENCIES, EXPENSE_APPROVAL_STATUS_OPTIONS } from 'src/utils/constants/enums';
+import { getOneDriveToken, seedOneDriveToken, refreshAccessToken } from 'src/utils/onedrive-helper';
+
+import { useCanEditLockedRecord } from 'src/actions/admin-edit-mode';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -114,6 +116,16 @@ export function ExpenseNewEditForm({ currentExpense }) {
 
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
   const isSuperAdmin = normalizedRole === 'superAdmin';
+
+  // An approved/rejected expense is locked. A super-admin can reopen it, but
+  // only while Record Edit Mode is switched on in Account > Admin Settings —
+  // the backend enforces the same rule and audits every field that changes.
+  const isPendingExpense =
+    currentExpense?.expenseApprovalStatus === null ||
+    currentExpense?.expenseApprovalStatus === undefined;
+  const { editModeActive } = useCanEditLockedRecord(isPendingExpense);
+  const isLockedEdit = !!currentExpense && !isPendingExpense;
+  const canEditLockedExpense = isSuperAdmin && isLockedEdit && editModeActive;
 
   // ✅ Added state for AR invoices
   const [arInvoices, setArInvoices] = useState([]);
@@ -1065,11 +1077,12 @@ export function ExpenseNewEditForm({ currentExpense }) {
 
       {/* Only show submit button if:
           1. Creating new expense (no currentExpense), OR
-          2. Editing and user is superAdmin AND expense is pending approval */}
+          2. Editing a pending expense as a superAdmin, OR
+          3. Editing an approved/rejected expense as a superAdmin while
+             Record Edit Mode is on. */}
       {(!currentExpense ||
-        (isSuperAdmin &&
-          (currentExpense?.expenseApprovalStatus === null ||
-            currentExpense?.expenseApprovalStatus === undefined))) && (
+        (isSuperAdmin && isPendingExpense) ||
+        canEditLockedExpense) && (
         <LoadingButton
           fullWidth
           type="submit"
@@ -1078,7 +1091,11 @@ export function ExpenseNewEditForm({ currentExpense }) {
           loading={isSubmitting}
           disabled={uploadingAttachment}
         >
-          {currentExpense ? 'Approve Expense' : 'Create Expense'}
+          {!currentExpense
+            ? 'Create Expense'
+            : canEditLockedExpense
+              ? 'Save Changes'
+              : 'Approve Expense'}
         </LoadingButton>
       )}
     </Box>
@@ -1092,6 +1109,24 @@ export function ExpenseNewEditForm({ currentExpense }) {
             {currentExpense && !isSuperAdmin && (
               <Alert severity="error">
                 Only super admins can edit expenses. You have view-only access.
+              </Alert>
+            )}
+
+            {canEditLockedExpense && (
+              <Alert severity="info">
+                <strong>Record edit mode is on.</strong> You are editing an expense that has
+                already been {currentExpense?.expenseApprovalStatus === true
+                  ? 'approved'
+                  : 'rejected'}
+                . Every field you change is written to the audit trail.
+              </Alert>
+            )}
+
+            {isSuperAdmin && isLockedEdit && !editModeActive && (
+              <Alert severity="warning">
+                This expense has already been{' '}
+                {currentExpense?.expenseApprovalStatus === true ? 'approved' : 'rejected'} and is
+                locked. Switch on Record Edit Mode in Account &gt; Admin Settings to edit it.
               </Alert>
             )}
             {renderBasicInfo}

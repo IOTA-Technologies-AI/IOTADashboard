@@ -22,11 +22,12 @@ import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
 import { fIsAfter } from 'src/utils/format-time';
-import { fetchInvoices, deleteInvoice } from 'src/utils/apiHelper';
 import { getExchangeRate } from 'src/utils/currency-converter';
+import { fetchInvoices, deleteInvoice } from 'src/utils/apiHelper';
 
 import { INVOICE_SERVICE_OPTIONS } from 'src/_mock';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { useEditMode } from 'src/actions/admin-edit-mode';
 
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
@@ -47,12 +48,13 @@ import {
   TablePaginationCustom,
 } from 'src/components/table';
 
+import { useAuthContext } from 'src/auth/hooks';
+
 import { InvoiceAnalytic } from '../invoice-analytic';
 import { InvoiceTableRow } from '../invoice-table-row';
 import { InvoiceTableToolbar } from '../invoice-table-toolbar';
 import { InvoiceApprovalDialog } from '../invoice-approval-dialog';
 import { InvoiceTableFiltersResult } from '../invoice-table-filters-result';
-import { useAuthContext } from 'src/auth/hooks';
 
 // ----------------------------------------------------------------------
 
@@ -113,11 +115,14 @@ export function InvoiceListView() {
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
   const isSuperAdmin = normalizedRole === 'superAdmin';
   // The creator may edit their own invoice only while it is still pending
-  // (before it is approved or rejected). Super-admins can edit any invoice.
+  // (before it is approved or rejected). Super-admins can additionally edit a
+  // locked invoice, but only while Record Edit Mode is switched on in
+  // Account > Admin Settings.
+  const { editModeActive } = useEditMode();
   const canEditRow = (row) => {
-    if (isSuperAdmin) return true;
     const status = (row?.status || '').toLowerCase();
     const rowIsPending = status === 'pending' || status === 'draft';
+    if (isSuperAdmin) return rowIsPending || editModeActive;
     return rowIsPending && !!row?.createdByEmail && row.createdByEmail === user?.email;
   };
   // Delete stays restricted to super-admins (unchanged from before).
