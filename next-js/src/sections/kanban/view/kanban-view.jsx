@@ -208,8 +208,13 @@ export function KanbanView({
           pb: 3,
           pl: { sm: 3 },
           pr: { sm: 3 },
+          // `flex-basis: 0` here collapsed the board to zero height: nothing in
+          // the layout chain above main has a definite height (global.css sizes
+          // #root/#root__layout, which the App Router never renders), so there
+          // is no free space for flex-grow to claim. Basis auto sizes the
+          // container to its content instead.
           minHeight: 0,
-          flex: '1 1 0',
+          flex: '1 1 auto',
           display: 'flex',
           flexDirection: 'column',
         }}

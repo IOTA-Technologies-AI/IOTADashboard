@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1787905516637,
+  "timestamp": 1787912017298,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.payslip-render-check/edge.jsx": {
       "mtime": 1787761884277,
@@ -139795,14 +139795,8 @@
         "lineCount": 25,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/column/styles.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/column/kanban-column.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/hooks/use-task-item-dnd.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/hooks/use-column-dnd.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/item/styles.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/item/kanban-task-item.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/utils/helpers.js",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/view/kanban-view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/view/kanban-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/column/kanban-column.jsx"
         ],
         "importInfos": [
           {
@@ -140176,7 +140170,7 @@
           "KanbanColumn"
         ],
         "routes": [],
-        "healthScore": 80
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/job/view/job-list-view.jsx": {
@@ -140846,7 +140840,6 @@
         "lineCount": 13,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/item/kanban-task-item.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/view/kanban-view.jsx"
         ],
         "importInfos": [
@@ -141700,10 +141693,9 @@
         "lineCount": 40,
         "imports": [],
         "importedBy": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/view/kanban-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/column/kanban-column.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/column/kanban-column-add.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/item/kanban-task-item.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/view/kanban-view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/column/kanban-column-add.jsx"
         ],
         "importInfos": [
           {
@@ -144045,12 +144037,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/view/kanban-view.jsx": {
-      "mtime": 1781168261441,
+      "mtime": 1787911961868,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/view/kanban-view.jsx",
         "relativePath": "next-js/src/sections/kanban/view/kanban-view.jsx",
         "fileType": "generic",
-        "lineCount": 259,
+        "lineCount": 264,
         "imports": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/classes.js",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/hooks/use-board-dnd.jsx",
@@ -144347,6 +144339,7 @@
               "renderList",
               "inputGlobalStyles",
               "var",
+              "height",
               "renderHead",
               "renderBoard",
               "styled",
@@ -196076,7 +196069,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/middleware-build-manifest.js": {
-      "mtime": 1787905440168,
+      "mtime": 1787911979233,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/middleware-build-manifest.js",
         "relativePath": "next-js/.next/server/middleware-build-manifest.js",
@@ -196127,7 +196120,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/middleware-react-loadable-manifest.js": {
-      "mtime": 1787905440168,
+      "mtime": 1787911979232,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/middleware-react-loadable-manifest.js",
         "relativePath": "next-js/.next/server/middleware-react-loadable-manifest.js",
@@ -196144,7 +196137,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/next-font-manifest.js": {
-      "mtime": 1787905440168,
+      "mtime": 1787911979233,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/next-font-manifest.js",
         "relativePath": "next-js/.next/server/next-font-manifest.js",
@@ -196161,7 +196154,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/development/_buildManifest.js": {
-      "mtime": 1787905440168,
+      "mtime": 1787911979233,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/development/_buildManifest.js",
         "relativePath": "next-js/.next/static/development/_buildManifest.js",
@@ -196178,7 +196171,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/development/_ssgManifest.js": {
-      "mtime": 1787905440168,
+      "mtime": 1787911979232,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/development/_ssgManifest.js",
         "relativePath": "next-js/.next/static/development/_ssgManifest.js",
@@ -196195,7 +196188,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/instrumentation.js": {
-      "mtime": 1787905411477,
+      "mtime": 1787911974336,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/instrumentation.js",
         "relativePath": "next-js/.next/server/instrumentation.js",
@@ -196261,7 +196254,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/@prisma.js": {
-      "mtime": 1787905411504,
+      "mtime": 1787911974396,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/@prisma.js",
         "relativePath": "next-js/.next/server/vendor-chunks/@prisma.js",
@@ -196278,7 +196271,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/@swc.js": {
-      "mtime": 1787905411538,
+      "mtime": 1787911974399,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/@swc.js",
         "relativePath": "next-js/.next/server/vendor-chunks/@swc.js",
@@ -196295,7 +196288,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/has-flag.js": {
-      "mtime": 1787905411538,
+      "mtime": 1787911974399,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/has-flag.js",
         "relativePath": "next-js/.next/server/vendor-chunks/has-flag.js",
@@ -196312,7 +196305,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/balanced-match.js": {
-      "mtime": 1787905411508,
+      "mtime": 1787911974398,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/balanced-match.js",
         "relativePath": "next-js/.next/server/vendor-chunks/balanced-match.js",
@@ -196346,7 +196339,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/forwarded-parse.js": {
-      "mtime": 1787905411504,
+      "mtime": 1787911974397,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/forwarded-parse.js",
         "relativePath": "next-js/.next/server/vendor-chunks/forwarded-parse.js",
@@ -196363,7 +196356,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/hasown.js": {
-      "mtime": 1787905411538,
+      "mtime": 1787911974400,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/hasown.js",
         "relativePath": "next-js/.next/server/vendor-chunks/hasown.js",
@@ -196412,7 +196405,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/ms.js": {
-      "mtime": 1787905411505,
+      "mtime": 1787911974397,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/ms.js",
         "relativePath": "next-js/.next/server/vendor-chunks/ms.js",
@@ -196429,7 +196422,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/is-core-module.js": {
-      "mtime": 1787905411504,
+      "mtime": 1787911974397,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/is-core-module.js",
         "relativePath": "next-js/.next/server/vendor-chunks/is-core-module.js",
@@ -196446,7 +196439,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/next.js": {
-      "mtime": 1787905057455,
+      "mtime": 1787911963260,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/next.js",
         "relativePath": "next-js/.next/server/vendor-chunks/next.js",
@@ -196463,7 +196456,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/function-bind.js": {
-      "mtime": 1787905411505,
+      "mtime": 1787911974397,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/function-bind.js",
         "relativePath": "next-js/.next/server/vendor-chunks/function-bind.js",
@@ -196480,7 +196473,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/debug.js": {
-      "mtime": 1787905411504,
+      "mtime": 1787911974396,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/debug.js",
         "relativePath": "next-js/.next/server/vendor-chunks/debug.js",
@@ -196497,7 +196490,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/stacktrace-parser.js": {
-      "mtime": 1787905411504,
+      "mtime": 1787911974397,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/stacktrace-parser.js",
         "relativePath": "next-js/.next/server/vendor-chunks/stacktrace-parser.js",
@@ -196514,7 +196507,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/path-parse.js": {
-      "mtime": 1787905411507,
+      "mtime": 1787911974398,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/path-parse.js",
         "relativePath": "next-js/.next/server/vendor-chunks/path-parse.js",
@@ -196531,7 +196524,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/module-details-from-path.js": {
-      "mtime": 1787905411538,
+      "mtime": 1787911974399,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/module-details-from-path.js",
         "relativePath": "next-js/.next/server/vendor-chunks/module-details-from-path.js",
@@ -196565,7 +196558,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/types/cache-life.d.ts": {
-      "mtime": 1787905439764,
+      "mtime": 1787911978602,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/types/cache-life.d.ts",
         "relativePath": "next-js/.next/types/cache-life.d.ts",
@@ -196673,7 +196666,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/server-reference-manifest.js": {
-      "mtime": 1787905439725,
+      "mtime": 1787911978601,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/server-reference-manifest.js",
         "relativePath": "next-js/.next/server/server-reference-manifest.js",
@@ -196690,12 +196683,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/webpack-runtime.js": {
-      "mtime": 1787905439708,
+      "mtime": 1787911978564,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/webpack-runtime.js",
         "relativePath": "next-js/.next/server/webpack-runtime.js",
         "fileType": "generic",
-        "lineCount": 287,
+        "lineCount": 213,
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/instrumentation.js",
@@ -196713,7 +196706,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/supports-color.js": {
-      "mtime": 1787905411505,
+      "mtime": 1787911974397,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/supports-color.js",
         "relativePath": "next-js/.next/server/vendor-chunks/supports-color.js",
@@ -197291,12 +197284,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/@babel.js": {
-      "mtime": 1787904267897,
+      "mtime": 1787911584558,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/@babel.js",
         "relativePath": "next-js/.next/server/vendor-chunks/@babel.js",
         "fileType": "generic",
-        "lineCount": 123,
+        "lineCount": 263,
         "imports": [],
         "importedBy": [],
         "importInfos": [],
@@ -197304,7 +197297,7 @@
         "classes": [],
         "exports": [],
         "routes": [],
-        "healthScore": 85
+        "healthScore": 70
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/@auth0.js": {
@@ -197727,12 +197720,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/dayjs.js": {
-      "mtime": 1787905432848,
+      "mtime": 1787911584559,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/dayjs.js",
         "relativePath": "next-js/.next/server/vendor-chunks/dayjs.js",
         "fileType": "generic",
-        "lineCount": 154,
+        "lineCount": 144,
         "imports": [],
         "importedBy": [],
         "importInfos": [],
@@ -197981,12 +197974,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/es-toolkit.js": {
-      "mtime": 1787905432844,
+      "mtime": 1787911978578,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/es-toolkit.js",
         "relativePath": "next-js/.next/server/vendor-chunks/es-toolkit.js",
         "fileType": "generic",
-        "lineCount": 285,
+        "lineCount": 275,
         "imports": [],
         "importedBy": [],
         "importInfos": [],
@@ -198981,7 +198974,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/use-sync-external-store.js": {
-      "mtime": 1787905411544,
+      "mtime": 1787911978578,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/use-sync-external-store.js",
         "relativePath": "next-js/.next/server/vendor-chunks/use-sync-external-store.js",
@@ -199128,7 +199121,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/types/app/layout.ts": {
-      "mtime": 1787905439764,
+      "mtime": 1787911978600,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/types/app/layout.ts",
         "relativePath": "next-js/.next/types/app/layout.ts",
@@ -199314,7 +199307,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/(home)/page_client-reference-manifest.js": {
-      "mtime": 1787905440168,
+      "mtime": 1787911979240,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/(home)/page_client-reference-manifest.js",
         "relativePath": "next-js/.next/server/app/(home)/page_client-reference-manifest.js",
@@ -199569,7 +199562,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/chunks/webpack.js": {
-      "mtime": 1787905440162,
+      "mtime": 1787911979195,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/chunks/webpack.js",
         "relativePath": "next-js/.next/static/chunks/webpack.js",
@@ -199586,7 +199579,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/api/todo/board/route.js": {
-      "mtime": 1787904319176,
+      "mtime": 1787905851485,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/api/todo/board/route.js",
         "relativePath": "next-js/.next/server/app/api/todo/board/route.js",
@@ -199684,11 +199677,11 @@
         "classes": [],
         "exports": [],
         "routes": [],
-        "healthScore": 50
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/types/app/api/todo/board/route.ts": {
-      "mtime": 1787904319179,
+      "mtime": 1787905851485,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/types/app/api/todo/board/route.ts",
         "relativePath": "next-js/.next/types/app/api/todo/board/route.ts",
@@ -199766,7 +199759,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/api/todo/board/route_client-reference-manifest.js": {
-      "mtime": 1787905440170,
+      "mtime": 1787911979242,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/api/todo/board/route_client-reference-manifest.js",
         "relativePath": "next-js/.next/server/app/api/todo/board/route_client-reference-manifest.js",
@@ -199883,7 +199876,7 @@
         "classes": [],
         "exports": [],
         "routes": [],
-        "healthScore": 50
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/types/app/api/sales/board/route.ts": {
@@ -199948,7 +199941,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/api/sales/board/route_client-reference-manifest.js": {
-      "mtime": 1787905440171,
+      "mtime": 1787911979242,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/api/sales/board/route_client-reference-manifest.js",
         "relativePath": "next-js/.next/server/app/api/sales/board/route_client-reference-manifest.js",
@@ -201251,7 +201244,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/@floating-ui.js": {
-      "mtime": 1787905411565,
+      "mtime": 1787911978588,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/@floating-ui.js",
         "relativePath": "next-js/.next/server/vendor-chunks/@floating-ui.js",
@@ -201302,7 +201295,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/@hookform.js": {
-      "mtime": 1787905411587,
+      "mtime": 1787911978589,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/@hookform.js",
         "relativePath": "next-js/.next/server/vendor-chunks/@hookform.js",
@@ -201319,7 +201312,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/dequal.js": {
-      "mtime": 1787905411586,
+      "mtime": 1787911978578,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/dequal.js",
         "relativePath": "next-js/.next/server/vendor-chunks/dequal.js",
@@ -201353,7 +201346,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/fast-deep-equal.js": {
-      "mtime": 1787905411601,
+      "mtime": 1787911978600,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/fast-deep-equal.js",
         "relativePath": "next-js/.next/server/vendor-chunks/fast-deep-equal.js",
@@ -201387,7 +201380,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/input-format.js": {
-      "mtime": 1787905411563,
+      "mtime": 1787911978587,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/input-format.js",
         "relativePath": "next-js/.next/server/vendor-chunks/input-format.js",
@@ -201404,7 +201397,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/lowlight.js": {
-      "mtime": 1787905411586,
+      "mtime": 1787911978587,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/lowlight.js",
         "relativePath": "next-js/.next/server/vendor-chunks/lowlight.js",
@@ -201421,7 +201414,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/mui-one-time-password-input.js": {
-      "mtime": 1787905411601,
+      "mtime": 1787911978598,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/mui-one-time-password-input.js",
         "relativePath": "next-js/.next/server/vendor-chunks/mui-one-time-password-input.js",
@@ -201438,7 +201431,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/devlop.js": {
-      "mtime": 1787905411600,
+      "mtime": 1787911978597,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/devlop.js",
         "relativePath": "next-js/.next/server/vendor-chunks/devlop.js",
@@ -201455,7 +201448,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-dropcursor.js": {
-      "mtime": 1787905411599,
+      "mtime": 1787911978594,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-dropcursor.js",
         "relativePath": "next-js/.next/server/vendor-chunks/prosemirror-dropcursor.js",
@@ -201472,7 +201465,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/linkifyjs.js": {
-      "mtime": 1787905411600,
+      "mtime": 1787911978598,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/linkifyjs.js",
         "relativePath": "next-js/.next/server/vendor-chunks/linkifyjs.js",
@@ -201489,7 +201482,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-commands.js": {
-      "mtime": 1787905411599,
+      "mtime": 1787911978594,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-commands.js",
         "relativePath": "next-js/.next/server/vendor-chunks/prosemirror-commands.js",
@@ -201506,7 +201499,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-gapcursor.js": {
-      "mtime": 1787905411599,
+      "mtime": 1787911978594,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-gapcursor.js",
         "relativePath": "next-js/.next/server/vendor-chunks/prosemirror-gapcursor.js",
@@ -201523,7 +201516,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-history.js": {
-      "mtime": 1787905411597,
+      "mtime": 1787911978594,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-history.js",
         "relativePath": "next-js/.next/server/vendor-chunks/prosemirror-history.js",
@@ -201540,7 +201533,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-schema-list.js": {
-      "mtime": 1787905411597,
+      "mtime": 1787911978594,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-schema-list.js",
         "relativePath": "next-js/.next/server/vendor-chunks/prosemirror-schema-list.js",
@@ -201557,7 +201550,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/orderedmap.js": {
-      "mtime": 1787905411600,
+      "mtime": 1787911978596,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/orderedmap.js",
         "relativePath": "next-js/.next/server/vendor-chunks/orderedmap.js",
@@ -201574,7 +201567,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-model.js": {
-      "mtime": 1787905411596,
+      "mtime": 1787911978594,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-model.js",
         "relativePath": "next-js/.next/server/vendor-chunks/prosemirror-model.js",
@@ -201591,7 +201584,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-keymap.js": {
-      "mtime": 1787905411597,
+      "mtime": 1787911978594,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-keymap.js",
         "relativePath": "next-js/.next/server/vendor-chunks/prosemirror-keymap.js",
@@ -201608,7 +201601,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-tables.js": {
-      "mtime": 1787905411595,
+      "mtime": 1787911978594,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-tables.js",
         "relativePath": "next-js/.next/server/vendor-chunks/prosemirror-tables.js",
@@ -201625,7 +201618,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-state.js": {
-      "mtime": 1787905411597,
+      "mtime": 1787911978594,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-state.js",
         "relativePath": "next-js/.next/server/vendor-chunks/prosemirror-state.js",
@@ -201659,7 +201652,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/react-phone-number-input.js": {
-      "mtime": 1787905411562,
+      "mtime": 1787911978587,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/react-phone-number-input.js",
         "relativePath": "next-js/.next/server/vendor-chunks/react-phone-number-input.js",
@@ -201693,7 +201686,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/rope-sequence.js": {
-      "mtime": 1787905411590,
+      "mtime": 1787911978592,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/rope-sequence.js",
         "relativePath": "next-js/.next/server/vendor-chunks/rope-sequence.js",
@@ -201710,7 +201703,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/w3c-keyname.js": {
-      "mtime": 1787905411587,
+      "mtime": 1787911978588,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/w3c-keyname.js",
         "relativePath": "next-js/.next/server/vendor-chunks/w3c-keyname.js",
@@ -201727,7 +201720,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/react-hook-form.js": {
-      "mtime": 1787905411594,
+      "mtime": 1787911978592,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/react-hook-form.js",
         "relativePath": "next-js/.next/server/vendor-chunks/react-hook-form.js",
@@ -201789,7 +201782,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/types/app/dashboard/layout.ts": {
-      "mtime": 1787905439764,
+      "mtime": 1787911978600,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/types/app/dashboard/layout.ts",
         "relativePath": "next-js/.next/types/app/dashboard/layout.ts",
@@ -201896,7 +201889,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-transform.js": {
-      "mtime": 1787905411595,
+      "mtime": 1787911978594,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/prosemirror-transform.js",
         "relativePath": "next-js/.next/server/vendor-chunks/prosemirror-transform.js",
@@ -202012,7 +202005,7 @@
         "classes": [],
         "exports": [],
         "routes": [],
-        "healthScore": 50
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/webpack/webpack.9c9c0f65fe9479dd.hot-update.js": {
@@ -202242,7 +202235,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/api/admin/edit-audit/route_client-reference-manifest.js": {
-      "mtime": 1787905440171,
+      "mtime": 1787911979242,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/api/admin/edit-audit/route_client-reference-manifest.js",
         "relativePath": "next-js/.next/server/app/api/admin/edit-audit/route_client-reference-manifest.js",
@@ -202293,7 +202286,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/api/admin/edit-mode/route_client-reference-manifest.js": {
-      "mtime": 1787905440171,
+      "mtime": 1787911979242,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/api/admin/edit-mode/route_client-reference-manifest.js",
         "relativePath": "next-js/.next/server/app/api/admin/edit-mode/route_client-reference-manifest.js",
@@ -202327,7 +202320,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/dashboard/user/account/admin-settings/page_client-reference-manifest.js": {
-      "mtime": 1787905440171,
+      "mtime": 1787911979242,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/dashboard/user/account/admin-settings/page_client-reference-manifest.js",
         "relativePath": "next-js/.next/server/app/dashboard/user/account/admin-settings/page_client-reference-manifest.js",
@@ -202549,7 +202542,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/dashboard/expense/page_client-reference-manifest.js": {
-      "mtime": 1787905440171,
+      "mtime": 1787911979242,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/dashboard/expense/page_client-reference-manifest.js",
         "relativePath": "next-js/.next/server/app/dashboard/expense/page_client-reference-manifest.js",
@@ -202583,7 +202576,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/dashboard/invoice/page_client-reference-manifest.js": {
-      "mtime": 1787905440171,
+      "mtime": 1787911979242,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/dashboard/invoice/page_client-reference-manifest.js",
         "relativePath": "next-js/.next/server/app/dashboard/invoice/page_client-reference-manifest.js",
@@ -202600,7 +202593,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/dashboard/user/account/page_client-reference-manifest.js": {
-      "mtime": 1787905440171,
+      "mtime": 1787911979242,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/dashboard/user/account/page_client-reference-manifest.js",
         "relativePath": "next-js/.next/server/app/dashboard/user/account/page_client-reference-manifest.js",
@@ -202677,7 +202670,266 @@
         "routes": [],
         "healthScore": 85
       }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/raf-schd.js": {
+      "mtime": 1787911584578,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/raf-schd.js",
+        "relativePath": "next-js/.next/server/vendor-chunks/raf-schd.js",
+        "fileType": "generic",
+        "lineCount": 25,
+        "imports": [],
+        "importedBy": [],
+        "importInfos": [],
+        "functions": [],
+        "classes": [],
+        "exports": [],
+        "routes": [],
+        "healthScore": 85
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/bind-event-listener.js": {
+      "mtime": 1787911584578,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/bind-event-listener.js",
+        "relativePath": "next-js/.next/server/vendor-chunks/bind-event-listener.js",
+        "fileType": "generic",
+        "lineCount": 45,
+        "imports": [],
+        "importedBy": [],
+        "importInfos": [],
+        "functions": [],
+        "classes": [],
+        "exports": [],
+        "routes": [],
+        "healthScore": 85
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/types/app/dashboard/todo/page.ts": {
+      "mtime": 1787911978600,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/types/app/dashboard/todo/page.ts",
+        "relativePath": "next-js/.next/types/app/dashboard/todo/page.ts",
+        "fileType": "generic",
+        "lineCount": 85,
+        "imports": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/dashboard/todo/page.js.ts",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/dashboard/todo/page.js.ts"
+        ],
+        "importedBy": [],
+        "importInfos": [
+          {
+            "source": "../../../../../src/app/dashboard/todo/page.js",
+            "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/dashboard/todo/page.js.ts",
+            "isLocal": true,
+            "line": 1,
+            "names": []
+          },
+          {
+            "source": "next/dist/lib/metadata/types/metadata-interface.js",
+            "resolved": "",
+            "isLocal": false,
+            "line": 2,
+            "names": [
+              "ResolvingMetadata",
+              "ResolvingViewport"
+            ]
+          },
+          {
+            "source": "../../../../../src/app/dashboard/todo/page.js",
+            "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/dashboard/todo/page.js.ts",
+            "isLocal": true,
+            "line": 4,
+            "names": []
+          }
+        ],
+        "functions": [],
+        "classes": [],
+        "exports": [],
+        "routes": [],
+        "healthScore": 85
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/@atlaskit.js": {
+      "mtime": 1787911584578,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/@atlaskit.js",
+        "relativePath": "next-js/.next/server/vendor-chunks/@atlaskit.js",
+        "fileType": "generic",
+        "lineCount": 655,
+        "imports": [],
+        "importedBy": [],
+        "importInfos": [],
+        "functions": [],
+        "classes": [],
+        "exports": [],
+        "routes": [],
+        "healthScore": 70
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/dashboard/todo/page_client-reference-manifest.js": {
+      "mtime": 1787911979242,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/dashboard/todo/page_client-reference-manifest.js",
+        "relativePath": "next-js/.next/server/app/dashboard/todo/page_client-reference-manifest.js",
+        "fileType": "generic",
+        "lineCount": 1,
+        "imports": [],
+        "importedBy": [],
+        "importInfos": [],
+        "functions": [],
+        "classes": [],
+        "exports": [],
+        "routes": [],
+        "healthScore": 85
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/webpack/webpack.1185ac79bcc5271b.hot-update.js": {
+      "mtime": 1787911587962,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/webpack/webpack.1185ac79bcc5271b.hot-update.js",
+        "relativePath": "next-js/.next/static/webpack/webpack.1185ac79bcc5271b.hot-update.js",
+        "fileType": "generic",
+        "lineCount": 12,
+        "imports": [],
+        "importedBy": [],
+        "importInfos": [],
+        "functions": [],
+        "classes": [],
+        "exports": [],
+        "routes": [],
+        "healthScore": 85
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/webpack/app/dashboard/todo/page.c020ff88bc1f1522.hot-update.js": {
+      "mtime": 1787911965782,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/webpack/app/dashboard/todo/page.c020ff88bc1f1522.hot-update.js",
+        "relativePath": "next-js/.next/static/webpack/app/dashboard/todo/page.c020ff88bc1f1522.hot-update.js",
+        "fileType": "generic",
+        "lineCount": 22,
+        "imports": [],
+        "importedBy": [],
+        "importInfos": [],
+        "functions": [],
+        "classes": [],
+        "exports": [],
+        "routes": [],
+        "healthScore": 85
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/webpack/webpack.c020ff88bc1f1522.hot-update.js": {
+      "mtime": 1787911965781,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/webpack/webpack.c020ff88bc1f1522.hot-update.js",
+        "relativePath": "next-js/.next/static/webpack/webpack.c020ff88bc1f1522.hot-update.js",
+        "fileType": "generic",
+        "lineCount": 12,
+        "imports": [],
+        "importedBy": [],
+        "importInfos": [],
+        "functions": [],
+        "classes": [],
+        "exports": [],
+        "routes": [],
+        "healthScore": 85
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/types/app/dashboard/sales/page.ts": {
+      "mtime": 1787911978601,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/types/app/dashboard/sales/page.ts",
+        "relativePath": "next-js/.next/types/app/dashboard/sales/page.ts",
+        "fileType": "generic",
+        "lineCount": 85,
+        "imports": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/dashboard/sales/page.js.ts",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/dashboard/sales/page.js.ts"
+        ],
+        "importedBy": [],
+        "importInfos": [
+          {
+            "source": "../../../../../src/app/dashboard/sales/page.js",
+            "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/dashboard/sales/page.js.ts",
+            "isLocal": true,
+            "line": 1,
+            "names": []
+          },
+          {
+            "source": "next/dist/lib/metadata/types/metadata-interface.js",
+            "resolved": "",
+            "isLocal": false,
+            "line": 2,
+            "names": [
+              "ResolvingMetadata",
+              "ResolvingViewport"
+            ]
+          },
+          {
+            "source": "../../../../../src/app/dashboard/sales/page.js",
+            "resolved": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/dashboard/sales/page.js.ts",
+            "isLocal": true,
+            "line": 4,
+            "names": []
+          }
+        ],
+        "functions": [],
+        "classes": [],
+        "exports": [],
+        "routes": [],
+        "healthScore": 85
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/react-apexcharts.js": {
+      "mtime": 1787911978598,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/vendor-chunks/react-apexcharts.js",
+        "relativePath": "next-js/.next/server/vendor-chunks/react-apexcharts.js",
+        "fileType": "generic",
+        "lineCount": 25,
+        "imports": [],
+        "importedBy": [],
+        "importInfos": [],
+        "functions": [],
+        "classes": [],
+        "exports": [],
+        "routes": [],
+        "healthScore": 85
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/dashboard/sales/page_client-reference-manifest.js": {
+      "mtime": 1787911979243,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/app/dashboard/sales/page_client-reference-manifest.js",
+        "relativePath": "next-js/.next/server/app/dashboard/sales/page_client-reference-manifest.js",
+        "fileType": "generic",
+        "lineCount": 1,
+        "imports": [],
+        "importedBy": [],
+        "importInfos": [],
+        "functions": [],
+        "classes": [],
+        "exports": [],
+        "routes": [],
+        "healthScore": 85
+      }
+    },
+    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/webpack/webpack.3fb09b8c38de9390.hot-update.js": {
+      "mtime": 1787911979234,
+      "node": {
+        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/webpack/webpack.3fb09b8c38de9390.hot-update.js",
+        "relativePath": "next-js/.next/static/webpack/webpack.3fb09b8c38de9390.hot-update.js",
+        "fileType": "generic",
+        "lineCount": 12,
+        "imports": [],
+        "importedBy": [],
+        "importInfos": [],
+        "functions": [],
+        "classes": [],
+        "exports": [],
+        "routes": [],
+        "healthScore": 85
+      }
     }
   }
-}}
 }
