@@ -189,14 +189,13 @@ function recompute(items, baseSalary, dependentsCount) {
     const code = String(item?.code || '').trim();
 
     if (item.isComputed && item.formula) {
-      const monthly = evalFormula(item.formula, context);
-      if (code) context[code] = Number(monthly) || 0;
-      return { ...item, monthly, annual: monthly * 12 };
+      const billed = billable(evalFormula(item.formula, context));
+      if (code) context[code] = billed.monthly;
+      return { ...item, ...billed };
     }
 
-    // Non-computed — keep value, update annual
-    const annual = item.annual || (Number(item.monthly) || 0) * 12;
-    return { ...item, annual };
+    // Non-computed — monthly is authoritative, annual derives from it
+    return { ...item, ...billable(item.monthly) };
   });
 }
 
@@ -205,6 +204,33 @@ function fmtNumber(val) {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   });
+}
+
+/**
+ * Every quotation row is billed as 12 equal monthly instalments, so the monthly
+ * figure is authoritative: it is always a whole currency unit and the annual is
+ * derived from it. Rows sourced from percentage formulas or from annual costs
+ * (insurance, tickets) otherwise carry fractional monthlies — the printed
+ * monthly rounds while the annual keeps the fraction, so monthly × 12 stops
+ * matching the printed annual.
+ */
+function billable(monthly, roundFn = Math.round) {
+  const m = roundFn(Number(String(monthly ?? '').replace(/,/g, '')) || 0);
+  return { monthly: m, annual: m * 12 };
+}
+
+/**
+ * Rows quoted as an annual cost (insurance, tickets) round the instalment *up*
+ * so the 12 billings never recover less than the underlying cost.
+ */
+function billableFromAnnual(annualCost) {
+  return billable((Number(annualCost) || 0) / 12, Math.ceil);
+}
+
+/** Renders the instalment/annual pair a per-pax annual cost actually bills at. */
+function fmtBilling(annualCost) {
+  const { monthly, annual } = billableFromAnnual(annualCost);
+  return `SAR ${fmtNumber(monthly)}/mo × 12 = SAR ${fmtNumber(annual)}`;
 }
 
 /**
@@ -223,14 +249,17 @@ function applyFamilyDefaults(items, familyOn, deps, insPerPax, ticketPerPax) {
     // Insurance line — override when family is on
     if (item.category === 'insurance' && familyOn) {
       const familyPax = numDeps + 2; // candidate + wife + dependents
-      const annual = Math.round(numIns * familyPax);
-      return { ...item, monthly: annual / 12, annual, isEditable: true };
+      return { ...item, ...billableFromAnnual(numIns * familyPax), isEditable: true };
     }
     // Ticket line — always recompute based on family status
     if (item.category === 'government' && item.label?.toLowerCase().includes('ticket')) {
       const totalPax = familyOn ? numDeps + 2 : 1; // employee + wife + kids OR just employee
-      const annual = Math.round(numTicket * totalPax);
-      return { ...item, monthly: annual / 12, annual, isEditable: true, isComputed: false };
+      return {
+        ...item,
+        ...billableFromAnnual(numTicket * totalPax),
+        isEditable: true,
+        isComputed: false,
+      };
     }
     return item;
   });
@@ -429,10 +458,10 @@ export function ResourceCalculationFormView({ id }) {
     setLineItems((prev) => {
       const seeded = prev.map((item) => {
         if (item.code === 'basic') {
-          return { ...item, monthly: num, annual: num * 12 };
+          return { ...item, ...billable(num) };
         }
         if (!item.code && item.category === 'salary') {
-          return { ...item, monthly: num, annual: num * 12 };
+          return { ...item, ...billable(num) };
         }
         return item;
       });
@@ -508,7 +537,7 @@ export function ResourceCalculationFormView({ id }) {
           if (i !== idx) return item;
           const next = { ...item, [field]: val };
           if (field === 'monthly') {
-            next.annual = (Number(String(val).replace(/,/g, '')) || 0) * 12;
+            Object.assign(next, billable(val));
           }
           return next;
         });
@@ -586,11 +615,11 @@ export function ResourceCalculationFormView({ id }) {
   const invoiceAmountItem = lineItems.find((i) => i.code === 'invoice_amount');
   const isIndiaOffice = iotaOffice === 'India';
   const totalMonthly = isIndiaOffice
-    ? Number(invoiceAmountItem?.monthly || 0)
-    : activeItems.reduce((s, i) => s + (Number(i.monthly) || 0), 0);
-  const totalAnnual = isIndiaOffice
-    ? Number(invoiceAmountItem?.annual || totalMonthly * 12 || 0)
-    : activeItems.reduce((s, i) => s + (Number(i.annual) || i.monthly * 12 || 0), 0);
+    ? billable(invoiceAmountItem?.monthly).monthly
+    : activeItems.reduce((s, i) => s + billable(i.monthly).monthly, 0);
+  // Derived from the instalment rather than summed on its own, so the two
+  // figures the quotation prints side by side always reconcile.
+  const totalAnnual = totalMonthly * 12;
 
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
@@ -1101,7 +1130,7 @@ export function ResourceCalculationFormView({ id }) {
                       InputProps={{
                         startAdornment: <InputAdornment position="start">SAR</InputAdornment>,
                       }}
-                      helperText={`Total = SAR ${fmtNumber(insuranceCostPerPax * (dependentsCount + 2))} / yr  (1 candidate + ${dependentsCount} dependents + 1 wife = ${dependentsCount + 2} pax)`}
+                      helperText={`Billed ${fmtBilling(insuranceCostPerPax * (dependentsCount + 2))} / yr  (1 candidate + ${dependentsCount} dependents + 1 wife = ${dependentsCount + 2} pax)`}
                       fullWidth
                       size="small"
                     />
@@ -1126,7 +1155,7 @@ export function ResourceCalculationFormView({ id }) {
                     InputProps={{
                       startAdornment: <InputAdornment position="start">SAR</InputAdornment>,
                     }}
-                    helperText={`Total = SAR ${fmtNumber(ticketCostPerPax * ticketPax)} / yr  (${ticketPaxDesc})`}
+                    helperText={`Billed ${fmtBilling(ticketCostPerPax * ticketPax)} / yr  (${ticketPaxDesc})`}
                     fullWidth
                   />
                 );
@@ -1377,7 +1406,7 @@ export function ResourceCalculationFormView({ id }) {
                       </TableCell>
                       <TableCell align="right">
                         <Typography variant="body2" color="text.secondary">
-                          {fmtNumber(item.annual || item.monthly * 12)}
+                          {fmtNumber(billable(item.monthly).annual)}
                         </Typography>
                       </TableCell>
                       <TableCell align="center">

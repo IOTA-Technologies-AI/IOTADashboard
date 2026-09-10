@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1787912017298,
+  "timestamp": 1789041313844,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.payslip-render-check/edge.jsx": {
       "mtime": 1787761884277,
@@ -5251,7 +5251,7 @@
           "GET"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/api/sales/stages/reorder/route.js": {
@@ -5931,7 +5931,7 @@
           "GET"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/api/sentry-debug/route.js": {
@@ -119857,6 +119857,7 @@
         "lineCount": 1145,
         "imports": [],
         "importedBy": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/expense/view/expense-create-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/expense/view/expense-edit-view.jsx"
         ],
         "importInfos": [
@@ -133583,9 +133584,9 @@
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/address/index.js"
         ],
         "importedBy": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-pdf.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-form.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-edit-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-pdf.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-edit-view.jsx"
         ],
         "importInfos": [
           {
@@ -134907,8 +134908,8 @@
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-address.jsx"
         ],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-toolbar.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-approval-dialog.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-approval-dialog.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-toolbar.jsx"
         ],
         "importInfos": [
           {
@@ -135224,7 +135225,8 @@
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/invoice-create-edit-address.jsx"
         ],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-edit-view.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-edit-view.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/invoice/view/invoice-create-view.jsx"
         ],
         "importInfos": [
           {
@@ -139795,8 +139797,14 @@
         "lineCount": 25,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/view/kanban-view.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/column/kanban-column.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/column/styles.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/column/kanban-column.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/hooks/use-task-item-dnd.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/hooks/use-column-dnd.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/item/styles.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/item/kanban-task-item.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/utils/helpers.js",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/view/kanban-view.jsx"
         ],
         "importInfos": [
           {
@@ -140170,7 +140178,7 @@
           "KanbanColumn"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 80
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/job/view/job-list-view.jsx": {
@@ -140840,6 +140848,7 @@
         "lineCount": 13,
         "imports": [],
         "importedBy": [
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/item/kanban-task-item.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/view/kanban-view.jsx"
         ],
         "importInfos": [
@@ -141693,9 +141702,10 @@
         "lineCount": 40,
         "imports": [],
         "importedBy": [
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/view/kanban-view.jsx",
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/column/kanban-column.jsx",
-          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/column/kanban-column-add.jsx"
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/column/kanban-column-add.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/item/kanban-task-item.jsx",
+          "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/kanban/view/kanban-view.jsx"
         ],
         "importInfos": [
           {
@@ -170263,12 +170273,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/profile/view/resource-calculation-form-view.jsx": {
-      "mtime": 1783872236300,
+      "mtime": 1789041312239,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/profile/view/resource-calculation-form-view.jsx",
         "relativePath": "next-js/src/sections/profile/view/resource-calculation-form-view.jsx",
         "fileType": "generic",
-        "lineCount": 1981,
+        "lineCount": 2010,
         "imports": [],
         "importedBy": [],
         "importInfos": [
@@ -170692,15 +170702,17 @@
               "trim",
               "values",
               "map",
+              "billable",
               "evalFormula"
             ]
           },
           {
             "name": "fmtNumber",
-            "line": 202,
+            "line": 201,
             "isExported": false,
             "isAsync": false,
             "callers": [
+              "fmtBilling",
               "buildPDFDoc",
               "handleShareEmail",
               "handleShareWhatsApp"
@@ -170708,14 +170720,62 @@
             "callees": [
               "round",
               "Number",
-              "toLocaleString",
+              "toLocaleString"
+            ]
+          },
+          {
+            "name": "billable",
+            "line": 216,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
+              "recompute",
+              "billableFromAnnual",
+              "handleBaseSalaryChange",
+              "handleIotaOfficeChange",
+              "handleResumeUpload",
+              "handleShareWhatsApp"
+            ],
+            "callees": [
+              "roundFn",
+              "Number",
+              "String",
+              "replace",
+              "cost"
+            ]
+          },
+          {
+            "name": "billableFromAnnual",
+            "line": 225,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
+              "fmtBilling",
+              "applyFamilyDefaults"
+            ],
+            "callees": [
+              "billable",
+              "Number"
+            ]
+          },
+          {
+            "name": "fmtBilling",
+            "line": 230,
+            "isExported": false,
+            "isAsync": false,
+            "callers": [
+              "handleShareWhatsApp"
+            ],
+            "callees": [
+              "billableFromAnnual",
+              "fmtNumber",
               "calculations",
               "1"
             ]
           },
           {
             "name": "applyFamilyDefaults",
-            "line": 216,
+            "line": 242,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -170728,7 +170788,7 @@
             "callees": [
               "Number",
               "map",
-              "round",
+              "billableFromAnnual",
               "toLowerCase",
               "includes",
               "register",
@@ -170738,7 +170798,7 @@
           },
           {
             "name": "getUserEmail",
-            "line": 297,
+            "line": 326,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -170755,7 +170815,7 @@
           },
           {
             "name": "ResourceCalculationFormView",
-            "line": 309,
+            "line": 338,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -170794,7 +170854,7 @@
           },
           {
             "name": "handleBaseSalaryChange",
-            "line": 425,
+            "line": 454,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -170807,13 +170867,14 @@
               "setBaseSalary",
               "setLineItems",
               "map",
+              "billable",
               "recompute",
               "applyFamilyDefaults"
             ]
           },
           {
             "name": "handleDependentsCountChange",
-            "line": 451,
+            "line": 480,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -170829,7 +170890,7 @@
           },
           {
             "name": "handleFamilyStatusChange",
-            "line": 462,
+            "line": 491,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -170844,7 +170905,7 @@
           },
           {
             "name": "handleInsuranceCostPerPaxChange",
-            "line": 476,
+            "line": 505,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -170859,7 +170920,7 @@
           },
           {
             "name": "handleTicketCostPerPaxChange",
-            "line": 486,
+            "line": 515,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -170874,7 +170935,7 @@
           },
           {
             "name": "handleIotaOfficeChange",
-            "line": 494,
+            "line": 523,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -170887,17 +170948,19 @@
               "useCallback",
               "setLineItems",
               "map",
+              "assign",
+              "billable",
+              "row",
               "Number",
               "String",
               "replace",
-              "row",
               "setBaseSalary",
               "recompute"
             ]
           },
           {
             "name": "handleAddLineItem",
-            "line": 537,
+            "line": 566,
             "isExported": false,
             "isAsync": false,
             "callers": [],
@@ -170911,7 +170974,7 @@
           },
           {
             "name": "handleRemoveLineItem",
-            "line": 557,
+            "line": 586,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -170924,7 +170987,7 @@
           },
           {
             "name": "handleResumeUpload",
-            "line": 562,
+            "line": 591,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -170937,13 +171000,13 @@
               "setCandidateId",
               "filter",
               "find",
-              "Number",
+              "billable",
               "reduce"
             ]
           },
           {
             "name": "handleSubmit",
-            "line": 595,
+            "line": 624,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -170965,7 +171028,7 @@
           },
           {
             "name": "handleSubmitForApproval",
-            "line": 656,
+            "line": 685,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -170979,7 +171042,7 @@
           },
           {
             "name": "handleForward",
-            "line": 669,
+            "line": 698,
             "isExported": false,
             "isAsync": true,
             "callers": [],
@@ -170997,7 +171060,7 @@
           },
           {
             "name": "handleApproveReject",
-            "line": 689,
+            "line": 718,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -171014,7 +171077,7 @@
           },
           {
             "name": "buildPDFDoc",
-            "line": 719,
+            "line": 748,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -171039,7 +171102,7 @@
           },
           {
             "name": "handleDownloadPDF",
-            "line": 847,
+            "line": 876,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -171060,7 +171123,7 @@
           },
           {
             "name": "handlePrintPDF",
-            "line": 865,
+            "line": 894,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -171078,7 +171141,7 @@
           },
           {
             "name": "handleShareEmail",
-            "line": 879,
+            "line": 908,
             "isExported": false,
             "isAsync": false,
             "callers": [
@@ -171094,7 +171157,7 @@
           },
           {
             "name": "handleShareWhatsApp",
-            "line": 898,
+            "line": 927,
             "isExported": false,
             "isAsync": true,
             "callers": [
@@ -171131,6 +171194,7 @@
               "automatically",
               "Pax",
               "handleInsuranceCostPerPaxChange",
+              "fmtBilling",
               "yr",
               "handleTicketCostPerPaxChange",
               "setStatus",
@@ -171148,6 +171212,7 @@
               "handleLineItemChange",
               "round",
               "replace",
+              "billable",
               "handleRemoveLineItem",
               "some",
               "toLowerCase",
@@ -171179,7 +171244,7 @@
           "ResourceCalculationFormView"
         ],
         "routes": [],
-        "healthScore": 70
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/proforma-invoice/proforma-supplier-dialog.jsx": {
@@ -196051,23 +196116,6 @@
         "healthScore": 70
       }
     },
-    "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/97ROvkZo89nGYp2An1efe/_ssgManifest.js": {
-      "mtime": 1787903867524,
-      "node": {
-        "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/97ROvkZo89nGYp2An1efe/_ssgManifest.js",
-        "relativePath": "next-js/.next/static/97ROvkZo89nGYp2An1efe/_ssgManifest.js",
-        "fileType": "generic",
-        "lineCount": 1,
-        "imports": [],
-        "importedBy": [],
-        "importInfos": [],
-        "functions": [],
-        "classes": [],
-        "exports": [],
-        "routes": [],
-        "healthScore": 85
-      }
-    },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/server/middleware-build-manifest.js": {
       "mtime": 1787911979233,
       "node": {
@@ -199677,7 +199725,7 @@
         "classes": [],
         "exports": [],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 50
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/types/app/api/todo/board/route.ts": {
@@ -199876,7 +199924,7 @@
         "classes": [],
         "exports": [],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 50
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/types/app/api/sales/board/route.ts": {
@@ -200363,7 +200411,7 @@
           "POST"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/app/api/admin/edit-audit/route.js": {
@@ -200431,7 +200479,7 @@
           "GET"
         ],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 85
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/webpack/app/layout.8ba2a8400554e6aa.hot-update.js": {
@@ -202005,7 +202053,7 @@
         "classes": [],
         "exports": [],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 50
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/static/webpack/webpack.9c9c0f65fe9479dd.hot-update.js": {
@@ -202126,7 +202174,7 @@
         "classes": [],
         "exports": [],
         "routes": [],
-        "healthScore": 100
+        "healthScore": 50
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.next/types/app/api/admin/edit-audit/route.ts": {
