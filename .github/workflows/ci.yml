@@ -33,22 +33,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-          cache-dependency-path: next-js/package-lock.json
+          cache: yarn
+          cache-dependency-path: next-js/yarn.lock
 
+      # yarn, not npm: package.json declares packageManager yarn@1.22.22 and
+      # yarn.lock is the maintained lockfile. package-lock.json is a stale
+      # artifact (last updated two months before yarn.lock) and should be
+      # deleted — `npm ci` against it fails on drift.
       - name: Install
-        run: npm ci
+        run: yarn install --frozen-lockfile
 
       - name: Lint
-        run: npm run lint
+        run: yarn lint
 
       - name: Format check
-        run: npm run fm:check
+        run: yarn fm:check
 
       # The real gate. A build failure is how we catch undefined references and
       # broken imports in a codebase without type checking.
       - name: Build
-        run: npm run build
+        run: yarn build
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
