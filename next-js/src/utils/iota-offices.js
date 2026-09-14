@@ -127,6 +127,18 @@ export function governingLawFor(office) {
 }
 
 /**
+ * Every known office as picker options, in declaration order.
+ *
+ * appConfig is the source of truth for the office list at runtime; this is the
+ * fallback for when it is unreachable, so the create form still works. Includes
+ * the offices that cannot stamp — they render disabled, which is more honest
+ * than a picker that pretends the company has two offices.
+ */
+export function fallbackOfficeOptions() {
+  return Object.entries(OFFICES).map(([key, office]) => ({ key, label: office.label }));
+}
+
+/**
  * Display label for an office key. appConfig is the source of truth for labels
  * at runtime; this is the fallback when a record has been loaded without it.
  * @param {string | null | undefined} office

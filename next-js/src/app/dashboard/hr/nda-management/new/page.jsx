@@ -28,16 +28,17 @@ import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
 import {
-  noStampReason,
-  officeCanStamp,
-  DEFAULT_IOTA_OFFICE,
-} from 'src/utils/iota-offices';
-import {
   createNda,
   linkNdaDocument,
   fetchOfficeConfigs,
   createNdaUploadSession,
 } from 'src/utils/apiHelper';
+import {
+  noStampReason,
+  officeCanStamp,
+  DEFAULT_IOTA_OFFICE,
+  fallbackOfficeOptions,
+} from 'src/utils/iota-offices';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -61,25 +62,32 @@ export default function NdaNewPage() {
   const [uploadedFile, setUploadedFile] = useState(null); // native File object
 
   // Offices come from appConfig (namespace 'iotaOffice') so adding an entity is
-  // a data change, not a deploy. Sorted by the configured sortOrder.
+  // a data change, not a deploy.
+  //
+  // fetchOfficeConfigs already flattens each row to { ...configValue, id, label }
+  // — there is no configKey/isActive/sortOrder left on it. The endpoint applies
+  // isActive=eq.true and order=sortOrder.asc server-side, so filtering or
+  // sorting again here is both wrong and unnecessary.
+  //
+  // It also signals failure by RESOLVING with null rather than rejecting, so a
+  // .catch() never fires; the null has to be checked explicitly or the picker
+  // silently renders empty instead of falling back.
   useEffect(() => {
     let cancelled = false;
+    // Used when appConfig is unreachable, or returns nothing, so the form
+    // still works. Offices without a stamp render disabled either way.
+    const fallback = fallbackOfficeOptions();
     fetchOfficeConfigs()
       .then((rows) => {
         if (cancelled) return;
         const parsed = (rows || [])
-          .filter((r) => r.isActive)
-          .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
-          .map((r) => ({ key: r.configKey, label: r.label || r.configKey }));
-        setOfficeOptions(parsed);
+          .map((r) => ({ key: r.id, label: r.label || r.name || r.id }))
+          .filter((o) => o.key);
+        setOfficeOptions(parsed.length ? parsed : fallback);
       })
       .catch(() => {
-        // Fall back to the two offices that can actually execute agreements, so
-        // the form still works if appConfig is unreachable.
-        setOfficeOptions([
-          { key: 'iota-saudi', label: 'IOTA Saudi Arabia' },
-          { key: 'iota-uae', label: 'IOTA UAE' },
-        ]);
+        if (cancelled) return;
+        setOfficeOptions(fallback);
       });
     return () => {
       cancelled = true;
