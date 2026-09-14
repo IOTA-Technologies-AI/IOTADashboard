@@ -1,0 +1,4 @@
+
+# Local IDE state and debug output — not shared artifacts.
+.vscode/cme-cache.json
+cme-debug.log
