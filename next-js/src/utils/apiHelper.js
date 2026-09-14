@@ -29,6 +29,26 @@ function getAuthHeaders() {
 }
 
 /**
+ * @summary Attaches the session bearer token to every IOTA API request.
+ * @description The backend authenticates all non-public endpoints at the Encore
+ * gateway, but only a minority of the calls in this file passed headers
+ * explicitly. This interceptor covers the rest. It is scoped to API_BASE_URL so
+ * third-party calls keep their own credentials, and it never overrides an
+ * Authorization header a caller set deliberately.
+ */
+axios.interceptors.request.use((config) => {
+  const url = config.url || '';
+  if (!url.startsWith(API_BASE_URL)) return config;
+  if (config.headers?.Authorization) return config;
+
+  const token = extractJWTFromSession();
+  if (token) {
+    config.headers = { ...config.headers, Authorization: `Bearer ${token}` };
+  }
+  return config;
+});
+
+/**
  * @summary Retrieves the current user's context (email, role, roleId) for API permission checks.
  * @description Reads from localStorage first (set by the auth provider on sign-in), then
  * falls back to decoding the JWT directly. Returns null when running server-side (SSR).
@@ -5339,7 +5359,9 @@ export async function totpVerifySetup(userId, code) {
  * @param {string} code - The 6-digit TOTP code.
  */
 export async function totpVerify(userId, code) {
-  const response = await axios.post(`${API_BASE_URL}totp/verify`, { userId, code });
+  // `userId` is accepted for call-site compatibility but no longer sent: the
+  // backend resolves the user from the verified session token instead.
+  const response = await axios.post(`${API_BASE_URL}totp/verify`, { code });
   return response.data;
 }
 
