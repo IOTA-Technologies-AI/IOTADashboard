@@ -8,9 +8,14 @@ const normalizeHost = (url) =>
     .replace(/\/$/, '');
 
 const BASE_URL = normalizeHost(CONFIG.serverUrl);
-const defaultHeaders = {
+const buildHeaders = (request) => ({
   'Content-Type': 'application/json',
-};
+  // Forward the caller's session token. The Encore API authenticates every
+  // non-public endpoint at the gateway, so a proxy that drops the bearer
+  // token gets a 401. The `apikey` header this replaces was a PostgREST
+  // convention that Encore never read.
+  Authorization: request?.headers?.get('authorization') ?? '',
+});
 
 export async function POST(request) {
   try {
@@ -18,7 +23,7 @@ export async function POST(request) {
 
     const res = await fetch(`${BASE_URL}/onedrive/token`, {
       method: 'POST',
-      headers: defaultHeaders,
+      headers: buildHeaders(request),
       body: JSON.stringify(body),
     });
 

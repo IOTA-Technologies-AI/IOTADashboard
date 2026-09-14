@@ -8,11 +8,14 @@ const normalizeHost = (url) =>
     .replace(/\/$/, '');
 
 const BASE_URL = normalizeHost(CONFIG.serverUrl);
-const defaultHeaders = {
+const buildHeaders = (request) => ({
   'Content-Type': 'application/json',
-  apikey:
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZianRwbHlmdnJuZ3Z0cXd5ZHVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NTA3NDMsImV4cCI6MjA3NTQyNjc0M30.Jmj8g7US9gKA5vnbKuPmH9bsSRPX2JGLm_6zfSk45Sg',
-};
+  // Forward the caller's session token. The Encore API authenticates every
+  // non-public endpoint at the gateway, so a proxy that drops the bearer
+  // token gets a 401. The `apikey` header this replaces was a PostgREST
+  // convention that Encore never read.
+  Authorization: request?.headers?.get('authorization') ?? '',
+});
 
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
@@ -29,7 +32,11 @@ export async function GET(request) {
 
   try {
     const url = `${BASE_URL}/todo/tasks/${encodeURIComponent(taskId)}/snooze?days=${days}&email=${encodeURIComponent(email)}`;
-    const res = await fetch(url, { method: 'GET', headers: defaultHeaders, cache: 'no-store' });
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: buildHeaders(request),
+      cache: 'no-store',
+    });
 
     if (!res.ok) {
       return NextResponse.redirect(

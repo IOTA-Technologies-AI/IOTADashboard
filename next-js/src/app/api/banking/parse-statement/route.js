@@ -19,7 +19,7 @@ export async function POST(request) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-        const bytes = await file.arrayBuffer();
+    const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
     // Call Python PDF parser service
@@ -143,8 +143,10 @@ export async function POST(request) {
       const existingStatementsResult = await existingStatementsResponse.json();
       const existingStatements = existingStatementsResult.data || [];
 
-      const startDate = parsedStatement.statementInfo.periodStart || new Date().toISOString().split('T')[0];
-      const endDate = parsedStatement.statementInfo.periodEnd || new Date().toISOString().split('T')[0];
+      const startDate =
+        parsedStatement.statementInfo.periodStart || new Date().toISOString().split('T')[0];
+      const endDate =
+        parsedStatement.statementInfo.periodEnd || new Date().toISOString().split('T')[0];
 
       const duplicateStatement = existingStatements.find(
         (stmt) => stmt.startDate === startDate && stmt.endDate === endDate
@@ -170,7 +172,7 @@ export async function POST(request) {
     }
 
     // Create statement record
-        const statementData = {
+    const statementData = {
       bankAccountId: finalAccountId,
       fileName: file.name,
       statementDate:

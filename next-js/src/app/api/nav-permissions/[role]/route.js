@@ -8,11 +8,14 @@ const normalizeHost = (url) =>
     .replace(/\/$/, '');
 
 const BASE_URL = normalizeHost(CONFIG.serverUrl);
-const defaultHeaders = {
+const buildHeaders = (request) => ({
   'Content-Type': 'application/json',
-  apikey:
-    'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZianRwbHlmdnJuZ3Z0cXd5ZHVtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk4NTA3NDMsImV4cCI6MjA3NTQyNjc0M30.Jmj8g7US9gKA5vnbKuPmH9bsSRPX2JGLm_6zfSk45Sg',
-};
+  // Forward the caller's session token. The Encore API authenticates every
+  // non-public endpoint at the gateway, so a proxy that drops the bearer
+  // token gets a 401. The `apikey` header this replaces was a PostgREST
+  // convention that Encore never read.
+  Authorization: request?.headers?.get('authorization') ?? '',
+});
 
 // GET nav permissions for a specific role (returns allowed paths)
 export async function GET(request, { params }) {
@@ -20,7 +23,7 @@ export async function GET(request, { params }) {
     const { role } = await params;
     const res = await fetch(`${BASE_URL}/nav-permissions/${role}`, {
       method: 'GET',
-      headers: defaultHeaders,
+      headers: buildHeaders(request),
     });
     const data = await res.json();
     return NextResponse.json(data, { status: res.status });
@@ -40,7 +43,7 @@ export async function PATCH(request, { params }) {
     const body = await request.json();
     const res = await fetch(`${BASE_URL}/nav-permissions/update/${id}`, {
       method: 'PATCH',
-      headers: defaultHeaders,
+      headers: buildHeaders(request),
       body: JSON.stringify(body),
     });
     const data = await res.json();
