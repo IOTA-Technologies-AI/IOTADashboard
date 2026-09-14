@@ -15,8 +15,8 @@ export async function POST(req) {
 }
 
 async function fetchNewAccessToken(refreshToken) {
-  const ZOHO_CLIENT_ID = '1000.0W66JK1NWH9MTGJ7D7LC8IHVZM2CTS';
-  const ZOHO_CLIENT_SECRET = 'f283edb6fed8a9dab91c6a30de2c64a35252a9d167';
+  const ZOHO_CLIENT_ID = process.env.ZOHO_CLIENT_ID;
+  const ZOHO_CLIENT_SECRET = process.env.ZOHO_CLIENT_SECRET;
 
   try {
     const response = await fetch('https://accounts.zoho.com/oauth/v2/token', {

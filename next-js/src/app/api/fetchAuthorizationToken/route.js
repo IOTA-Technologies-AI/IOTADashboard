@@ -16,8 +16,8 @@ export async function GET(req) {
 }
 
 async function fetchAccessToken(code) {
-  const ZOHO_CLIENT_ID = '1000.0W66JK1NWH9MTGJ7D7LC8IHVZM2CTS';
-  const ZOHO_CLIENT_SECRET = 'f283edb6fed8a9dab91c6a30de2c64a35252a9d167';
+  const ZOHO_CLIENT_ID = process.env.ZOHO_CLIENT_ID;
+  const ZOHO_CLIENT_SECRET = process.env.ZOHO_CLIENT_SECRET;
   const REDIRECT_URI = 'http://localhost:3000/api/fetchAuthorizationToken';
 
   try {
