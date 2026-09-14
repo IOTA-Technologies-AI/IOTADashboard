@@ -31,23 +31,32 @@ export const extractJWTFromSession = () => {
   if (typeof window === 'undefined') return null;
 
   try {
-    // Try to get from Supabase session storage
-    // The key pattern is: sb-{projectId}-auth-token
-    const keys = Object.keys(window.localStorage);
-    const authKey = keys.find((key) => key.includes('auth-token'));
+    // Match the session key exactly. `includes('auth-token')` also matches
+    // `sb-<ref>-auth-token-code-verifier`, the PKCE key Supabase writes during
+    // sign-in, and `find` would return whichever happened to come first.
+    const authKey = Object.keys(window.localStorage).find(
+      (key) => key.startsWith('sb-') && key.endsWith('-auth-token')
+    );
 
-    if (!authKey) {
-      console.warn('[JWT] No auth token found in localStorage');
-      return null;
+    if (!authKey) return null;
+
+    let raw = window.localStorage.getItem(authKey);
+    if (!raw) return null;
+
+    // supabase-js may store the session base64-encoded behind this prefix.
+    if (raw.startsWith('base64-')) {
+      raw = window.atob(raw.slice('base64-'.length));
     }
 
-    const sessionData = JSON.parse(window.localStorage.getItem(authKey));
-    if (!sessionData || !sessionData.session || !sessionData.session.access_token) {
-      console.warn('[JWT] No access_token in session');
-      return null;
-    }
+    const parsed = JSON.parse(raw);
 
-    return sessionData.session.access_token;
+    // supabase-js v2 stores the session object directly. Earlier versions
+    // nested it under `session` or `currentSession`. Accept all three: reading
+    // only the v2 shape is what silently returned null on every call and left
+    // every request unauthenticated.
+    return (
+      parsed?.access_token ?? parsed?.session?.access_token ?? parsed?.currentSession?.access_token ?? null
+    );
   } catch (error) {
     console.error('[JWT] Failed to extract JWT:', error.message);
     return null;
