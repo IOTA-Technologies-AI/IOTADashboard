@@ -5359,9 +5359,17 @@ export async function totpVerifySetup(userId, code) {
  * @param {string} code - The 6-digit TOTP code.
  */
 export async function totpVerify(userId, code) {
-  // `userId` is accepted for call-site compatibility but no longer sent: the
-  // backend resolves the user from the verified session token instead.
-  const response = await axios.post(`${API_BASE_URL}totp/verify`, { code });
+  // Sends `userId` because the API resolves the user from the request body.
+  //
+  // A previous change dropped it, on the assumption the backend would derive
+  // identity from the verified session token. That backend change has been
+  // rolled back, so sending only `code` produces:
+  //   "unable to decode request body: missing field userId"
+  //
+  // Deriving identity server-side is the correct design — anyone can post any
+  // userId here — but the two sides must change together, and that belongs in
+  // the auth rebuild rather than a hotfix.
+  const response = await axios.post(`${API_BASE_URL}totp/verify`, { userId, code });
   return response.data;
 }
 
