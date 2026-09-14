@@ -1,6 +1,6 @@
 {
   "version": "1.0",
-  "timestamp": 1789372115484,
+  "timestamp": 1789372846180,
   "files": {
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/.payslip-render-check/edge.jsx": {
       "mtime": 1787761884277,
@@ -1156,12 +1156,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/actions/blog.js": {
-      "mtime": 1754638876000,
+      "mtime": 1789372791097,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/actions/blog.js",
         "relativePath": "next-js/src/actions/blog.js",
         "fileType": "generic",
-        "lineCount": 105,
+        "lineCount": 97,
         "imports": [],
         "importedBy": [],
         "importInfos": [
@@ -1208,7 +1208,7 @@
           },
           {
             "name": "useGetPost",
-            "line": 38,
+            "line": 36,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -1219,7 +1219,7 @@
           },
           {
             "name": "useGetLatestPosts",
-            "line": 60,
+            "line": 56,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -1230,7 +1230,7 @@
           },
           {
             "name": "useSearchPosts",
-            "line": 83,
+            "line": 77,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -54722,12 +54722,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/components/use-toolbar-state.js": {
-      "mtime": 1754638878000,
+      "mtime": 1789372791099,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/components/use-toolbar-state.js",
         "relativePath": "next-js/src/components/editor/components/use-toolbar-state.js",
         "fileType": "generic",
-        "lineCount": 36,
+        "lineCount": 34,
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/editor/components/bubble-toolbar.jsx",
@@ -59353,7 +59353,7 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/markdown/html-to-markdown.js": {
-      "mtime": 1754638878000,
+      "mtime": 1789372814213,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/components/markdown/html-to-markdown.js",
         "relativePath": "next-js/src/components/markdown/html-to-markdown.js",
@@ -77174,12 +77174,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/lib/pdf-signature-utils.js": {
-      "mtime": 1761404938753,
+      "mtime": 1789372791099,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/lib/pdf-signature-utils.js",
         "relativePath": "next-js/src/lib/pdf-signature-utils.js",
         "fileType": "util",
-        "lineCount": 77,
+        "lineCount": 76,
         "imports": [],
         "importedBy": [],
         "importInfos": [
@@ -77216,7 +77216,7 @@
           },
           {
             "name": "downloadPDF",
-            "line": 67,
+            "line": 66,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -78942,12 +78942,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/routes/hooks/use-router.js": {
-      "mtime": 1754638870000,
+      "mtime": 1789372791098,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/routes/hooks/use-router.js",
         "relativePath": "next-js/src/routes/hooks/use-router.js",
         "fileType": "route",
-        "lineCount": 52,
+        "lineCount": 50,
         "imports": [],
         "importedBy": [],
         "importInfos": [
@@ -88578,12 +88578,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/navigation-bar-view/nav-api.jsx": {
-      "mtime": 1754638878000,
+      "mtime": 1789372791098,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/navigation-bar-view/nav-api.jsx",
         "relativePath": "next-js/src/sections/_examples/extra/navigation-bar-view/nav-api.jsx",
         "fileType": "generic",
-        "lineCount": 85,
+        "lineCount": 83,
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/_examples/extra/navigation-bar-view/view.jsx"
@@ -88687,7 +88687,7 @@
           },
           {
             "name": "NavAPI",
-            "line": 36,
+            "line": 34,
             "isExported": true,
             "isAsync": false,
             "callers": [],
@@ -183317,12 +183317,12 @@
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/vat/vat-table-toolbar.jsx": {
-      "mtime": 1768331299524,
+      "mtime": 1789372844581,
       "node": {
         "filePath": "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/vat/vat-table-toolbar.jsx",
         "relativePath": "next-js/src/sections/vat/vat-table-toolbar.jsx",
         "fileType": "generic",
-        "lineCount": 215,
+        "lineCount": 182,
         "imports": [],
         "importedBy": [
           "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/vat/view/vat-list-view.jsx",
@@ -183394,21 +183394,21 @@
             ]
           },
           {
-            "source": "@mui/material/InputAdornment",
+            "source": "@mui/material/ToggleButton",
             "resolved": "",
             "isLocal": false,
             "line": 8,
             "names": [
-              "InputAdornment"
+              "ToggleButton"
             ]
           },
           {
-            "source": "@mui/material/ToggleButton",
+            "source": "@mui/material/InputAdornment",
             "resolved": "",
             "isLocal": false,
             "line": 9,
             "names": [
-              "ToggleButton"
+              "InputAdornment"
             ]
           },
           {
@@ -183440,6 +183440,7 @@
             "callees": [
               "useCallback",
               "onFiltersChange",
+              "handleFieldChange",
               "map"
             ]
           }
@@ -183449,7 +183450,7 @@
           "VATTableToolbar"
         ],
         "routes": [],
-        "healthScore": 85
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/vat/view/vat-list-view.jsx": {
@@ -183905,7 +183906,7 @@
           "VATListView"
         ],
         "routes": [],
-        "healthScore": 50
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/vat/view/vat-ar-view.jsx": {
@@ -184269,7 +184270,7 @@
           "VATARView"
         ],
         "routes": [],
-        "healthScore": 50
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/vendor/vendor-details.jsx": {
@@ -185075,7 +185076,7 @@
           "VATAPView"
         ],
         "routes": [],
-        "healthScore": 50
+        "healthScore": 100
       }
     },
     "/Users/jaffar/Desktop/MacBookPro14/IOTAGit/IOTADashboard/next-js/src/sections/vendor/vendor-table-toolbar.jsx": {

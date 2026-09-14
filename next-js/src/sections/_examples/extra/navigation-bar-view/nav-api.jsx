@@ -18,7 +18,7 @@ function useGetNavItems() {
 
   const { data, isLoading, error, isValidating } = useSWR(URL, fetcher);
 
-  const memoizedValue = useMemo(
+  return useMemo(
     () => ({
       data: data?.navItems ?? [],
       isLoading,
@@ -28,8 +28,6 @@ function useGetNavItems() {
     }),
     [data?.navItems, error, isLoading, isValidating]
   );
-
-  return memoizedValue;
 }
 
 // ----------------------------------------------------------------------

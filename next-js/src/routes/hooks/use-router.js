@@ -38,7 +38,7 @@ export function useRouter() {
     [nextRouter]
   );
 
-  const router = useMemo(
+  return useMemo(
     () => ({
       ...nextRouter,
       push,
@@ -46,6 +46,4 @@ export function useRouter() {
     }),
     [nextRouter, push, replace]
   );
-
-  return router;
 }

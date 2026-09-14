@@ -52,8 +52,7 @@ export async function mergeSignaturesIntoPDF(pdfBytes, signatures, positions) {
     }
 
     // Save and return the PDF
-    const modifiedPdfBytes = await pdfDoc.save();
-    return modifiedPdfBytes;
+    return await pdfDoc.save();
   } catch (error) {
     console.error('Error merging signatures into PDF:', error);
     throw error;

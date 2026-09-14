@@ -46,9 +46,9 @@ export function isMarkdownContent(content) {
     /* Ordered list */
     /^(\s*)\d+\. [^\r\n]+/,
     /* Image */
-    /!\[.*?\]\(.*?\)/,
+    /!\[.*?]\(.*?\)/,
     /* Link */
-    /\[.*?\]\(.*?\)/,
+    /\[.*?]\(.*?\)/,
   ];
 
   // Checking if any of the patterns match

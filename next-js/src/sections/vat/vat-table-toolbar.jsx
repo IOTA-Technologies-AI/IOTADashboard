@@ -6,8 +6,8 @@ import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import InputLabel from '@mui/material/InputLabel';
 import FormControl from '@mui/material/FormControl';
-import InputAdornment from '@mui/material/InputAdornment';
 import ToggleButton from '@mui/material/ToggleButton';
+import InputAdornment from '@mui/material/InputAdornment';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { Iconify } from 'src/components/iconify';
@@ -60,44 +60,11 @@ export function VATTableToolbar({ filters, onFiltersChange }) {
     [filters, onFiltersChange]
   );
 
-  const handleYearChange = useCallback(
-    (event) => {
-      onFiltersChange({ ...filters, year: event.target.value });
-    },
-    [filters, onFiltersChange]
-  );
-
-  const handleQuarterChange = useCallback(
-    (event) => {
-      onFiltersChange({ ...filters, quarter: event.target.value });
-    },
-    [filters, onFiltersChange]
-  );
-
-  const handleMonthChange = useCallback(
-    (event) => {
-      onFiltersChange({ ...filters, month: event.target.value });
-    },
-    [filters, onFiltersChange]
-  );
-
-  const handleTypeChange = useCallback(
-    (event) => {
-      onFiltersChange({ ...filters, type: event.target.value });
-    },
-    [filters, onFiltersChange]
-  );
-
-  const handleCurrencyChange = useCallback(
-    (event) => {
-      onFiltersChange({ ...filters, currency: event.target.value });
-    },
-    [filters, onFiltersChange]
-  );
-
-  const handleSearchChange = useCallback(
-    (event) => {
-      onFiltersChange({ ...filters, searchQuery: event.target.value });
+  // One handler for every select and text field — each call site passes the
+  // filter key it owns, instead of six identical copies of the same callback.
+  const handleFieldChange = useCallback(
+    (field) => (event) => {
+      onFiltersChange({ ...filters, [field]: event.target.value });
     },
     [filters, onFiltersChange]
   );
@@ -133,7 +100,7 @@ export function VATTableToolbar({ filters, onFiltersChange }) {
       {/* Year Filter */}
       <FormControl sx={{ minWidth: 120 }}>
         <InputLabel>Year</InputLabel>
-        <Select value={year} onChange={handleYearChange} label="Year">
+        <Select value={year} onChange={handleFieldChange('year')} label="Year">
           {YEARS.map((y) => (
             <MenuItem key={y} value={y}>
               {y}
@@ -146,7 +113,7 @@ export function VATTableToolbar({ filters, onFiltersChange }) {
       {(periodType === 'quarterly' || !periodType) && (
         <FormControl sx={{ minWidth: 150 }}>
           <InputLabel>Quarter</InputLabel>
-          <Select value={quarter} onChange={handleQuarterChange} label="Quarter">
+          <Select value={quarter} onChange={handleFieldChange('quarter')} label="Quarter">
             {QUARTERS.map((q) => (
               <MenuItem key={q.value} value={q.value}>
                 {q.label}
@@ -160,7 +127,7 @@ export function VATTableToolbar({ filters, onFiltersChange }) {
       {periodType === 'monthly' && (
         <FormControl sx={{ minWidth: 150 }}>
           <InputLabel>Month</InputLabel>
-          <Select value={month || 1} onChange={handleMonthChange} label="Month">
+          <Select value={month || 1} onChange={handleFieldChange('month')} label="Month">
             {MONTHS.map((m) => (
               <MenuItem key={m.value} value={m.value}>
                 {m.label}
@@ -173,7 +140,7 @@ export function VATTableToolbar({ filters, onFiltersChange }) {
       {/* Type Filter */}
       <FormControl sx={{ minWidth: 180 }}>
         <InputLabel>Type</InputLabel>
-        <Select value={type} onChange={handleTypeChange} label="Type">
+        <Select value={type} onChange={handleFieldChange('type')} label="Type">
           {TYPES.map((t) => (
             <MenuItem key={t.value} value={t.value}>
               {t.label}
@@ -185,7 +152,7 @@ export function VATTableToolbar({ filters, onFiltersChange }) {
       {/* Currency Filter */}
       <FormControl sx={{ minWidth: 120 }}>
         <InputLabel>Currency</InputLabel>
-        <Select value={currency} onChange={handleCurrencyChange} label="Currency">
+        <Select value={currency} onChange={handleFieldChange('currency')} label="Currency">
           {CURRENCIES.map((c) => (
             <MenuItem key={c} value={c}>
               {c}
@@ -198,7 +165,7 @@ export function VATTableToolbar({ filters, onFiltersChange }) {
       <TextField
         fullWidth
         value={searchQuery}
-        onChange={handleSearchChange}
+        onChange={handleFieldChange('searchQuery')}
         placeholder="Search invoice number or customer..."
         InputProps={{
           startAdornment: (

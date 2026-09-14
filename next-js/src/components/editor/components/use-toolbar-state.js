@@ -3,7 +3,7 @@ import { useEditorState } from '@tiptap/react';
 // ----------------------------------------------------------------------
 
 export function useToolbarState(editor) {
-  const toolbarState = useEditorState({
+  return useEditorState({
     editor,
     selector: (ctx) => {
       const canRun = ctx.editor.can().chain().focus();
@@ -30,6 +30,4 @@ export function useToolbarState(editor) {
       };
     },
   });
-
-  return toolbarState;
 }

@@ -20,7 +20,7 @@ export function useGetPosts() {
     ...swrOptions,
   });
 
-  const memoizedValue = useMemo(
+  return useMemo(
     () => ({
       posts: data?.posts || [],
       postsLoading: isLoading,
@@ -30,8 +30,6 @@ export function useGetPosts() {
     }),
     [data?.posts, error, isLoading, isValidating]
   );
-
-  return memoizedValue;
 }
 
 // ----------------------------------------------------------------------
@@ -43,7 +41,7 @@ export function useGetPost(title) {
     ...swrOptions,
   });
 
-  const memoizedValue = useMemo(
+  return useMemo(
     () => ({
       post: data?.post,
       postLoading: isLoading,
@@ -52,8 +50,6 @@ export function useGetPost(title) {
     }),
     [data?.post, error, isLoading, isValidating]
   );
-
-  return memoizedValue;
 }
 
 // ----------------------------------------------------------------------
@@ -65,7 +61,7 @@ export function useGetLatestPosts(title) {
     ...swrOptions,
   });
 
-  const memoizedValue = useMemo(
+  return useMemo(
     () => ({
       latestPosts: data?.latestPosts || [],
       latestPostsLoading: isLoading,
@@ -75,8 +71,6 @@ export function useGetLatestPosts(title) {
     }),
     [data?.latestPosts, error, isLoading, isValidating]
   );
-
-  return memoizedValue;
 }
 
 // ----------------------------------------------------------------------
@@ -89,7 +83,7 @@ export function useSearchPosts(query) {
     keepPreviousData: true,
   });
 
-  const memoizedValue = useMemo(
+  return useMemo(
     () => ({
       searchResults: data?.results || [],
       searchLoading: isLoading,
@@ -99,6 +93,4 @@ export function useSearchPosts(query) {
     }),
     [data?.results, error, isLoading, isValidating]
   );
-
-  return memoizedValue;
 }
