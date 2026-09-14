@@ -4,9 +4,11 @@ import { pdf } from '@react-pdf/renderer';
 import { use, useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
+import Tab from '@mui/material/Tab';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
 import Grid from '@mui/material/Grid';
+import Tabs from '@mui/material/Tabs';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Paper from '@mui/material/Paper';
@@ -21,8 +23,6 @@ import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
-import Tab from '@mui/material/Tab';
-import Tabs from '@mui/material/Tabs';
 import FormControl from '@mui/material/FormControl';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
@@ -31,20 +31,25 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { paths } from 'src/routes/paths';
 
 import {
+  officeLabel,
+  stampForOffice,
+  governingLawFor,
+} from 'src/utils/iota-offices';
+import {
   getNda,
   cancelNda,
   updateNda,
   finalizeNda,
   iotaSignNda,
+  linkNdaDocument,
   setNdaSignatureZones,
+  markNdaFullyExecuted,
   setNdaStampPlacements,
+  createNdaUploadSession,
   submitNdaForIotaSigning,
+  fetchNdaDocumentContent,
   remindPartnerSignatories,
   setNdaPartnerSignatureZones,
-  markNdaFullyExecuted,
-  createNdaUploadSession,
-  linkNdaDocument,
-  fetchNdaDocumentContent,
 } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -129,7 +134,7 @@ Confidential Information does not include information that (i) was already publi
 
   noLicense: `Nothing in this Agreement shall be construed to grant either Party any right, title, interest, or license in or to the Confidential Information of the other Party, or any intellectual property rights therein. Any use of Confidential Information beyond the Purpose requires the prior written consent of the Disclosing Party.`,
 
-  generalProvisions: `1. Governing Law. This Agreement shall be governed by and construed in accordance with the laws of the Kingdom of Saudi Arabia. Any dispute arising out of or in connection with this Agreement shall be subject to the exclusive jurisdiction of the courts of Riyadh, Saudi Arabia.
+  generalProvisions: `1. Governing Law. __GOVERNING_LAW__
 2. Entire Agreement. This Agreement constitutes the entire understanding between the Parties with respect to its subject matter and supersedes all prior negotiations, understandings, and agreements, whether written or oral.
 3. Amendments. No amendment or modification of this Agreement shall be valid unless made in writing and signed by both Parties.
 4. Severability. If any provision of this Agreement is found to be unenforceable, invalid, or illegal, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.
@@ -137,6 +142,21 @@ Confidential Information does not include information that (i) was already publi
 6. Counterparts. This Agreement may be executed in counterparts, including electronic form, each of which shall be deemed an original and all of which together shall constitute one and the same instrument. Electronic signatures shall be deemed valid and binding.
 7. Notices. All notices under this Agreement shall be in writing and delivered by email with acknowledgment of receipt to the representative signatories listed below.`,
 };
+
+/**
+ * Section defaults for one executing entity. Only General Provisions varies:
+ * its Governing Law clause names the office's jurisdiction and forum, so an
+ * NDA executed from Dubai does not prefill Saudi law for the editor to save.
+ */
+function sectionDefaultsFor(office) {
+  return {
+    ...SECTION_DEFAULTS,
+    generalProvisions: SECTION_DEFAULTS.generalProvisions.replace(
+      '__GOVERNING_LAW__',
+      governingLawFor(office)
+    ),
+  };
+}
 
 function DetailRow({ label, value }) {
   return (
@@ -691,7 +711,14 @@ export default function NdaDetailsPage({ params }) {
 
         // Embed IOTA stamp
         if (sourceStampPlacements.length > 0) {
-          const stampRes = await fetch('/logo/iota-stamp.png');
+          const stampAsset = stampForOffice(latestNda?.iotaOffice);
+          if (!stampAsset) {
+            throw new Error(
+              `No company stamp is configured for office "${latestNda?.iotaOffice}". ` +
+                'Remove the stamp placements, or execute this agreement from an office that has one.'
+            );
+          }
+          const stampRes = await fetch(stampAsset);
           if (stampRes.ok) {
             const stampArrayBuffer = await stampRes.arrayBuffer();
             const stampImage = await pdfDoc.embedPng(new Uint8Array(stampArrayBuffer));
@@ -847,7 +874,14 @@ export default function NdaDetailsPage({ params }) {
 
         // Embed stamp placements
         if (stampPlacements.length > 0) {
-          const stampRes = await fetch('/logo/iota-stamp.png');
+          const stampAsset = stampForOffice(nda?.iotaOffice);
+          if (!stampAsset) {
+            throw new Error(
+              `No company stamp is configured for office "${nda?.iotaOffice}". ` +
+                'Remove the stamp placements, or execute this agreement from an office that has one.'
+            );
+          }
+          const stampRes = await fetch(stampAsset);
           if (stampRes.ok) {
             const stampImage = await pdfDoc.embedPng(new Uint8Array(await stampRes.arrayBuffer()));
             for (const placement of stampPlacements) {
@@ -1370,7 +1404,14 @@ export default function NdaDetailsPage({ params }) {
 
       // Embed IOTA stamp
       if (stampPlacements.length > 0) {
-        const stampRes = await fetch('/logo/iota-stamp.png');
+        const stampAsset = stampForOffice(nda?.iotaOffice);
+        if (!stampAsset) {
+          throw new Error(
+            `No company stamp is configured for office "${nda?.iotaOffice}". ` +
+              'Remove the stamp placements, or execute this agreement from an office that has one.'
+          );
+        }
+        const stampRes = await fetch(stampAsset);
         if (stampRes.ok) {
           const stampImage = await pdfDoc.embedPng(new Uint8Array(await stampRes.arrayBuffer()));
           for (const placement of stampPlacements) {
@@ -1489,6 +1530,9 @@ export default function NdaDetailsPage({ params }) {
               <Stack spacing={0.5}>
                 <DetailRow label="NDA Number" value={nda.ndaNumber} />
                 <DetailRow label="Title" value={nda.title} />
+                {/* Which entity is executing — drives the stamp, the Parties
+                    clause and the governing law on the generated document. */}
+                <DetailRow label="Executing IOTA Office" value={officeLabel(nda.iotaOffice)} />
                 <DetailRow label="Partner Company" value={nda.partnerCompanyName} />
                 {nda.partnerAddress && (
                   <DetailRow label="Partner Address" value={nda.partnerAddress} />
@@ -1946,7 +1990,7 @@ export default function NdaDetailsPage({ params }) {
                                 key: sec.key,
                                 text:
                                   nda.sectionOverrides?.[sec.key] ||
-                                  SECTION_DEFAULTS[sec.key] ||
+                                  sectionDefaultsFor(nda?.iotaOffice)[sec.key] ||
                                   '',
                               })
                             }
@@ -2533,7 +2577,7 @@ export default function NdaDetailsPage({ params }) {
                             <Box sx={{ position: 'relative', width: '100%', display: 'block' }}>
                               <Box
                                 component="img"
-                                src="/logo/iota-stamp.png"
+                                src={stampForOffice(nda?.iotaOffice)}
                                 alt="IOTA Stamp"
                                 draggable={false}
                                 sx={{ width: '100%', opacity: 0.85, display: 'block' }}
@@ -2661,7 +2705,7 @@ export default function NdaDetailsPage({ params }) {
                             <Stack direction="row" alignItems="center" spacing={1}>
                               <Box
                                 component="img"
-                                src="/logo/iota-stamp.png"
+                                src={stampForOffice(nda?.iotaOffice)}
                                 alt="IOTA Stamp"
                                 sx={{ height: 28, opacity: 0.85 }}
                               />
@@ -3152,7 +3196,7 @@ export default function NdaDetailsPage({ params }) {
                         >
                           <Box
                             component="img"
-                            src="/logo/iota-stamp.png"
+                            src={stampForOffice(nda?.iotaOffice)}
                             alt="IOTA Stamp"
                             draggable={false}
                             sx={{ width: '100%', opacity: 0.85, display: 'block' }}
@@ -3282,7 +3326,7 @@ export default function NdaDetailsPage({ params }) {
                         <Stack direction="row" alignItems="center" spacing={1}>
                           <Box
                             component="img"
-                            src="/logo/iota-stamp.png"
+                            src={stampForOffice(nda?.iotaOffice)}
                             alt="IOTA Stamp"
                             sx={{ height: 28, opacity: 0.85 }}
                           />
@@ -3357,7 +3401,7 @@ export default function NdaDetailsPage({ params }) {
             onClick={() =>
               setSectionEditDialog((prev) => ({
                 ...prev,
-                text: SECTION_DEFAULTS[prev.key] || '',
+                text: sectionDefaultsFor(nda?.iotaOffice)[prev.key] || '',
               }))
             }
           >

@@ -11,6 +11,8 @@
 
 'use client';
 
+import { governingLawFor, disclosingPartyFor } from 'src/utils/iota-offices';
+
 // ----------------------------------------------------------------------
 
 const fmt = (dateStr) => {
@@ -143,8 +145,8 @@ export default function NdaHtmlTemplate({ nda, showSignatures = true, showAuditT
           &rdquo;) between:
         </p>
         <p style={body}>
-          <strong>Disclosing Party:</strong> IOTA Technologies Company, a company registered in the
-          Kingdom of Saudi Arabia (&ldquo;<strong>IOTA</strong>&rdquo;); and
+          <strong>Disclosing Party:</strong> {disclosingPartyFor(nda.iotaOffice)} (&ldquo;
+          <strong>IOTA</strong>&rdquo;); and
         </p>
         <p style={body}>
           <strong>Receiving Party:</strong> {nda.partnerCompanyName}
@@ -346,10 +348,7 @@ export default function NdaHtmlTemplate({ nda, showSignatures = true, showAuditT
         ) : (
           <ol style={orderedList}>
             <li style={listItem}>
-              <strong>Governing Law.</strong> This Agreement shall be governed by and construed in
-              accordance with the laws of the Kingdom of Saudi Arabia. Any dispute arising out of or
-              in connection with this Agreement shall be subject to the exclusive jurisdiction of
-              the courts of Riyadh, Saudi Arabia.
+              <strong>Governing Law.</strong> {governingLawFor(nda.iotaOffice)}
             </li>
             <li style={listItem}>
               <strong>Entire Agreement.</strong> This Agreement constitutes the entire understanding

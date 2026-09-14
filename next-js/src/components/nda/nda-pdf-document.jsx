@@ -8,6 +8,8 @@
 
 import { Page, Text, View, Image, Document, StyleSheet } from '@react-pdf/renderer';
 
+import { governingLawFor, disclosingPartyFor } from 'src/utils/iota-offices';
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const fmt = (dateStr) => {
@@ -317,7 +319,7 @@ export default function NdaPdfDocument({ nda }) {
           {`This Non-Disclosure Agreement ("Agreement") is entered into as of ${effectiveDateStr} ("Effective Date") between:`}
         </BodyText>
         <BodyText>
-          {`Disclosing Party: IOTA Technologies Company, a company registered in the Kingdom of Saudi Arabia ("IOTA"); and`}
+          {`Disclosing Party: ${disclosingPartyFor(nda.iotaOffice)} ("IOTA"); and`}
         </BodyText>
         <BodyText>
           Receiving Party: {nda.partnerCompanyName}
@@ -469,7 +471,7 @@ export default function NdaPdfDocument({ nda }) {
         ) : (
           <NumberedList
             items={[
-              'Governing Law. This Agreement shall be governed by and construed in accordance with the laws of the Kingdom of Saudi Arabia. Any dispute arising out of or in connection with this Agreement shall be subject to the exclusive jurisdiction of the courts of Riyadh, Saudi Arabia.',
+              `Governing Law. ${governingLawFor(nda.iotaOffice)}`,
               'Entire Agreement. This Agreement constitutes the entire understanding between the Parties with respect to its subject matter and supersedes all prior negotiations, understandings, and agreements, whether written or oral.',
               'Amendments. No amendment or modification of this Agreement shall be valid unless made in writing and signed by both Parties.',
               'Severability. If any provision of this Agreement is found to be unenforceable, invalid, or illegal, that provision shall be modified to the minimum extent necessary to make it enforceable, and the remaining provisions shall continue in full force and effect.',

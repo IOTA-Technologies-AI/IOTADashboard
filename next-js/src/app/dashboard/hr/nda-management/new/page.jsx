@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 
 import Box from '@mui/material/Box';
@@ -11,6 +11,7 @@ import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
+import Switch from '@mui/material/Switch';
 import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
@@ -18,7 +19,6 @@ import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import LoadingButton from '@mui/lab/LoadingButton';
 import Autocomplete from '@mui/material/Autocomplete';
-import Switch from '@mui/material/Switch';
 import ToggleButton from '@mui/material/ToggleButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -27,7 +27,17 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
-import { createNda, createNdaUploadSession, linkNdaDocument } from 'src/utils/apiHelper';
+import {
+  noStampReason,
+  officeCanStamp,
+  DEFAULT_IOTA_OFFICE,
+} from 'src/utils/iota-offices';
+import {
+  createNda,
+  linkNdaDocument,
+  fetchOfficeConfigs,
+  createNdaUploadSession,
+} from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 
@@ -42,11 +52,39 @@ import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 export default function NdaNewPage() {
   const router = useRouter();
   const [submitting, setSubmitting] = useState(false);
+  const [iotaOffice, setIotaOffice] = useState(DEFAULT_IOTA_OFFICE);
+  const [officeOptions, setOfficeOptions] = useState([]);
   const [documentSource, setDocumentSource] = useState('iota_generated');
   const [partnerSigningMethod, setPartnerSigningMethod] = useState('digital');
   const [requireOtp, setRequireOtp] = useState(false);
   const [requireConsent, setRequireConsent] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null); // native File object
+
+  // Offices come from appConfig (namespace 'iotaOffice') so adding an entity is
+  // a data change, not a deploy. Sorted by the configured sortOrder.
+  useEffect(() => {
+    let cancelled = false;
+    fetchOfficeConfigs()
+      .then((rows) => {
+        if (cancelled) return;
+        const parsed = (rows || [])
+          .filter((r) => r.isActive)
+          .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
+          .map((r) => ({ key: r.configKey, label: r.label || r.configKey }));
+        setOfficeOptions(parsed);
+      })
+      .catch(() => {
+        // Fall back to the two offices that can actually execute agreements, so
+        // the form still works if appConfig is unreachable.
+        setOfficeOptions([
+          { key: 'iota-saudi', label: 'IOTA Saudi Arabia' },
+          { key: 'iota-uae', label: 'IOTA UAE' },
+        ]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const newDocFileRef = useRef(null);
 
   const { users: msUsers, loading: msUsersLoading } = useMicrosoftUsers();
@@ -135,6 +173,7 @@ export default function NdaNewPage() {
         durationYears: Number(data.durationYears),
         createdBy: user?.email || 'unknown',
         documentSource,
+        iotaOffice,
         partnerSigningMethod,
         requireOtp,
         requireConsent,
@@ -197,6 +236,41 @@ export default function NdaNewPage() {
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
                 Choose whether to generate a new agreement using our template or upload an existing
                 document (PDF, DOCX, DOC) from your partner for signing.
+              </Typography>
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Executing IOTA Office
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                Which IOTA entity is entering into this agreement. This determines the company
+                stamp applied when the document is finalized, and the governing law and
+                registration details printed on it. It cannot be changed after creation.
+              </Typography>
+              <TextField
+                select
+                fullWidth
+                size="small"
+                value={iotaOffice}
+                onChange={(e) => setIotaOffice(e.target.value)}
+                sx={{ mb: 3, maxWidth: 420 }}
+                helperText={
+                  officeCanStamp(iotaOffice)
+                    ? undefined
+                    : noStampReason(
+                        officeOptions.find((o) => o.key === iotaOffice)?.label || iotaOffice
+                      )
+                }
+                error={!officeCanStamp(iotaOffice)}
+              >
+                {officeOptions.map((o) => (
+                  <MenuItem key={o.key} value={o.key} disabled={!officeCanStamp(o.key)}>
+                    {o.label}
+                    {!officeCanStamp(o.key) && ' — no stamp configured'}
+                  </MenuItem>
+                ))}
+              </TextField>
+
+              <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                Document Source
               </Typography>
               <ToggleButtonGroup
                 value={documentSource}
