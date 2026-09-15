@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+import { getLiveAccessToken } from 'src/utils/jwt-auth';
+
 import { CONFIG } from 'src/global-config';
 
 // ----------------------------------------------------------------------
@@ -22,24 +24,22 @@ const axiosInstance = axios.create({
   },
 });
 
-// * Optional: Add token (if using auth)
+// Every request on this instance is bound for the IOTA API — directly on the
+// server, or through a same-origin /api/* proxy on the client, and those proxies
+// forward the caller's Authorization header verbatim. So the live session token
+// goes on every request here, resolved the same way as in src/utils/apiHelper.js.
 //
+// This replaces a read of sessionStorage 'accessToken', which nothing in the
+// supabase auth flow ever wrote, and a token pinned on axios defaults at page
+// load, which was frozen for the life of the tab. Either way the API saw a
+// missing or expired token on every call through this instance.
 axiosInstance.interceptors.request.use(
-  (config) => {
-    // ✅ Check if we're in a browser environment
-    if (typeof window !== 'undefined' && typeof sessionStorage !== 'undefined') {
-      // Try to get token from sessionStorage (for JWT auth)
-      const token = sessionStorage.getItem('accessToken'); // Or your JWT_STORAGE_KEY
+  async (config) => {
+    const token = await getLiveAccessToken();
 
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
-
-    // ✅ For server-side rendering / build time, check if already set
-    // (This allows SSR functions to set headers manually if needed)
-    if (!config.headers.Authorization) {
-      // Optional: Remove the Authorization header if not set
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    } else if (config.headers?.Authorization) {
       delete config.headers.Authorization;
     }
 
