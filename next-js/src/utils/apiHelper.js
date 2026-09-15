@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-import { decodeJWT, extractJWTFromSession } from './jwt-auth';
+import { decodeJWT, getLiveAccessToken, extractJWTFromSession } from './jwt-auth';
 
 const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app/';
 
@@ -28,22 +28,43 @@ function getAuthHeaders() {
   };
 }
 
-/**
- * @summary Attaches the session bearer token to every IOTA API request.
- * @description The backend authenticates all non-public endpoints at the Encore
- * gateway, but only a minority of the calls in this file passed headers
- * explicitly. This interceptor covers the rest. It is scoped to API_BASE_URL so
- * third-party calls keep their own credentials, and it never overrides an
- * Authorization header a caller set deliberately.
- */
-axios.interceptors.request.use((config) => {
-  const url = config.url || '';
-  if (!url.startsWith(API_BASE_URL)) return config;
-  if (config.headers?.Authorization) return config;
+const IOTA_API_ORIGIN = new URL(API_BASE_URL).origin;
 
-  const token = extractJWTFromSession();
+/** Whether a request is bound for the IOTA API, however its URL was assembled. */
+const isIotaApiRequest = (config) => {
+  try {
+    const base = config.baseURL || (typeof window !== 'undefined' ? window.location.origin : undefined);
+    return new URL(config.url || '', base).origin === IOTA_API_ORIGIN;
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * @summary Attaches the LIVE session bearer token to every IOTA API request.
+ * @description The backend authenticates all non-public endpoints at the Encore
+ * gateway. This interceptor is the single source of the bearer token for IOTA
+ * API calls: it resolves the token from the live supabase-js session (refreshing
+ * it when stale) and REPLACES any Authorization header a caller set from
+ * `getAuthHeaders()`, because that helper reads a localStorage snapshot that can
+ * be months out of date. Scoped to the API origin, so third-party calls keep
+ * their own credentials.
+ *
+ * When there is no usable session, a stale explicit header is removed rather
+ * than sent: the API then reports "missing bearer token", which is the truth,
+ * instead of "invalid or expired token", which sends everyone looking at the
+ * signing secret.
+ */
+axios.interceptors.request.use(async (config) => {
+  if (!isIotaApiRequest(config)) return config;
+
+  const token = await getLiveAccessToken();
   if (token) {
     config.headers = { ...config.headers, Authorization: `Bearer ${token}` };
+  } else if (config.headers?.Authorization) {
+    const headers = { ...config.headers };
+    delete headers.Authorization;
+    config.headers = headers;
   }
   return config;
 });

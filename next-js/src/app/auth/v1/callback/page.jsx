@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 import Box from '@mui/material/Box';
@@ -15,10 +15,12 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
 
-import { Iconify } from 'src/components/iconify';
+import { getLiveAccessToken } from 'src/utils/jwt-auth';
+import { totpSetup, totpStatus, totpVerify, totpVerifySetup } from 'src/utils/apiHelper';
 
 import { supabase } from 'src/lib/supabase';
-import { totpSetup, totpStatus, totpVerify, totpVerifySetup } from 'src/utils/apiHelper';
+
+import { Iconify } from 'src/components/iconify';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -135,6 +137,17 @@ export default function SupabaseAuthCallbackPage() {
 
       const { data: existing } = await supabase.auth.getSession();
       if (existing?.session) {
+        // A stored session can be long dead — on 2026-09-15 this branch picked
+        // up one from April and asked for an OTP that /totp/verify could never
+        // accept. Prove the session is alive (refreshing it if needed) before
+        // asking the user for anything; if it cannot be revived, say so and
+        // send them back through Entra rather than to a dead-end code prompt.
+        const liveToken = await getLiveAccessToken();
+        if (!liveToken) {
+          setAuthError('Your previous session has expired. Please sign in again.');
+          setPhase('error');
+          return;
+        }
         await afterSession(existing.session.user?.email);
         return;
       }
@@ -242,7 +255,16 @@ export default function SupabaseAuthCallbackPage() {
       <Container maxWidth="sm" sx={{ py: 8 }}>
         <Card variant="outlined">
           <Box sx={{ p: 4 }}>
-            <Alert severity="error">{authError || 'Unable to complete sign-in.'}</Alert>
+            <Stack spacing={3}>
+              <Alert severity="error">{authError || 'Unable to complete sign-in.'}</Alert>
+              <Button
+                variant="contained"
+                onClick={() => router.replace(paths.auth.supabase.signIn)}
+                startIcon={<Iconify icon="solar:login-2-bold" />}
+              >
+                Sign in again
+              </Button>
+            </Stack>
           </Box>
         </Card>
       </Container>

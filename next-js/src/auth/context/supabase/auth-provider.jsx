@@ -3,11 +3,10 @@
 import { useSetState } from 'minimal-shared/hooks';
 import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 
-import { seedOneDriveToken } from 'src/utils/onedrive-helper';
 import { fetchUserEnabledPaths } from 'src/utils/apiHelper';
+import { seedOneDriveToken } from 'src/utils/onedrive-helper';
 import { fetchRoleBasedNavPermissions } from 'src/utils/pageAccess';
 
-import axios from 'src/lib/axios';
 import { supabase } from 'src/lib/supabase';
 
 import { AuthContext } from '../auth-context';
@@ -177,14 +176,14 @@ export function AuthProvider({ children }) {
         throw error;
       }
 
+      // The bearer token is NOT pinned on axios defaults here. A token captured
+      // at page load is frozen for the life of the tab while supabase-js rotates
+      // the real one underneath it every hour. The request interceptor in
+      // src/utils/apiHelper.js resolves the live token per request instead.
       if (session) {
-        const accessToken = session?.access_token;
-
         setState({ user: { ...session, ...session?.user }, loading: false });
-        axios.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
       } else {
         setState({ user: null, loading: false });
-        delete axios.defaults.headers.common.Authorization;
       }
     } catch (error) {
       console.error(error);
@@ -199,7 +198,7 @@ export function AuthProvider({ children }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session) {
         // Capture provider_token immediately when user signs in via OAuth
         const providerToken = session?.provider_token;
         const providerRefreshToken = session?.provider_refresh_token;

@@ -23,6 +23,8 @@
 
 import axios from 'axios';
 
+import { supabase } from 'src/lib/supabase';
+
 /**
  * Extract JWT token from browser localStorage (Supabase session storage)
  * Supabase stores auth data in localStorage under key: sb-{PROJECT_ID}-auth-token
@@ -59,6 +61,69 @@ export const extractJWTFromSession = () => {
     );
   } catch (error) {
     console.error('[JWT] Failed to extract JWT:', error.message);
+    return null;
+  }
+};
+
+/**
+ * Refresh when the token has less than this long to live. The API allows no
+ * clock skew, so a token that is valid when read and expired when it arrives
+ * still fails; a minute of margin covers that.
+ */
+const REFRESH_MARGIN_SECONDS = 60;
+
+const secondsUntilExpiry = (token) => {
+  const claims = decodeJWT(token);
+  return claims?.exp ? claims.exp - Date.now() / 1000 : Number.NEGATIVE_INFINITY;
+};
+
+/**
+ * The access token for the LIVE session — refreshed if it is about to expire.
+ *
+ * `extractJWTFromSession` reads localStorage directly, which is only a snapshot
+ * of whatever supabase-js last wrote. It has no way to refresh, and it happily
+ * returns a token that expired months ago. On 2026-09-15 that was a token from
+ * 15 April: the API verified the signature, rejected the expiry, and every
+ * request from the dashboard failed with "invalid or expired token".
+ *
+ * This asks supabase-js for the session instead, checks the token's own `exp`
+ * rather than trusting the stored `expires_at`, and forces a refresh when it is
+ * stale. If the refresh token is dead the session cannot be revived: the local
+ * copy is cleared so the guard sends the user back through Entra, rather than
+ * leaving a corpse in storage for the next request to send again.
+ *
+ * Network failures are the one case that keeps the session: a transient outage
+ * must not sign everybody out.
+ *
+ * @returns {Promise<string|null>} bearer token, or null when there is no usable session
+ */
+export const getLiveAccessToken = async () => {
+  if (typeof window === 'undefined' || !supabase?.auth) return null;
+
+  try {
+    const {
+      data: { session } = {},
+      error,
+    } = await supabase.auth.getSession();
+
+    if (error || !session?.access_token) return null;
+
+    if (secondsUntilExpiry(session.access_token) > REFRESH_MARGIN_SECONDS) {
+      return session.access_token;
+    }
+
+    const { data, error: refreshError } = await supabase.auth.refreshSession();
+    if (!refreshError && data?.session?.access_token) {
+      return data.session.access_token;
+    }
+
+    console.warn('[JWT] Session refresh failed:', refreshError?.message || 'no session returned');
+    if (refreshError?.name !== 'AuthRetryableFetchError') {
+      await supabase.auth.signOut({ scope: 'local' });
+    }
+    return null;
+  } catch (err) {
+    console.error('[JWT] Failed to resolve live session:', err?.message || err);
     return null;
   }
 };
