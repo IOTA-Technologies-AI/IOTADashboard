@@ -320,20 +320,55 @@ export default function NdaDetailsPage({ params }) {
     };
   }, [nda?.onedriveFileId, nda?.uploadedDocumentBase64, nda?.documentSource, id]);
 
+  // The document the placement previews are drawn from.
+  //
+  // An external upload supplies its own PDF. A template NDA has no file at all,
+  // and previously fell to `null` here — so pdfJsDoc stayed null and every
+  // placement preview rendered the grey skeleton instead of the agreement. The
+  // stamp was then positioned against fourteen placeholder bars, while
+  // finalisation embedded it by percentage into the real generated PDF, so the
+  // seal landed wherever those proportions happened to fall.
+  //
+  // Build that same PDF here — the identical `NdaPdfDocument` finalisation
+  // renders — so what the user places on IS what gets stamped.
   useEffect(() => {
+    let cancelled = false;
     let url = null;
+
+    const publish = (objectUrl) => {
+      if (cancelled) {
+        URL.revokeObjectURL(objectUrl);
+        return;
+      }
+      url = objectUrl;
+      setDocBlobUrl(objectUrl);
+    };
+
     if (docBase64 && isUploadedPdf) {
       const bytes = Uint8Array.from(atob(docBase64), (c) => c.charCodeAt(0));
-      const blob = new Blob([bytes], { type: 'application/pdf' });
-      url = URL.createObjectURL(blob);
-      setDocBlobUrl(url);
+      publish(URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' })));
+    } else if (nda && nda.documentSource !== 'external_upload') {
+      pdf(<NdaPdfDocument nda={nda} />)
+        .toBlob()
+        .then((blob) => publish(URL.createObjectURL(blob)))
+        .catch((err) => {
+          // A failure here must not look like "no document": the skeleton is
+          // indistinguishable from a blank agreement.
+          console.error('Failed to build the NDA preview PDF:', err);
+          if (!cancelled) setDocBlobUrl(null);
+        });
     } else {
       setDocBlobUrl(null);
     }
+
     return () => {
+      cancelled = true;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [docBase64, nda?.uploadedDocumentName, isUploadedPdf]);
+    // `nda` covers every input to the rendered document — clauses, section
+    // overrides, signatories and the executing office. Its identity only
+    // changes on a fetch or a save, so this does not rebuild on every render.
+  }, [docBase64, isUploadedPdf, nda]);
 
   // Load pdfjs document whenever the blob URL changes
   useEffect(() => {
