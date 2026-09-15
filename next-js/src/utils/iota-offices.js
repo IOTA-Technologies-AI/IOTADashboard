@@ -59,9 +59,35 @@ const OFFICES = {
   },
 };
 
-/** @param {string | null | undefined} office */
+/**
+ * The record for an office key, or null when the key is not one we know.
+ *
+ * An ABSENT value (null/undefined/'') is legitimate: it is a record written
+ * before the iotaOffice column existed, and those agreements really were
+ * executed from the Saudi entity, so the default is the right answer.
+ *
+ * An UNRECOGNISED value is not legitimate. It means the picker, appConfig and
+ * this file have drifted apart, and answering it with another entity's record
+ * is how a Saudi seal ends up on an agreement created as UAE. Callers get null
+ * and must refuse rather than substitute.
+ *
+ * @param {string | null | undefined} office
+ * @returns {object | null}
+ */
 function officeRecord(office) {
-  return OFFICES[office || DEFAULT_IOTA_OFFICE] ?? OFFICES[DEFAULT_IOTA_OFFICE];
+  if (office === null || office === undefined || office === '') {
+    return OFFICES[DEFAULT_IOTA_OFFICE];
+  }
+  return OFFICES[office] ?? null;
+}
+
+/**
+ * Whether `office` is a key this module knows about. False means the stored
+ * value cannot be trusted to describe any IOTA entity.
+ * @param {string | null | undefined} office
+ */
+export function isKnownOffice(office) {
+  return officeRecord(office) !== null;
 }
 
 /**
@@ -70,7 +96,7 @@ function officeRecord(office) {
  * @returns {string | null}
  */
 export function stampForOffice(office) {
-  return officeRecord(office).stamp ?? null;
+  return officeRecord(office)?.stamp ?? null;
 }
 
 /**
@@ -107,7 +133,7 @@ export function noStampReason(label) {
  */
 export function disclosingPartyFor(office) {
   const rec = officeRecord(office);
-  const entity = rec.legalName ? rec : OFFICES[DEFAULT_IOTA_OFFICE];
+  const entity = rec?.legalName ? rec : OFFICES[DEFAULT_IOTA_OFFICE];
   return `${entity.legalName}, a company registered in ${entity.registeredIn}`;
 }
 
@@ -118,7 +144,7 @@ export function disclosingPartyFor(office) {
  */
 export function governingLawFor(office) {
   const rec = officeRecord(office);
-  const entity = rec.governingLaw ? rec : OFFICES[DEFAULT_IOTA_OFFICE];
+  const entity = rec?.governingLaw ? rec : OFFICES[DEFAULT_IOTA_OFFICE];
   return (
     `This Agreement shall be governed by and construed in accordance with the laws of ` +
     `${entity.governingLaw}. Any dispute arising out of or in connection with this Agreement ` +
@@ -144,5 +170,9 @@ export function fallbackOfficeOptions() {
  * @param {string | null | undefined} office
  */
 export function officeLabel(office) {
-  return officeRecord(office).label ?? office ?? DEFAULT_IOTA_OFFICE;
+  const rec = officeRecord(office);
+  // An unrecognised key is shown as itself. Printing "IOTA Saudi Arabia" for a
+  // value this module does not know is exactly how a mis-saved office stayed
+  // invisible on the detail page while the wrong stamp went on the document.
+  return rec?.label ?? String(office);
 }
