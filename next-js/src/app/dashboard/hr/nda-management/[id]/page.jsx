@@ -24,6 +24,7 @@ import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import FormControl from '@mui/material/FormControl';
+import Autocomplete from '@mui/material/Autocomplete';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -60,6 +61,7 @@ import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { NdaPdfDocument, NdaHtmlTemplate, NdaSignatureCanvas } from 'src/components/nda';
 
 import { useAuthContext } from 'src/auth/hooks';
+import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 //End of Imports
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -191,6 +193,12 @@ function isWordDocument(fileName = '') {
 export default function NdaDetailsPage({ params }) {
   const { id } = use(params);
   const { user } = useAuthContext();
+  const { users: msUsers, loading: msUsersLoading } = useMicrosoftUsers();
+  // Who the API records as having made the edit, and whose right to make it the
+  // API re-checks. Sent on every mutation rather than trusted from the client.
+  const editorEmail = user?.email || '';
+  const editorIsSuperAdmin =
+    user?.roleId === 4 || String(user?.role || '').toLowerCase() === 'superadmin';
   const printRef = useRef(null);
   const docFileInputRef = useRef(null);
 
@@ -202,6 +210,10 @@ export default function NdaDetailsPage({ params }) {
   const [cancelReason, setCancelReason] = useState('');
   const [clausesEditing, setClausesEditing] = useState(false);
   const [editedClauses, setEditedClauses] = useState([]);
+  const [iotaEditing, setIotaEditing] = useState(false);
+  const [editedIota, setEditedIota] = useState([]);
+  const [partnerEditing, setPartnerEditing] = useState(false);
+  const [editedPartner, setEditedPartner] = useState([]);
   const [sectionEditDialog, setSectionEditDialog] = useState({ open: false, key: '', text: '' });
   const [stampPlacements, setStampPlacements] = useState([]);
   const [stampSaving, setStampSaving] = useState(false);
@@ -809,7 +821,7 @@ export default function NdaDetailsPage({ params }) {
   const handleSaveClauses = async () => {
     try {
       setActionLoading(true);
-      const updated = await updateNda(id, { clauses: editedClauses });
+      const updated = await updateNda(id, { clauses: editedClauses, editedBy: editorEmail });
       setNda(updated);
       setClausesEditing(false);
       toast.success('Clauses saved.');
@@ -821,11 +833,52 @@ export default function NdaDetailsPage({ params }) {
     }
   };
 
+  // Signatory editing. IOTA and partner lists are saved independently so an
+  // internal correction (a job title, a colleague swapped in) never reaches the
+  // counterparty, while a change to the partner side notifies both.
+  const saveSignatories = async (field, rows, done) => {
+    const cleaned = rows
+      .map((r) => ({
+        name: (r.name || '').trim(),
+        email: (r.email || '').trim(),
+        jobTitle: (r.jobTitle || '').trim(),
+      }))
+      .filter((r) => r.name || r.email);
+
+    if (cleaned.some((r) => !r.name || !r.email)) {
+      toast.error('Every signatory needs a name and an email.');
+      return;
+    }
+    if (cleaned.length === 0) {
+      toast.error('An agreement needs at least one signatory on each side.');
+      return;
+    }
+    const seen = new Set();
+    if (cleaned.some((r) => !seen.add(r.email.toLowerCase()))) {
+      toast.error('The same email appears twice.');
+      return;
+    }
+
+    try {
+      setActionLoading(true);
+      const updated = await updateNda(id, { [field]: cleaned, editedBy: editorEmail });
+      setNda(updated);
+      done();
+      toast.success('Signatories updated.');
+    } catch (err) {
+      console.error(err);
+      toast.error(err?.response?.data?.message || 'Failed to update signatories');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleSaveSectionOverride = async (key, text) => {
     try {
       setActionLoading(true);
       const updated = await updateNda(id, {
         sectionOverrides: { ...(nda.sectionOverrides || {}), [key]: text || null },
+        editedBy: editorEmail,
       });
       setNda(updated);
       setSectionEditDialog({ open: false, key: '', text: '' });
@@ -1503,6 +1556,31 @@ export default function NdaDetailsPage({ params }) {
   const isPendingIota = nda.status === 'pending_iota_signatures';
   const isPendingPartner = nda.status === 'pending_partner_signatures';
   const isFullyExecuted = nda.status === 'fully_executed';
+
+  // Editable up to the first signature and not past it — after that, the
+  // document on file is the document somebody signed. assertEditable() on the
+  // API is the enforcing copy; this one only decides what to render.
+  const signedSoFar = [
+    ...(nda.iotaSignatories || []),
+    ...(nda.partnerSignatories || []),
+  ].filter((s) => s.signedAt);
+  const isEditableStatus = isDraft || isPendingIota || isPendingPartner;
+  const isCreator =
+    (nda.createdBy || '').trim().toLowerCase() === editorEmail.trim().toLowerCase();
+  const canEdit =
+    isEditableStatus && signedSoFar.length === 0 && (isCreator || editorIsSuperAdmin);
+
+  let editLockReason = '';
+  if (!isEditableStatus) {
+    editLockReason = `This NDA is ${nda.status.replace(/_/g, ' ')} and can no longer be edited.`;
+  } else if (signedSoFar.length > 0) {
+    editLockReason = `Already signed by ${signedSoFar
+      .map((s) => s.name || s.email)
+      .join(', ')}. Cancel and reissue rather than altering a signed agreement.`;
+  } else if (!isCreator && !editorIsSuperAdmin) {
+    editLockReason = `Only ${nda.createdBy || 'the creator'} or a super admin can edit this NDA.`;
+  }
+
   const isCancellable = ['draft', 'pending_iota_signatures', 'pending_partner_signatures'].includes(
     nda.status
   );
@@ -1626,9 +1704,144 @@ export default function NdaDetailsPage({ params }) {
 
             {/* IOTA Signatories */}
             <Card sx={{ p: 3 }}>
-              <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                IOTA Signatories
-              </Typography>
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{ mb: 2 }}
+              >
+                <Typography variant="subtitle1">IOTA Signatories</Typography>
+                {!iotaEditing &&
+                  (canEdit ? (
+                    <Button
+                      size="small"
+                      startIcon={<Iconify icon="solar:pen-bold" />}
+                      onClick={() => {
+                        setEditedIota(
+                          (nda.iotaSignatories || []).map((s) => ({
+                            name: s.name || '',
+                            email: s.email || '',
+                            jobTitle: s.jobTitle || '',
+                          }))
+                        );
+                        setIotaEditing(true);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  ) : (
+                    editLockReason && (
+                      <Tooltip title={editLockReason}>
+                        <Iconify icon="solar:lock-keyhole-bold" width={16} color="text.disabled" />
+                      </Tooltip>
+                    )
+                  ))}
+              </Stack>
+              {iotaEditing ? (
+                <Stack spacing={2}>
+                  {editedIota.map((row, i) => (
+                    <Stack
+                      key={i}
+                      spacing={1.5}
+                      sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}
+                    >
+                      <Autocomplete
+                        options={msUsers}
+                        loading={msUsersLoading}
+                        value={msUsers.find((u) => u.email === row.email) || null}
+                        isOptionEqualToValue={(opt, val) => opt.email === val?.email}
+                        getOptionLabel={(o) => (o?.name ? `${o.name} (${o.email})` : o?.email || '')}
+                        onChange={(_, selected) =>
+                          setEditedIota((prev) =>
+                            prev.map((r, idx) =>
+                              idx === i
+                                ? {
+                                    name: selected?.name || '',
+                                    email: selected?.email || '',
+                                    jobTitle: selected?.role || r.jobTitle || '',
+                                  }
+                                : r
+                            )
+                          )
+                        }
+                        renderInput={(paramsInput) => (
+                          <TextField
+                            {...paramsInput}
+                            size="small"
+                            label="IOTA signatory"
+                            placeholder="Search directory"
+                            slotProps={{
+                              input: {
+                                ...paramsInput.InputProps,
+                                endAdornment: (
+                                  <>
+                                    {msUsersLoading ? <CircularProgress size={16} /> : null}
+                                    {paramsInput.InputProps.endAdornment}
+                                  </>
+                                ),
+                              },
+                            }}
+                          />
+                        )}
+                      />
+                      <TextField
+                        size="small"
+                        label="Job title"
+                        value={row.jobTitle}
+                        onChange={(e) =>
+                          setEditedIota((prev) =>
+                            prev.map((r, idx) =>
+                              idx === i ? { ...r, jobTitle: e.target.value } : r
+                            )
+                          )
+                        }
+                      />
+                      <Box>
+                        <Button
+                          size="small"
+                          color="error"
+                          startIcon={<Iconify icon="solar:trash-bin-trash-bold" />}
+                          onClick={() =>
+                            setEditedIota((prev) => prev.filter((_, idx) => idx !== i))
+                          }
+                        >
+                          Remove
+                        </Button>
+                      </Box>
+                    </Stack>
+                  ))}
+                  <Box>
+                    <Button
+                      size="small"
+                      startIcon={<Iconify icon="mingcute:add-line" />}
+                      onClick={() =>
+                        setEditedIota((prev) => [...prev, { name: '', email: '', jobTitle: '' }])
+                      }
+                    >
+                      Add signatory
+                    </Button>
+                  </Box>
+                  <Stack direction="row" spacing={1}>
+                    <LoadingButton
+                      size="small"
+                      variant="contained"
+                      loading={actionLoading}
+                      onClick={() =>
+                        saveSignatories('iotaSignatories', editedIota, () => setIotaEditing(false))
+                      }
+                    >
+                      Save
+                    </LoadingButton>
+                    <Button size="small" onClick={() => setIotaEditing(false)}>
+                      Cancel
+                    </Button>
+                  </Stack>
+                  <Typography variant="caption" color="text.secondary">
+                    Only the people you change here are notified. The partner is not told about
+                    IOTA-side changes.
+                  </Typography>
+                </Stack>
+              ) : (
               <Stack spacing={1.5}>
                 {(nda.iotaSignatories || []).map((s, i) => (
                   <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1653,13 +1866,133 @@ export default function NdaDetailsPage({ params }) {
                   </Box>
                 ))}
               </Stack>
+              )}
             </Card>
 
             {/* Partner Signatories */}
             <Card sx={{ p: 3 }}>
-              <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                Partner Signatories
-              </Typography>
+              <Stack
+                direction="row"
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{ mb: 2 }}
+              >
+                <Typography variant="subtitle1">Partner Signatories</Typography>
+                {!partnerEditing &&
+                  (canEdit ? (
+                    <Button
+                      size="small"
+                      startIcon={<Iconify icon="solar:pen-bold" />}
+                      onClick={() => {
+                        setEditedPartner(
+                          (nda.partnerSignatories || []).map((s) => ({
+                            name: s.name || '',
+                            email: s.email || '',
+                            jobTitle: s.jobTitle || '',
+                          }))
+                        );
+                        setPartnerEditing(true);
+                      }}
+                    >
+                      Edit
+                    </Button>
+                  ) : (
+                    editLockReason && (
+                      <Tooltip title={editLockReason}>
+                        <Iconify icon="solar:lock-keyhole-bold" width={16} color="text.disabled" />
+                      </Tooltip>
+                    )
+                  ))}
+              </Stack>
+              {partnerEditing ? (
+                <Stack spacing={2}>
+                  {editedPartner.map((row, i) => (
+                    <Stack
+                      key={i}
+                      spacing={1.5}
+                      sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}
+                    >
+                      <TextField
+                        size="small"
+                        label="Name"
+                        value={row.name}
+                        onChange={(e) =>
+                          setEditedPartner((prev) =>
+                            prev.map((r, idx) => (idx === i ? { ...r, name: e.target.value } : r))
+                          )
+                        }
+                      />
+                      <TextField
+                        size="small"
+                        label="Email"
+                        type="email"
+                        value={row.email}
+                        onChange={(e) =>
+                          setEditedPartner((prev) =>
+                            prev.map((r, idx) => (idx === i ? { ...r, email: e.target.value } : r))
+                          )
+                        }
+                      />
+                      <TextField
+                        size="small"
+                        label="Job title"
+                        value={row.jobTitle}
+                        onChange={(e) =>
+                          setEditedPartner((prev) =>
+                            prev.map((r, idx) =>
+                              idx === i ? { ...r, jobTitle: e.target.value } : r
+                            )
+                          )
+                        }
+                      />
+                      <Box>
+                        <Button
+                          size="small"
+                          color="error"
+                          startIcon={<Iconify icon="solar:trash-bin-trash-bold" />}
+                          onClick={() =>
+                            setEditedPartner((prev) => prev.filter((_, idx) => idx !== i))
+                          }
+                        >
+                          Remove
+                        </Button>
+                      </Box>
+                    </Stack>
+                  ))}
+                  <Box>
+                    <Button
+                      size="small"
+                      startIcon={<Iconify icon="mingcute:add-line" />}
+                      onClick={() =>
+                        setEditedPartner((prev) => [...prev, { name: '', email: '', jobTitle: '' }])
+                      }
+                    >
+                      Add signatory
+                    </Button>
+                  </Box>
+                  <Stack direction="row" spacing={1}>
+                    <LoadingButton
+                      size="small"
+                      variant="contained"
+                      loading={actionLoading}
+                      onClick={() =>
+                        saveSignatories('partnerSignatories', editedPartner, () =>
+                          setPartnerEditing(false)
+                        )
+                      }
+                    >
+                      Save
+                    </LoadingButton>
+                    <Button size="small" onClick={() => setPartnerEditing(false)}>
+                      Cancel
+                    </Button>
+                  </Stack>
+                  <Typography variant="caption" color="text.secondary">
+                    Changing the partner side notifies the partner signatories and the IOTA
+                    signatories. Signing links already sent keep working.
+                  </Typography>
+                </Stack>
+              ) : (
               <Stack spacing={1.5}>
                 {(nda.partnerSignatories || []).map((s, i) => (
                   <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -1684,6 +2017,7 @@ export default function NdaDetailsPage({ params }) {
                   </Box>
                 ))}
               </Stack>
+              )}
             </Card>
 
             {/* Action buttons */}
@@ -2042,7 +2376,7 @@ export default function NdaDetailsPage({ params }) {
 
             {/* Clauses (iota_generated only) */}
             {(!nda.documentSource || nda.documentSource === 'iota_generated') &&
-              ((nda.clauses && nda.clauses.length > 0) || isDraft) && (
+              ((nda.clauses && nda.clauses.length > 0) || canEdit) && (
                 <Card sx={{ p: 3 }}>
                   <Stack
                     direction="row"
@@ -2051,7 +2385,7 @@ export default function NdaDetailsPage({ params }) {
                     sx={{ mb: 2 }}
                   >
                     <Typography variant="h6">Additional Clauses</Typography>
-                    {isDraft && !clausesEditing && (
+                    {canEdit && !clausesEditing && (
                       <Button
                         size="small"
                         startIcon={<Iconify icon="solar:pen-bold" />}
