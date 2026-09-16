@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useBoolean, useSetState } from 'minimal-shared/hooks';
 
 import Card from '@mui/material/Card';
@@ -11,12 +11,14 @@ import TableBody from '@mui/material/TableBody';
 
 import { paths } from 'src/routes/paths';
 
+import { apiHelper } from 'src/utils/apiHelper';
+
 import { DashboardContent } from 'src/layouts/dashboard';
 
+import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
-import { toast } from 'src/components/snackbar';
 import {
   useTable,
   emptyRows,
@@ -49,7 +51,6 @@ const TABLE_HEAD = [
 // ----------------------------------------------------------------------
 
 export function VendorListView({ vendors = [] }) {
-  console.log('🔍 VendorListView vendors:', vendors); // Debug log
   const table = useTable();
   const router = useRouter();
   const confirm = useBoolean();
@@ -60,6 +61,37 @@ export function VendorListView({ vendors = [] }) {
   const canEdit = normalizedRole === 'superAdmin';
 
   const [tableData, setTableData] = useState(vendors);
+  const [loadError, setLoadError] = useState(null);
+  // Starts true: until the first fetch resolves the table has no rows, and
+  // without this the empty-state renders "No data" over a list that is simply
+  // still loading.
+  const [loading, setLoading] = useState(true);
+
+  // Fetched on the client, not in the server component that renders this view:
+  // both bearer-token sources are browser-only (`extractJWTFromSession` and
+  // `getLiveAccessToken` return null when `typeof window === 'undefined'`), so
+  // an SSR fetch cannot authenticate and silently yielded an empty list.
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const rows = await apiHelper.getVendors();
+        if (!cancelled) {
+          setTableData(rows || []);
+          setLoadError(null);
+        }
+      } catch (err) {
+        if (!cancelled) setLoadError(err?.message || 'Could not load vendors.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filters = useSetState({
     name: '',
@@ -76,7 +108,7 @@ export function VendorListView({ vendors = [] }) {
 
   const canReset = !!filters.state.name || filters.state.status !== 'all';
 
-  const notFound = (!dataFiltered.length && canReset) || !dataFiltered.length;
+  const notFound = !loading && !dataFiltered.length;
 
   const handleDeleteRow = useCallback(
     (id) => {
@@ -191,7 +223,17 @@ export function VendorListView({ vendors = [] }) {
                 emptyRows={emptyRows(table.page, table.rowsPerPage, dataFiltered.length)}
               />
 
-              <TableNoData notFound={notFound} />
+              {/* A failed load must not look like an empty vendor list. */}
+              {loadError ? (
+                <TableNoData
+                  notFound
+                  title="Could not load vendors"
+                  subTitle={loadError}
+                  sx={{ '& .MuiTypography-h6': { color: 'error.main' } }}
+                />
+              ) : (
+                <TableNoData notFound={notFound} />
+              )}
             </TableBody>
           </Table>
         </Scrollbar>

@@ -1,12 +1,13 @@
 'use client';
 
-import { PageGuard } from 'src/auth/guard';
 import { VendorListView } from 'src/sections/vendor/view';
 
-export default function VendorListWrapper({ vendors }) {
+import { PageGuard } from 'src/auth/guard';
+
+export default function VendorListWrapper() {
   return (
     <PageGuard>
-      <VendorListView vendors={vendors} />
+      <VendorListView />
     </PageGuard>
   );
 }

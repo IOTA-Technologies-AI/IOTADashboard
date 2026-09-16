@@ -104,6 +104,47 @@ export function ExpenseListView({ expenses: initialExpenses = [], permissionErro
   const table = useTable({ defaultRowsPerPage: 25 });
   const router = useRouter();
   const [expenses, setExpenses] = useState(() => initialExpenses);
+  const [loadError, setLoadError] = useState(null);
+  // Starts true: until the first fetch resolves the table has no rows, and
+  // without this the empty-state renders "No data" over a list that is simply
+  // still loading.
+  const [loading, setLoading] = useState(true);
+
+  // The list is fetched HERE, on the client, not in the server component that
+  // renders this view. Both token sources are browser-only by design
+  // (`extractJWTFromSession` and `getLiveAccessToken` each return null when
+  // `typeof window === 'undefined'`), so an SSR fetch cannot carry a bearer
+  // token at all. It worked only while /expenses was unauthenticated; once the
+  // gateway auth handler landed, every server-side fetch got a 401 that the
+  // page swallowed into an empty array — an empty table with nothing in the
+  // console and no request in the Network tab, because the call never happened
+  // in the browser.
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const rows = await apiHelper.getExpenses();
+        if (!cancelled) {
+          setExpenses(rows || []);
+          setLoadError(null);
+        }
+      } catch (err) {
+        if (cancelled) return;
+        if (err?.message?.includes('PERMISSION_DENIED')) {
+          setPermissionDenied(true);
+        } else {
+          setLoadError(err?.message || 'Could not load expenses.');
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Function to refresh a specific expense from the backend
   const handleRefreshExpense = useCallback(
@@ -158,9 +199,7 @@ export function ExpenseListView({ expenses: initialExpenses = [], permissionErro
     table.page * table.rowsPerPage + table.rowsPerPage
   );
 
-  const canReset = !!filters.state.name;
-
-  const notFound = (!dataFiltered.length && canReset) || !dataFiltered.length;
+  const notFound = !loading && !dataFiltered.length;
 
   const getExpenseLength = (status) => {
     if (status === true)
@@ -475,18 +514,33 @@ export function ExpenseListView({ expenses: initialExpenses = [], permissionErro
                   emptyRows={emptyRows(table.page, table.rowsPerPage, dataFiltered.length)}
                 />
 
-                {permissionDenied ? (
-                  <TableNoData
-                    notFound
-                    title="Permission Denied"
-                    subTitle="You don't have permission to view expenses. Please contact your administrator."
-                    sx={{
-                      '& .MuiTypography-h6': { color: 'error.main' },
-                    }}
-                  />
-                ) : (
-                  <TableNoData notFound={notFound} />
-                )}
+                {/* A failed load and a genuinely empty list must not look the
+                    same. Previously both rendered "no data", which is what made
+                    a 401 on this page indistinguishable from having no
+                    expenses. */}
+                {(() => {
+                  if (permissionDenied) {
+                    return (
+                      <TableNoData
+                        notFound
+                        title="Permission Denied"
+                        subTitle="You don't have permission to view expenses. Please contact your administrator."
+                        sx={{ '& .MuiTypography-h6': { color: 'error.main' } }}
+                      />
+                    );
+                  }
+                  if (loadError) {
+                    return (
+                      <TableNoData
+                        notFound
+                        title="Could not load expenses"
+                        subTitle={loadError}
+                        sx={{ '& .MuiTypography-h6': { color: 'error.main' } }}
+                      />
+                    );
+                  }
+                  return <TableNoData notFound={notFound} />;
+                })()}
               </TableBody>
             </Table>
           </Scrollbar>

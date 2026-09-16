@@ -1,19 +1,12 @@
-import { apiHelper } from 'src/utils/apiHelper';
-
 import VendorListWrapper from './list-wrapper';
 
 // ----------------------------------------------------------------------
 
 export const metadata = { title: `Vendor list` };
 
-export default async function Page() {
-  let vendors = [];
-
-  try {
-    vendors = await apiHelper.getVendors();
-  } catch (error) {
-    vendors = [];
-  }
-
-  return <VendorListWrapper vendors={vendors} />;
+// No data fetching here — see the note in VendorListView. A server component
+// cannot obtain a bearer token, so this fetch returned 401 and the catch turned
+// it into an empty list with nothing shown to the user.
+export default function Page() {
+  return <VendorListWrapper />;
 }

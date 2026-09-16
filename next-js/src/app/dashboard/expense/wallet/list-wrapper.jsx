@@ -4,10 +4,10 @@ import { WalletListView } from 'src/sections/expense/wallet';
 
 import { PageGuard } from 'src/auth/guard';
 
-export default function WalletListWrapper({ wallets }) {
+export default function WalletListWrapper() {
   return (
     <PageGuard>
-      <WalletListView wallets={wallets} />
+      <WalletListView />
     </PageGuard>
   );
 }

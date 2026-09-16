@@ -1,28 +1,32 @@
 'use client';
 
+import useSWR from 'swr';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import {
   pdf,
   Font,
-  Image as PdfImage,
-  Document,
   Page,
   Text,
   View,
+  Document,
+  Image as PdfImage,
   StyleSheet as PdfStyleSheet,
 } from '@react-pdf/renderer';
-import useSWR from 'swr';
-import { useState, useEffect, useCallback, useRef } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
 import Grid from '@mui/material/Grid';
+import Menu from '@mui/material/Menu';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import Select from '@mui/material/Select';
+import Switch from '@mui/material/Switch';
+import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
+import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
 import TableBody from '@mui/material/TableBody';
@@ -33,39 +37,36 @@ import InputLabel from '@mui/material/InputLabel';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 import FormControl from '@mui/material/FormControl';
-import TableContainer from '@mui/material/TableContainer';
-import CircularProgress from '@mui/material/CircularProgress';
-import InputAdornment from '@mui/material/InputAdornment';
-import Switch from '@mui/material/Switch';
-import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
+import ListItemIcon from '@mui/material/ListItemIcon';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import TableContainer from '@mui/material/TableContainer';
+import InputAdornment from '@mui/material/InputAdornment';
 import FormHelperText from '@mui/material/FormHelperText';
+import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
-import Tooltip from '@mui/material/Tooltip';
-import Menu from '@mui/material/Menu';
-import ListItemIcon from '@mui/material/ListItemIcon';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
 import {
-  getResourceCalculation,
-  getResourceCalculationTemplates,
-  createResourceCalculation,
-  updateResourceCalculation,
-  listCandidates,
-  listJobDescriptions,
-  uploadResume,
-  getCustomers,
-  submitRCForApproval,
   forwardRC,
   approveRC,
+  uploadResume,
+  getCustomers,
+  listCandidates,
+  listJobDescriptions,
+  submitRCForApproval,
+  getResourceCalculation,
+  createResourceCalculation,
+  updateResourceCalculation,
+  getResourceCalculationTemplates,
 } from 'src/utils/apiHelper';
 
-import { Iconify } from 'src/components/iconify';
 import { DashboardContent } from 'src/layouts/dashboard';
+
+import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
@@ -155,7 +156,7 @@ function evalFormula(formula, context = {}) {
       return acc.replace(new RegExp(`\\b${key}\\b`, 'g'), String(value));
     }, formula);
     if (!/^[\d\s+\-*/().]+$/.test(safe)) return 0;
-    // eslint-disable-next-line no-new-func
+     
     const result = Number(Function('"use strict"; return (' + safe + ')')());
     return isFinite(result) ? result : 0;
   } catch {
@@ -321,9 +322,102 @@ const pdfStyles = PdfStyleSheet.create({
     paddingTop: 12,
     borderTop: '1 solid #E0E0E0',
   },
-  footerNote: { fontSize: 8.5, color: '#666666', maxWidth: 220, lineHeight: 1.6 },
+  footerNote: { fontSize: 8.5, color: '#666666', maxWidth: 240, lineHeight: 1.6 },
   footerTag: { fontSize: 8, color: '#999999', textAlign: 'right' },
+
+  // ── Title block: the proposal's own title, so a downloaded file states what
+  // it is for rather than reading as a generic "Quotation Summary". ──────────
+  titleBlock: {
+    paddingHorizontal: 12,
+    paddingTop: 14,
+    paddingBottom: 10,
+    borderBottom: '1 solid #E8ECEF',
+  },
+  docTitle: { fontSize: 14, fontWeight: 700, color: '#111111', lineHeight: 1.3 },
+  docSubtitle: { fontSize: 9, color: '#555555', marginTop: 4 },
+
+  // ── Meta grid: the facts the page shows beside the numbers. ───────────────
+  metaGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    backgroundColor: '#F7FAF9',
+    borderBottom: '1 solid #E2EBE7',
+    paddingTop: 10,
+    paddingBottom: 4,
+    paddingHorizontal: 12,
+  },
+  metaCell: { width: '33.33%', paddingRight: 10, marginBottom: 8 },
+  metaLabel: {
+    fontSize: 7,
+    color: '#7A8A85',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: 2,
+  },
+  metaValue: { fontSize: 9, color: '#111111' },
+
+  sectionTitle: {
+    fontSize: 8.5,
+    fontWeight: 700,
+    color: '#0B5E41',
+    textTransform: 'uppercase',
+    letterSpacing: 0.9,
+    marginTop: 18,
+    marginBottom: 6,
+    paddingHorizontal: 12,
+  },
+  bodyText: { fontSize: 9, color: '#444444', lineHeight: 1.6, paddingHorizontal: 12 },
+  termItem: { fontSize: 8.5, color: '#555555', lineHeight: 1.6, paddingHorizontal: 12, marginBottom: 2 },
+  taxNote: { fontSize: 8.5, color: '#666666' },
+
+  // ── Optional internal cost breakdown ─────────────────────────────────────
+  breakdownHeader: {
+    flexDirection: 'row',
+    backgroundColor: '#E8F3EF',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  breakdownRow: {
+    flexDirection: 'row',
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+    borderBottom: '1 solid #F0F3F5',
+  },
+  breakdownLabel: { flex: 3, fontSize: 8.5 },
+  breakdownCat: { flex: 1.1, fontSize: 8.5, color: '#666666' },
+  breakdownAmt: { flex: 1.2, fontSize: 8.5, textAlign: 'right' },
+
+  pageFooter: {
+    position: 'absolute',
+    bottom: 22,
+    left: 40,
+    right: 40,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    fontSize: 7.5,
+    color: '#AAAAAA',
+  },
 });
+
+/** Quotations are held open for 30 days from the date of issue. */
+const QUOTE_VALIDITY_DAYS = 30;
+
+/** Dates on the quotation print unambiguously (05 Feb 2026, never 05/02). */
+function fPdfDate(value) {
+  const d = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+/** Filename-safe slug, so the download is identifiable in a Downloads folder. */
+function slugify(value) {
+  return String(value || '')
+    .normalize('NFKD')
+    .replace(/[^\w\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .slice(0, 60);
+}
 
 function getUserEmail() {
   if (typeof window === 'undefined') return '';
@@ -561,7 +655,7 @@ export function ResourceCalculationFormView({ id }) {
         return recompute(updated, baseSalaryRef.current, dependentsCountRef.current);
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
     []
   );
 
@@ -747,19 +841,129 @@ export function ResourceCalculationFormView({ id }) {
     : customersData?.customers || [];
 
   // ── PDF generation ────────────────────────────────────────────────────────
-  const buildPDFDoc = (countryMeta, subtotal, vatAmount, grandTotal) => {
-    const TAX_LABEL = countryMeta.taxLabel;
+  /**
+   * Every fact the quotation page shows, resolved once so the document body,
+   * the PDF metadata, the filename and the share messages all quote the same
+   * values instead of each re-deriving them.
+   */
+  const buildQuotationMeta = (countryMeta) => {
+    const rc = rcData?.data;
     const customerObj = customerList.find((cu) => String(cu.id) === String(customerId));
     const customerName = customerObj?.customerNameEn || customerObj?.customerNameAr || '';
-    const dependentsWord = dependentsCount !== 1 ? 'dependents' : 'dependent';
-    const familyLine = familyStatus
-      ? `Family with ${dependentsCount} ${dependentsWord} + wife`
-      : 'Single';
+    const jdTitle = jdList.find((jd) => String(jd.id) === String(jdId))?.title || '';
+    const candidateObj = candidateList.find((c) => String(c.id) === String(candidateId));
+    const issuedOn = rc?.createdAt ? new Date(rc.createdAt) : new Date();
+    const validUntil = new Date(issuedOn.getTime() + QUOTE_VALIDITY_DAYS * 24 * 60 * 60 * 1000);
+    const childWord = Number(dependentsCount) !== 1 ? 'children' : 'child';
+
+    return {
+      documentTitle: title.trim() || 'Resource Quotation',
+      // A record only has an id once it has been saved; say so rather than
+      // printing a blank reference a recipient might quote back at us.
+      reference: id ? `RQ-${id}` : 'Draft — not yet saved',
+      customerName,
+      jdTitle,
+      resourceName: fullName.trim() || candidateObj?.name || '',
+      issuedOn,
+      validUntil,
+      preparedBy: rc?.createdBy || getUserEmail(),
+      entityLabel: countryMeta.label,
+      taxLabel: countryMeta.taxLabel,
+      taxPercent: Math.round((Number(countryMeta.taxRate) || 0) * 100),
+      statusLabel: status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Draft',
+      familyLabel: familyStatus ? `Family — ${dependentsCount} ${childWord} + wife` : 'Single',
+    };
+  };
+
+  /**
+   * The scope bullets under the Description column. Shared by the on-screen
+   * summary and the PDF so the two cannot drift: the PDF used to run its own
+   * copy of this logic, which silently dropped every non-ticket government line
+   * and counted End of Service twice (once on its own, once inside "Standard
+   * Employee Benefits").
+   */
+  const buildScopeBullets = () => {
+    const isEOS = (i) => i.category === 'statutory' && i.label.toLowerCase().includes('end of service');
+    const isTicket = (i) => i.category === 'government' && i.label.toLowerCase().includes('ticket');
+
+    const bullets = [];
+    const childWord = Number(dependentsCount) !== 1 ? 'children' : 'child';
+    bullets.push(familyStatus ? `Family — ${dependentsCount} ${childWord} + wife` : 'Single');
+
+    activeItems
+      .filter((i) => i.category === 'insurance')
+      .forEach((i) =>
+        bullets.push(insuranceLabel(i.label, insurancePremiumFactor, familyStatus, dependentsCount))
+      );
+
+    if (activeItems.some((i) => (i.category === 'statutory' && !isEOS(i)) || i.category === 'service')) {
+      bullets.push('Standard Employee Benefits');
+    }
+    if (activeItems.some(isEOS)) bullets.push('End of Service Benefits');
+    if (activeItems.some(isTicket)) bullets.push('Annual Travel Benefits');
+
+    activeItems
+      .filter((i) => i.category === 'government' && !isTicket(i))
+      .forEach((i) => bullets.push(resolveLabel(i.label, insurancePremiumFactor, dependentsCount)));
+
+    return bullets;
+  };
+
+  /** The download/share filename — identifiable without opening the file. */
+  const buildPDFFileName = (meta) =>
+    [
+      'IOTA-Resource-Quotation',
+      slugify(meta.documentTitle),
+      slugify(meta.customerName),
+      id ? String(id) : new Date().toISOString().slice(0, 10),
+    ]
+      .filter(Boolean)
+      .join('-') + '.pdf';
+
+  const buildPDFDoc = (countryMeta, subtotal, vatAmount, grandTotal, options = {}) => {
+    const { includeBreakdown = false } = options;
+    const meta = buildQuotationMeta(countryMeta);
+    const TAX_LABEL = meta.taxLabel;
+    const bullets = buildScopeBullets();
+
+    // Rendered as a grid so the quotation carries the same context the page
+    // does — who it is for, which entity issues it, and how long it stands.
+    const metaFields = [
+      ['Quotation Ref', meta.reference],
+      ['Date of Issue', fPdfDate(meta.issuedOn)],
+      ['Valid Until', fPdfDate(meta.validUntil)],
+      ['Prepared For', meta.customerName || '—'],
+      ['Issuing Entity', meta.entityLabel],
+      ['Currency', currency],
+      ['Resource', meta.resourceName || '—'],
+      ['Position / Job Description', meta.jdTitle || '—'],
+      ['Nationality', nationality || '—'],
+      ['Family Status', meta.familyLabel],
+      ['Insurance Plan', `Bupa Premium ${insurancePremiumFactor}`],
+      ['Status', meta.statusLabel],
+    ];
 
     return (
-      <Document>
+      <Document
+        title={`${meta.documentTitle} — Resource Quotation (${meta.reference})`}
+        author="IOTA Technologies"
+        subject={
+          meta.customerName
+            ? `Resource quotation for ${meta.customerName}`
+            : 'Resource quotation'
+        }
+        keywords={['resource quotation', meta.documentTitle, meta.customerName, nationality]
+          .filter(Boolean)
+          .join(', ')}
+        creator="IOTA Dashboard"
+      >
         <Page size="A4" style={pdfStyles.page}>
-          {/* ── Header band ─── */}
+          {/* ── Header band ───
+              Deliberately NOT `fixed`: a fixed header renders at the same
+              offset on every page while the content still flows from the top,
+              so on page 2 of a long quotation the band would sit on top of the
+              rows. The running header/footer is the small fixed strip at the
+              bottom of the page instead. */}
           <View style={pdfStyles.header}>
             {/* Logo — left */}
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -784,15 +988,36 @@ export function ResourceCalculationFormView({ id }) {
                 Resource Quotation
               </Text>
             </View>
-            {/* Title + customer — right */}
+            {/* Reference — right */}
             <View style={pdfStyles.headerLeft}>
               <Text style={pdfStyles.headerTitle}>Quotation Summary</Text>
-              {customerName ? <Text style={pdfStyles.headerSub}>{customerName}</Text> : null}
+              <Text style={pdfStyles.headerSub}>{meta.reference}</Text>
             </View>
           </View>
 
+          {/* ── Title block ───
+              The proposal's own title, so the file states what it was built for
+              instead of reading as an unattributed price list. */}
+          <View style={pdfStyles.titleBlock}>
+            <Text style={pdfStyles.docTitle}>{meta.documentTitle}</Text>
+            <Text style={pdfStyles.docSubtitle}>
+              {meta.customerName ? `Prepared for ${meta.customerName}` : 'Prepared by IOTA Technologies'}
+              {` · Issued ${fPdfDate(meta.issuedOn)} · Valid until ${fPdfDate(meta.validUntil)}`}
+            </Text>
+          </View>
+
+          {/* ── Quotation details grid ─── */}
+          <View style={pdfStyles.metaGrid}>
+            {metaFields.map(([label, value]) => (
+              <View key={label} style={pdfStyles.metaCell}>
+                <Text style={pdfStyles.metaLabel}>{label}</Text>
+                <Text style={pdfStyles.metaValue}>{value}</Text>
+              </View>
+            ))}
+          </View>
+
           {/* ── Table header ─── */}
-          <View style={pdfStyles.tableHeader}>
+          <View style={[pdfStyles.tableHeader, { marginTop: 18 }]}>
             <Text style={[pdfStyles.colDesc, pdfStyles.bold, { fontSize: 9 }]}>DESCRIPTION</Text>
             <Text style={[pdfStyles.colAmt, pdfStyles.bold, { fontSize: 9 }]}>
               {'MONTHLY CHARGES\n'}(Excl. {TAX_LABEL})
@@ -805,36 +1030,16 @@ export function ResourceCalculationFormView({ id }) {
           {/* ── Main data row ─── */}
           <View style={pdfStyles.tableRow}>
             <View style={pdfStyles.colDesc}>
-              {fullName.trim() ? (
-                <>
-                  <Text style={pdfStyles.bold}>{fullName.trim()}</Text>
-                  <Text style={pdfStyles.bold}>
-                    {nationality ? `${nationality} Employee` : 'Employee'}
-                  </Text>
-                </>
-              ) : (
-                <Text style={pdfStyles.bold}>
-                  {nationality ? `${nationality} Employee` : 'Employee'}
+              {meta.resourceName ? <Text style={pdfStyles.bold}>{meta.resourceName}</Text> : null}
+              <Text style={pdfStyles.bold}>
+                {nationality ? `${nationality} Employee` : 'Employee'}
+                {meta.jdTitle ? ` — ${meta.jdTitle}` : ''}
+              </Text>
+              {bullets.map((b, i) => (
+                <Text key={i} style={pdfStyles.bullet}>
+                  • {b}
                 </Text>
-              )}
-              <Text style={pdfStyles.bullet}>• {familyLine}</Text>
-              {activeItems
-                .filter((i) => i.category === 'insurance')
-                .map((item) => (
-                  <Text key={item.id || item.label} style={pdfStyles.bullet}>
-                    • {insuranceLabel(item.label, insurancePremiumFactor, familyStatus, dependentsCount)}
-                  </Text>
-                ))}
-              {activeItems.some(
-                (i) => i.category === 'government' && i.label.toLowerCase().includes('ticket')
-              ) && <Text style={pdfStyles.bullet}>• Annual Travel Benefits</Text>}
-              {activeItems.some((i) => i.category === 'statutory' || i.category === 'service') && (
-                <Text style={pdfStyles.bullet}>• Standard Employee Benefits</Text>
-              )}
-              {activeItems.some(
-                (i) =>
-                  i.category === 'statutory' && i.label.toLowerCase().includes('end of service')
-              ) && <Text style={pdfStyles.bullet}>• End of Service Benefits</Text>}
+              ))}
             </View>
             <Text style={[pdfStyles.colAmt, pdfStyles.bold, { fontSize: 11 }]}>
               {currency} {fmtNumber(totalMonthly)}
@@ -852,6 +1057,15 @@ export function ResourceCalculationFormView({ id }) {
                 {currency} {fmtNumber(subtotal)}
               </Text>
             </View>
+            {/* Tax is quoted as applicable and is deliberately NOT added into the
+                total — spell that out rather than leaving the reader to infer it
+                from a missing line. */}
+            <View style={pdfStyles.totalsRow}>
+              <Text style={pdfStyles.taxNote}>
+                {TAX_LABEL} ({meta.taxPercent}%):
+              </Text>
+              <Text style={pdfStyles.taxNote}>As applicable — not included</Text>
+            </View>
             <View style={pdfStyles.divider} />
             <View style={pdfStyles.totalsRow}>
               <Text style={[pdfStyles.bold, { fontSize: 12 }]}>TOTAL:</Text>
@@ -859,75 +1073,171 @@ export function ResourceCalculationFormView({ id }) {
                 {currency} {fmtNumber(grandTotal)}
               </Text>
             </View>
+            <View style={pdfStyles.totalsRow}>
+              <Text style={pdfStyles.taxNote}>Billed as 12 equal monthly instalments of</Text>
+              <Text style={pdfStyles.taxNote}>
+                {currency} {fmtNumber(totalMonthly)}
+              </Text>
+            </View>
           </View>
+
+          {/* ── Optional internal cost breakdown ───
+              Off by default: a customer-facing quotation must not disclose the
+              salary and statutory components behind the price. */}
+          {includeBreakdown && activeItems.length > 0 && (
+            <>
+              <Text style={pdfStyles.sectionTitle}>Cost Breakdown (Internal)</Text>
+              <View style={pdfStyles.breakdownHeader}>
+                <Text style={[pdfStyles.breakdownLabel, pdfStyles.bold]}>Component</Text>
+                <Text style={[pdfStyles.breakdownCat, pdfStyles.bold]}>Category</Text>
+                <Text style={[pdfStyles.breakdownAmt, pdfStyles.bold]}>Monthly</Text>
+                <Text style={[pdfStyles.breakdownAmt, pdfStyles.bold]}>Annual</Text>
+              </View>
+              {activeItems.map((item, i) => {
+                const billed = billable(item.monthly);
+                return (
+                  <View key={item.id || `${item.label}-${i}`} style={pdfStyles.breakdownRow} wrap={false}>
+                    <Text style={pdfStyles.breakdownLabel}>
+                      {resolveLabel(item.label, insurancePremiumFactor, dependentsCount)}
+                    </Text>
+                    <Text style={pdfStyles.breakdownCat}>
+                      {CATEGORY_LABELS[item.category] || item.category || '—'}
+                    </Text>
+                    <Text style={pdfStyles.breakdownAmt}>
+                      {currency} {fmtNumber(billed.monthly)}
+                    </Text>
+                    <Text style={pdfStyles.breakdownAmt}>
+                      {currency} {fmtNumber(billed.annual)}
+                    </Text>
+                  </View>
+                );
+              })}
+            </>
+          )}
+
+          {/* ── Notes ─── */}
+          {notes.trim() ? (
+            <>
+              <Text style={pdfStyles.sectionTitle}>Notes</Text>
+              <Text style={pdfStyles.bodyText}>{notes.trim()}</Text>
+            </>
+          ) : null}
+
+          {/* ── Terms ─── */}
+          <Text style={pdfStyles.sectionTitle}>Terms &amp; Conditions</Text>
+          <Text style={pdfStyles.termItem}>
+            • This quotation is valid until {fPdfDate(meta.validUntil)} and is subject to written
+            confirmation thereafter.
+          </Text>
+          <Text style={pdfStyles.termItem}>
+            • All charges are quoted in {currency}, exclusive of {TAX_LABEL}. {TAX_LABEL} at{' '}
+            {meta.taxPercent}% will be applied on invoice where applicable.
+          </Text>
+          <Text style={pdfStyles.termItem}>
+            • Charges are billed as 12 equal monthly instalments and cover the scope listed above.
+          </Text>
+          <Text style={pdfStyles.termItem}>
+            • Services are provided by {meta.entityLabel}. Mobilisation is subject to visa and
+            government approvals.
+          </Text>
+          <Text style={pdfStyles.termItem}>
+            • Any change to nationality, family status, insurance plan or scope requires a revised
+            quotation.
+          </Text>
 
           {/* ── Footer ─── */}
           <View style={pdfStyles.footer}>
             <Text style={pdfStyles.footerNote}>
               If you have any questions concerning this quotation,{'\n'}
               please contact us at accounts@iotatechnologies.ai{'\n'}
-              VAT as applicable
+              {TAX_LABEL} as applicable
             </Text>
-            <Text style={pdfStyles.footerTag}>Generated by IOTA Technologies</Text>
+            <View>
+              <Text style={pdfStyles.footerTag}>Generated by IOTA Technologies</Text>
+              {meta.preparedBy ? (
+                <Text style={pdfStyles.footerTag}>Prepared by {meta.preparedBy}</Text>
+              ) : null}
+            </View>
+          </View>
+
+          {/* Page furniture — repeated on every page once the breakdown or a long
+              notes block pushes the document past one page. */}
+          <View style={pdfStyles.pageFooter} fixed>
+            <Text>
+              {meta.reference} · {meta.documentTitle}
+            </Text>
+            <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
           </View>
         </Page>
       </Document>
     );
   };
 
-  const handleDownloadPDF = async (countryMeta, subtotal, vatAmount, grandTotal) => {
+  const handleDownloadPDF = async (countryMeta, subtotal, vatAmount, grandTotal, options = {}) => {
     setPdfGenerating(true);
     try {
-      const doc = buildPDFDoc(countryMeta, subtotal, vatAmount, grandTotal);
+      const doc = buildPDFDoc(countryMeta, subtotal, vatAmount, grandTotal, options);
       const blob = await pdf(doc).toBlob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `quotation-${Date.now()}.pdf`;
+      a.download = buildPDFFileName(buildQuotationMeta(countryMeta));
       a.click();
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('PDF generation failed:', err);
+      setError('Could not generate the quotation PDF. Please try again.');
     } finally {
       setPdfGenerating(false);
     }
   };
 
-  const handlePrintPDF = async (countryMeta, subtotal, vatAmount, grandTotal) => {
+  const handlePrintPDF = async (countryMeta, subtotal, vatAmount, grandTotal, options = {}) => {
     setPdfGenerating(true);
     try {
-      const doc = buildPDFDoc(countryMeta, subtotal, vatAmount, grandTotal);
+      const doc = buildPDFDoc(countryMeta, subtotal, vatAmount, grandTotal, options);
       const blob = await pdf(doc).toBlob();
       const url = URL.createObjectURL(blob);
       window.open(url, '_blank');
     } catch (err) {
       console.error('Print failed:', err);
+      setError('Could not open the quotation PDF. Please try again.');
     } finally {
       setPdfGenerating(false);
     }
   };
 
+
   const handleShareEmail = (countryMeta, grandTotal) => {
-    const customerObj = customerList.find((cu) => String(cu.id) === String(customerId));
-    const customerName = customerObj?.customerNameEn || customerObj?.customerNameAr || '';
-    const familyStatusText = familyStatus ? `Yes (${dependentsCount} children + wife)` : 'Single';
-    const subject = encodeURIComponent(`Resource Quotation — ${title || 'Proposal'}`);
+    const meta = buildQuotationMeta(countryMeta);
+    const subject = encodeURIComponent(
+      `Resource Quotation — ${meta.documentTitle} (${meta.reference})`
+    );
     const body = encodeURIComponent(
-      `Dear ${customerName || 'Team'},\n\nPlease find the resource quotation summary below.\n\n` +
-        `Position: ${title}\n` +
+      `Dear ${meta.customerName || 'Team'},\n\nPlease find the resource quotation summary below.\n\n` +
+        `Quotation: ${meta.documentTitle}\n` +
+        `Reference: ${meta.reference}\n` +
+        `Issued: ${fPdfDate(meta.issuedOn)}\n` +
+        `Valid Until: ${fPdfDate(meta.validUntil)}\n` +
+        `Issuing Entity: ${meta.entityLabel}\n` +
+        (meta.resourceName ? `Resource: ${meta.resourceName}\n` : '') +
+        (meta.jdTitle ? `Position: ${meta.jdTitle}\n` : '') +
         `Nationality: ${nationality}\n` +
-        `Family Status: ${familyStatusText}\n` +
+        `Family Status: ${meta.familyLabel}\n` +
+        `Insurance Plan: Bupa Premium ${insurancePremiumFactor}\n\n` +
         `Total Monthly: ${currency} ${fmtNumber(totalMonthly)}\n` +
         `Total Annual: ${currency} ${fmtNumber(totalAnnual)}\n` +
         `Grand Total: ${currency} ${fmtNumber(grandTotal)}\n` +
-        `${countryMeta.taxLabel} as applicable\n\n` +
+        `${meta.taxLabel} (${meta.taxPercent}%) as applicable — not included\n\n` +
+        (notes.trim() ? `Notes: ${notes.trim()}\n\n` : '') +
         `Best regards,\nIOTA Technologies\naccounts@iotatechnologies.ai`
     );
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
   const handleShareWhatsApp = async (countryMeta, subtotal, vatAmount, grandTotal) => {
-    const fileName = `quotation-${Date.now()}.pdf`;
+    const meta = buildQuotationMeta(countryMeta);
+    const fileName = buildPDFFileName(meta);
 
     // ── Mobile: share the actual PDF file via Web Share API ──────────────
     if (typeof navigator !== 'undefined' && navigator.canShare) {
@@ -938,8 +1248,8 @@ export function ResourceCalculationFormView({ id }) {
         const file = new File([blob], fileName, { type: 'application/pdf' });
         if (navigator.canShare({ files: [file] })) {
           await navigator.share({
-            title: `Resource Quotation — ${title || 'Proposal'}`,
-            text: 'Please find the attached resource quotation from IOTA Technologies.',
+            title: `Resource Quotation — ${meta.documentTitle}`,
+            text: `${meta.documentTitle} (${meta.reference}) — resource quotation from IOTA Technologies.`,
             files: [file],
           });
           return;
@@ -955,15 +1265,18 @@ export function ResourceCalculationFormView({ id }) {
 
     // ── Desktop fallback: open WhatsApp with text summary ─────────────────
     const employeeLabel = nationality ? `${nationality} Employee` : 'Employee';
-    const familyStatusText = familyStatus ? `Yes (${dependentsCount} children + wife)` : 'Single';
     const text = encodeURIComponent(
-      `*Resource Quotation — ${title || 'Proposal'}*\n\n` +
-        `📋 Position: *${employeeLabel}*\n` +
-        `👨‍👩‍👧 Family: ${familyStatusText}\n` +
+      `*Resource Quotation — ${meta.documentTitle}*\n` +
+        `Ref: ${meta.reference} · Valid until ${fPdfDate(meta.validUntil)}\n\n` +
+        (meta.customerName ? `🏢 Prepared for: ${meta.customerName}\n` : '') +
+        `📋 Position: *${meta.jdTitle || employeeLabel}*\n` +
+        (meta.resourceName ? `👤 Resource: ${meta.resourceName}\n` : '') +
+        `👨‍👩‍👧 Family: ${meta.familyLabel}\n` +
+        `🛡️ Insurance: Bupa Premium ${insurancePremiumFactor}\n` +
         `💰 Monthly: *${currency} ${fmtNumber(totalMonthly)}*\n` +
         `📅 Annual: *${currency} ${fmtNumber(totalAnnual)}*\n` +
         `✅ Grand Total: *${currency} ${fmtNumber(grandTotal)}*\n` +
-        `🧾 ${countryMeta.taxLabel} as applicable\n\n` +
+        `🧾 ${meta.taxLabel} (${meta.taxPercent}%) as applicable — not included\n\n` +
         `_IOTA Technologies — accounts@iotatechnologies.ai_`
     );
     window.open(`https://wa.me/?text=${text}`, '_blank');
@@ -1526,25 +1839,12 @@ export function ResourceCalculationFormView({ id }) {
         const vatAmount = 0;
         const grandTotal = subtotal;
 
-        // Build description bullets from active line items
-        const insuranceItems = activeItems.filter((i) => i.category === 'insurance');
-        const hasEOS = activeItems.some(
-          (i) => i.category === 'statutory' && i.label.toLowerCase().includes('end of service')
-        );
-        const hasStandardBenefits = activeItems.some(
-          (i) =>
-            (i.category === 'statutory' && !i.label.toLowerCase().includes('end of service')) ||
-            i.category === 'service'
-        );
-        const hasTravel = activeItems.some(
-          (i) => i.category === 'government' && i.label.toLowerCase().includes('ticket')
-        );
-        const otherGovtItems = activeItems.filter(
-          (i) => i.category === 'government' && !i.label.toLowerCase().includes('ticket')
-        );
-
-        const customerObj = customerList.find((cu) => String(cu.id) === String(customerId));
-        const customerName = customerObj?.customerNameEn || customerObj?.customerNameAr || '';
+        // Description bullets and the quotation's identifying facts both come
+        // from the same helpers the PDF uses, so what is printed can never
+        // differ from what was reviewed on screen.
+        const scopeBullets = buildScopeBullets();
+        const quotationMeta = buildQuotationMeta(countryMeta);
+        const customerName = quotationMeta.customerName;
 
         return (
           <Card sx={{ mt: 3, overflow: 'hidden' }}>
@@ -1559,13 +1859,20 @@ export function ResourceCalculationFormView({ id }) {
                 justifyContent: 'space-between',
               }}
             >
-              <Box>
-                <Typography variant="subtitle1" color="white" fontWeight={700} letterSpacing={0.5}>
-                  Quotation Summary
+              <Box sx={{ minWidth: 0, pr: 2 }}>
+                <Typography
+                  variant="caption"
+                  color="rgba(255,255,255,0.7)"
+                  sx={{ letterSpacing: 1.2, textTransform: 'uppercase', display: 'block' }}
+                >
+                  Resource Quotation · {quotationMeta.reference}
+                </Typography>
+                <Typography variant="subtitle1" color="white" fontWeight={700} letterSpacing={0.3}>
+                  {quotationMeta.documentTitle}
                 </Typography>
                 {customerName && (
                   <Typography variant="caption" color="rgba(255,255,255,0.75)">
-                    {customerName}
+                    Prepared for {customerName}
                   </Typography>
                 )}
               </Box>
@@ -1633,8 +1940,67 @@ export function ResourceCalculationFormView({ id }) {
                     </ListItemIcon>
                     Share via WhatsApp
                   </MenuItem>
+                  <Divider sx={{ my: 0.5 }} />
+                  {/* Separate export: the customer-facing quotation must not
+                      disclose the salary and statutory components behind the
+                      price, so the breakdown is opt-in and labelled internal. */}
+                  <MenuItem
+                    onClick={() => {
+                      setShareAnchor(null);
+                      handleDownloadPDF(countryMeta, subtotal, vatAmount, grandTotal, {
+                        includeBreakdown: true,
+                      });
+                    }}
+                  >
+                    <ListItemIcon>
+                      <Iconify icon="solar:document-text-bold" width={18} />
+                    </ListItemIcon>
+                    Download with cost breakdown (internal)
+                  </MenuItem>
                 </Menu>
               </Stack>
+            </Box>
+
+            {/* Quotation details — the same grid the PDF prints, so reviewing the
+                page is equivalent to reviewing the downloaded document. */}
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+                gap: 2,
+                px: 3,
+                py: 2,
+                backgroundColor: '#F7FAF9',
+                borderBottom: '1px solid #E2EBE7',
+              }}
+            >
+              {[
+                ['Quotation Ref', quotationMeta.reference],
+                ['Date of Issue', fPdfDate(quotationMeta.issuedOn)],
+                ['Valid Until', fPdfDate(quotationMeta.validUntil)],
+                ['Status', quotationMeta.statusLabel],
+                ['Prepared For', customerName || '—'],
+                ['Issuing Entity', quotationMeta.entityLabel],
+                ['Resource', quotationMeta.resourceName || '—'],
+                ['Position / Job Description', quotationMeta.jdTitle || '—'],
+                ['Nationality', nationality || '—'],
+                ['Family Status', quotationMeta.familyLabel],
+                ['Insurance Plan', `Bupa Premium ${insurancePremiumFactor}`],
+                ['Currency', currency],
+              ].map(([label, value]) => (
+                <Box key={label} sx={{ minWidth: 0 }}>
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ display: 'block', textTransform: 'uppercase', letterSpacing: 0.6 }}
+                  >
+                    {label}
+                  </Typography>
+                  <Typography variant="body2" fontWeight={600}>
+                    {value}
+                  </Typography>
+                </Box>
+              ))}
             </Box>
 
             <TableContainer>
@@ -1698,50 +2064,19 @@ export function ResourceCalculationFormView({ id }) {
                 <TableBody>
                   <TableRow>
                     <TableCell sx={{ verticalAlign: 'top', py: 2.5, borderBottom: 'none' }}>
-                      {fullName.trim() && (
+                      {quotationMeta.resourceName && (
                         <Typography variant="body2" fontWeight={600}>
-                          {fullName.trim()}
+                          {quotationMeta.resourceName}
                         </Typography>
                       )}
                       <Typography variant="body2" fontWeight={600} gutterBottom>
                         {nationality ? `${nationality} Employee` : 'Employee'}
+                        {quotationMeta.jdTitle ? ` — ${quotationMeta.jdTitle}` : ''}
                       </Typography>
                       <Box component="ul" sx={{ pl: 2.5, mt: 0.5, mb: 0 }}>
-                        {/* Family status bullet */}
-                        {(() => {
-                          const childLabel = dependentsCount !== 1 ? 'children' : 'child';
-                          const familyDesc = familyStatus
-                            ? `Family — ${dependentsCount} ${childLabel} + wife`
-                            : 'Single';
-                          return (
-                            <Typography component="li" variant="body2" sx={{ mb: 0.3 }}>
-                              {familyDesc}
-                            </Typography>
-                          );
-                        })()}
-                        {insuranceItems.map((item, i) => (
+                        {scopeBullets.map((bullet, i) => (
                           <Typography key={i} component="li" variant="body2" sx={{ mb: 0.3 }}>
-                            {insuranceLabel(item.label, insurancePremiumFactor, familyStatus, dependentsCount)}
-                          </Typography>
-                        ))}
-                        {hasStandardBenefits && (
-                          <Typography component="li" variant="body2" sx={{ mb: 0.3 }}>
-                            Standard Employee Benefits
-                          </Typography>
-                        )}
-                        {hasEOS && (
-                          <Typography component="li" variant="body2" sx={{ mb: 0.3 }}>
-                            End of Service Benefits
-                          </Typography>
-                        )}
-                        {hasTravel && (
-                          <Typography component="li" variant="body2" sx={{ mb: 0.3 }}>
-                            Annual Travel Benefits
-                          </Typography>
-                        )}
-                        {otherGovtItems.map((item, i) => (
-                          <Typography key={i} component="li" variant="body2" sx={{ mb: 0.3 }}>
-                            {resolveLabel(item.label, insurancePremiumFactor, dependentsCount)}
+                            {bullet}
                           </Typography>
                         ))}
                       </Box>
@@ -1806,6 +2141,14 @@ export function ResourceCalculationFormView({ id }) {
                     {currency} {fmtNumber(subtotal)}
                   </Typography>
                 </Stack>
+                <Stack direction="row" justifyContent="space-between" spacing={4}>
+                  <Typography variant="body2" color="text.secondary">
+                    {TAX_LABEL} ({quotationMeta.taxPercent}%):
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    As applicable — not included
+                  </Typography>
+                </Stack>
                 <Divider sx={{ my: 0.5 }} />
                 <Stack direction="row" justifyContent="space-between" spacing={4}>
                   <Typography variant="body1" fontWeight={800} sx={{ letterSpacing: 0.3 }}>
@@ -1813,6 +2156,14 @@ export function ResourceCalculationFormView({ id }) {
                   </Typography>
                   <Typography variant="body1" fontWeight={800} color="success.dark">
                     {currency} {fmtNumber(grandTotal)}
+                  </Typography>
+                </Stack>
+                <Stack direction="row" justifyContent="space-between" spacing={4}>
+                  <Typography variant="body2" color="text.secondary">
+                    Billed as 12 equal monthly instalments of
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {currency} {fmtNumber(totalMonthly)}
                   </Typography>
                 </Stack>
               </Stack>

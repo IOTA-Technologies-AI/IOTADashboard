@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useBoolean } from 'minimal-shared/hooks';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -174,6 +174,33 @@ export function WalletListView({ wallets: initialWallets = [] }) {
     },
     [router]
   );
+
+  // Loaded on mount, on the client. The page component that renders this view
+  // is a server component and cannot obtain a bearer token
+  // (`extractJWTFromSession` and `getLiveAccessToken` are browser-only), so its
+  // fetch returned 401 and the wallet map silently stayed empty — every row
+  // showed as an employee with no wallet.
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const fresh = await apiHelper.getWallets();
+        if (cancelled) return;
+        const map = {};
+        (fresh || []).forEach((w) => {
+          map[w.employeeId] = w;
+        });
+        setWalletMap(map);
+      } catch {
+        if (!cancelled) toast.error('Failed to load wallets.');
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleRefresh = useCallback(async () => {
     try {

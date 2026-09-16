@@ -25,6 +25,18 @@ is running.
 ## [Unreleased]
 
 ### Added
+- Resource quotation PDF now carries the proposal's own title, its reference,
+  the date of issue and a 30-day validity date — in the document body, in the
+  PDF's title metadata (so the title shows in the viewer's tab) and in the
+  filename, which is now `IOTA-Resource-Quotation-<title>-<customer>-<ref>.pdf`
+  instead of `quotation-<timestamp>.pdf`.
+- Resource quotation PDF gained a details grid (customer, issuing entity,
+  resource, position/job description, nationality, family status, insurance
+  plan, currency, status), an explicit tax line, the monthly instalment, the
+  notes entered on the form, and standard terms & conditions. The same grid now
+  appears on the Quotation Summary card, so the page and the download match.
+- Resource quotation share menu: "Download with cost breakdown (internal)" —
+  a per-component cost table kept out of the customer-facing quotation.
 - Proforma invoice module: list, details and print views, raised automatically
   when a source invoice is approved.
 - Proforma edit page — the addressee (customer name, Kind Attn., address,
@@ -40,6 +52,8 @@ is running.
 - This changelog.
 
 ### Changed
+- Resource quotation email and WhatsApp share messages now quote the title,
+  reference, validity, issuing entity and notes rather than totals alone.
 - Proforma page 2 header: logo and wordmark moved to the left, document number
   right-aligned.
 - Proforma page 2 meta row: IOTA address moved to the left and broken into
@@ -51,6 +65,14 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- Expense, wallet and vendor lists loaded empty with no error. The pages fetched
+  their data in a server component, where no bearer token exists, so the gateway
+  returned 401 and the catch turned it into an empty array — indistinguishable
+  from having no records. Each list now loads on the client, and a failed load
+  reports the failure instead of rendering "no data".
+- Resource quotation description bullets dropped every non-ticket government
+  line from the PDF and counted End of Service twice; the PDF and the on-screen
+  summary now derive the bullets from the same helper.
 - Proforma details and edit pages are wrapped in `PageGuard`. They previously
   enforced sign-in but not the proforma permission, so any authenticated user
   could open them directly by URL.

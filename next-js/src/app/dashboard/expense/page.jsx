@@ -1,23 +1,17 @@
-import { apiHelper } from 'src/utils/apiHelper';
-
 import ExpenseListWrapper from './list-wrapper';
 
 // ----------------------------------------------------------------------
 
 export const metadata = { title: `Expense list` };
 
-export default async function Page() {
-  let expenses = [];
-  let permissionError = null;
-
-  try {
-    expenses = await apiHelper.getExpenses();
-  } catch (error) {
-    if (error.message && error.message.includes('PERMISSION_DENIED')) {
-      permissionError = 'You do not have permission to view expenses';
-    }
-    expenses = [];
-  }
-
-  return <ExpenseListWrapper expenses={expenses} permissionError={permissionError} />;
+// No data fetching here. This is a server component, and both bearer-token
+// sources are browser-only by design (`extractJWTFromSession` and
+// `getLiveAccessToken` return null when `typeof window === 'undefined'`), so a
+// fetch made here cannot authenticate. It used to work only because /expenses
+// was unauthenticated; once the gateway auth handler landed it returned 401 on
+// every request, and the catch below turned that into an empty array — so the
+// page rendered blank with no error in the console and no request in the
+// Network tab. ExpenseListView now loads the list on mount instead.
+export default function Page() {
+  return <ExpenseListWrapper />;
 }
