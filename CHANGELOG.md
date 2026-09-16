@@ -65,6 +65,13 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- "Prepared For" on a resource quotation was blank on any saved record. The
+  customer's NAME is what gets stored in `positionCode`, and the form seeds
+  `customerId` straight from it, but every lookup matched on `customer.id` — so
+  the customer resolved only on a freshly created quotation and went empty the
+  moment it was reopened. The Customer dropdown rendered blank for the same
+  reason. Lookups now match on id or name, and a reopened record normalises the
+  stored name back to its id.
 - Expense, wallet and vendor lists loaded empty with no error. The pages fetched
   their data in a server component, where no bearer token exists, so the gateway
   returned 401 and the catch turned it into an empty array — indistinguishable

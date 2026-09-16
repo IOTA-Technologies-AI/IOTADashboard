@@ -528,6 +528,31 @@ export function ResourceCalculationFormView({ id }) {
     setInitialized(true);
   }, [isEdit, rcData, initialized]);
 
+  // ── Normalise a name-valued customerId back to a real id ──────────────────
+  // `positionCode` stores the customer's NAME, and the effect above seeds
+  // `customerId` straight from it. Everything else in this form — the Select's
+  // MenuItem values, the quotation's customer lookup — keys on the id, so until
+  // this runs a reopened quotation has a Customer dropdown that renders blank
+  // (no MenuItem matches) and a "Prepared For" that resolves to nothing. Runs
+  // once the customer list arrives and only when the held value is not already
+  // an id.
+  useEffect(() => {
+    const list = Array.isArray(customersData) ? customersData : customersData?.customers || [];
+    if (!list.length) return;
+
+    const held = String(customerId ?? '').trim();
+    if (!held) return;
+    if (list.some((cu) => String(cu.id) === held)) return;
+
+    const byName = list.find(
+      (cu) =>
+        String(cu.customerNameEn || cu.customerNameAr || '')
+          .trim()
+          .toLowerCase() === held.toLowerCase()
+    );
+    if (byName) setCustomerId(String(byName.id));
+  }, [customersData, customerId]);
+
   // ── Seed/refresh create-mode templates when country changes ───────────────
   useEffect(() => {
     if (isEdit) return;
@@ -730,10 +755,10 @@ export function ResourceCalculationFormView({ id }) {
 
     setSaving(true);
     try {
-      // Resolve customer name from id for positionCode storage
-      const selectedCustomer = customerList.find((c) => String(c.id) === String(customerId));
-      const customerDisplayName =
-        selectedCustomer?.customerNameEn || selectedCustomer?.customerNameAr || customerId || '';
+      // Resolve customer name from id for positionCode storage. Tolerant of a
+      // name-valued customerId, which is what an unmigrated record still holds.
+      const selectedCustomer = resolveCustomer(customerId);
+      const customerDisplayName = customerLabel(selectedCustomer) || customerId || '';
       const payload = {
         title: title.trim(),
         fullName: fullName.trim() || undefined,
@@ -840,6 +865,30 @@ export function ResourceCalculationFormView({ id }) {
     ? customersData
     : customersData?.customers || [];
 
+  /** The display name held on a customer record, whichever language it carries. */
+  const customerLabel = (cu) => cu?.customerNameEn || cu?.customerNameAr || '';
+
+  /**
+   * Resolve the selected customer by id OR by name.
+   *
+   * `customerId` is not always an id. On save the customer's NAME is what gets
+   * written to `positionCode` (see handleSubmit), and the seeding effect reads
+   * `customerId` straight back out of `positionCode` — so on every existing
+   * record this state holds a name, not an id. Matching on `cu.id` alone
+   * therefore found nothing the moment a quotation was reopened, which is why
+   * "Prepared For" printed as a dash on a saved record while a freshly created
+   * one showed the customer correctly.
+   */
+  const resolveCustomer = (value) => {
+    const needle = String(value ?? '').trim();
+    if (!needle) return null;
+    return (
+      customerList.find((cu) => String(cu.id) === needle) ||
+      customerList.find((cu) => customerLabel(cu).toLowerCase() === needle.toLowerCase()) ||
+      null
+    );
+  };
+
   // ── PDF generation ────────────────────────────────────────────────────────
   /**
    * Every fact the quotation page shows, resolved once so the document body,
@@ -848,8 +897,10 @@ export function ResourceCalculationFormView({ id }) {
    */
   const buildQuotationMeta = (countryMeta) => {
     const rc = rcData?.data;
-    const customerObj = customerList.find((cu) => String(cu.id) === String(customerId));
-    const customerName = customerObj?.customerNameEn || customerObj?.customerNameAr || '';
+    const customerObj = resolveCustomer(customerId);
+    // Falls back to the stored string: a customer removed from the directory
+    // must still print the name the quotation was raised against, never a dash.
+    const customerName = customerLabel(customerObj) || String(customerId || '').trim();
     const jdTitle = jdList.find((jd) => String(jd.id) === String(jdId))?.title || '';
     const candidateObj = candidateList.find((c) => String(c.id) === String(candidateId));
     const issuedOn = rc?.createdAt ? new Date(rc.createdAt) : new Date();
@@ -1619,10 +1670,7 @@ export function ResourceCalculationFormView({ id }) {
                   <Typography variant="caption" color="text.secondary">
                     {[
                       nationality,
-                      (() => {
-                        const c = customerList.find((cu) => String(cu.id) === String(customerId));
-                        return c?.customerNameEn || c?.customerNameAr || customerId || null;
-                      })(),
+                      customerLabel(resolveCustomer(customerId)) || customerId || null,
                     ]
                       .filter(Boolean)
                       .join(' — ')}
