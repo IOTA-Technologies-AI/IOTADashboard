@@ -25,6 +25,20 @@ is running.
 ## [Unreleased]
 
 ### Added
+- Multi-resource proposals: one quotation can now cover several people under a
+  single ID, instead of raising a separate quotation per candidate. Each
+  resource is priced on its own terms — nationality, salary, family status,
+  insurance plan and line items all vary per row — while the commercial terms
+  (customer, issuing office, currency, validity, notes, T&Cs and the approval
+  workflow) are shared across the proposal. A resource list in Proposal Details
+  adds, copies, removes and switches between them.
+- A "Number of resources" quantity per row, for repeated identical roles
+  (3 x Java Developer) without entering three near-identical resources. The
+  quotation prints it as a new QTY column, with a "3 x SAR 38,000 per month
+  each" note, and the proposal totals multiply by it.
+- The quotation PDF and the on-screen summary now print one row per resource
+  with its own scope bullets, plus proposal-level "Resources Quoted" and "Total
+  Headcount". The internal cost breakdown is grouped per resource.
 - Resource quotation PDF now carries the proposal's own title, its reference,
   the date of issue and a 30-day validity date — in the document body, in the
   PDF's title metadata (so the title shows in the viewer's tab) and in the
@@ -65,6 +79,10 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- A resource calculation for the India office stored a total that contradicted
+  the one on its quotation. India quotes a single agreed invoice amount, which
+  is what the dashboard has always printed, but the API totalled every active
+  cost component instead. Both now apply the India rule.
 - The customer on a resource calculation was erased by saving, and "Prepared
   For" on the quotation printed blank. The customer's NAME is stored in
   `positionCode` and the form seeds `customerId` from it, but every lookup

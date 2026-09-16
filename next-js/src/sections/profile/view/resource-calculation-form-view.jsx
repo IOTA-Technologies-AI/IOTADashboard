@@ -308,7 +308,9 @@ const pdfStyles = PdfStyleSheet.create({
     borderBottom: '1 solid #E8ECEF',
   },
   colDesc: { flex: 3.2 },
+  colQty: { flex: 0.5, textAlign: 'center' },
   colAmt: { flex: 1.2, textAlign: 'right' },
+  unitNote: { fontSize: 8, color: '#777777', marginTop: 4, fontStyle: 'italic' },
   bullet: { fontSize: 9, color: '#555555', marginTop: 3 },
   bold: { fontWeight: 700 },
   totalsSection: { marginTop: 20, paddingHorizontal: 12 },
@@ -386,6 +388,14 @@ const pdfStyles = PdfStyleSheet.create({
   breakdownLabel: { flex: 3, fontSize: 8.5 },
   breakdownCat: { flex: 1.1, fontSize: 8.5, color: '#666666' },
   breakdownAmt: { flex: 1.2, fontSize: 8.5, textAlign: 'right' },
+  breakdownGroup: {
+    fontSize: 9,
+    fontWeight: 700,
+    color: '#0B5E41',
+    paddingHorizontal: 12,
+    marginTop: 10,
+    marginBottom: 4,
+  },
 
   pageFooter: {
     position: 'absolute',
@@ -475,6 +485,15 @@ export function ResourceCalculationFormView({ id }) {
   const [resumeUrl, setResumeUrl] = useState('');
   const [notes, setNotes] = useState('');
 
+  // ── Multi-resource proposal state ─────────────────────────────────────────
+  // A proposal can quote several people under one id. The fields above remain
+  // the EDITOR for whichever resource is selected; `resources` holds the rest.
+  // Keeping one editor rather than rendering N copies of this form is what lets
+  // the existing per-resource UI stay exactly as it is.
+  const [resources, setResources] = useState([]);
+  const [activeResourceIndex, setActiveResourceIndex] = useState(0);
+  const [resourceQuantity, setResourceQuantity] = useState(1);
+
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [initialized, setInitialized] = useState(false);
@@ -528,6 +547,50 @@ export function ResourceCalculationFormView({ id }) {
     setStatus(rc.status);
     setResumeUrl(rc.resumeUrl || '');
     setNotes(rc.notes || '');
+
+    // A record saved before multi-resource proposals existed has no resources
+    // array; its single resource lives in the flat fields just seeded above, so
+    // it is rebuilt here as resource one and edits exactly as it always did.
+    const stored = Array.isArray(rc.resources) ? rc.resources : [];
+    if (stored.length) {
+      setResources(stored);
+      setActiveResourceIndex(0);
+      const first = stored[0];
+      setFullName(first.fullName || '');
+      setJdId(first.jdId || '');
+      setCandidateId(first.candidateId || '');
+      setNationality(first.nationality || rc.nationality || '');
+      setResourceQuantity(Math.max(1, Math.round(Number(first.quantity) || 1)));
+      setInsurancePremiumFactor(first.insurancePremiumFactor ?? rc.insurancePremiumFactor);
+      setDependentsCount(first.dependentsCount ?? rc.dependentsCount);
+      setFamilyStatus(first.familyStatus ?? rc.familyStatus ?? false);
+      setInsuranceCostPerPax(first.insuranceCostPerPax ?? rc.insuranceCostPerPax ?? 3000);
+      setTicketCostPerPax(first.ticketCostPerPax ?? rc.ticketCostPerPax ?? 2500);
+      setBaseSalary(first.baseSalary ?? rc.baseSalary);
+      setResumeUrl(first.resumeUrl || rc.resumeUrl || '');
+      setLineItems(first.lineItems || rc.lineItems || []);
+    } else {
+      setResources([
+        {
+          id: 'r1',
+          fullName: rc.fullName || '',
+          jdId: rc.jdId || '',
+          candidateId: rc.candidateId || '',
+          nationality: rc.nationality || '',
+          quantity: 1,
+          insurancePremiumFactor: rc.insurancePremiumFactor,
+          dependentsCount: rc.dependentsCount,
+          familyStatus: rc.familyStatus ?? false,
+          insuranceCostPerPax: rc.insuranceCostPerPax ?? 3000,
+          ticketCostPerPax: rc.ticketCostPerPax ?? 2500,
+          baseSalary: rc.baseSalary,
+          resumeUrl: rc.resumeUrl || '',
+          lineItems: rc.lineItems || [],
+        },
+      ]);
+      setActiveResourceIndex(0);
+      setResourceQuantity(1);
+    }
     const officeFromRecord = rc.iotaOffice || (rc.currency === 'INR' ? 'India' : 'KSA');
     setIotaOffice(officeFromRecord);
     setInitialized(true);
@@ -735,16 +798,160 @@ export function ResourceCalculationFormView({ id }) {
     }
   };
 
+  // ── Resource management ───────────────────────────────────────────────────
+  /** The editor's current field values, as a resource record. */
+  const snapshotEditor = () => ({
+    fullName,
+    jdId,
+    candidateId,
+    nationality,
+    quantity: Math.max(1, Math.round(Number(resourceQuantity) || 1)),
+    insurancePremiumFactor,
+    dependentsCount,
+    familyStatus,
+    insuranceCostPerPax,
+    ticketCostPerPax,
+    baseSalary,
+    resumeUrl,
+    lineItems,
+  });
+
+  /** Push the editor's values into the resource it is currently editing. */
+  const commitEditor = (list = resources, index = activeResourceIndex) => {
+    const snapshot = snapshotEditor();
+    if (!list.length) return [{ id: 'r1', ...snapshot }];
+    return list.map((r, i) => (i === index ? { ...r, ...snapshot } : r));
+  };
+
+  /** Load a resource's values into the editor fields. */
+  const loadIntoEditor = (resource) => {
+    setFullName(resource.fullName || '');
+    setJdId(resource.jdId || '');
+    setCandidateId(resource.candidateId || '');
+    setNationality(resource.nationality || '');
+    setResourceQuantity(Math.max(1, Math.round(Number(resource.quantity) || 1)));
+    setInsurancePremiumFactor(resource.insurancePremiumFactor ?? 1);
+    setDependentsCount(resource.dependentsCount ?? 0);
+    setFamilyStatus(resource.familyStatus ?? false);
+    setInsuranceCostPerPax(resource.insuranceCostPerPax ?? 3000);
+    setTicketCostPerPax(resource.ticketCostPerPax ?? 2500);
+    setBaseSalary(resource.baseSalary ?? 0);
+    setResumeUrl(resource.resumeUrl || '');
+    setLineItems(resource.lineItems || []);
+  };
+
+  /** Switch which resource the editor is bound to, saving the current one. */
+  const handleSelectResource = (index) => {
+    if (index === activeResourceIndex) return;
+    const committed = commitEditor();
+    const target = committed[index];
+    if (!target) return;
+    setResources(committed);
+    setActiveResourceIndex(index);
+    loadIntoEditor(target);
+  };
+
+  /**
+   * Add a resource. `seed` copies the current one — the common case, since a
+   * second candidate for the same customer usually differs only in name and
+   * salary — while a blank row starts from the office's template.
+   */
+  const handleAddResource = (seed = 'copy') => {
+    const committed = commitEditor();
+    const base =
+      seed === 'copy'
+        ? { ...snapshotEditor(), fullName: '', candidateId: '', resumeUrl: '' }
+        : {
+            fullName: '',
+            jdId: '',
+            candidateId: '',
+            nationality: '',
+            quantity: 1,
+            insurancePremiumFactor: 1,
+            dependentsCount: 0,
+            familyStatus: false,
+            insuranceCostPerPax: 3000,
+            ticketCostPerPax: 2500,
+            baseSalary: 0,
+            resumeUrl: '',
+            lineItems: recompute(tplData?.items || [], 0, 0),
+          };
+    const next = [...committed, { id: `r${Date.now()}`, ...base }];
+    setResources(next);
+    setActiveResourceIndex(next.length - 1);
+    loadIntoEditor(next[next.length - 1]);
+  };
+
+  /** Remove a resource. A proposal must always quote at least one. */
+  const handleRemoveResource = (index) => {
+    const committed = commitEditor();
+    if (committed.length <= 1) {
+      setError('A proposal must quote at least one resource.');
+      return;
+    }
+    const next = committed.filter((_, i) => i !== index);
+    const nextIndex = Math.min(activeResourceIndex, next.length - 1);
+    setResources(next);
+    setActiveResourceIndex(nextIndex);
+    loadIntoEditor(next[nextIndex]);
+  };
+
   // ── Totals ────────────────────────────────────────────────────────────────
-  const activeItems = lineItems.filter((i) => i.isActive);
-  const invoiceAmountItem = lineItems.find((i) => i.code === 'invoice_amount');
   const isIndiaOffice = iotaOffice === 'India';
-  const totalMonthly = isIndiaOffice
-    ? billable(invoiceAmountItem?.monthly).monthly
-    : activeItems.reduce((s, i) => s + billable(i.monthly).monthly, 0);
+
+  /** What one unit of a resource bills per month, under the current office. */
+  const resourceMonthly = (resource) => {
+    const items = resource?.lineItems || [];
+    if (isIndiaOffice) {
+      return billable(items.find((i) => i.code === 'invoice_amount')?.monthly).monthly;
+    }
+    return items
+      .filter((i) => i.isActive)
+      .reduce((sum, i) => sum + billable(i.monthly).monthly, 0);
+  };
+
+  /** Headcount a resource row represents; never less than one. */
+  const resourceQty = (resource) => Math.max(1, Math.round(Number(resource?.quantity) || 1));
+
+  // The resource currently open in the editor, as a plain record. The editor
+  // binds to the flat state fields rather than to resources[activeResourceIndex]
+  // directly, so this is how the live edits re-enter the proposal.
+  const activeResourceDraft = {
+    ...(resources[activeResourceIndex] || {}),
+    id: resources[activeResourceIndex]?.id || 'r1',
+    fullName,
+    jdId,
+    candidateId,
+    nationality,
+    quantity: resourceQuantity,
+    insurancePremiumFactor,
+    dependentsCount,
+    familyStatus,
+    insuranceCostPerPax,
+    ticketCostPerPax,
+    baseSalary,
+    resumeUrl,
+    lineItems,
+  };
+
+  // Every resource on the proposal, with the one being edited replaced by its
+  // live draft — so the summary and the PDF reflect unsaved edits exactly the
+  // way the single-resource form always did.
+  const proposalResources = (resources.length ? resources : [activeResourceDraft]).map((r, i) =>
+    i === activeResourceIndex ? activeResourceDraft : r
+  );
+
+  // Proposal totals roll up across resources: each row's instalment times its
+  // headcount. A single-resource proposal reduces to exactly the old figure.
+  const totalMonthly = proposalResources.reduce(
+    (sum, r) => sum + resourceMonthly(r) * resourceQty(r),
+    0
+  );
   // Derived from the instalment rather than summed on its own, so the two
   // figures the quotation prints side by side always reconcile.
   const totalAnnual = totalMonthly * 12;
+  const totalHeadcount = proposalResources.reduce((sum, r) => sum + resourceQty(r), 0);
+  const isMultiResource = proposalResources.length > 1 || totalHeadcount > 1;
 
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
@@ -781,24 +988,37 @@ export function ResourceCalculationFormView({ id }) {
         // hold — which may be a bare id the directory could not resolve, and an
         // id must never be written into a field the list screen prints as a name.
         (customerTouched ? heldValue : storedCustomerName || heldValue);
+      // Commit the open editor before saving, or the resource being edited would
+      // be sent in whatever state it was last switched away from.
+      const resourcesToSave = commitEditor().map((r, i) => ({
+        ...r,
+        id: String(r.id || `r${i + 1}`),
+        quantity: Math.max(1, Math.round(Number(r.quantity) || 1)),
+      }));
+      // The flat fields stay populated from the FIRST resource: the list screen,
+      // its search and any report still read those columns, and they must not go
+      // blank just because a proposal now carries more than one person.
+      const lead = resourcesToSave[0] || {};
+
       const payload = {
         title: title.trim(),
-        fullName: fullName.trim() || undefined,
-        jdId: jdId || undefined,
-        candidateId: candidateId || undefined,
+        resources: resourcesToSave,
+        fullName: String(lead.fullName || '').trim() || undefined,
+        jdId: lead.jdId || undefined,
+        candidateId: lead.candidateId || undefined,
         iotaOffice,
-        nationality: nationality.trim(),
+        nationality: String(lead.nationality || nationality).trim(),
         positionCode: String(customerDisplayName),
-        insurancePremiumFactor: Number(insurancePremiumFactor) || 1,
-        dependentsCount: Number(dependentsCount) || 0,
-        familyStatus,
-        insuranceCostPerPax: Number(insuranceCostPerPax) || 3000,
-        ticketCostPerPax: Number(ticketCostPerPax) || 2500,
-        baseSalary: Number(baseSalary) || 0,
+        insurancePremiumFactor: Number(lead.insurancePremiumFactor) || 1,
+        dependentsCount: Number(lead.dependentsCount) || 0,
+        familyStatus: Boolean(lead.familyStatus),
+        insuranceCostPerPax: Number(lead.insuranceCostPerPax) || 3000,
+        ticketCostPerPax: Number(lead.ticketCostPerPax) || 2500,
+        baseSalary: Number(lead.baseSalary) || 0,
         currency,
-        lineItems,
+        lineItems: lead.lineItems || [],
         status,
-        resumeUrl,
+        resumeUrl: lead.resumeUrl || '',
         notes,
         createdBy: getUserEmail(),
       };
@@ -955,31 +1175,42 @@ export function ResourceCalculationFormView({ id }) {
    * and counted End of Service twice (once on its own, once inside "Standard
    * Employee Benefits").
    */
-  const buildScopeBullets = () => {
+  const buildScopeBullets = (resource) => {
     const isEOS = (i) => i.category === 'statutory' && i.label.toLowerCase().includes('end of service');
     const isTicket = (i) => i.category === 'government' && i.label.toLowerCase().includes('ticket');
 
+    const items = (resource?.lineItems || []).filter((i) => i.isActive);
+    const deps = Number(resource?.dependentsCount) || 0;
+    const family = Boolean(resource?.familyStatus);
+    const factor = resource?.insurancePremiumFactor ?? 1;
+
     const bullets = [];
-    const childWord = Number(dependentsCount) !== 1 ? 'children' : 'child';
-    bullets.push(familyStatus ? `Family — ${dependentsCount} ${childWord} + wife` : 'Single');
+    const childWord = deps !== 1 ? 'children' : 'child';
+    bullets.push(family ? `Family — ${deps} ${childWord} + wife` : 'Single');
 
-    activeItems
+    items
       .filter((i) => i.category === 'insurance')
-      .forEach((i) =>
-        bullets.push(insuranceLabel(i.label, insurancePremiumFactor, familyStatus, dependentsCount))
-      );
+      .forEach((i) => bullets.push(insuranceLabel(i.label, factor, family, deps)));
 
-    if (activeItems.some((i) => (i.category === 'statutory' && !isEOS(i)) || i.category === 'service')) {
+    if (items.some((i) => (i.category === 'statutory' && !isEOS(i)) || i.category === 'service')) {
       bullets.push('Standard Employee Benefits');
     }
-    if (activeItems.some(isEOS)) bullets.push('End of Service Benefits');
-    if (activeItems.some(isTicket)) bullets.push('Annual Travel Benefits');
+    if (items.some(isEOS)) bullets.push('End of Service Benefits');
+    if (items.some(isTicket)) bullets.push('Annual Travel Benefits');
 
-    activeItems
+    items
       .filter((i) => i.category === 'government' && !isTicket(i))
-      .forEach((i) => bullets.push(resolveLabel(i.label, insurancePremiumFactor, dependentsCount)));
+      .forEach((i) => bullets.push(resolveLabel(i.label, factor, deps)));
 
     return bullets;
+  };
+
+  /** The heading line for a resource row: name, then nationality and position. */
+  const resourceHeading = (resource) => {
+    const nat = String(resource?.nationality || '').trim();
+    const jd = jdList.find((j) => String(j.id) === String(resource?.jdId))?.title || '';
+    const role = nat ? `${nat} Employee` : 'Employee';
+    return { name: String(resource?.fullName || '').trim(), role, jdTitle: jd };
   };
 
   /** The download/share filename — identifiable without opening the file. */
@@ -997,10 +1228,13 @@ export function ResourceCalculationFormView({ id }) {
     const { includeBreakdown = false } = options;
     const meta = buildQuotationMeta(countryMeta);
     const TAX_LABEL = meta.taxLabel;
-    const bullets = buildScopeBullets();
 
     // Rendered as a grid so the quotation carries the same context the page
     // does — who it is for, which entity issues it, and how long it stands.
+    // Terms shared by the whole proposal. The per-resource facts (nationality,
+    // family status, insurance plan) only belong here while the proposal quotes
+    // ONE person — on a multi-resource proposal they differ per row and are
+    // printed against each resource instead, where they are actually true.
     const metaFields = [
       ['Quotation Ref', meta.reference],
       ['Date of Issue', fPdfDate(meta.issuedOn)],
@@ -1008,11 +1242,18 @@ export function ResourceCalculationFormView({ id }) {
       ['Prepared For', meta.customerName || '—'],
       ['Issuing Entity', meta.entityLabel],
       ['Currency', currency],
-      ['Resource', meta.resourceName || '—'],
-      ['Position / Job Description', meta.jdTitle || '—'],
-      ['Nationality', nationality || '—'],
-      ['Family Status', meta.familyLabel],
-      ['Insurance Plan', `Bupa Premium ${insurancePremiumFactor}`],
+      ...(isMultiResource
+        ? [
+            ['Resources Quoted', `${proposalResources.length} roles`],
+            ['Total Headcount', `${totalHeadcount} ${totalHeadcount === 1 ? 'person' : 'people'}`],
+          ]
+        : [
+            ['Resource', meta.resourceName || '—'],
+            ['Position / Job Description', meta.jdTitle || '—'],
+            ['Nationality', nationality || '—'],
+            ['Family Status', meta.familyLabel],
+            ['Insurance Plan', `Bupa Premium ${insurancePremiumFactor}`],
+          ]),
       ['Status', meta.statusLabel],
     ];
 
@@ -1092,6 +1333,7 @@ export function ResourceCalculationFormView({ id }) {
           {/* ── Table header ─── */}
           <View style={[pdfStyles.tableHeader, { marginTop: 18 }]}>
             <Text style={[pdfStyles.colDesc, pdfStyles.bold, { fontSize: 9 }]}>DESCRIPTION</Text>
+            <Text style={[pdfStyles.colQty, pdfStyles.bold, { fontSize: 9 }]}>QTY</Text>
             <Text style={[pdfStyles.colAmt, pdfStyles.bold, { fontSize: 9 }]}>
               {'MONTHLY CHARGES\n'}(Excl. {TAX_LABEL})
             </Text>
@@ -1100,27 +1342,49 @@ export function ResourceCalculationFormView({ id }) {
             </Text>
           </View>
 
-          {/* ── Main data row ─── */}
-          <View style={pdfStyles.tableRow}>
-            <View style={pdfStyles.colDesc}>
-              {meta.resourceName ? <Text style={pdfStyles.bold}>{meta.resourceName}</Text> : null}
-              <Text style={pdfStyles.bold}>
-                {nationality ? `${nationality} Employee` : 'Employee'}
-                {meta.jdTitle ? ` — ${meta.jdTitle}` : ''}
-              </Text>
-              {bullets.map((b, i) => (
-                <Text key={i} style={pdfStyles.bullet}>
-                  • {b}
+          {/* ── One row per quoted resource ───
+              A proposal covering several people prints each of them on its own
+              line, priced on its own terms, rather than forcing a separate
+              quotation per candidate. The amounts shown are the LINE totals
+              (unit × quantity), so the column visibly adds up to the total. */}
+          {proposalResources.map((resource, index) => {
+            const heading = resourceHeading(resource);
+            const qty = resourceQty(resource);
+            const unitMonthly = resourceMonthly(resource);
+            const lineMonthly = unitMonthly * qty;
+            return (
+              <View
+                key={resource.id || index}
+                style={pdfStyles.tableRow}
+                wrap={false}
+              >
+                <View style={pdfStyles.colDesc}>
+                  {heading.name ? <Text style={pdfStyles.bold}>{heading.name}</Text> : null}
+                  <Text style={pdfStyles.bold}>
+                    {heading.role}
+                    {heading.jdTitle ? ` — ${heading.jdTitle}` : ''}
+                  </Text>
+                  {buildScopeBullets(resource).map((b, i) => (
+                    <Text key={i} style={pdfStyles.bullet}>
+                      • {b}
+                    </Text>
+                  ))}
+                  {qty > 1 ? (
+                    <Text style={pdfStyles.unitNote}>
+                      {qty} × {currency} {fmtNumber(unitMonthly)} per month each
+                    </Text>
+                  ) : null}
+                </View>
+                <Text style={[pdfStyles.colQty, pdfStyles.bold, { fontSize: 11 }]}>{qty}</Text>
+                <Text style={[pdfStyles.colAmt, pdfStyles.bold, { fontSize: 11 }]}>
+                  {currency} {fmtNumber(lineMonthly)}
                 </Text>
-              ))}
-            </View>
-            <Text style={[pdfStyles.colAmt, pdfStyles.bold, { fontSize: 11 }]}>
-              {currency} {fmtNumber(totalMonthly)}
-            </Text>
-            <Text style={[pdfStyles.colAmt, pdfStyles.bold, { fontSize: 11 }]}>
-              {currency} {fmtNumber(totalAnnual)}
-            </Text>
-          </View>
+                <Text style={[pdfStyles.colAmt, pdfStyles.bold, { fontSize: 11 }]}>
+                  {currency} {fmtNumber(lineMonthly * 12)}
+                </Text>
+              </View>
+            );
+          })}
 
           {/* ── Totals ─── */}
           <View style={pdfStyles.totalsSection}>
@@ -1152,41 +1416,79 @@ export function ResourceCalculationFormView({ id }) {
                 {currency} {fmtNumber(totalMonthly)}
               </Text>
             </View>
+            {isMultiResource ? (
+              <View style={pdfStyles.totalsRow}>
+                <Text style={pdfStyles.taxNote}>Covering</Text>
+                <Text style={pdfStyles.taxNote}>
+                  {totalHeadcount} {totalHeadcount === 1 ? 'resource' : 'resources'} across{' '}
+                  {proposalResources.length}{' '}
+                  {proposalResources.length === 1 ? 'role' : 'roles'}
+                </Text>
+              </View>
+            ) : null}
           </View>
 
           {/* ── Optional internal cost breakdown ───
               Off by default: a customer-facing quotation must not disclose the
               salary and statutory components behind the price. */}
-          {includeBreakdown && activeItems.length > 0 && (
-            <>
-              <Text style={pdfStyles.sectionTitle}>Cost Breakdown (Internal)</Text>
-              <View style={pdfStyles.breakdownHeader}>
-                <Text style={[pdfStyles.breakdownLabel, pdfStyles.bold]}>Component</Text>
-                <Text style={[pdfStyles.breakdownCat, pdfStyles.bold]}>Category</Text>
-                <Text style={[pdfStyles.breakdownAmt, pdfStyles.bold]}>Monthly</Text>
-                <Text style={[pdfStyles.breakdownAmt, pdfStyles.bold]}>Annual</Text>
-              </View>
-              {activeItems.map((item, i) => {
-                const billed = billable(item.monthly);
-                return (
-                  <View key={item.id || `${item.label}-${i}`} style={pdfStyles.breakdownRow} wrap={false}>
-                    <Text style={pdfStyles.breakdownLabel}>
-                      {resolveLabel(item.label, insurancePremiumFactor, dependentsCount)}
-                    </Text>
-                    <Text style={pdfStyles.breakdownCat}>
-                      {CATEGORY_LABELS[item.category] || item.category || '—'}
-                    </Text>
-                    <Text style={pdfStyles.breakdownAmt}>
-                      {currency} {fmtNumber(billed.monthly)}
-                    </Text>
-                    <Text style={pdfStyles.breakdownAmt}>
-                      {currency} {fmtNumber(billed.annual)}
-                    </Text>
-                  </View>
-                );
-              })}
-            </>
-          )}
+          {includeBreakdown &&
+            proposalResources.some((r) => (r.lineItems || []).some((i) => i.isActive)) && (
+              <>
+                <Text style={pdfStyles.sectionTitle}>Cost Breakdown (Internal)</Text>
+                {/* Broken out per resource: on a multi-resource proposal a single
+                    flat component list would not say which person each cost
+                    belongs to, and the components differ per person. */}
+                {proposalResources.map((resource, rIndex) => {
+                  const items = (resource.lineItems || []).filter((i) => i.isActive);
+                  if (!items.length) return null;
+                  const heading = resourceHeading(resource);
+                  const qty = resourceQty(resource);
+                  return (
+                    <View key={resource.id || rIndex} wrap={false}>
+                      {isMultiResource ? (
+                        <Text style={pdfStyles.breakdownGroup}>
+                          {heading.name || heading.role}
+                          {qty > 1 ? ` — ${qty} resources` : ''}
+                        </Text>
+                      ) : null}
+                      <View style={pdfStyles.breakdownHeader}>
+                        <Text style={[pdfStyles.breakdownLabel, pdfStyles.bold]}>Component</Text>
+                        <Text style={[pdfStyles.breakdownCat, pdfStyles.bold]}>Category</Text>
+                        <Text style={[pdfStyles.breakdownAmt, pdfStyles.bold]}>Monthly</Text>
+                        <Text style={[pdfStyles.breakdownAmt, pdfStyles.bold]}>Annual</Text>
+                      </View>
+                      {items.map((item, i) => {
+                        const billed = billable(item.monthly);
+                        return (
+                          <View
+                            key={item.id || `${item.label}-${i}`}
+                            style={pdfStyles.breakdownRow}
+                            wrap={false}
+                          >
+                            <Text style={pdfStyles.breakdownLabel}>
+                              {resolveLabel(
+                                item.label,
+                                resource.insurancePremiumFactor ?? 1,
+                                resource.dependentsCount ?? 0
+                              )}
+                            </Text>
+                            <Text style={pdfStyles.breakdownCat}>
+                              {CATEGORY_LABELS[item.category] || item.category || '—'}
+                            </Text>
+                            <Text style={pdfStyles.breakdownAmt}>
+                              {currency} {fmtNumber(billed.monthly)}
+                            </Text>
+                            <Text style={pdfStyles.breakdownAmt}>
+                              {currency} {fmtNumber(billed.annual)}
+                            </Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  );
+                })}
+              </>
+            )}
 
           {/* ── Notes ─── */}
           {notes.trim() ? (
@@ -1401,12 +1703,113 @@ export function ResourceCalculationFormView({ id }) {
                 required
               />
 
+              {/* ── Resources on this proposal ──────────────────────────────
+                  One quotation can cover several people. The fields below edit
+                  whichever resource is selected here; the terms above (customer,
+                  office, currency, notes, validity) apply to all of them. */}
+              <Box>
+                <Stack
+                  direction="row"
+                  alignItems="center"
+                  justifyContent="space-between"
+                  sx={{ mb: 1 }}
+                >
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    RESOURCES ({proposalResources.length})
+                    {totalHeadcount !== proposalResources.length
+                      ? ` · ${totalHeadcount} headcount`
+                      : ''}
+                  </Typography>
+                  <Stack direction="row" spacing={0.5}>
+                    <Tooltip title="Add a resource copying the current one">
+                      <IconButton size="small" onClick={() => handleAddResource('copy')}>
+                        <Iconify icon="solar:copy-bold" width={16} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Add a blank resource">
+                      <IconButton size="small" onClick={() => handleAddResource('blank')}>
+                        <Iconify icon="mingcute:add-line" width={16} />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
+                </Stack>
+
+                <Stack spacing={0.5}>
+                  {proposalResources.map((resource, index) => {
+                    const heading = resourceHeading(resource);
+                    const qty = resourceQty(resource);
+                    const isOpen = index === activeResourceIndex;
+                    return (
+                      <Stack
+                        key={resource.id || index}
+                        direction="row"
+                        alignItems="center"
+                        spacing={1}
+                        onClick={() => handleSelectResource(index)}
+                        sx={{
+                          px: 1.5,
+                          py: 1,
+                          borderRadius: 1,
+                          cursor: 'pointer',
+                          border: '1px solid',
+                          borderColor: isOpen ? 'primary.main' : 'divider',
+                          backgroundColor: isOpen ? 'action.selected' : 'transparent',
+                          '&:hover': { borderColor: 'primary.main' },
+                        }}
+                      >
+                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                          <Typography variant="body2" fontWeight={isOpen ? 700 : 500} noWrap>
+                            {heading.name || heading.role}
+                            {qty > 1 ? ` × ${qty}` : ''}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary" noWrap>
+                            {currency} {fmtNumber(resourceMonthly(resource) * qty)}/mo
+                          </Typography>
+                        </Box>
+                        {proposalResources.length > 1 && (
+                          <Tooltip title="Remove this resource">
+                            <IconButton
+                              size="small"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleRemoveResource(index);
+                              }}
+                            >
+                              <Iconify icon="solar:trash-bin-trash-bold" width={15} />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </Stack>
+                    );
+                  })}
+                </Stack>
+              </Box>
+
+              <Divider textAlign="left">
+                <Typography variant="caption" color="text.secondary">
+                  Selected resource
+                </Typography>
+              </Divider>
+
               <TextField
                 label="Full Name"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="Optional — candidate's full name (shown first on the quotation)"
                 helperText="Optional. When filled, it appears first (bold) on the quotation; otherwise the nationality is used."
+                fullWidth
+              />
+
+              <TextField
+                label="Number of resources"
+                type="number"
+                value={resourceQuantity}
+                onChange={(e) => setResourceQuantity(e.target.value)}
+                onBlur={() =>
+                  setResourceQuantity(Math.max(1, Math.round(Number(resourceQuantity) || 1)))
+                }
+                inputProps={{ min: 1, step: 1 }}
+                helperText="How many people at these exact terms. The quotation prints this as the Qty column."
                 fullWidth
               />
 
@@ -1927,7 +2330,6 @@ export function ResourceCalculationFormView({ id }) {
         // Description bullets and the quotation's identifying facts both come
         // from the same helpers the PDF uses, so what is printed can never
         // differ from what was reviewed on screen.
-        const scopeBullets = buildScopeBullets();
         const quotationMeta = buildQuotationMeta(countryMeta);
         const customerName = quotationMeta.customerName;
 
@@ -2066,11 +2468,21 @@ export function ResourceCalculationFormView({ id }) {
                 ['Status', quotationMeta.statusLabel],
                 ['Prepared For', customerName || '—'],
                 ['Issuing Entity', quotationMeta.entityLabel],
-                ['Resource', quotationMeta.resourceName || '—'],
-                ['Position / Job Description', quotationMeta.jdTitle || '—'],
-                ['Nationality', nationality || '—'],
-                ['Family Status', quotationMeta.familyLabel],
-                ['Insurance Plan', `Bupa Premium ${insurancePremiumFactor}`],
+                ...(isMultiResource
+                  ? [
+                      ['Resources Quoted', `${proposalResources.length} roles`],
+                      [
+                        'Total Headcount',
+                        `${totalHeadcount} ${totalHeadcount === 1 ? 'person' : 'people'}`,
+                      ],
+                    ]
+                  : [
+                      ['Resource', quotationMeta.resourceName || '—'],
+                      ['Position / Job Description', quotationMeta.jdTitle || '—'],
+                      ['Nationality', nationality || '—'],
+                      ['Family Status', quotationMeta.familyLabel],
+                      ['Insurance Plan', `Bupa Premium ${insurancePremiumFactor}`],
+                    ]),
                 ['Currency', currency],
               ].map(([label, value]) => (
                 <Box key={label} sx={{ minWidth: 0 }}>
@@ -2099,12 +2511,27 @@ export function ResourceCalculationFormView({ id }) {
                         fontSize: 12,
                         textTransform: 'uppercase',
                         letterSpacing: 0.8,
-                        width: '52%',
+                        width: '48%',
                         borderBottom: 'none',
                         py: 1.5,
                       }}
                     >
                       Description
+                    </TableCell>
+                    <TableCell
+                      align="center"
+                      sx={{
+                        color: '#111111',
+                        fontWeight: 700,
+                        fontSize: 11,
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.6,
+                        width: '8%',
+                        borderBottom: 'none',
+                        py: 1.5,
+                      }}
+                    >
+                      Qty
                     </TableCell>
                     <TableCell
                       align="right"
@@ -2114,7 +2541,7 @@ export function ResourceCalculationFormView({ id }) {
                         fontSize: 11,
                         textTransform: 'uppercase',
                         letterSpacing: 0.6,
-                        width: '24%',
+                        width: '22%',
                         borderBottom: 'none',
                         lineHeight: 1.4,
                         py: 1.5,
@@ -2147,42 +2574,72 @@ export function ResourceCalculationFormView({ id }) {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  <TableRow>
-                    <TableCell sx={{ verticalAlign: 'top', py: 2.5, borderBottom: 'none' }}>
-                      {quotationMeta.resourceName && (
-                        <Typography variant="body2" fontWeight={600}>
-                          {quotationMeta.resourceName}
-                        </Typography>
-                      )}
-                      <Typography variant="body2" fontWeight={600} gutterBottom>
-                        {nationality ? `${nationality} Employee` : 'Employee'}
-                        {quotationMeta.jdTitle ? ` — ${quotationMeta.jdTitle}` : ''}
-                      </Typography>
-                      <Box component="ul" sx={{ pl: 2.5, mt: 0.5, mb: 0 }}>
-                        {scopeBullets.map((bullet, i) => (
-                          <Typography key={i} component="li" variant="body2" sx={{ mb: 0.3 }}>
-                            {bullet}
+                  {/* One row per quoted resource, matching the PDF exactly. */}
+                  {proposalResources.map((resource, index) => {
+                    const heading = resourceHeading(resource);
+                    const qty = resourceQty(resource);
+                    const unitMonthly = resourceMonthly(resource);
+                    const lineMonthly = unitMonthly * qty;
+                    const isOpen = index === activeResourceIndex;
+                    return (
+                      <TableRow
+                        key={resource.id || index}
+                        sx={isOpen && isMultiResource ? { backgroundColor: 'action.hover' } : null}
+                      >
+                        <TableCell sx={{ verticalAlign: 'top', py: 2.5, borderBottom: 'none' }}>
+                          {heading.name && (
+                            <Typography variant="body2" fontWeight={600}>
+                              {heading.name}
+                            </Typography>
+                          )}
+                          <Typography variant="body2" fontWeight={600} gutterBottom>
+                            {heading.role}
+                            {heading.jdTitle ? ` — ${heading.jdTitle}` : ''}
                           </Typography>
-                        ))}
-                      </Box>
-                    </TableCell>
-                    <TableCell
-                      align="right"
-                      sx={{ verticalAlign: 'middle', py: 2.5, borderBottom: 'none' }}
-                    >
-                      <Typography variant="body1" fontWeight={600}>
-                        {currency} {fmtNumber(totalMonthly)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell
-                      align="right"
-                      sx={{ verticalAlign: 'middle', py: 2.5, borderBottom: 'none' }}
-                    >
-                      <Typography variant="body1" fontWeight={600}>
-                        {currency} {fmtNumber(totalAnnual)}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
+                          <Box component="ul" sx={{ pl: 2.5, mt: 0.5, mb: 0 }}>
+                            {buildScopeBullets(resource).map((bullet, i) => (
+                              <Typography key={i} component="li" variant="body2" sx={{ mb: 0.3 }}>
+                                {bullet}
+                              </Typography>
+                            ))}
+                          </Box>
+                          {qty > 1 && (
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ display: 'block', mt: 1, fontStyle: 'italic' }}
+                            >
+                              {qty} × {currency} {fmtNumber(unitMonthly)} per month each
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell
+                          align="center"
+                          sx={{ verticalAlign: 'middle', py: 2.5, borderBottom: 'none' }}
+                        >
+                          <Typography variant="body1" fontWeight={600}>
+                            {qty}
+                          </Typography>
+                        </TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{ verticalAlign: 'middle', py: 2.5, borderBottom: 'none' }}
+                        >
+                          <Typography variant="body1" fontWeight={600}>
+                            {currency} {fmtNumber(lineMonthly)}
+                          </Typography>
+                        </TableCell>
+                        <TableCell
+                          align="right"
+                          sx={{ verticalAlign: 'middle', py: 2.5, borderBottom: 'none' }}
+                        >
+                          <Typography variant="body1" fontWeight={600}>
+                            {currency} {fmtNumber(lineMonthly * 12)}
+                          </Typography>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </TableContainer>
