@@ -457,6 +457,11 @@ export function ResourceCalculationFormView({ id }) {
   const [jdId, setJdId] = useState('');
   const [candidateId, setCandidateId] = useState('');
   const [customerId, setCustomerId] = useState('');
+  // Whether the user actually operated the Customer control in this session.
+  // Without this, a field that merely failed to populate is indistinguishable
+  // from one the user deliberately cleared — and saving would wipe the stored
+  // customer either way. See the positionCode handling in handleSubmit.
+  const [customerTouched, setCustomerTouched] = useState(false);
   const [nationality, setNationality] = useState('');
   const [insurancePremiumFactor, setInsurancePremiumFactor] = useState(1.0);
   const [dependentsCount, setDependentsCount] = useState(0);
@@ -757,8 +762,25 @@ export function ResourceCalculationFormView({ id }) {
     try {
       // Resolve customer name from id for positionCode storage. Tolerant of a
       // name-valued customerId, which is what an unmigrated record still holds.
+      //
+      // The fallback chain matters as much as the lookup. `positionCode` is the
+      // ONLY place the customer is stored, and the Customer control renders
+      // blank whenever its value is not a loaded customer id — so if a blank
+      // control were allowed to save a blank positionCode, every save would
+      // erase the customer and the next load would render blank again. That is
+      // self-reinforcing: one failed customer fetch permanently loses the
+      // customer on the next save. So an empty value only overwrites a stored
+      // one when the user actually cleared the control themselves.
       const selectedCustomer = resolveCustomer(customerId);
-      const customerDisplayName = customerLabel(selectedCustomer) || customerId || '';
+      const heldValue = String(customerId || '').trim();
+      const storedCustomerName = String(rcData?.data?.positionCode || '').trim();
+      const customerDisplayName =
+        customerLabel(selectedCustomer) ||
+        // Unresolvable. If the user did not touch the control, the record's own
+        // stored name is more trustworthy than whatever this state happens to
+        // hold — which may be a bare id the directory could not resolve, and an
+        // id must never be written into a field the list screen prints as a name.
+        (customerTouched ? heldValue : storedCustomerName || heldValue);
       const payload = {
         title: title.trim(),
         fullName: fullName.trim() || undefined,
@@ -1424,9 +1446,24 @@ export function ResourceCalculationFormView({ id }) {
                 <Select
                   value={customerId}
                   label="Customer"
-                  onChange={(e) => setCustomerId(e.target.value)}
+                  onChange={(e) => {
+                    setCustomerTouched(true);
+                    setCustomerId(e.target.value);
+                  }}
                 >
                   <MenuItem value="">— None —</MenuItem>
+                  {/* The stored customer, when it matches no record in the list
+                      — the directory has not loaded yet, the request failed, or
+                      the customer was deleted. Without this option MUI has no
+                      entry for the current value, renders the control blank and
+                      warns about an out-of-range value, which is what made a
+                      saved quotation look as though it had no customer. */}
+                  {customerId &&
+                    !customerList.some((c) => String(c.id) === String(customerId)) && (
+                      <MenuItem value={customerId}>
+                        {customerLabel(resolveCustomer(customerId)) || customerId}
+                      </MenuItem>
+                    )}
                   {customerList.map((c) => (
                     <MenuItem key={c.id} value={String(c.id)}>
                       {c.customerNameEn || c.customerNameAr || String(c.id)}

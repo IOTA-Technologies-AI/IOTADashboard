@@ -65,13 +65,17 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
-- "Prepared For" on a resource quotation was blank on any saved record. The
-  customer's NAME is what gets stored in `positionCode`, and the form seeds
-  `customerId` straight from it, but every lookup matched on `customer.id` — so
-  the customer resolved only on a freshly created quotation and went empty the
-  moment it was reopened. The Customer dropdown rendered blank for the same
-  reason. Lookups now match on id or name, and a reopened record normalises the
-  stored name back to its id.
+- The customer on a resource calculation was erased by saving, and "Prepared
+  For" on the quotation printed blank. The customer's NAME is stored in
+  `positionCode` and the form seeds `customerId` from it, but every lookup
+  matched on `customer.id` — so the Customer control had no matching option and
+  rendered blank, and the next save wrote that blank back over the stored name.
+  Each save therefore destroyed the customer and the next load looked blank
+  again. Lookups now match on id or name, a reopened record normalises the
+  stored name back to its id, the control falls back to showing the stored name
+  when the directory has not loaded or no longer holds that customer, and an
+  empty value only overwrites a stored customer when the user cleared the
+  control themselves.
 - Expense, wallet and vendor lists loaded empty with no error. The pages fetched
   their data in a server component, where no bearer token exists, so the gateway
   returned 401 and the catch turned it into an empty array — indistinguishable
