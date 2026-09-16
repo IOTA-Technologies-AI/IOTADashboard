@@ -41,6 +41,7 @@ import Dialog from '@mui/material/Dialog';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import FormHelperText from '@mui/material/FormHelperText';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import Tooltip from '@mui/material/Tooltip';
 import Menu from '@mui/material/Menu';
@@ -354,7 +355,7 @@ export function ResourceCalculationFormView({ id }) {
   );
   const { data: jdListData } = useSWR('profile/jd', listJobDescriptions);
   const { data: candidatesData } = useSWR('profile/candidates', listCandidates);
-  const { data: customersData } = useSWR('customers', getCustomers);
+  const { data: customersData, error: customersError } = useSWR('customers', getCustomers);
 
   // ── Form state ────────────────────────────────────────────────────────────
   const [title, setTitle] = useState('');
@@ -1054,7 +1055,7 @@ export function ResourceCalculationFormView({ id }) {
                 </Select>
               </FormControl>
 
-              <FormControl fullWidth>
+              <FormControl fullWidth error={Boolean(customersError)}>
                 <InputLabel>Customer</InputLabel>
                 <Select
                   value={customerId}
@@ -1068,6 +1069,14 @@ export function ResourceCalculationFormView({ id }) {
                     </MenuItem>
                   ))}
                 </Select>
+                {/* An empty list and a failed request look identical in a Select.
+                    Say which, so this reads as "the call failed" rather than
+                    "there are no customers". */}
+                {customersError && (
+                  <FormHelperText>
+                    Could not load customers — {customersError.message || 'request failed'}
+                  </FormHelperText>
+                )}
               </FormControl>
 
               <TextField

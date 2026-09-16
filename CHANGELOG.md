@@ -54,6 +54,17 @@ is running.
 - Proforma details and edit pages are wrapped in `PageGuard`. They previously
   enforced sign-in but not the proforma permission, so any authenticated user
   could open them directly by URL.
+- The Customer dropdown on a resource calculation no longer goes silently
+  empty when the customer list fails to load. `getCustomers()` swallowed the
+  rejection and returned `undefined`, which SWR reports as a successful fetch
+  with no data — so a 401 looked identical to "this company has no customers",
+  with no error and no retry. The failure now surfaces under the field.
+- Sales, profile (PRMS) and Azure billing calls no longer break on a deploy
+  where `NEXT_PUBLIC_SERVER_URL` is unset or carries a trailing slash or a
+  legacy `/supabaseservices` suffix. The three constants now normalise and fall
+  back the same way `src/lib/axios.js` already did; previously an unset value
+  produced the literal URL `undefined/profile/jd`, which axios sends as a
+  relative path to the dashboard's own origin.
 
 ---
 

@@ -4,6 +4,27 @@ import { decodeJWT, getLiveAccessToken, extractJWTFromSession } from './jwt-auth
 
 const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app/';
 
+/**
+ * Host for the modules that read NEXT_PUBLIC_SERVER_URL (sales, profile, Azure
+ * billing). Normalised exactly as in src/lib/axios.js, and for the same reason:
+ * the deployed value has carried a trailing slash and a legacy
+ * `/supabaseservices` suffix, either of which turns `${HOST}/profile/jd` into a
+ * path the API does not serve.
+ *
+ * The fallback matters as much as the normalising. Neither .env nor .env.local
+ * is committed, so on any deploy target where the variable was never set in the
+ * dashboard, `process.env.NEXT_PUBLIC_SERVER_URL` is undefined and every URL
+ * built from it became the string "undefined/profile/jd" — which axios treats
+ * as RELATIVE and sends to the dashboard's own origin instead of the API.
+ * src/lib/axios.js already had this fallback; these three constants did not,
+ * which is why the sales, profile and Azure billing screens could fail on a
+ * deploy while the rest of the app was fine.
+ */
+const resolveServerUrl = () =>
+  (process.env.NEXT_PUBLIC_SERVER_URL || API_BASE_URL)
+    .replace(/\/supabaseservices\/?$/, '')
+    .replace(/\/$/, '');
+
 const PARTER_API_BASE_URL = 'https://staging-iwtapiserver-6x92.encr.app/getTotalInvoiceAmounts';
 const PARTER_AUTH_TOKEN = 'Bearer dGVzdEB0ZXN0LmNvbTpwYXN29yZDEyMyE=';
 
@@ -346,14 +367,16 @@ export async function getCustomers() {
       headers: {},
     };
 
-    return axios
-      .request(config)
-      .then((response) => response.data.customers || [])
-      .catch((error) => {
-        console.log(error);
-      });
+    // No .catch here on purpose. Swallowing the rejection returned `undefined`,
+    // which SWR reports as a SUCCESSFUL fetch carrying no data — so a 401 or a
+    // blocked request rendered an empty Customer dropdown with no error, no
+    // retry and nothing on screen explaining why the form could not proceed.
+    // Let it reject so callers and SWR can tell "no customers" from "the call
+    // failed".
+    const response = await axios.request(config);
+    return response.data.customers || [];
   } catch (error) {
-    console.error('Failed to fetch Customer Payments:', error);
+    console.error('Failed to fetch customers:', error);
     throw error; // Re-throw the error for the caller to handle
   }
 }
@@ -4789,7 +4812,7 @@ export async function sendPoliciesByRole(role, assignedBy) {
 // Sales Pipeline Deals
 // ============================================================
 
-const SALES_API_URL = process.env.NEXT_PUBLIC_SERVER_URL;
+const SALES_API_URL = resolveServerUrl();
 
 export async function listPipelineDeals() {
   const response = await axios.get(`${SALES_API_URL}/sales/pipeline`);
@@ -4872,7 +4895,7 @@ export async function addLedgerActivity(id, activityData) {
 // Profile / PRMS
 // ============================================================
 
-const PROFILE_API_URL = process.env.NEXT_PUBLIC_SERVER_URL;
+const PROFILE_API_URL = resolveServerUrl();
 
 export async function listJobDescriptions() {
   const response = await axios.get(`${PROFILE_API_URL}/profile/jd`);
@@ -5050,7 +5073,7 @@ export async function approveRC(id, data) {
 // Azure Billing
 // ============================================================
 
-const AZURE_BILLING_API_URL = process.env.NEXT_PUBLIC_SERVER_URL;
+const AZURE_BILLING_API_URL = resolveServerUrl();
 
 export async function getAzureBilling() {
   const response = await axios.get(`${AZURE_BILLING_API_URL}/azure/billing`);

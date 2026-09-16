@@ -294,7 +294,10 @@ export default function InvoicePrintPage() {
     Promise.all([
       fetch('/assets/template/IOTA Invoice Template.html').then((r) => r.text()),
       fetchInvoice(id),
-      getCustomers(),
+      // Customers only supply the addressee's display name and address here.
+      // getCustomers() now rejects on failure, so degrade to [] the same way
+      // fetchOfficeConfigs does below — an invoice must still print without it.
+      getCustomers().catch(() => []),
       fetchOfficeConfigs().catch(() => null),
     ]).then(async ([templateHtml, data, allCustomers, offices]) => {
       if (!data) return;

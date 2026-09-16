@@ -13,7 +13,7 @@ export default function Page() {
 
   useEffect(() => {
     if (!id) return;
-    Promise.all([fetchInvoice(id), getCustomers()]).then(([data, allCustomers]) => {
+    Promise.all([fetchInvoice(id), getCustomers().catch(() => [])]).then(([data, allCustomers]) => {
       if (!data) return;
       const customer = (allCustomers || []).find((c) => String(c.id) === String(data?.customerId));
       const baseAmount = data?.baseAmount || 0;
