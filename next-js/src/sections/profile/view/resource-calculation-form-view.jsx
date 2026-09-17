@@ -14,10 +14,12 @@ import {
 } from '@react-pdf/renderer';
 
 import Box from '@mui/material/Box';
+import Tab from '@mui/material/Tab';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
 import Grid from '@mui/material/Grid';
 import Menu from '@mui/material/Menu';
+import Tabs from '@mui/material/Tabs';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Table from '@mui/material/Table';
@@ -493,6 +495,7 @@ export function ResourceCalculationFormView({ id }) {
   const [resources, setResources] = useState([]);
   const [activeResourceIndex, setActiveResourceIndex] = useState(0);
   const [resourceQuantity, setResourceQuantity] = useState(1);
+  const [officeChangedWarning, setOfficeChangedWarning] = useState('');
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -714,6 +717,18 @@ export function ResourceCalculationFormView({ id }) {
     const countryMeta = IOTA_OFFICE_OPTIONS.find((c) => c.value === nextOffice);
     if (countryMeta) {
       setCurrency(countryMeta.currency);
+    }
+    // The office is a PROPOSAL-level term: it decides the cost template, the
+    // currency and the tax. The create-mode template effect only reseeds the
+    // resource currently open in the editor, so on a multi-resource proposal
+    // every other resource would keep the previous office's components and the
+    // proposal would quote two countries' cost structures in one currency.
+    // Flag them instead of silently mixing — their figures are the operator's
+    // to re-enter, not ours to discard.
+    if (resources.length > 1) {
+      setOfficeChangedWarning(
+        `Office changed to ${countryMeta?.label || nextOffice}. Review each resource — cost components are per office, and resources other than the one open were not reseeded.`
+      );
     }
   };
 
@@ -1685,6 +1700,112 @@ export function ResourceCalculationFormView({ id }) {
         </Alert>
       )}
 
+      {officeChangedWarning && (
+        <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setOfficeChangedWarning('')}>
+          {officeChangedWarning}
+        </Alert>
+      )}
+
+      {/* ── Resource tabs ───────────────────────────────────────────────────
+          One tab per quoted resource. Everything below the tabs — the resource
+          fields AND the cost breakdown — belongs to the selected resource
+          alone, so each person on the proposal is costed on their own
+          components. Only the proposal terms (customer, office, currency,
+          notes, validity) are shared. */}
+      <Card sx={{ mb: 3 }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          sx={{ borderBottom: '1px solid', borderColor: 'divider' }}
+        >
+          <Tabs
+            value={activeResourceIndex}
+            onChange={(_, index) => handleSelectResource(index)}
+            variant="scrollable"
+            scrollButtons="auto"
+            sx={{ flexGrow: 1, minHeight: 64, px: 1 }}
+          >
+            {proposalResources.map((resource, index) => {
+              const heading = resourceHeading(resource);
+              const qty = resourceQty(resource);
+              return (
+                <Tab
+                  key={resource.id || index}
+                  sx={{ minHeight: 64, textTransform: 'none', alignItems: 'flex-start' }}
+                  label={
+                    <Stack spacing={0.25} alignItems="flex-start">
+                      <Stack direction="row" spacing={0.75} alignItems="center">
+                        <Typography variant="body2" fontWeight={700}>
+                          {heading.name || heading.role}
+                        </Typography>
+                        {qty > 1 && (
+                          <Chip
+                            label={`× ${qty}`}
+                            size="small"
+                            color="primary"
+                            sx={{ height: 18, fontSize: 10 }}
+                          />
+                        )}
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary">
+                        {currency} {fmtNumber(resourceMonthly(resource) * qty)}/mo
+                      </Typography>
+                    </Stack>
+                  }
+                />
+              );
+            })}
+          </Tabs>
+
+          <Stack direction="row" spacing={0.5} sx={{ px: 2, flexShrink: 0 }}>
+            <Tooltip title="Add a resource, copying the current one's components">
+              <Button
+                size="small"
+                variant="outlined"
+                startIcon={<Iconify icon="solar:copy-bold" width={16} />}
+                onClick={() => handleAddResource('copy')}
+              >
+                Duplicate
+              </Button>
+            </Tooltip>
+            <Tooltip title="Add a resource with a fresh set of components">
+              <Button
+                size="small"
+                variant="contained"
+                startIcon={<Iconify icon="mingcute:add-line" width={16} />}
+                onClick={() => handleAddResource('blank')}
+              >
+                Add Resource
+              </Button>
+            </Tooltip>
+            {proposalResources.length > 1 && (
+              <Tooltip title="Remove the selected resource">
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => handleRemoveResource(activeResourceIndex)}
+                >
+                  <Iconify icon="solar:trash-bin-trash-bold" width={18} />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
+        </Stack>
+
+        {isMultiResource && (
+          <Box sx={{ px: 3, py: 1.5, backgroundColor: 'background.neutral' }}>
+            <Typography variant="caption" color="text.secondary">
+              Editing <strong>{resourceHeading(activeResourceDraft).name || `resource ${activeResourceIndex + 1}`}</strong>
+              {' — '}its salary, benefits and every cost component below apply to this resource only.
+              Proposal total across all {proposalResources.length} resources:{' '}
+              <strong>
+                {currency} {fmtNumber(totalMonthly)}/mo · {currency} {fmtNumber(totalAnnual)}/yr
+              </strong>
+            </Typography>
+          </Box>
+        )}
+      </Card>
+
       <Grid container spacing={3}>
         {/* ── Left column: metadata ─────────────────────────────────────── */}
         <Grid item xs={12} md={4}>
@@ -1703,91 +1824,9 @@ export function ResourceCalculationFormView({ id }) {
                 required
               />
 
-              {/* ── Resources on this proposal ──────────────────────────────
-                  One quotation can cover several people. The fields below edit
-                  whichever resource is selected here; the terms above (customer,
-                  office, currency, notes, validity) apply to all of them. */}
-              <Box>
-                <Stack
-                  direction="row"
-                  alignItems="center"
-                  justifyContent="space-between"
-                  sx={{ mb: 1 }}
-                >
-                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                    RESOURCES ({proposalResources.length})
-                    {totalHeadcount !== proposalResources.length
-                      ? ` · ${totalHeadcount} headcount`
-                      : ''}
-                  </Typography>
-                  <Stack direction="row" spacing={0.5}>
-                    <Tooltip title="Add a resource copying the current one">
-                      <IconButton size="small" onClick={() => handleAddResource('copy')}>
-                        <Iconify icon="solar:copy-bold" width={16} />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title="Add a blank resource">
-                      <IconButton size="small" onClick={() => handleAddResource('blank')}>
-                        <Iconify icon="mingcute:add-line" width={16} />
-                      </IconButton>
-                    </Tooltip>
-                  </Stack>
-                </Stack>
-
-                <Stack spacing={0.5}>
-                  {proposalResources.map((resource, index) => {
-                    const heading = resourceHeading(resource);
-                    const qty = resourceQty(resource);
-                    const isOpen = index === activeResourceIndex;
-                    return (
-                      <Stack
-                        key={resource.id || index}
-                        direction="row"
-                        alignItems="center"
-                        spacing={1}
-                        onClick={() => handleSelectResource(index)}
-                        sx={{
-                          px: 1.5,
-                          py: 1,
-                          borderRadius: 1,
-                          cursor: 'pointer',
-                          border: '1px solid',
-                          borderColor: isOpen ? 'primary.main' : 'divider',
-                          backgroundColor: isOpen ? 'action.selected' : 'transparent',
-                          '&:hover': { borderColor: 'primary.main' },
-                        }}
-                      >
-                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                          <Typography variant="body2" fontWeight={isOpen ? 700 : 500} noWrap>
-                            {heading.name || heading.role}
-                            {qty > 1 ? ` × ${qty}` : ''}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary" noWrap>
-                            {currency} {fmtNumber(resourceMonthly(resource) * qty)}/mo
-                          </Typography>
-                        </Box>
-                        {proposalResources.length > 1 && (
-                          <Tooltip title="Remove this resource">
-                            <IconButton
-                              size="small"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleRemoveResource(index);
-                              }}
-                            >
-                              <Iconify icon="solar:trash-bin-trash-bold" width={15} />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                      </Stack>
-                    );
-                  })}
-                </Stack>
-              </Box>
-
               <Divider textAlign="left">
-                <Typography variant="caption" color="text.secondary">
-                  Selected resource
+                <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                  THIS RESOURCE ONLY
                 </Typography>
               </Divider>
 
@@ -2104,7 +2143,9 @@ export function ResourceCalculationFormView({ id }) {
             >
               <Box>
                 <Typography variant="h6" fontWeight={700}>
-                  {title || 'Resource Calculation'}
+                  {isMultiResource
+                    ? `Cost Components — ${resourceHeading(activeResourceDraft).name || resourceHeading(activeResourceDraft).role}`
+                    : title || 'Resource Calculation'}
                 </Typography>
                 {(nationality || customerId) && (
                   <Typography variant="caption" color="text.secondary">

@@ -25,6 +25,14 @@ is running.
 ## [Unreleased]
 
 ### Added
+- Resource tabs on a resource calculation: one tab per quoted resource, each
+  showing its name, quantity and monthly figure. Selecting a tab switches the
+  whole editor — the resource fields AND every cost component — to that
+  resource, making it explicit that each person on a proposal is costed on their
+  own salary, benefits and line items rather than a shared calculation. Only the
+  proposal terms (customer, office, currency, notes, validity) are shared.
+  Duplicate copies the open resource's components as a starting point; Add
+  Resource starts from the office template.
 - Multi-resource proposals: one quotation can now cover several people under a
   single ID, instead of raising a separate quotation per candidate. Each
   resource is priced on its own terms — nationality, salary, family status,
@@ -66,6 +74,9 @@ is running.
 - This changelog.
 
 ### Changed
+- Changing the IOTA office on a multi-resource proposal now warns that cost
+  components are per office and that resources other than the open one were not
+  reseeded, rather than silently mixing two countries' cost structures.
 - Resource quotation email and WhatsApp share messages now quote the title,
   reference, validity, issuing entity and notes rather than totals alone.
 - Proforma page 2 header: logo and wordmark moved to the left, document number
