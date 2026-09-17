@@ -82,6 +82,11 @@ export function VettingNewView() {
   const [nationality, setNationality] = useState('');
   const [countryCode, setCountryCode] = useState('SA');
   const [notes, setNotes] = useState('');
+  // IDfy's Background Verification product identifies the candidate on the
+  // profile itself rather than per check, so these are collected once here.
+  const [employeePhone, setEmployeePhone] = useState('');
+  const [dateOfBirth, setDateOfBirth] = useState('');
+  const [fathersName, setFathersName] = useState('');
 
   // taskType -> { selected, values: { fieldName: value } }
   const [selection, setSelection] = useState({});
@@ -106,6 +111,7 @@ export function VettingNewView() {
   }, [available]);
 
   const selectedChecks = checks.filter((c) => selection[c.taskType]?.selected && isAvailable(c));
+  const needsProfileDetails = selectedChecks.some((c) => c.provider === 'bgv');
 
   const toggleCheck = (taskType) =>
     setSelection((prev) => ({
@@ -166,6 +172,12 @@ export function VettingNewView() {
       setError(`Complete the required fields: ${missingRequired.join(', ')}`);
       return;
     }
+    // BGV reaches out to the employer, so it needs a contactable candidate on
+    // the profile. Caught here rather than as an opaque rejection from IDfy.
+    if (needsProfileDetails && (!employeeEmail.trim() || !employeePhone.trim())) {
+      setError('Employment Verification needs the candidate\'s email and phone.');
+      return;
+    }
 
     setSaving(true);
     try {
@@ -176,6 +188,9 @@ export function VettingNewView() {
         nationality: nationality.trim(),
         countryCode,
         notes: notes.trim(),
+        employeePhone: employeePhone.trim(),
+        dateOfBirth: dateOfBirth.trim(),
+        fathersName: fathersName.trim(),
         selectedChecks: selectedChecks.map((c) => ({
           taskType: c.taskType,
           input: selection[c.taskType]?.values || {},
@@ -281,6 +296,40 @@ export function VettingNewView() {
                   ))}
                 </Select>
               </FormControl>
+              {/* Only asked for when a check actually needs them: IDfy's BGV
+                  product carries the candidate on the profile, while the EVE
+                  checks take their details per check. */}
+              {needsProfileDetails && (
+                <>
+                  <Divider textAlign="left">
+                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                      REQUIRED FOR EMPLOYMENT VERIFICATION
+                    </Typography>
+                  </Divider>
+                  <TextField
+                    label="Phone"
+                    value={employeePhone}
+                    onChange={(e) => setEmployeePhone(e.target.value)}
+                    required
+                    fullWidth
+                  />
+                  <TextField
+                    label="Date of Birth"
+                    type="date"
+                    value={dateOfBirth}
+                    onChange={(e) => setDateOfBirth(e.target.value)}
+                    InputLabelProps={{ shrink: true }}
+                    fullWidth
+                  />
+                  <TextField
+                    label="Father's Name"
+                    value={fathersName}
+                    onChange={(e) => setFathersName(e.target.value)}
+                    fullWidth
+                  />
+                </>
+              )}
+
               <TextField
                 label="Notes"
                 value={notes}

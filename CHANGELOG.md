@@ -25,6 +25,16 @@ is running.
 ## [Unreleased]
 
 ### Added
+- Employment Verification in Employee Vetting: confirms the candidate actually
+  held a role — organisation, employee ID, designation, joining and last working
+  dates, salary and the supervisor to contact — rather than only confirming the
+  employer exists. This required integrating IDfy's Background Verification
+  product, which is a separate account on a separate host
+  (`https://api.dc.idfy.com`, `apikey` header plus a `company_id`) and is
+  profile-shaped rather than task-shaped; the two EPFO/ESIC checks already in
+  the catalogue verify the EMPLOYER against a government register and have been
+  relabelled to say so. Requires running `sql/add_idfy_bgv_credentials.sql` and
+  filling in the BGV credentials; the EVE checks keep working without them.
 - Employee Vetting under HR: background verification through IDfy. A new
   Management > HR > Employee Vetting screen lists vettings, a form selects which
   checks to run and collects exactly the fields each one needs, and a details
