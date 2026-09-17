@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-import { getLiveAccessToken } from 'src/utils/jwt-auth';
+import { resolveBearerToken } from 'src/utils/jwt-auth';
 
 import { CONFIG } from 'src/global-config';
 
@@ -35,7 +35,7 @@ const axiosInstance = axios.create({
 // missing or expired token on every call through this instance.
 axiosInstance.interceptors.request.use(
   async (config) => {
-    const token = await getLiveAccessToken();
+    const token = await resolveBearerToken();
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

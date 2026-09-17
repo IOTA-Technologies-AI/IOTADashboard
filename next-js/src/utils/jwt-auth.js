@@ -129,6 +129,40 @@ export const getLiveAccessToken = async () => {
 };
 
 /**
+ * @summary The bearer token to send, preferring the live session.
+ * @description `getLiveAccessToken` is the right answer whenever it has one.
+ * But it returns null for several reasons that are NOT "the user is signed
+ * out" — supabase-js has not finished restoring the session from storage yet,
+ * or a refresh failed on a flaky network — and the request interceptors treat
+ * null as "send no Authorization header at all". The gateway then rejects the
+ * call before its own auth handler ever runs, with Encore's generic
+ * "Authentication required", which looks identical to being signed out and is
+ * why a signed-in user saw every expense query fail with 401.
+ *
+ * So when the live lookup comes back empty, fall back to the stored token —
+ * but ONLY while it is genuinely still valid. An expired token is never sent:
+ * that is the failure this fallback exists to avoid repeating, and the API
+ * reporting a missing token is far more useful than it reporting an expired
+ * one nobody can explain.
+ *
+ * @returns {Promise<string|null>} bearer token, or null when nothing usable exists
+ */
+export const resolveBearerToken = async () => {
+  const live = await getLiveAccessToken();
+  if (live) return live;
+
+  const stored = extractJWTFromSession();
+  if (stored && secondsUntilExpiry(stored) > 0) {
+    console.warn(
+      '[JWT] Live session unavailable; falling back to the stored token, which is still valid.'
+    );
+    return stored;
+  }
+
+  return null;
+};
+
+/**
  * Get user info from JWT (client-side decoding)
  * Note: This is NOT cryptographic validation, just decoding
  * For security-critical operations, backend should validate signature

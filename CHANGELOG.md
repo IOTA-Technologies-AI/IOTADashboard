@@ -90,6 +90,15 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- Expenses, vendors and IOTA billing failed with 401 "Authentication required"
+  for a signed-in user. The request interceptors resolve the bearer token from
+  the live Supabase session and send NO Authorization header when that comes
+  back empty — but it comes back empty for reasons that are not "signed out",
+  notably supabase-js not having finished restoring the session when a list
+  fetches on mount. The gateway then rejected the call before its own auth
+  handler ran. Token resolution now falls back to the stored token while it is
+  still unexpired, and the expense and vendor lists wait for the session to be
+  established before fetching. An expired token is still never sent.
 - A resource calculation for the India office stored a total that contradicted
   the one on its quotation. India quotes a single agreed invoice amount, which
   is what the dashboard has always printed, but the API totalled every active

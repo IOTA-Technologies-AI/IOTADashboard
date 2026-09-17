@@ -68,7 +68,7 @@ const TABLE_HEAD = [
 // ----------------------------------------------------------------------
 
 export function ExpenseListView({ expenses: initialExpenses = [], permissionError = null }) {
-  const { user } = useAuthContext();
+  const { user, authenticated } = useAuthContext();
   const roleIdToName = {
     1: 'regular',
     2: 'manager',
@@ -120,6 +120,12 @@ export function ExpenseListView({ expenses: initialExpenses = [], permissionErro
   // console and no request in the Network tab, because the call never happened
   // in the browser.
   useEffect(() => {
+    // Wait for the session. The bearer token comes from the live Supabase
+    // session, so firing on mount can send the request before that session is
+    // restored — the gateway then rejects it with "Authentication required"
+    // for a user who is perfectly well signed in. Re-runs when auth settles.
+    if (!authenticated) return undefined;
+
     let cancelled = false;
 
     (async () => {
@@ -144,7 +150,7 @@ export function ExpenseListView({ expenses: initialExpenses = [], permissionErro
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [authenticated]);
 
   // Function to refresh a specific expense from the backend
   const handleRefreshExpense = useCallback(

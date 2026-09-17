@@ -54,7 +54,7 @@ export function VendorListView({ vendors = [] }) {
   const table = useTable();
   const router = useRouter();
   const confirm = useBoolean();
-  const { user } = useAuthContext();
+  const { user, authenticated } = useAuthContext();
 
   const roleIdToName = { 1: 'regular', 2: 'manager', 3: 'admin', 4: 'superAdmin' };
   const normalizedRole = user?.role || roleIdToName[user?.roleId] || 'regular';
@@ -72,6 +72,12 @@ export function VendorListView({ vendors = [] }) {
   // `getLiveAccessToken` return null when `typeof window === 'undefined'`), so
   // an SSR fetch cannot authenticate and silently yielded an empty list.
   useEffect(() => {
+    // Wait for the session. The bearer token comes from the live Supabase
+    // session, so firing on mount can send the request before that session is
+    // restored — the gateway then rejects it with "Authentication required"
+    // for a user who is perfectly well signed in. Re-runs when auth settles.
+    if (!authenticated) return undefined;
+
     let cancelled = false;
 
     (async () => {
@@ -91,7 +97,7 @@ export function VendorListView({ vendors = [] }) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [authenticated]);
 
   const filters = useSetState({
     name: '',

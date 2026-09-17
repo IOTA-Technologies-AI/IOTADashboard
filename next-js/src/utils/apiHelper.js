@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-import { decodeJWT, getLiveAccessToken, extractJWTFromSession } from './jwt-auth';
+import { decodeJWT, resolveBearerToken, extractJWTFromSession } from './jwt-auth';
 
 const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app/';
 
@@ -79,7 +79,7 @@ const isIotaApiRequest = (config) => {
 axios.interceptors.request.use(async (config) => {
   if (!isIotaApiRequest(config)) return config;
 
-  const token = await getLiveAccessToken();
+  const token = await resolveBearerToken();
   if (token) {
     config.headers = { ...config.headers, Authorization: `Bearer ${token}` };
   } else if (config.headers?.Authorization) {
