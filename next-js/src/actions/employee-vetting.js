@@ -64,6 +64,16 @@ export async function createVetting(payload) {
   return response.data?.data || null;
 }
 
+/**
+ * Send a vetting that was saved as a draft. Only checks still in draft are
+ * dispatched, so calling this twice cannot resubmit — and pay for — a check
+ * that already went out.
+ */
+export async function submitVetting(id) {
+  const response = await vettingApi.post(`/vetting/${id}/submit`);
+  return response.data?.data || null;
+}
+
 /** Poll IDfy for outstanding checks and persist whatever has landed. */
 export async function refreshVetting(id) {
   const response = await vettingApi.post(`/vetting/${id}/refresh`);

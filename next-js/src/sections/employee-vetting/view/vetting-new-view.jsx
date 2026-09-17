@@ -169,9 +169,9 @@ export function VettingNewView() {
       .map((f) => `${check.label}: ${f.label}`)
   );
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (asDraft = false) => {
     setError('');
-    setAttempted(true);
+    setAttempted(!asDraft);
     if (!employeeName.trim()) {
       setError('Employee name is required.');
       return;
@@ -180,7 +180,8 @@ export function VettingNewView() {
       setError('Select at least one check to run.');
       return;
     }
-    if (missingRequired.length) {
+    // A draft is stored, not sent, so incomplete details are the whole point.
+    if (!asDraft && missingRequired.length) {
       const incomplete = Object.values(badDates).some(Boolean);
       setError(
         `Complete the ${missingRequired.length} highlighted field${
@@ -195,7 +196,7 @@ export function VettingNewView() {
     }
     // BGV reaches out to the employer, so it needs a contactable candidate on
     // the profile. Caught here rather than as an opaque rejection from IDfy.
-    if (needsProfileDetails && (!employeeEmail.trim() || !employeePhone.trim())) {
+    if (!asDraft && needsProfileDetails && (!employeeEmail.trim() || !employeePhone.trim())) {
       setError('Employment Verification needs the candidate\'s email and phone.');
       return;
     }
@@ -212,6 +213,7 @@ export function VettingNewView() {
         employeePhone: employeePhone.trim(),
         dateOfBirth: dateOfBirth.trim(),
         fathersName: fathersName.trim(),
+        asDraft,
         selectedChecks: selectedChecks.map((c) => ({
           taskType: c.taskType,
           input: selection[c.taskType]?.values || {},
@@ -223,7 +225,11 @@ export function VettingNewView() {
         router.push(paths.dashboard.hr.employeeVetting.root);
       }
     } catch (err) {
-      setError(err?.response?.data?.message || err.message || 'Could not submit the vetting.');
+      setError(
+        err?.response?.data?.message ||
+          err.message ||
+          (asDraft ? 'Could not save the draft.' : 'Could not submit the vetting.')
+      );
     } finally {
       setSaving(false);
     }
@@ -377,13 +383,32 @@ export function VettingNewView() {
                 <Button
                   variant="contained"
                   disabled={saving || !selectedChecks.length}
-                  onClick={handleSubmit}
+                  onClick={() => handleSubmit(false)}
                   startIcon={
                     saving ? <CircularProgress size={16} /> : <Iconify icon="solar:shield-check-bold" />
                   }
                 >
                   Submit to IDfy
                 </Button>
+                {/* Employment Verification alone needs fifteen mandatory fields
+                    including a former supervisor's phone number. Saving keeps
+                    what has been gathered without billing IDfy for an
+                    incomplete submission. */}
+                <Button
+                  variant="outlined"
+                  color="inherit"
+                  disabled={saving || !selectedChecks.length || !employeeName.trim()}
+                  onClick={() => handleSubmit(true)}
+                  startIcon={<Iconify icon="solar:diskette-bold" width={16} />}
+                >
+                  Save as Draft
+                </Button>
+                {missingRequired.length > 0 && (
+                  <Typography variant="caption" color="text.secondary">
+                    {missingRequired.length} field{missingRequired.length === 1 ? '' : 's'} still
+                    needed before this can go to IDfy.
+                  </Typography>
+                )}
               </Stack>
             </Stack>
           </Card>

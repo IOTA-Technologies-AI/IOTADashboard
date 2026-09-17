@@ -25,6 +25,12 @@ is running.
 ## [Unreleased]
 
 ### Added
+- Vettings can be saved as a draft: the record is stored and nothing is sent to
+  IDfy, so partial details survive and IDfy is billed only once the record is
+  complete. A draft is submitted from its details page; only checks still in
+  draft are dispatched, so submitting twice cannot re-send — or re-charge for —
+  a check that already went out, and the backend refuses an incomplete draft
+  naming the missing fields rather than paying for a rejected submission.
 - Employment Verification in Employee Vetting: confirms the candidate actually
   held a role — organisation, employee ID, designation, joining and last working
   dates, salary and the supervisor to contact — rather than only confirming the
@@ -98,6 +104,10 @@ is running.
 - This changelog.
 
 ### Changed
+- Employment Verification now collects exactly IDfy's 15 mandatory attributes.
+  Their six optional ones (department, resigned, salary, salary type, salary
+  currency, reason for leaving) are no longer asked for — they added six inputs
+  to an already long form and IDfy accepts the submission without them.
 - Changing the IOTA office on a multi-resource proposal now warns that cost
   components are per office and that resources other than the open one were not
   reseeded, rather than silently mixing two countries' cost structures.

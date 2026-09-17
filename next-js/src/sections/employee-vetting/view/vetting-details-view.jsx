@@ -21,13 +21,14 @@ import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { getVetting, refreshVetting } from 'src/actions/employee-vetting';
+import { getVetting, submitVetting, refreshVetting } from 'src/actions/employee-vetting';
 
 import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
 const STATUS_COLORS = {
+  draft: 'default',
   pending: 'warning',
   completed: 'success',
   failed: 'error',
@@ -53,10 +54,27 @@ export function VettingDetailsView({ id }) {
   );
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const vetting = data;
   const checks = vetting?.checks || [];
   const pendingCount = checks.filter((c) => c.status === 'pending').length;
+  const draftCount = checks.filter((c) => c.status === 'draft').length;
+
+  const handleSubmitDraft = async () => {
+    setSubmitting(true);
+    setRefreshError('');
+    try {
+      const updated = await submitVetting(id);
+      await mutate(updated, { revalidate: false });
+    } catch (err) {
+      // The backend refuses an incomplete draft and names the missing fields,
+      // rather than paying IDfy for a submission that will be rejected.
+      setRefreshError(err?.response?.data?.message || err.message || 'Could not submit.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -120,6 +138,18 @@ export function VettingDetailsView({ id }) {
             color={STATUS_COLORS[vetting.status] || 'default'}
             sx={{ textTransform: 'capitalize' }}
           />
+          {draftCount > 0 && (
+            <Button
+              variant="contained"
+              onClick={handleSubmitDraft}
+              disabled={submitting}
+              startIcon={
+                submitting ? <CircularProgress size={16} /> : <Iconify icon="solar:shield-check-bold" />
+              }
+            >
+              Submit {draftCount} draft check{draftCount === 1 ? '' : 's'} to IDfy
+            </Button>
+          )}
           <Button
             variant="outlined"
             onClick={handleRefresh}
@@ -243,7 +273,11 @@ export function VettingDetailsView({ id }) {
                   backgroundColor: 'background.neutral',
                 }}
               >
-                {check.result ? JSON.stringify(check.result, null, 2) : 'Awaiting result from IDfy.'}
+                {check.result
+                  ? JSON.stringify(check.result, null, 2)
+                  : check.status === 'draft'
+                    ? 'Not sent yet — this check is saved as a draft and nothing has been billed.'
+                    : 'Awaiting result from IDfy.'}
               </Box>
             </AccordionDetails>
           </Accordion>
