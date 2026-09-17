@@ -90,6 +90,17 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Backend fix — requires deploying `../IOTAApiServer`.** The expense and
+  vendor lists returned 401 "Authentication required" for every user, always.
+  `requirePermission()` took the user context as its FIRST parameter, but all
+  four call sites in `supabase/supabase.ts` passed only the path — so `user` was
+  the path string, `user.email` was `undefined`, and the guard threw before any
+  permission was ever checked. `/expenses` (x3) and `/vendors` were unreachable
+  for everyone regardless of who was signed in or which token they sent; no
+  frontend change could affect it. The function now takes `(requiredPath,
+  requiredRoles?)` and reads the identity from the gateway's verified auth data
+  via `getAuthData()`, keeping role and permissions keyed on the verified
+  subject rather than any request parameter.
 - Expenses, vendors and IOTA billing failed with 401 "Authentication required"
   for a signed-in user. The request interceptors resolve the bearer token from
   the live Supabase session and send NO Authorization header when that comes
