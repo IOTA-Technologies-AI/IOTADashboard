@@ -155,6 +155,13 @@ const SENSITIVE_FIELDS = new Set([
 export const maskValue = (value) => {
   const v = String(value ?? '').trim();
   if (!v) return '—';
+  // A date masked character-by-character still exposes the day and the century
+  // ("19*****-31"). The year alone is enough to tell two same-named people
+  // apart, which is all a reader of this report legitimately needs.
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+  if (iso) return `${iso[1]} (year only)`;
+  const dmy = /^(\d{2})-(\d{2})-(\d{4})$/.exec(v);
+  if (dmy) return `${dmy[3]} (year only)`;
   if (v.includes('@')) {
     const [user, domain] = v.split('@');
     return `${user.slice(0, 2)}${'*'.repeat(Math.max(1, user.length - 2))}@${domain}`;

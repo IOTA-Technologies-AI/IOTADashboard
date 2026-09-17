@@ -25,6 +25,14 @@ is running.
 ## [Unreleased]
 
 ### Added
+- Download an Employee Vetting report as an IOTA-branded PDF, in two copies.
+  The **client copy** is what a customer asking for vetting details receives:
+  each check with its scope, completion date and outcome, identifiers masked
+  (dates of birth reduced to the year), no raw IDfy payloads, and a
+  confidentiality notice limiting use to employment suitability. The **internal
+  copy** carries unmasked identifiers and IDfy's payloads verbatim as evidence,
+  watermarked "do not share". The PDF renderer is loaded only when a report is
+  requested, so it stays out of the page bundle.
 - Vettings can be saved as a draft: the record is stored and nothing is sent to
   IDfy, so partial details survive and IDfy is billed only once the record is
   complete. A draft is submitted from its details page; only checks still in

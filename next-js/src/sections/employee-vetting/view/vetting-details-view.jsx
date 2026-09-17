@@ -6,13 +6,16 @@ import { useState } from 'react';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
+import Menu from '@mui/material/Menu';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
+import MenuItem from '@mui/material/MenuItem';
 import Accordion from '@mui/material/Accordion';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import ListItemIcon from '@mui/material/ListItemIcon';
 import AccordionDetails from '@mui/material/AccordionDetails';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -55,11 +58,45 @@ export function VettingDetailsView({ id }) {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshError, setRefreshError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [downloading, setDownloading] = useState('');
+  const [reportAnchor, setReportAnchor] = useState(null);
 
   const vetting = data;
   const checks = vetting?.checks || [];
   const pendingCount = checks.filter((c) => c.status === 'pending').length;
   const draftCount = checks.filter((c) => c.status === 'draft').length;
+
+  /**
+   * Render the branded report.
+   *
+   * `@react-pdf/renderer` is heavy, so it and the document are imported only
+   * when a report is actually requested — keeping them out of the bundle every
+   * visitor to this page downloads.
+   */
+  const handleDownloadReport = async (includeSensitive) => {
+    setReportAnchor(null);
+    setDownloading(includeSensitive ? 'internal' : 'client');
+    setRefreshError('');
+    try {
+      const [{ pdf }, mod] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('../vetting-report-pdf'),
+      ]);
+      const doc = <mod.VettingReportDocument vetting={vetting} options={{ includeSensitive }} />;
+      const blob = await pdf(doc).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = mod.reportFileName(vetting, includeSensitive);
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Vetting report generation failed:', err);
+      setRefreshError('Could not generate the report PDF. Please try again.');
+    } finally {
+      setDownloading('');
+    }
+  };
 
   const handleSubmitDraft = async () => {
     setSubmitting(true);
@@ -150,6 +187,46 @@ export function VettingDetailsView({ id }) {
               Submit {draftCount} draft check{draftCount === 1 ? '' : 's'} to IDfy
             </Button>
           )}
+          <Button
+            variant="outlined"
+            onClick={(e) => setReportAnchor(e.currentTarget)}
+            disabled={Boolean(downloading)}
+            startIcon={
+              downloading ? <CircularProgress size={16} /> : <Iconify icon="solar:file-download-bold" />
+            }
+          >
+            Download Report
+          </Button>
+          <Menu
+            anchorEl={reportAnchor}
+            open={Boolean(reportAnchor)}
+            onClose={() => setReportAnchor(null)}
+            transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+            anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+          >
+            <MenuItem onClick={() => handleDownloadReport(false)}>
+              <ListItemIcon>
+                <Iconify icon="solar:share-bold" width={18} />
+              </ListItemIcon>
+              <Box>
+                <Typography variant="body2">Client copy</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Outcomes only, identifiers masked — safe to send
+                </Typography>
+              </Box>
+            </MenuItem>
+            <MenuItem onClick={() => handleDownloadReport(true)}>
+              <ListItemIcon>
+                <Iconify icon="solar:lock-keyhole-bold" width={18} />
+              </ListItemIcon>
+              <Box>
+                <Typography variant="body2">Internal copy</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Full identifiers and IDfy payloads — do not share
+                </Typography>
+              </Box>
+            </MenuItem>
+          </Menu>
           <Button
             variant="outlined"
             onClick={handleRefresh}
