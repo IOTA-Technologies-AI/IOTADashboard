@@ -104,6 +104,14 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- Employee Vetting failed to load with "the request does not have valid
+  authentication credentials". The app-wide bearer-token interceptor is
+  registered as a side effect of importing `src/utils/apiHelper.js`, and it
+  patches the DEFAULT axios instance — but nothing in the vetting route's bundle
+  imports that module, so the interceptor never ran there and the calls carried
+  no Authorization header at all. The vetting actions now own their axios
+  instance and attach the token themselves, rather than depending on another
+  module having been imported first.
 - **Backend fix — requires deploying `../IOTAApiServer`.** The expense and
   vendor lists returned 401 "Authentication required" for every user, always.
   `requirePermission()` took the user context as its FIRST parameter, but all
