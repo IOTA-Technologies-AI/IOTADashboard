@@ -114,6 +114,14 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- A vetting form date could read as filled while the form treated it as empty,
+  rejecting the submission with an unexplained "complete the required fields".
+  `<input type="date">` yields an empty string until day, month AND year are all
+  set, so a half-entered date looks complete on screen but submits as blank, and
+  browser autofill can set a value without firing the change React listens for.
+  Required fields now show the error on the input itself rather than only in a
+  sentence, a partly-entered date says so explicitly, and values are re-read on
+  blur as well as on change.
 - Employee Vetting failed to load with "the request does not have valid
   authentication credentials". The app-wide bearer-token interceptor is
   registered as a side effect of importing `src/utils/apiHelper.js`, and it

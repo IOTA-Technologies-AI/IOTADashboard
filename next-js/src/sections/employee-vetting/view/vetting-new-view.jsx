@@ -91,6 +91,14 @@ export function VettingNewView() {
   // taskType -> { selected, values: { fieldName: value } }
   const [selection, setSelection] = useState({});
   const [saving, setSaving] = useState(false);
+  // Set once submit has been attempted, so required-field errors appear on the
+  // offending inputs instead of only in a sentence at the top of the page.
+  const [attempted, setAttempted] = useState(false);
+  // `<input type="date">` reports an empty value until the date is COMPLETE, so
+  // a half-entered date looks filled but submits as blank. The browser tells us
+  // via validity.badInput; without surfacing it the form just says the field is
+  // required while the user is looking straight at their date.
+  const [badDates, setBadDates] = useState({});
   const [error, setError] = useState('');
 
   const checks = useMemo(() => catalogue || [], [catalogue]);
@@ -152,14 +160,18 @@ export function VettingNewView() {
     });
   };
 
+  const isBlank = (check, field) =>
+    !String(selection[check.taskType]?.values?.[field.name] || '').trim();
+
   const missingRequired = selectedChecks.flatMap((check) =>
     check.fields
-      .filter((f) => f.required && !String(selection[check.taskType]?.values?.[f.name] || '').trim())
+      .filter((f) => f.required && isBlank(check, f))
       .map((f) => `${check.label}: ${f.label}`)
   );
 
   const handleSubmit = async () => {
     setError('');
+    setAttempted(true);
     if (!employeeName.trim()) {
       setError('Employee name is required.');
       return;
@@ -169,7 +181,16 @@ export function VettingNewView() {
       return;
     }
     if (missingRequired.length) {
-      setError(`Complete the required fields: ${missingRequired.join(', ')}`);
+      const incomplete = Object.values(badDates).some(Boolean);
+      setError(
+        `Complete the ${missingRequired.length} highlighted field${
+          missingRequired.length === 1 ? '' : 's'
+        }: ${missingRequired.join(', ')}.${
+          incomplete
+            ? ' One or more dates are only partly entered — a date counts as empty until day, month and year are all set.'
+            : ''
+        }`
+      );
       return;
     }
     // BGV reaches out to the employer, so it needs a contactable candidate on
@@ -445,13 +466,55 @@ export function VettingNewView() {
                                       size="small"
                                       label={field.label}
                                       required={field.required}
-                                      helperText={field.hint}
+                                      error={
+                                        (attempted && field.required && isBlank(check, field)) ||
+                                        Boolean(badDates[`${check.taskType}.${field.name}`])
+                                      }
+                                      helperText={
+                                        badDates[`${check.taskType}.${field.name}`]
+                                          ? 'Incomplete date — set day, month and year'
+                                          : attempted && field.required && isBlank(check, field)
+                                            ? 'Required'
+                                            : field.hint
+                                      }
                                       type={field.type === 'date' ? 'date' : field.type === 'email' ? 'email' : 'text'}
                                       InputLabelProps={field.type === 'date' ? { shrink: true } : undefined}
                                       value={selection[check.taskType]?.values?.[field.name] || ''}
-                                      onChange={(e) =>
-                                        setField(check.taskType, field.name, e.target.value)
-                                      }
+                                      onChange={(e) => {
+                                        setField(check.taskType, field.name, e.target.value);
+                                        // A date input yields '' until it is complete; badInput
+                                        // tells us the difference between "not filled in" and
+                                        // "filled in but not yet a whole date".
+                                        if (field.type === 'date') {
+                                          const bad = Boolean(e.target.validity?.badInput);
+                                          setBadDates((prev) => ({
+                                            ...prev,
+                                            [`${check.taskType}.${field.name}`]: bad,
+                                          }));
+                                        }
+                                      }}
+                                      onBlur={(e) => {
+                                        // Re-read on blur as well. Browser autofill and some
+                                        // date pickers set the value without firing the change
+                                        // React listens for, which would otherwise leave the
+                                        // field looking filled while the form sees nothing.
+                                        const domValue = e.target.value;
+                                        if (
+                                          domValue &&
+                                          domValue !==
+                                            (selection[check.taskType]?.values?.[field.name] || '')
+                                        ) {
+                                          setField(check.taskType, field.name, domValue);
+                                        }
+                                        if (field.type === 'date') {
+                                          setBadDates((prev) => ({
+                                            ...prev,
+                                            [`${check.taskType}.${field.name}`]: Boolean(
+                                              e.target.validity?.badInput
+                                            ),
+                                          }));
+                                        }
+                                      }}
                                     />
                                   )}
                                 </Grid>
