@@ -206,6 +206,11 @@ export const paths = {
         edit: (id) => path(ROOTS.DASHBOARD, `/hr/offer-management/${id}/edit`),
         details: (id) => path(ROOTS.DASHBOARD, `/hr/offer-management/${id}`),
       },
+      employeeVetting: {
+        root: path(ROOTS.DASHBOARD, '/hr/employee-vetting'),
+        new: path(ROOTS.DASHBOARD, '/hr/employee-vetting/new'),
+        details: (id) => path(ROOTS.DASHBOARD, `/hr/employee-vetting/${id}`),
+      },
       ndaManagement: {
         root: path(ROOTS.DASHBOARD, '/hr/nda-management'),
         new: path(ROOTS.DASHBOARD, '/hr/nda-management/new'),

@@ -25,6 +25,20 @@ is running.
 ## [Unreleased]
 
 ### Added
+- Employee Vetting under HR: background verification through IDfy. A new
+  Management > HR > Employee Vetting screen lists vettings, a form selects which
+  checks to run and collects exactly the fields each one needs, and a details
+  page polls IDfy for outstanding results and shows each check's raw response.
+  Checks span identity (PAN, Voter ID, Indian and international passport,
+  driving licence), criminal and legal history (court record, instant court
+  screening, cybercrime), sanctions/PEP (AML with adverse media), employment
+  history (EPFO, ESIC) and email verification — the operator chooses which
+  apply. Requires deploying `../IOTAApiServer` and running
+  `sql/create_employee_vetting_table.sql`, which also seeds the IDfy appConfig
+  row and the nav permission (withheld from the regular role by default). IDfy
+  credentials live in one `appConfig` row (namespace `idfy`, key `credentials`)
+  holding `apiKey`, `accountId` and an overridable `baseUrl`; the endpoints
+  refuse to call IDfy while either credential is still the placeholder.
 - Resource tabs on a resource calculation: one tab per quoted resource, each
   showing its name, quantity and monthly figure. Selecting a tab switches the
   whole editor — the resource fields AND every cost component — to that
