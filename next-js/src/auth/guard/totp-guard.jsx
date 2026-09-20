@@ -21,6 +21,7 @@ import { Iconify } from 'src/components/iconify';
 import { SplashScreen } from 'src/components/loading-screen';
 
 import { totpVerify, totpStatus } from 'src/utils/apiHelper';
+import { getLiveSessionId } from 'src/utils/jwt-auth';
 
 import { useAuthContext } from '../hooks';
 
@@ -34,27 +35,40 @@ const REAUTH_HOURS =
 
 const REAUTH_MS = REAUTH_HOURS * 60 * 60 * 1000;
 
-const sessionKey = (email) => `totp_verified_at_${email}`;
+/**
+ * The stamp is keyed on the Supabase `session_id`, which is what the gateway
+ * binds the second factor to (`auth/auth.ts` gate 4). It used to be keyed on
+ * the user's EMAIL, which records only THAT THE USER once verified, not that
+ * THIS SESSION did — and sessionStorage outlives a sign-out within the same
+ * tab. A user who signed out and back in therefore carried the old stamp into
+ * a session that had never cleared MFA: this guard read it, decided they were
+ * verified, rendered the dashboard with no OTP prompt, and every API call came
+ * back 401 "second factor required" behind a screen that looked perfectly
+ * normal. Keyed on the session, the client and the server cannot disagree.
+ */
+const sessionKey = (sessionId) => `totp_verified_at_${sessionId}`;
 
-function getVerifiedAt(email) {
+function getVerifiedAt(sessionId) {
+  if (!sessionId) return null;
   try {
-    const raw = sessionStorage.getItem(sessionKey(email));
+    const raw = sessionStorage.getItem(sessionKey(sessionId));
     return raw ? Number(raw) : null;
   } catch {
     return null;
   }
 }
 
-function setVerifiedAt(email) {
+function setVerifiedAt(sessionId) {
+  if (!sessionId) return;
   try {
-    sessionStorage.setItem(sessionKey(email), String(Date.now()));
+    sessionStorage.setItem(sessionKey(sessionId), String(Date.now()));
   } catch {
     // sessionStorage unavailable (SSR / private mode) — non-fatal
   }
 }
 
-function isSessionExpired(email) {
-  const ts = getVerifiedAt(email);
+function isSessionExpired(sessionId) {
+  const ts = getVerifiedAt(sessionId);
   if (!ts) return true;
   return Date.now() - ts > REAUTH_MS;
 }
@@ -78,6 +92,9 @@ export function TotpGuard({ children }) {
   // Timer ref for re-auth polling
   const timerRef = useRef(null);
 
+  // The Supabase session this guard has evaluated; null until resolved.
+  const sessionIdRef = useRef(null);
+
   const email = user?.email;
 
   // Bypass on setup page itself
@@ -99,17 +116,30 @@ export function TotpGuard({ children }) {
       return;
     }
     try {
+      // Resolve the session BEFORE the status call, so the catch below can still
+      // tell an already-verified session from an unknown one.
+      const sessionId = await getLiveSessionId();
+      sessionIdRef.current = sessionId;
+
       const { totpEnabled, totpUnlockedAt } = await totpStatus(email);
       if (!totpEnabled) {
         setState('setup_required');
         return;
       }
+      // No resolvable session means no stamp can be trusted: ask for a code
+      // rather than assume. Verifying again is a minor annoyance; assuming is
+      // the bug this guard exists to prevent.
+      if (!sessionId) {
+        setOtp('');
+        setState('otp_required');
+        return;
+      }
       // If the admin unlocked the account AFTER the user last verified, invalidate their session.
       if (totpUnlockedAt) {
-        const verifiedAt = getVerifiedAt(email);
+        const verifiedAt = getVerifiedAt(sessionId);
         if (!verifiedAt || verifiedAt < new Date(totpUnlockedAt).getTime()) {
           try {
-            sessionStorage.removeItem(sessionKey(email));
+            sessionStorage.removeItem(sessionKey(sessionId));
           } catch {
             /* non-fatal */
           }
@@ -119,7 +149,7 @@ export function TotpGuard({ children }) {
       }
       // The callback page already verified TOTP on fresh login and stamped sessionStorage.
       // Here we only need to enforce the re-auth timer.
-      if (isSessionExpired(email)) {
+      if (isSessionExpired(sessionId)) {
         setState('otp_required');
       } else {
         setState('verified');
@@ -129,7 +159,7 @@ export function TotpGuard({ children }) {
       console.error('[TotpGuard] status check failed:', err);
       // If we have a valid stamped session, let the user continue (re-auth failure shouldn't kick them out).
       // Otherwise show setup_required — we can't demand a code they may not have.
-      const ts = getVerifiedAt(email);
+      const ts = getVerifiedAt(sessionIdRef.current);
       if (ts && Date.now() - ts <= REAUTH_MS) {
         setState('verified');
         scheduleReauthCheck();
@@ -158,7 +188,11 @@ export function TotpGuard({ children }) {
     setError('');
     try {
       await totpVerify(email, trimmed);
-      setVerifiedAt(email);
+      // Stamp the session the server just bound the second factor to, so the
+      // two records are keyed identically.
+      const sessionId = sessionIdRef.current ?? (await getLiveSessionId());
+      sessionIdRef.current = sessionId;
+      setVerifiedAt(sessionId);
       setState('verified');
       scheduleReauthCheck();
     } catch (err) {

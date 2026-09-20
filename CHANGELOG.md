@@ -132,6 +132,23 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- A user who finished Microsoft Authenticator setup was sent to a dashboard on
+  which every API call was rejected with "second factor required", with no
+  prompt on screen explaining it. Completing setup proves possession of the
+  authenticator, but `/totp/verify-setup` never recorded that the second factor
+  had been cleared for that session — only `/totp/verify` did — so the gateway
+  had nothing on file for a first-time user. Setup now binds the session it was
+  completed in, using the identity from the verified token rather than the
+  `userId` in the request body.
+- The record of "this session cleared the second factor" was kept in the
+  browser under the user's email address, while the server keeps it under the
+  Supabase session id. Because that browser record outlives a sign-out within
+  the same tab, a user who signed out and back in carried it into a session
+  that had never been verified: the dashboard rendered normally, no code was
+  requested, and every API call came back 401. The browser record is now keyed
+  on the same session id the server uses, so the two cannot disagree, and it is
+  cleared on sign-out. A session whose id cannot be determined is now asked for
+  a code rather than assumed to have passed.
 - The VAT summary screen failed every request it made, reporting "Failed to
   fetch AP by date range" and the equivalent for AR, VAT transactions and VAT
   returns. The accounts-receivable, accounts-payable and VAT helpers were the

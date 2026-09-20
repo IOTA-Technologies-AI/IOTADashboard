@@ -15,7 +15,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
 
-import { getLiveAccessToken } from 'src/utils/jwt-auth';
+import { getLiveSessionId, getLiveAccessToken } from 'src/utils/jwt-auth';
 import { totpSetup, totpStatus, totpVerify, totpVerifySetup } from 'src/utils/apiHelper';
 
 import { supabase } from 'src/lib/supabase';
@@ -34,11 +34,17 @@ const parseHashParams = (hashString) => {
   };
 };
 
-const sessionKey = (email) => `totp_verified_at_${email}`;
+// Keyed on the Supabase session_id, matching TotpGuard and the gateway's own
+// `totpVerifiedSession` binding. An email-keyed stamp outlives the session it
+// was made for — sessionStorage survives a sign-out within the same tab — and
+// would then vouch for a session that never cleared MFA.
+const sessionKey = (sessionId) => `totp_verified_at_${sessionId}`;
 
-function markTotpVerified(email) {
+async function markTotpVerified() {
   try {
-    sessionStorage.setItem(sessionKey(email), String(Date.now()));
+    const sessionId = await getLiveSessionId();
+    if (!sessionId) return;
+    sessionStorage.setItem(sessionKey(sessionId), String(Date.now()));
   } catch {
     // non-fatal
   }
@@ -198,7 +204,7 @@ export default function SupabaseAuthCallbackPage() {
     setOtpError('');
     try {
       await totpVerifySetup(emailRef.current, trimmed);
-      markTotpVerified(emailRef.current);
+      await markTotpVerified();
       goToDashboard();
     } catch (err) {
       setOtpError(err?.response?.data?.message || err?.message || 'Incorrect code. Please try again.');
@@ -215,7 +221,7 @@ export default function SupabaseAuthCallbackPage() {
     setOtpError('');
     try {
       await totpVerify(emailRef.current, trimmed);
-      markTotpVerified(emailRef.current);
+      await markTotpVerified();
       goToDashboard();
     } catch (err) {
       const encoreMsg = err?.response?.data?.message || err?.message || '';

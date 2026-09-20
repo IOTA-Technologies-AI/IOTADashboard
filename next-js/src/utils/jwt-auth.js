@@ -189,6 +189,28 @@ export const decodeJWT = (token) => {
 };
 
 /**
+ * @summary The Supabase `session_id` of the CURRENT session.
+ * @description The gateway binds the second factor to this exact claim
+ * (`auth/auth.ts` gate 4 → `totpVerifiedSession.sessionId`), so it is the only
+ * identifier under which "this session cleared MFA" is a meaningful statement.
+ * The client used to record that fact against the user's EMAIL instead, which
+ * says nothing about which session was verified — the two could therefore
+ * disagree, and when they did the dashboard rendered normally while every API
+ * call came back 401 "second factor required".
+ *
+ * Returns null when there is no usable session or the claim is absent. Callers
+ * must treat null as "not verified" and prompt, never as "verified".
+ *
+ * @returns {Promise<string|null>} The session_id claim, or null.
+ */
+export const getLiveSessionId = async () => {
+  const token = await resolveBearerToken();
+  if (!token) return null;
+  const claims = decodeJWT(token);
+  return typeof claims?.session_id === 'string' ? claims.session_id : null;
+};
+
+/**
  * Fetch user permissions with JWT authentication
  * Backend validates JWT and uses embedded user info instead of relying on email parameter
  */
