@@ -132,6 +132,23 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- The VAT summary screen failed every request it made, reporting "Failed to
+  fetch AP by date range" and the equivalent for AR, VAT transactions and VAT
+  returns. The accounts-receivable, accounts-payable and VAT helpers were the
+  only ones written with the browser's `fetch` rather than axios, and the
+  Authorization header on IOTA API calls is added by an axios request
+  interceptor, which cannot see a `fetch`. All fifteen calls therefore reached
+  endpoints that require authentication carrying no credentials at all and were
+  rejected at the gateway. They now resolve the live session token the same way
+  the interceptor does.
+- Some users landed on a dashboard with no menu items at all. The permission
+  lookup that decides which nav entries to show also depended on that axios
+  interceptor, which is registered as a side effect of loading a module the
+  dashboard layout does not import — so on routes whose bundle happened not to
+  pull it in, both permission calls were rejected and their empty result was
+  indistinguishable from "this user may see nothing", which hid the entire
+  menu. The lookup now attaches the token itself instead of depending on which
+  modules a route loaded first.
 - A vetting form date could read as filled while the form treated it as empty,
   rejecting the submission with an unexplained "complete the required fields".
   `<input type="date">` yields an empty string until day, month AND year are all

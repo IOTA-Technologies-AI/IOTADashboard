@@ -1,5 +1,7 @@
 import axios from 'axios';
 
+import { resolveBearerToken } from './jwt-auth';
+
 // Use same API base URL as apiHelper.js for consistency
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_URL || 'https://staging-iotaapiserver-s572.encr.app/';
@@ -23,6 +25,32 @@ const safeParse = (value) => {
 };
 
 const hasWindow = () => typeof window !== 'undefined';
+
+/**
+ * @summary GET from the IOTA API with the live bearer token attached.
+ * @description Both permission endpoints this module calls are `auth: true`.
+ * This module used the bare global axios and relied on the request interceptor
+ * that `src/utils/apiHelper.js` registers on it as an import side effect — but
+ * nothing in the dashboard layout's import graph pulls apiHelper in, so on any
+ * route whose bundle happens not to load it the permission calls went out with
+ * no Authorization header, 401'd, and were caught into an empty path list.
+ *
+ * An empty list is indistinguishable from "this user is allowed nothing":
+ * `filterNavByPermissions` then strips every entry and the user lands on a
+ * dashboard with no menu at all. Which routes pull apiHelper in varies by
+ * bundle, which is why it hit only some users and looked intermittent.
+ *
+ * Resolving the token here removes the dependency on module evaluation order.
+ *
+ * @param {string} url - Absolute IOTA API URL.
+ * @returns {Promise<import('axios').AxiosResponse>} The axios response.
+ */
+const authedGet = async (url) => {
+  const token = await resolveBearerToken();
+  return axios.get(url, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+};
 
 const toSafeArray = (value) => (Array.isArray(value) ? value : []);
 
@@ -86,7 +114,7 @@ export const getPageAccessForRole = (role) => {
 export const fetchNavPermissionsForRole = async (role) => {
   if (!role) return [];
   try {
-    const response = await axios.get(
+    const response = await authedGet(
       `${API_BASE_URL}nav-permissions/role/${encodeURIComponent(role)}`
     );
     const menuKeys = response.data?.menuKeys || [];
@@ -288,7 +316,7 @@ export const fetchUserNavPermissions = async (userId, forceRefresh = false) => {
     }
 
     console.log('[pageAccess] Fetching fresh user nav permissions for userId:', userId);
-    const response = await axios.get(
+    const response = await authedGet(
       `${API_BASE_URL}user-nav-permissions/${encodeURIComponent(userId)}/paths`
     );
 

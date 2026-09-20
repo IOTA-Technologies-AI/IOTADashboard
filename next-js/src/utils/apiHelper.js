@@ -2164,6 +2164,36 @@ export async function generateLetterDocument(letterId) {
 // Change this constant at the top of the file
 const ENCORE_API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
 
+/**
+ * @summary `fetch` for the Encore API, with the live bearer token attached.
+ * @description The axios interceptors above are the only thing that puts an
+ * Authorization header on an IOTA API call, and they cannot see a `fetch`. The
+ * AR/AP/VAT helpers below were written with plain `fetch` and a lone
+ * Content-Type header, so every one of them reached an `auth: true` endpoint
+ * with no credentials at all: the gateway rejected them before its own auth
+ * handler ran, and the whole VAT summary screen failed with "Failed to fetch
+ * ..." messages that named the endpoint but never the cause.
+ *
+ * The token is resolved exactly as the interceptor resolves it, so the two
+ * paths cannot drift. When no session is usable, no Authorization header is
+ * sent rather than a stale one, so the API reports a missing token instead of
+ * an invalid one.
+ *
+ * @param {string} url - Absolute Encore API URL.
+ * @param {RequestInit} [options] - Standard fetch options; headers are merged.
+ * @returns {Promise<Response>} The fetch response, unread.
+ */
+async function encoreFetch(url, options = {}) {
+  const token = await resolveBearerToken();
+  return fetch(url, {
+    ...options,
+    headers: {
+      ...(options.headers || {}),
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+  });
+}
+
 // ============================================================================
 // Accounts Receivable APIs
 // ============================================================================
@@ -2178,7 +2208,7 @@ const ENCORE_API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
  */
 export async function fetchAccountsReceivable() {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/accountsReceivable`, {
+    const response = await encoreFetch(`${ENCORE_API_BASE_URL}/accountsReceivable`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -2204,7 +2234,7 @@ export async function fetchAccountsReceivable() {
  */
 export async function fetchAccountsReceivableByDateRange(startDate, endDate) {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/accountsReceivable/daterange`, {
+    const response = await encoreFetch(`${ENCORE_API_BASE_URL}/accountsReceivable/daterange`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ startDate, endDate }),
@@ -2233,7 +2263,7 @@ export async function fetchAccountsReceivableByDateRange(startDate, endDate) {
  */
 export async function fetchAccountsPayable() {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/accountsPayable`, {
+    const response = await encoreFetch(`${ENCORE_API_BASE_URL}/accountsPayable`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -2259,7 +2289,7 @@ export async function fetchAccountsPayable() {
  */
 export async function fetchAccountsPayableByDateRange(startDate, endDate) {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/accountsPayable/daterange`, {
+    const response = await encoreFetch(`${ENCORE_API_BASE_URL}/accountsPayable/daterange`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ startDate, endDate }),
@@ -2288,7 +2318,7 @@ export async function fetchAccountsPayableByDateRange(startDate, endDate) {
  */
 export async function fetchVATTransactions() {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions`, {
+    const response = await encoreFetch(`${ENCORE_API_BASE_URL}/vatTransactions`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -2314,7 +2344,7 @@ export async function fetchVATTransactions() {
  */
 export async function fetchVATTransactionsByDateRange(startDate, endDate) {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions/daterange`, {
+    const response = await encoreFetch(`${ENCORE_API_BASE_URL}/vatTransactions/daterange`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ startDate, endDate }),
@@ -2340,7 +2370,7 @@ export async function fetchVATTransactionsByDateRange(startDate, endDate) {
  */
 export async function fetchVATTransactionsByTaxPeriod(taxPeriod) {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions/period/${taxPeriod}`, {
+    const response = await encoreFetch(`${ENCORE_API_BASE_URL}/vatTransactions/period/${taxPeriod}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -2369,7 +2399,7 @@ export async function fetchVATTransactionsByTaxPeriod(taxPeriod) {
 export async function postQuarterlyVAT(year, quarter, postedBy) {
   try {
     console.log(`📤 Posting VAT for Q${quarter}-${year}`);
-    const response = await fetch(`${ENCORE_API_BASE_URL}/vatTransactions/post`, {
+    const response = await encoreFetch(`${ENCORE_API_BASE_URL}/vatTransactions/post`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ year, quarter, postedBy }),
@@ -2399,7 +2429,7 @@ export async function postQuarterlyVAT(year, quarter, postedBy) {
  */
 export async function getVATPostingStatus(year, quarter) {
   try {
-    const response = await fetch(
+    const response = await encoreFetch(
       `${ENCORE_API_BASE_URL}/vatTransactions/status/${year}/${quarter}`,
       {
         method: 'GET',
@@ -2428,7 +2458,7 @@ export async function getVATPostingStatus(year, quarter) {
  */
 export async function getVATSummaryByQuarter(year, quarter) {
   try {
-    const response = await fetch(
+    const response = await encoreFetch(
       `${ENCORE_API_BASE_URL}/vatTransactions/summary/${year}/${quarter}`,
       {
         method: 'GET',
@@ -2461,7 +2491,7 @@ export async function getVATSummaryByQuarter(year, quarter) {
 export async function saveVATReturn(vatReturnData) {
   try {
     console.log('📤 Saving VAT Return:', vatReturnData.taxPeriod);
-    const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns`, {
+    const response = await encoreFetch(`${ENCORE_API_BASE_URL}/vatReturns`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(vatReturnData),
@@ -2489,7 +2519,7 @@ export async function saveVATReturn(vatReturnData) {
  */
 export async function getVATReturns() {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns`, {
+    const response = await encoreFetch(`${ENCORE_API_BASE_URL}/vatReturns`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -2514,7 +2544,7 @@ export async function getVATReturns() {
  */
 export async function getVATReturnByPeriod(taxPeriod) {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns/${taxPeriod}`, {
+    const response = await encoreFetch(`${ENCORE_API_BASE_URL}/vatReturns/${taxPeriod}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -2542,7 +2572,7 @@ export async function getVATReturnByPeriod(taxPeriod) {
  */
 export async function updateVATReturnStatus(taxPeriod, status, zatcaReferenceNumber, updatedBy) {
   try {
-    const response = await fetch(`${ENCORE_API_BASE_URL}/vatReturns/${taxPeriod}/status`, {
+    const response = await encoreFetch(`${ENCORE_API_BASE_URL}/vatReturns/${taxPeriod}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ taxPeriod, status, zatcaReferenceNumber, updatedBy }),
