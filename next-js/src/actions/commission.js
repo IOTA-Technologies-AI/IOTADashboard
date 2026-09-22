@@ -1,10 +1,8 @@
-import axios from 'axios';
-
-const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
+import iotaApi from 'src/lib/iota-api';
 
 export async function getCommissions() {
   try {
-    const response = await axios.get(`${API_BASE_URL}/commissions`);
+    const response = await iotaApi.get(`commissions`);
     return response.data.commissions || [];
   } catch (error) {
     console.error('Error fetching commissions:', error);
@@ -14,7 +12,7 @@ export async function getCommissions() {
 
 export async function getCommission(id) {
   try {
-    const response = await axios.get(`${API_BASE_URL}/commissions/${id}`);
+    const response = await iotaApi.get(`commissions/${id}`);
     return response.data.commission;
   } catch (error) {
     const status = error?.response?.status;
@@ -29,7 +27,7 @@ export async function getCommission(id) {
 
 export async function createCommission(commissionData) {
   try {
-    const response = await axios.post(`${API_BASE_URL}/commissions`, commissionData);
+    const response = await iotaApi.post(`commissions`, commissionData);
     return response.data.commission;
   } catch (error) {
     console.error('Error creating commission:', error);
@@ -39,7 +37,7 @@ export async function createCommission(commissionData) {
 
 export async function updateCommission(id, commissionData) {
   try {
-    const response = await axios.patch(`${API_BASE_URL}/commissions/${id}`, commissionData);
+    const response = await iotaApi.patch(`commissions/${id}`, commissionData);
     return response.data.commission;
   } catch (error) {
     console.error(`Error updating commission ${id}:`, error);
@@ -49,7 +47,7 @@ export async function updateCommission(id, commissionData) {
 
 export async function deleteCommission(id) {
   try {
-    await axios.delete(`${API_BASE_URL}/commissions/${id}`);
+    await iotaApi.delete(`commissions/${id}`);
     return true;
   } catch (error) {
     console.error(`Error deleting commission ${id}:`, error);
@@ -81,8 +79,8 @@ export async function payBDMCommission(commissionId, { amount, expenseId } = {})
       payload.expenseId = expenseId;
     }
 
-    const response = await axios.post(
-      `${API_BASE_URL}/commissions/${commissionId}/pay-bdm`,
+    const response = await iotaApi.post(
+      `commissions/${commissionId}/pay-bdm`,
       payload
     );
     return response.data.commission;

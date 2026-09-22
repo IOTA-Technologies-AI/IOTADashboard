@@ -140,6 +140,13 @@ is running.
   interceptor only attached a token to requests aimed directly at the API host,
   so the proxy forwarded an empty Authorization header and the gateway rejected
   the call. The token now goes on same-origin `/api/*` requests as well.
+- Commission and Job pages could fail the same way, for the mirror-image
+  reason: `src/actions/commission.js` and `src/actions/jobs.js` called the API
+  on the default axios instance, which is only authenticated when some other
+  module in that route's bundle happens to have imported `apiHelper` and
+  registered its interceptor. Both now use a shared `src/lib/iota-api` client
+  that attaches the live token itself, as does employee vetting, which had
+  grown a private copy of the same interceptor after being bitten by this once.
 - A user who finished Microsoft Authenticator setup was sent to a dashboard on
   which every API call was rejected with "second factor required", with no
   prompt on screen explaining it. Completing setup proves possession of the

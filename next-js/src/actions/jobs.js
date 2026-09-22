@@ -1,6 +1,4 @@
-import axios from 'axios';
-
-const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
+import iotaApi from 'src/lib/iota-api';
 
 // =============================================
 // Job CRUD Operations
@@ -17,8 +15,8 @@ export async function getJobs(params = {}) {
     if (params.isRemote !== undefined) queryParams.append('isRemote', params.isRemote);
     if (params.isFeatured !== undefined) queryParams.append('isFeatured', params.isFeatured);
 
-    const url = `${API_BASE_URL}/jobs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
-    const response = await axios.get(url);
+    const url = `jobs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    const response = await iotaApi.get(url);
     return response.data?.jobs || [];
   } catch (error) {
     console.error('Error fetching jobs:', error);
@@ -28,7 +26,7 @@ export async function getJobs(params = {}) {
 
 export async function getJob(id) {
   try {
-    const response = await axios.get(`${API_BASE_URL}/jobs/${id}`);
+    const response = await iotaApi.get(`jobs/${id}`);
     return response.data?.job || null;
   } catch (error) {
     const status = error?.response?.status;
@@ -39,7 +37,7 @@ export async function getJob(id) {
 
 export async function createJob(jobData) {
   try {
-    const response = await axios.post(`${API_BASE_URL}/jobs`, jobData);
+    const response = await iotaApi.post(`jobs`, jobData);
     return response.data?.job || response.data;
   } catch (error) {
     console.error('Error creating job:', error);
@@ -49,7 +47,7 @@ export async function createJob(jobData) {
 
 export async function updateJob(id, jobData) {
   try {
-    const response = await axios.patch(`${API_BASE_URL}/jobs/${id}`, { id, ...jobData });
+    const response = await iotaApi.patch(`jobs/${id}`, { id, ...jobData });
     return response.data?.job || response.data;
   } catch (error) {
     console.error(`Error updating job ${id}:`, error);
@@ -59,7 +57,7 @@ export async function updateJob(id, jobData) {
 
 export async function deleteJob(id) {
   try {
-    await axios.delete(`${API_BASE_URL}/jobs/${id}`);
+    await iotaApi.delete(`jobs/${id}`);
     return true;
   } catch (error) {
     console.error(`Error deleting job ${id}:`, error);
@@ -73,7 +71,7 @@ export async function deleteJob(id) {
 
 export async function syncJobToWebflow(jobId, publish = true) {
   try {
-    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/sync-to-webflow`, {
+    const response = await iotaApi.post(`jobs/${jobId}/sync-to-webflow`, {
       jobId,
       publish,
     });
@@ -86,7 +84,7 @@ export async function syncJobToWebflow(jobId, publish = true) {
 
 export async function publishToWebflow() {
   try {
-    const response = await axios.post(`${API_BASE_URL}/webflow/publish`);
+    const response = await iotaApi.post(`webflow/publish`);
     return response.data;
   } catch (error) {
     console.error('Error publishing to Webflow:', error);
@@ -96,7 +94,7 @@ export async function publishToWebflow() {
 
 export async function testWebflowConnection() {
   try {
-    const response = await axios.get(`${API_BASE_URL}/webflow/test`);
+    const response = await iotaApi.get(`webflow/test`);
     return response.data;
   } catch (error) {
     console.error('Error testing Webflow connection:', error);
@@ -106,7 +104,7 @@ export async function testWebflowConnection() {
 
 export async function fetchJobsFromWebflow() {
   try {
-    const response = await axios.get(`${API_BASE_URL}/webflow/jobs`);
+    const response = await iotaApi.get(`webflow/jobs`);
     return response.data?.jobs || [];
   } catch (error) {
     console.error('Error fetching jobs from Webflow:', error);
@@ -120,7 +118,7 @@ export async function fetchJobsFromWebflow() {
 
 export async function approveJob(jobId, approvedBy) {
   try {
-    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/approve`, {
+    const response = await iotaApi.post(`jobs/${jobId}/approve`, {
       id: jobId,
       approvedBy,
     });
@@ -141,7 +139,7 @@ export async function approveJob(jobId, approvedBy) {
 
 export async function rejectJob(jobId, rejectedBy, rejectionReason) {
   try {
-    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/reject`, {
+    const response = await iotaApi.post(`jobs/${jobId}/reject`, {
       id: jobId,
       rejectedBy,
       rejectionReason,
@@ -163,7 +161,7 @@ export async function rejectJob(jobId, rejectedBy, rejectionReason) {
 
 export async function resubmitJobForApproval(jobId, resubmittedBy) {
   try {
-    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/resubmit`, {
+    const response = await iotaApi.post(`jobs/${jobId}/resubmit`, {
       id: jobId,
       resubmittedBy,
     });
@@ -180,7 +178,7 @@ export async function resubmitJobForApproval(jobId, resubmittedBy) {
 
 export async function submitJobApplication(jobId, applicationData) {
   try {
-    const response = await axios.post(`${API_BASE_URL}/jobs/${jobId}/apply`, {
+    const response = await iotaApi.post(`jobs/${jobId}/apply`, {
       jobId,
       ...applicationData,
     });
@@ -194,9 +192,9 @@ export async function submitJobApplication(jobId, applicationData) {
 export async function getJobApplications(jobId, status) {
   try {
     const url = status
-      ? `${API_BASE_URL}/jobs/${jobId}/applications?status=${status}`
-      : `${API_BASE_URL}/jobs/${jobId}/applications`;
-    const response = await axios.get(url);
+      ? `jobs/${jobId}/applications?status=${status}`
+      : `jobs/${jobId}/applications`;
+    const response = await iotaApi.get(url);
     return response.data?.applications || [];
   } catch (error) {
     console.error('Error fetching job applications:', error);
@@ -206,7 +204,7 @@ export async function getJobApplications(jobId, status) {
 
 export async function updateJobApplicationStatus(applicationId, status, notes, reviewedBy) {
   try {
-    const response = await axios.patch(`${API_BASE_URL}/applications/${applicationId}`, {
+    const response = await iotaApi.patch(`applications/${applicationId}`, {
       id: applicationId,
       status,
       notes,
@@ -225,8 +223,8 @@ export async function updateJobApplicationStatus(applicationId, status, notes, r
 
 export async function getIntegration(integrationName, integrationType) {
   try {
-    const response = await axios.get(
-      `${API_BASE_URL}/integrations/${integrationName}/${integrationType}`
+    const response = await iotaApi.get(
+      `integrations/${integrationName}/${integrationType}`
     );
     return response.data?.integration || null;
   } catch (error) {
@@ -237,8 +235,8 @@ export async function getIntegration(integrationName, integrationType) {
 
 export async function updateIntegration(integrationName, integrationType, data) {
   try {
-    const response = await axios.patch(
-      `${API_BASE_URL}/integrations/${integrationName}/${integrationType}`,
+    const response = await iotaApi.patch(
+      `integrations/${integrationName}/${integrationType}`,
       { integrationName, integrationType, ...data }
     );
     return response.data;
