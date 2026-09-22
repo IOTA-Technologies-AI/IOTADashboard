@@ -132,6 +132,14 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- The Cost Center and Expense Type dropdowns on the new-expense form (and on
+  the invoice form and the company performance view, which read the same lists)
+  came back empty for a signed-in user, with a 401 in the console. These lists
+  are fetched through this app's own `/api/*` proxy routes to avoid CORS, and
+  those routes forward the caller's bearer token to the API — but the request
+  interceptor only attached a token to requests aimed directly at the API host,
+  so the proxy forwarded an empty Authorization header and the gateway rejected
+  the call. The token now goes on same-origin `/api/*` requests as well.
 - A user who finished Microsoft Authenticator setup was sent to a dashboard on
   which every API call was rejected with "second factor required", with no
   prompt on screen explaining it. Completing setup proves possession of the

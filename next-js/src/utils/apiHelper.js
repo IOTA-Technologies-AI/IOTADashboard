@@ -51,11 +51,33 @@ function getAuthHeaders() {
 
 const IOTA_API_ORIGIN = new URL(API_BASE_URL).origin;
 
-/** Whether a request is bound for the IOTA API, however its URL was assembled. */
+/**
+ * Whether a request ends up at the IOTA API, however its URL was assembled —
+ * either straight to the Encore gateway, or through one of this app's own
+ * `/api/*` proxy routes, which forward the caller's Authorization header
+ * verbatim to that same gateway.
+ *
+ * The proxies were the gap. `getCostCenters()` and friends call
+ * `/api/costcenters` on the client to dodge CORS; that URL resolves to the
+ * dashboard's own origin, so an origin-only check skipped it, no token was
+ * attached, the proxy forwarded an empty Authorization header and the gateway
+ * answered 401 — which is why the expense form's cost-center and expense-type
+ * dropdowns came back empty for a perfectly signed-in user.
+ */
 const isIotaApiRequest = (config) => {
   try {
     const base = config.baseURL || (typeof window !== 'undefined' ? window.location.origin : undefined);
-    return new URL(config.url || '', base).origin === IOTA_API_ORIGIN;
+    const target = new URL(config.url || '', base);
+
+    if (target.origin === IOTA_API_ORIGIN) return true;
+
+    // Same-origin proxy routes only: sending the session token to our own
+    // server is not a leak, and the routes that don't need it ignore it.
+    return (
+      typeof window !== 'undefined' &&
+      target.origin === window.location.origin &&
+      target.pathname.startsWith('/api/')
+    );
   } catch {
     return false;
   }
