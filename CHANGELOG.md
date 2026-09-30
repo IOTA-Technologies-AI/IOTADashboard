@@ -179,6 +179,33 @@ is running.
 - App version and build stamp in `CONFIG`, surfaced in the settings drawer.
 - This changelog.
 
+### Security
+- **The API now requires a signed-in user on every endpoint that is not public
+  by design.** 191 endpoints that previously answered anyone who knew the URL —
+  payroll, wallet top-ups, offers, NDAs, employee requests, insurance, reports,
+  OneDrive, ZATCA onboarding, reconciliation, commissions, enterprise-app users
+  and more — are authenticated at the gateway. The 32 that stay public are the
+  candidate-intake and onboarding forms, NDA and offer signing links, the
+  public document and policy viewers, the careers application form, inbound
+  webhooks (which verify their own signatures) and the pre-MFA authenticator
+  calls. Three scheduled-job endpoints are no longer reachable from outside.
+  Requires deploying `../IOTAApiServer` together with this build.
+- Authenticator setup and status now require the caller's own sign-in.
+  Previously `POST /totp/setup` took any user id with no token, replaced that
+  person's authenticator secret and returned the new one.
+- Role is taken from the verified sign-in, not from the request. Editing and
+  deleting expenses, editing invoices and switching Record Edit Mode used the
+  `roleId` sent by the browser, so any signed-in user could claim to be a
+  super-admin. Approving or rejecting an invoice (super-admin), marking one
+  paid (admin and above) and deleting one (super-admin) are now enforced by the
+  API as well as the screen.
+- The backend no longer reads credentials from a committed `.env` file; they
+  come from Encore secrets. The file, the ZATCA key files and result files are
+  removed from the repository and ignored. **The exposed values still have to
+  be rotated** — removing the files does not make them safe.
+- The OneDrive proxies and the bank-statement upload forward the user's token
+  to the API; they previously called it anonymously.
+
 ### Changed
 - Invoice list rows show the employee-billing collection stage next to the
   status for invoices raised from a billing contract. No other invoice

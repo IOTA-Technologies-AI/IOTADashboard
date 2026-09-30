@@ -23,6 +23,7 @@ import DialogContent from '@mui/material/DialogContent';
 import LinearProgress from '@mui/material/LinearProgress';
 import CircularProgress from '@mui/material/CircularProgress';
 
+import { getLiveAccessToken } from 'src/utils/jwt-auth';
 import { SUPPORTED_BANKS, BANK_REGIONS } from 'src/utils/constants/banking';
 
 import { Iconify } from 'src/components/iconify';
@@ -90,8 +91,11 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
 
       setProgress(30);
 
+      // The parser calls the API on the user's behalf, so it needs their token.
+      const token = await getLiveAccessToken();
       const response = await fetch('/api/banking/parse-statement', {
         method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
         body: formData,
       });
 
@@ -119,7 +123,7 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
 
   return (
     <>
-            <Card sx={sx} {...other}>
+      <Card sx={sx} {...other}>
         <CardHeader
           title="Upload Statement"
           subheader="Import transactions from bank statements"
@@ -134,7 +138,11 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
             },
           }}
           action={
-            <Button variant="contained" startIcon={<Iconify icon="eva:cloud-upload-fill" />} onClick={handleOpen}>
+            <Button
+              variant="contained"
+              startIcon={<Iconify icon="eva:cloud-upload-fill" />}
+              onClick={handleOpen}
+            >
               Upload
             </Button>
           }
@@ -169,7 +177,9 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
                 }}
               >
                 {Object.keys(BANK_REGIONS).map((region) => (
-                  <MenuItem key={region} value={region}>{region}</MenuItem>
+                  <MenuItem key={region} value={region}>
+                    {region}
+                  </MenuItem>
                 ))}
               </Select>
             </FormControl>
@@ -189,11 +199,13 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
                   }
                 }}
               >
-                {accounts.filter((acc) => acc.region === selectedRegion || !acc.region).map((account) => (
-                  <MenuItem key={account.id} value={account.id}>
-                    {account.accountName} - {account.bankName} ({account.accountNumber})
-                  </MenuItem>
-                ))}
+                {accounts
+                  .filter((acc) => acc.region === selectedRegion || !acc.region)
+                  .map((account) => (
+                    <MenuItem key={account.id} value={account.id}>
+                      {account.accountName} - {account.bankName} ({account.accountNumber})
+                    </MenuItem>
+                  ))}
                 <MenuItem value="new">
                   <Stack direction="row" alignItems="center" spacing={1}>
                     <Iconify icon="eva:plus-fill" />
@@ -206,9 +218,15 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
             {(isNewAccount || !selectedAccount) && (
               <FormControl fullWidth>
                 <InputLabel>Bank</InputLabel>
-                <Select value={selectedBank} label="Bank" onChange={(e) => setSelectedBank(e.target.value)}>
+                <Select
+                  value={selectedBank}
+                  label="Bank"
+                  onChange={(e) => setSelectedBank(e.target.value)}
+                >
                   {banksForRegion.map((bank) => (
-                    <MenuItem key={bank.id} value={bank.id}>{bank.name}</MenuItem>
+                    <MenuItem key={bank.id} value={bank.id}>
+                      {bank.name}
+                    </MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -222,10 +240,19 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
                 cursor: 'pointer',
                 textAlign: 'center',
                 bgcolor: (theme) => varAlpha(theme.vars.palette.grey['500Channel'], 0.08),
-                border: (theme) => `1px dashed ${varAlpha(theme.vars.palette.grey['500Channel'], 0.2)}`,
-                '&:hover': { bgcolor: (theme) => varAlpha(theme.vars.palette.grey['500Channel'], 0.16) },
-                ...(isDragActive && { bgcolor: (theme) => varAlpha(theme.vars.palette.primary.mainChannel, 0.08), borderColor: 'primary.main' }),
-                ...(file && { bgcolor: (theme) => varAlpha(theme.vars.palette.success.mainChannel, 0.08), borderColor: 'success.main' }),
+                border: (theme) =>
+                  `1px dashed ${varAlpha(theme.vars.palette.grey['500Channel'], 0.2)}`,
+                '&:hover': {
+                  bgcolor: (theme) => varAlpha(theme.vars.palette.grey['500Channel'], 0.16),
+                },
+                ...(isDragActive && {
+                  bgcolor: (theme) => varAlpha(theme.vars.palette.primary.mainChannel, 0.08),
+                  borderColor: 'primary.main',
+                }),
+                ...(file && {
+                  bgcolor: (theme) => varAlpha(theme.vars.palette.success.mainChannel, 0.08),
+                  borderColor: 'success.main',
+                }),
               }}
             >
               <input {...getInputProps()} />
@@ -233,13 +260,23 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
                 <Stack alignItems="center" spacing={1}>
                   <Iconify icon="eva:file-text-fill" width={48} sx={{ color: 'success.main' }} />
                   <Typography variant="subtitle2">{file.name}</Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>{(file.size / 1024).toFixed(1)} KB</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    {(file.size / 1024).toFixed(1)} KB
+                  </Typography>
                 </Stack>
               ) : (
                 <Stack alignItems="center" spacing={1}>
-                  <Iconify icon="eva:cloud-upload-fill" width={48} sx={{ color: isDragActive ? 'primary.main' : 'text.disabled' }} />
-                  <Typography variant="subtitle2">{isDragActive ? 'Drop the file here' : 'Drag & drop PDF statement'}</Typography>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>or click to browse (max 10MB)</Typography>
+                  <Iconify
+                    icon="eva:cloud-upload-fill"
+                    width={48}
+                    sx={{ color: isDragActive ? 'primary.main' : 'text.disabled' }}
+                  />
+                  <Typography variant="subtitle2">
+                    {isDragActive ? 'Drop the file here' : 'Drag & drop PDF statement'}
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    or click to browse (max 10MB)
+                  </Typography>
                 </Stack>
               )}
             </Box>
@@ -257,19 +294,37 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
             {loading && (
               <Box sx={{ width: '100%' }}>
                 <LinearProgress variant="determinate" value={progress} />
-                <Typography variant="caption" sx={{ mt: 1, display: 'block', textAlign: 'center' }}>Processing statement...</Typography>
+                <Typography variant="caption" sx={{ mt: 1, display: 'block', textAlign: 'center' }}>
+                  Processing statement...
+                </Typography>
               </Box>
             )}
 
-            {error && <Typography color="error" variant="body2">{error}</Typography>}
+            {error && (
+              <Typography color="error" variant="body2">
+                {error}
+              </Typography>
+            )}
 
             {parseResult && (
-              <Box sx={{ p: 2, borderRadius: 1, bgcolor: (theme) => varAlpha(theme.vars.palette.success.mainChannel, 0.08) }}>
-                <Typography variant="subtitle2" sx={{ mb: 1 }}>✓ Statement Parsed Successfully</Typography>
+              <Box
+                sx={{
+                  p: 2,
+                  borderRadius: 1,
+                  bgcolor: (theme) => varAlpha(theme.vars.palette.success.mainChannel, 0.08),
+                }}
+              >
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  ✓ Statement Parsed Successfully
+                </Typography>
                 <Stack spacing={0.5}>
                   <Typography variant="body2">Bank: {parseResult.bankName}</Typography>
-                  <Typography variant="body2">Account: {parseResult.accountInfo?.accountNumber}</Typography>
-                  <Typography variant="body2">Transactions: {parseResult.transactions?.length || 0}</Typography>
+                  <Typography variant="body2">
+                    Account: {parseResult.accountInfo?.accountNumber}
+                  </Typography>
+                  <Typography variant="body2">
+                    Transactions: {parseResult.transactions?.length || 0}
+                  </Typography>
                 </Stack>
               </Box>
             )}
@@ -277,12 +332,16 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
         </DialogContent>
 
         <DialogActions>
-          <Button onClick={handleClose} color="inherit">Cancel</Button>
+          <Button onClick={handleClose} color="inherit">
+            Cancel
+          </Button>
           <Button
             variant="contained"
             onClick={handleUpload}
             disabled={!file || loading}
-            startIcon={loading ? <CircularProgress size={20} /> : <Iconify icon="eva:cloud-upload-fill" />}
+            startIcon={
+              loading ? <CircularProgress size={20} /> : <Iconify icon="eva:cloud-upload-fill" />
+            }
           >
             {loading ? 'Processing...' : 'Upload & Parse'}
           </Button>

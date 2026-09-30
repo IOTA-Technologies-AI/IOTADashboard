@@ -97,7 +97,7 @@ localStorage.setItem(
 # 2. Opens DevTools, copies Authorization header
 # 3. Runs from terminal:
 curl -X GET 'https://staging-iotaapiserver-s572.encr.app/expenses' \
-  -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...' \
+  -H 'Authorization: Bearer <token>' \
   -H 'apikey: your-supabase-key'
 
 # Result: Gets ALL expenses regardless of frontend permissions ❌

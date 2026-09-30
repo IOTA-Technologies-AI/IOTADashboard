@@ -17,7 +17,11 @@ export async function GET(request) {
       ? `${BASE_URL}/onedrive/files?${queryString}`
       : `${BASE_URL}/onedrive/files`;
 
-    const res = await fetch(url, { method: 'GET' });
+    const res = await fetch(url, {
+      method: 'GET',
+      // Forward the caller's session token: the API authenticates this endpoint.
+      headers: { Authorization: request?.headers?.get('authorization') ?? '' },
+    });
 
     // Get raw text first to handle empty responses
     const text = await res.text();

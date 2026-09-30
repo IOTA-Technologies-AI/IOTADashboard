@@ -7,6 +7,9 @@ const PDF_PARSER_URL = process.env.PDF_PARSER_URL || 'https://iota-pdf-parser.on
 
 export async function POST(request) {
   try {
+    // The caller's session token, forwarded to every API call below: the API
+    // authenticates bank accounts, statements, transactions and OneDrive uploads.
+    const authorization = request.headers.get('authorization') ?? '';
     const formData = await request.formData();
     const file = formData.get('file');
     const password = formData.get('password') || '';
@@ -91,7 +94,7 @@ export async function POST(request) {
       // Check if account already exists
       const existingResponse = await fetch(`${API_BASE_URL}/bankAccounts`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: authorization },
       });
       const existingResult = await existingResponse.json();
       const existingAccount = (existingResult.data || []).find(
@@ -103,7 +106,7 @@ export async function POST(request) {
         // Update balance
         await fetch(`${API_BASE_URL}/bankAccounts/${finalAccountId}/balance`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: authorization },
           body: JSON.stringify({
             id: finalAccountId,
             newBalance: parsedStatement.statementInfo.closingBalance || 0,
@@ -113,7 +116,7 @@ export async function POST(request) {
         // Create new account
         const createResponse = await fetch(`${API_BASE_URL}/bankAccounts`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: authorization },
           body: JSON.stringify(newAccountData),
         });
 
@@ -135,7 +138,7 @@ export async function POST(request) {
       `${API_BASE_URL}/bankStatements/account/${finalAccountId}`,
       {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: authorization },
       }
     );
 
@@ -195,7 +198,7 @@ export async function POST(request) {
 
     const statementResponse = await fetch(`${API_BASE_URL}/bankStatements`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: authorization },
       body: JSON.stringify(statementData),
     });
 
@@ -215,7 +218,7 @@ export async function POST(request) {
       const uploadPath = `Banking/Statements/${region}`;
       const uploadResponse = await fetch(`${API_BASE_URL}/onedrive/upload`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: authorization },
         body: JSON.stringify({
           folderPath: uploadPath,
           fileName: file.name,
@@ -260,7 +263,7 @@ export async function POST(request) {
       `${API_BASE_URL}/bankTransactions/account/${finalAccountId}`,
       {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: authorization },
       }
     );
     const existingTxnsResult = await existingTxnsResponse.json();
@@ -278,7 +281,7 @@ export async function POST(request) {
     if (newTransactions.length > 0) {
       const bulkResponse = await fetch(`${API_BASE_URL}/bankTransactions/bulk`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: authorization },
         body: JSON.stringify({ transactions: newTransactions }),
       });
 
@@ -288,7 +291,7 @@ export async function POST(request) {
         if (statementId) {
           await fetch(`${API_BASE_URL}/bankStatements/${statementId}/status`, {
             method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', Authorization: authorization },
             body: JSON.stringify({
               id: statementId,
               status: 'failed',
@@ -310,7 +313,7 @@ export async function POST(request) {
     if (statementId) {
       await fetch(`${API_BASE_URL}/bankStatements/${statementId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: authorization },
         body: JSON.stringify({ id: statementId, status: 'completed' }),
       });
     }
@@ -319,7 +322,7 @@ export async function POST(request) {
     if (finalAccountId) {
       await fetch(`${API_BASE_URL}/bankAccounts/${finalAccountId}/balance`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: authorization },
         body: JSON.stringify({
           id: finalAccountId,
           newBalance: parsedStatement.statementInfo.closingBalance || 0,
