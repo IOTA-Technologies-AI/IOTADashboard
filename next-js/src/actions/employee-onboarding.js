@@ -1,8 +1,9 @@
 import iotaApi from 'src/lib/iota-api';
 
 /**
- * Employee onboarding — one-time, OTP-verified form sent to employees who
- * already exist in HR > Employees. HR calls go through the shared client with
+ * Employee onboarding — one-time, OTP-verified form sent either to an existing
+ * employee or to a new joiner (at their personal email) who has no HR record
+ * yet; that record is created when HR accepts the submission. HR calls go through the shared client with
  * the live bearer token; the public form calls carry no token (the link + OTP
  * are the credential) and go through the same client, which simply sends no
  * Authorization header when there is no session.
@@ -35,8 +36,13 @@ export async function getOnboardingSubmission(id) {
   return response.data;
 }
 
-export async function applyOnboardingSubmission(id) {
-  const response = await iotaApi.post(`/employee-onboarding/submissions/${id}/apply`);
+/**
+ * Accept a submission. For a new joiner, `payload` carries what only HR knows
+ * (employee code, joining date, designation…) and the employee record is
+ * created; for an existing employee it is ignored.
+ */
+export async function applyOnboardingSubmission(id, payload = {}) {
+  const response = await iotaApi.post(`/employee-onboarding/submissions/${id}/apply`, payload);
   return response.data;
 }
 

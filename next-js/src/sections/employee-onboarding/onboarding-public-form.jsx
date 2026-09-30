@@ -250,7 +250,7 @@ function StepVerifyIdentity({ tokenRecord, token, onVerified }) {
     <Stack spacing={3}>
       <StepHeader
         title={`Welcome, ${tokenRecord?.employeeName || 'colleague'}`}
-        subtitle="Confirm your IOTA email address and we will send you a one-time verification code."
+        subtitle="Confirm the email address where you received this link and we will send you a one-time verification code."
       />
       {error && <Alert severity="error">{error}</Alert>}
       {successMsg && <Alert severity="success">{successMsg}</Alert>}

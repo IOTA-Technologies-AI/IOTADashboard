@@ -11,11 +11,17 @@ import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Timeline from '@mui/lab/Timeline';
 import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import MenuItem from '@mui/material/MenuItem';
 import TimelineDot from '@mui/lab/TimelineDot';
+import TextField from '@mui/material/TextField';
 import TimelineItem from '@mui/lab/TimelineItem';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
+import DialogTitle from '@mui/material/DialogTitle';
 import TimelineContent from '@mui/lab/TimelineContent';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
 import TimelineSeparator from '@mui/lab/TimelineSeparator';
 import TimelineConnector from '@mui/lab/TimelineConnector';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -94,18 +100,36 @@ function InfoRow({ label, value }) {
 export function OnboardingDetailsView({ id }) {
   const router = useRouter();
   const confirm = useBoolean();
+  const createDialog = useBoolean();
   const [applying, setApplying] = useState(false);
+  // What only HR knows about a new joiner, needed to create the employee record
+  const [newEmployee, setNewEmployee] = useState({
+    employeeCode: '',
+    employeeType: 'Permanent',
+    joiningDate: '',
+    designation: '',
+    department: '',
+    currencyCode: 'SAR',
+    workEmail: '',
+  });
+  const setNewField = (key) => (e) =>
+    setNewEmployee((prev) => ({ ...prev, [key]: e.target.value }));
 
   const { data, isLoading, mutate } = useSWR(id ? `employee-onboarding/${id}` : null, () =>
     getOnboardingSubmission(id)
   );
 
-  const handleApply = async () => {
+  const handleApply = async (payload = {}) => {
     setApplying(true);
     try {
-      const res = await applyOnboardingSubmission(id);
-      toast.success(`Applied ${res.appliedFields?.length || 0} fields to the employee record`);
+      const res = await applyOnboardingSubmission(id, payload);
+      toast.success(
+        res.created
+          ? 'Employee record created from the onboarding form'
+          : `Applied ${res.appliedFields?.length || 0} fields to the employee record`
+      );
       confirm.onFalse();
+      createDialog.onFalse();
       mutate();
     } catch (e) {
       toast.error(e?.response?.data?.message || e?.message || 'Failed to apply submission');
@@ -129,6 +153,38 @@ export function OnboardingDetailsView({ id }) {
   const fullName =
     [s.firstName, s.middleName, s.lastName].filter(Boolean).join(' ') || s.employeeName;
   const isApplied = s.status === 'applied';
+  // A new joiner has no HR record until this submission is accepted
+  const isNewJoiner = !s.employeeId;
+
+  const openApply = () => {
+    if (!isNewJoiner) {
+      confirm.onTrue();
+      return;
+    }
+    setNewEmployee((prev) => ({
+      ...prev,
+      joiningDate: prev.joiningDate || (t?.joiningDate ? String(t.joiningDate).slice(0, 10) : ''),
+      designation: prev.designation || t?.designation || '',
+      department: prev.department || t?.department || '',
+    }));
+    createDialog.onTrue();
+  };
+
+  const handleCreateEmployee = () => {
+    if (!newEmployee.employeeCode.trim() || !newEmployee.joiningDate) {
+      toast.error('Employee code and joining date are required.');
+      return;
+    }
+    handleApply({
+      employeeCode: newEmployee.employeeCode.trim(),
+      employeeType: newEmployee.employeeType,
+      joiningDate: newEmployee.joiningDate,
+      currencyCode: newEmployee.currencyCode,
+      ...(newEmployee.designation ? { designation: newEmployee.designation.trim() } : {}),
+      ...(newEmployee.department ? { department: newEmployee.department.trim() } : {}),
+      ...(newEmployee.workEmail ? { workEmail: newEmployee.workEmail.trim() } : {}),
+    });
+  };
 
   return (
     <DashboardContent>
@@ -142,21 +198,27 @@ export function OnboardingDetailsView({ id }) {
         ]}
         action={
           <Stack direction="row" spacing={1}>
-            <Button
-              variant="outlined"
-              startIcon={<Iconify icon="eva:person-fill" />}
-              onClick={() => router.push(paths.dashboard.hr.employee.edit(s.employeeId))}
-            >
-              Employee Record
-            </Button>
+            {!isNewJoiner && (
+              <Button
+                variant="outlined"
+                startIcon={<Iconify icon="eva:person-fill" />}
+                onClick={() => router.push(paths.dashboard.hr.employee.edit(s.employeeId))}
+              >
+                Employee Record
+              </Button>
+            )}
             {!isApplied && (
               <Button
                 variant="contained"
                 color="success"
-                startIcon={<Iconify icon="eva:checkmark-circle-2-fill" />}
-                onClick={confirm.onTrue}
+                startIcon={
+                  <Iconify
+                    icon={isNewJoiner ? 'eva:person-add-fill' : 'eva:checkmark-circle-2-fill'}
+                  />
+                }
+                onClick={openApply}
               >
-                Apply to Employee Record
+                {isNewJoiner ? 'Create Employee Record' : 'Apply to Employee Record'}
               </Button>
             )}
           </Stack>
@@ -170,16 +232,24 @@ export function OnboardingDetailsView({ id }) {
         </Alert>
       ) : (
         <Alert severity="warning" sx={{ mb: 3 }}>
-          Submitted {fDateTime(s.submittedAt)} — not yet applied. Review the details below, then
-          apply them so payroll, GOSI, insurance and billing use the confirmed data.
+          Submitted {fDateTime(s.submittedAt)} — not yet applied.{' '}
+          {isNewJoiner
+            ? 'This is a new joiner with no HR record yet. Review the details, then create the employee record from them; the company email can be added afterwards.'
+            : 'Review the details below, then apply them so payroll, GOSI, insurance and billing use the confirmed data.'}
         </Alert>
       )}
 
       <Grid container spacing={3}>
         <Grid size={{ xs: 12, md: 8 }}>
           <SectionCard title="Employee" icon="eva:briefcase-fill">
-            <InfoRow label="Employee code" value={s.employeeCode} />
-            <InfoRow label="Work email" value={s.employeeEmail} />
+            <InfoRow
+              label="HR record"
+              value={isNewJoiner ? 'New joiner — not created yet' : s.employeeCode}
+            />
+            <InfoRow label="Link sent to" value={s.employeeEmail} />
+            <InfoRow label="Designation" value={t?.designation} />
+            <InfoRow label="Department" value={t?.department} />
+            <InfoRow label="Joining date" value={t?.joiningDate ? fDate(t.joiningDate) : ''} />
             <InfoRow label="Submission status" value={s.status} />
           </SectionCard>
 
@@ -350,12 +420,105 @@ export function OnboardingDetailsView({ id }) {
             variant="contained"
             color="success"
             loading={applying}
-            onClick={handleApply}
+            onClick={() => handleApply()}
           >
             Apply
           </LoadingButton>
         }
       />
+
+      <Dialog
+        open={createDialog.value}
+        onClose={applying ? undefined : createDialog.onFalse}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Create employee record</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 1 }}>
+            <Alert severity="info">
+              <strong>{fullName}</strong> has no HR record yet. It is created now from the
+              onboarding form, with the employment details below. The personal email is kept on the
+              record; leave the work email blank until the company mailbox exists.
+            </Alert>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField
+                fullWidth
+                label="Employee code *"
+                value={newEmployee.employeeCode}
+                onChange={setNewField('employeeCode')}
+              />
+              <TextField
+                fullWidth
+                select
+                label="Employee type"
+                value={newEmployee.employeeType}
+                onChange={setNewField('employeeType')}
+              >
+                <MenuItem value="Permanent">Permanent</MenuItem>
+                <MenuItem value="Temporary">Temporary</MenuItem>
+              </TextField>
+            </Stack>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField
+                fullWidth
+                label="Joining date *"
+                type="date"
+                value={newEmployee.joiningDate}
+                onChange={setNewField('joiningDate')}
+                InputLabelProps={{ shrink: true }}
+              />
+              <TextField
+                fullWidth
+                select
+                label="Salary currency"
+                value={newEmployee.currencyCode}
+                onChange={setNewField('currencyCode')}
+              >
+                {['SAR', 'AED', 'INR', 'GBP', 'USD'].map((c) => (
+                  <MenuItem key={c} value={c}>
+                    {c}
+                  </MenuItem>
+                ))}
+              </TextField>
+            </Stack>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+              <TextField
+                fullWidth
+                label="Designation"
+                value={newEmployee.designation}
+                onChange={setNewField('designation')}
+              />
+              <TextField
+                fullWidth
+                label="Department"
+                value={newEmployee.department}
+                onChange={setNewField('department')}
+              />
+            </Stack>
+            <TextField
+              label="Work email (optional)"
+              type="email"
+              value={newEmployee.workEmail}
+              onChange={setNewField('workEmail')}
+              helperText={`Personal email on record: ${s.personalEmail || s.employeeEmail || '—'}. Add the company address here later from HR > Employees.`}
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={createDialog.onFalse} disabled={applying}>
+            Cancel
+          </Button>
+          <LoadingButton
+            variant="contained"
+            color="success"
+            loading={applying}
+            onClick={handleCreateEmployee}
+          >
+            Create employee
+          </LoadingButton>
+        </DialogActions>
+      </Dialog>
     </DashboardContent>
   );
 }

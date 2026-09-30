@@ -14,6 +14,21 @@ Services billing already run on it.
 | 3 | **Monthly invoice generation** — pick a period, preview what will be raised, generate. One invoice per contract per period (idempotent), pro-rated for lines that start or end mid-month. The invoice lands in the existing Invoice module as `pending` and follows the existing internal approval (super-admin, TOTP). | Management > HR > Employee Billing > Overview |
 | 4 | **Collection pipeline** after internal approval — send to the customer's department contact with the PDF, record customer approval or query, request the payment receipt from Finance, mark paid. Every step is a validated transition with history, an automatic next-follow-up date, and counts of what is pending and what needs chasing. | Management > HR > Employee Billing > Overview, plus a stage chip on the Invoice list |
 
+### Who receives an onboarding link
+
+Two recipients, chosen in the Send dialog:
+
+- **New joiner** — not in HR > Employees yet. HR enters name and **personal
+  email** (plus designation, department, expected joining date). The token has
+  `employeeId = NULL`, `recipientType = 'new_joiner'`. On acceptance HR gives
+  the employee code and joining date, the employee record is created through the
+  existing `POST /employees` endpoint, then the submission is applied to it. The
+  work email stays blank until the company mailbox is created.
+- **Existing employee** — picked from HR > Employees. The link defaults to the
+  personal email on record, then the work email, and can be overridden.
+
+Migration: `sql/alter_employee_onboarding_for_new_joiners.sql`.
+
 ## 2. Status model
 
 The existing `invoices.status` machine is **unchanged**:

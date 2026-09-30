@@ -56,6 +56,16 @@ is running.
   `../IOTAApiServer` (new `employeebilling` service) and running
   `sql/create_employee_billing_tables.sql`, which also seeds the two invoice
   types *Employee Contract Invoice* and *Managed Services Invoice*.
+- Employee Onboarding links can be sent to **new joiners who are not in
+  HR > Employees yet**, not only to existing employees. HR enters the name, the
+  joiner's **personal email**, and optionally designation, department and
+  expected joining date; the link and the one-time code go to that personal
+  address. When the submission is accepted HR supplies the employee code and
+  joining date and the **employee record is created** from the form, with the
+  personal email kept on it and the work email left blank until the company
+  mailbox exists. For an existing employee the link now defaults to the
+  personal email on record and the address can be changed before sending.
+  Requires `sql/alter_employee_onboarding_for_new_joiners.sql`.
 - Billing contracts record the commercial trail that precedes billing: the
   approved proposal (resource calculation), SOW number, the customer's
   requisition number (printed on every invoice as the reference), SOW received

@@ -18,8 +18,10 @@ import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import Autocomplete from '@mui/material/Autocomplete';
+import ToggleButton from '@mui/material/ToggleButton';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 
 import { paths } from 'src/routes/paths';
@@ -74,24 +76,59 @@ function StatusLabel({ map, value }) {
 
 // ----------------------------------------------------------------------
 
+const EMPTY_JOINER = { fullName: '', designation: '', department: '', joiningDate: '' };
+const isEmail = (v) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(v || '').trim());
+
+/**
+ * Two kinds of recipient:
+ *  - a NEW JOINER with no HR record yet — HR types the name and the PERSONAL
+ *    email; the employee record is created when the submission is accepted
+ *    and the company mailbox is added later
+ *  - an EXISTING employee — picked from HR > Employees; the link goes to the
+ *    personal email if one is on record, and the address can be overridden
+ */
 function SendLinkDialog({ open, onClose, onSent, employees }) {
+  const [mode, setMode] = useState('new_joiner');
   const [employee, setEmployee] = useState(null);
+  const [joiner, setJoiner] = useState(EMPTY_JOINER);
+  const [email, setEmail] = useState('');
   const [expiresInHours, setExpiresInHours] = useState(168);
   const [notes, setNotes] = useState('');
   const [sending, setSending] = useState(false);
 
   const handleClose = () => {
     setEmployee(null);
+    setJoiner(EMPTY_JOINER);
+    setEmail('');
     setNotes('');
     onClose();
   };
 
+  const handlePickEmployee = (_, value) => {
+    setEmployee(value);
+    setEmail(value?.personalEmail || value?.email || '');
+  };
+
+  const setJoinerField = (key) => (e) => setJoiner((prev) => ({ ...prev, [key]: e.target.value }));
+
+  const isNew = mode === 'new_joiner';
+  const canSend = isEmail(email) && (isNew ? joiner.fullName.trim().length > 1 : !!employee);
+
   const handleSend = async () => {
-    if (!employee) return;
+    if (!canSend) return;
     setSending(true);
     try {
-      await generateOnboardingLink({ employeeId: employee.id, expiresInHours, notes });
-      toast.success(`Onboarding link sent to ${employee.email}`);
+      const payload = isNew
+        ? {
+            fullName: joiner.fullName.trim(),
+            email: email.trim(),
+            ...(joiner.designation ? { designation: joiner.designation.trim() } : {}),
+            ...(joiner.department ? { department: joiner.department.trim() } : {}),
+            ...(joiner.joiningDate ? { joiningDate: joiner.joiningDate } : {}),
+          }
+        : { employeeId: employee.id, email: email.trim() };
+      await generateOnboardingLink({ ...payload, expiresInHours, notes });
+      toast.success(`Onboarding link sent to ${email.trim()}`);
       onSent();
       handleClose();
     } catch (e) {
@@ -106,36 +143,99 @@ function SendLinkDialog({ open, onClose, onSent, employees }) {
       <DialogTitle>Send Onboarding Link</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 1 }}>
+          <ToggleButtonGroup
+            exclusive
+            fullWidth
+            size="small"
+            color="primary"
+            value={mode}
+            onChange={(_, v) => {
+              if (!v) return;
+              setMode(v);
+              setEmail(v === 'existing' ? employee?.personalEmail || employee?.email || '' : '');
+            }}
+          >
+            <ToggleButton value="new_joiner">New joiner</ToggleButton>
+            <ToggleButton value="existing">Existing employee</ToggleButton>
+          </ToggleButtonGroup>
+
           <Alert severity="info">
-            The link goes to the employee&apos;s email on record, can be used once, and opens only
-            after a one-time code is verified. Any earlier active link for the same employee is
-            revoked.
+            {isNew
+              ? 'For someone joining who is not in HR > Employees yet. The link goes to their personal email; the employee record is created when you accept their form, and the company email is added afterwards.'
+              : 'For someone already in HR > Employees. The link goes to the address below — their personal email if one is on record.'}{' '}
+            It can be used once and opens only after a one-time code is verified.
           </Alert>
-          <Autocomplete
-            options={employees}
-            value={employee}
-            onChange={(_, v) => setEmployee(v)}
-            getOptionLabel={(o) =>
-              `${o.firstName || ''} ${o.lastName || ''}`.trim() +
-              (o.employeeId ? ` (${o.employeeId})` : '') +
-              (o.email ? ` — ${o.email}` : '')
-            }
-            isOptionEqualToValue={(a, b) => a.id === b.id}
-            renderInput={(params) => <TextField {...params} label="Employee *" />}
-          />
-          {employee && !employee.email && (
-            <Alert severity="warning">
-              This employee has no email on record. Add one under HR &gt; Employees first.
-            </Alert>
+
+          {isNew ? (
+            <>
+              <TextField
+                label="Full name *"
+                value={joiner.fullName}
+                onChange={setJoinerField('fullName')}
+              />
+              <TextField
+                label="Personal email *"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                error={!!email && !isEmail(email)}
+                helperText="The link and the verification code are sent here."
+              />
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                <TextField
+                  fullWidth
+                  label="Designation"
+                  value={joiner.designation}
+                  onChange={setJoinerField('designation')}
+                />
+                <TextField
+                  fullWidth
+                  label="Department"
+                  value={joiner.department}
+                  onChange={setJoinerField('department')}
+                />
+              </Stack>
+              <TextField
+                label="Expected joining date"
+                type="date"
+                value={joiner.joiningDate}
+                onChange={setJoinerField('joiningDate')}
+                InputLabelProps={{ shrink: true }}
+              />
+            </>
+          ) : (
+            <>
+              <Autocomplete
+                options={employees}
+                value={employee}
+                onChange={handlePickEmployee}
+                getOptionLabel={(o) =>
+                  `${o.firstName || ''} ${o.lastName || ''}`.trim() +
+                  (o.employeeId ? ` (${o.employeeId})` : '') +
+                  (o.email ? ` — ${o.email}` : '')
+                }
+                isOptionEqualToValue={(a, b) => a.id === b.id}
+                renderInput={(params) => <TextField {...params} label="Employee *" />}
+              />
+              <TextField
+                label="Send to *"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                error={!!email && !isEmail(email)}
+                helperText="Defaults to the personal email on record, then the work email. Change it if needed."
+              />
+              {employee?.onboardingStatus && (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <Typography variant="body2" color="text.secondary">
+                    Current onboarding status:
+                  </Typography>
+                  <StatusLabel map={ONBOARDING_STATUS} value={employee.onboardingStatus} />
+                </Stack>
+              )}
+            </>
           )}
-          {employee?.onboardingStatus && (
-            <Stack direction="row" spacing={1} alignItems="center">
-              <Typography variant="body2" color="text.secondary">
-                Current onboarding status:
-              </Typography>
-              <StatusLabel map={ONBOARDING_STATUS} value={employee.onboardingStatus} />
-            </Stack>
-          )}
+
           <TextField
             select
             label="Link validity"
@@ -161,7 +261,7 @@ function SendLinkDialog({ open, onClose, onSent, employees }) {
         <LoadingButton
           variant="contained"
           loading={sending}
-          disabled={!employee?.email}
+          disabled={!canSend}
           onClick={handleSend}
         >
           Send Link
@@ -215,9 +315,18 @@ export function OnboardingListView() {
   }, []);
 
   const tokenColumns = [
-    { field: 'employeeName', headerName: 'Employee', flex: 1, minWidth: 180 },
-    { field: 'employeeCode', headerName: 'Code', width: 110 },
-    { field: 'employeeEmail', headerName: 'Email', flex: 1, minWidth: 200 },
+    { field: 'employeeName', headerName: 'Name', flex: 1, minWidth: 180 },
+    {
+      field: 'recipientType',
+      headerName: 'Type',
+      width: 130,
+      renderCell: ({ row }) => (
+        <Label variant="soft" color={row.employeeId ? 'default' : 'info'}>
+          {row.employeeId ? row.employeeCode || 'Employee' : 'New joiner'}
+        </Label>
+      ),
+    },
+    { field: 'employeeEmail', headerName: 'Sent to', flex: 1, minWidth: 200 },
     {
       field: 'status',
       headerName: 'Status',
@@ -269,8 +378,17 @@ export function OnboardingListView() {
   ];
 
   const submissionColumns = [
-    { field: 'employeeName', headerName: 'Employee', flex: 1, minWidth: 180 },
-    { field: 'employeeCode', headerName: 'Code', width: 110 },
+    { field: 'employeeName', headerName: 'Name', flex: 1, minWidth: 180 },
+    {
+      field: 'employeeCode',
+      headerName: 'HR record',
+      width: 130,
+      renderCell: ({ row }) => (
+        <Label variant="soft" color={row.employeeId ? 'default' : 'info'}>
+          {row.employeeId ? row.employeeCode || 'Employee' : 'New joiner'}
+        </Label>
+      ),
+    },
     { field: 'nationality', headerName: 'Nationality', width: 130 },
     { field: 'maritalStatus', headerName: 'Marital', width: 100 },
     { field: 'numberOfDependents', headerName: 'Dependants', width: 110, type: 'number' },
