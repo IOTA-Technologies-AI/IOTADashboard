@@ -2,9 +2,9 @@
 
 import { z } from 'zod';
 import useSWR from 'swr';
-import { useForm } from 'react-hook-form';
 import { useMemo, useState, useEffect } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm, useFieldArray } from 'react-hook-form';
 
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
@@ -12,6 +12,7 @@ import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import MenuItem from '@mui/material/MenuItem';
+import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -30,8 +31,11 @@ import {
 } from 'src/actions/employee-billing';
 
 import { toast } from 'src/components/snackbar';
+import { Iconify } from 'src/components/iconify';
 import { Form, Field } from 'src/components/hook-form';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+
+import { CONTACT_ROLES, PORTAL_SYSTEMS, SUBMISSION_CHANNELS } from '../utils/stages';
 
 // ----------------------------------------------------------------------
 
@@ -46,11 +50,36 @@ const ContractSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   contractType: z.enum(['single', 'managed_services']),
   customer: z.custom((v) => !!v?.id, { message: 'Customer is required' }),
-  customerContactName: z.string().optional(),
-  customerContactEmail: z.string().email('Invalid email').optional().or(z.literal('')),
-  customerContactCc: z.string().optional(),
-  financeContactName: z.string().optional(),
-  financeContactEmail: z.string().email('Invalid email').optional().or(z.literal('')),
+  // Customer-side contacts. Optional: a customer that takes invoices only
+  // through its own portal may have none.
+  customerContacts: z
+    .array(
+      z
+        .object({
+          id: z.string(),
+          name: z.string().optional(),
+          email: z.string().email('Invalid email').optional().or(z.literal('')),
+          title: z.string().optional(),
+          role: z.enum(['approver', 'delegate', 'finance', 'cc']),
+          // 'email' = send invoices to this person, 'dnd' = Do Not Disturb
+          notify: z.enum(['email', 'dnd']),
+          delegateFor: z.string().optional(),
+          delegateUntil: z.string().optional(),
+        })
+        .refine((c) => !!(c.name?.trim() || c.email?.trim()), {
+          message: 'Enter a name or an email',
+          path: ['name'],
+        })
+        .refine((c) => c.notify === 'dnd' || c.role === 'finance' || !!c.email?.trim(), {
+          message: 'An email is needed to send invoices to this person',
+          path: ['email'],
+        })
+    )
+    .optional(),
+  submissionChannel: z.enum(['email', 'portal', 'manual']),
+  portalSystem: z.string().optional(),
+  portalUrl: z.string().optional(),
+  portalAccountRef: z.string().optional(),
   iotaOffice: z.string().min(1),
   vatRate: z.coerce.number().min(0).max(100),
   poNumber: z.string().optional(),
@@ -80,6 +109,61 @@ const ContractSchema = z.object({
   ]),
   notes: z.string().optional(),
 });
+
+const newContact = (role = 'approver') => ({
+  id: `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+  name: '',
+  email: '',
+  title: '',
+  role,
+  notify: 'email',
+  delegateFor: '',
+  delegateUntil: '',
+});
+
+/** Contacts as the form holds them; contracts saved before the list existed are read from the single fields. */
+function contactsFromContract(c) {
+  const toForm = (k) => ({
+    id: String(k.id || newContact().id),
+    name: k.name || '',
+    email: k.email || '',
+    title: k.title || '',
+    role: k.role || 'approver',
+    notify: k.notify === false ? 'dnd' : 'email',
+    delegateFor: k.delegateFor || '',
+    delegateUntil: k.delegateUntil ? String(k.delegateUntil).slice(0, 10) : '',
+  });
+  if (Array.isArray(c.customerContacts) && c.customerContacts.length) {
+    return c.customerContacts.map(toForm);
+  }
+  const legacy = [];
+  if (c.customerContactName || c.customerContactEmail) {
+    legacy.push(
+      toForm({
+        id: 'c1',
+        name: c.customerContactName,
+        email: c.customerContactEmail,
+        role: 'approver',
+      })
+    );
+  }
+  if (c.financeContactName || c.financeContactEmail) {
+    legacy.push(
+      toForm({
+        id: 'f1',
+        name: c.financeContactName,
+        email: c.financeContactEmail,
+        role: 'finance',
+      })
+    );
+  }
+  String(c.customerContactCc || '')
+    .split(',')
+    .map((e) => e.trim())
+    .filter(Boolean)
+    .forEach((email, i) => legacy.push(toForm({ id: `cc${i + 1}`, email, role: 'cc' })));
+  return legacy;
+}
 
 const customerLabel = (c) =>
   c?.customerNameEn || c?.customernameen || c?.name || (c?.id ? `Customer ${c.id}` : '');
@@ -131,11 +215,11 @@ export function ContractFormView({ id }) {
       title: '',
       contractType: 'single',
       customer: null,
-      customerContactName: '',
-      customerContactEmail: '',
-      customerContactCc: '',
-      financeContactName: '',
-      financeContactEmail: '',
+      customerContacts: [],
+      submissionChannel: 'email',
+      portalSystem: '',
+      portalUrl: '',
+      portalAccountRef: '',
       iotaOffice: 'KSA',
       vatRate: 15,
       poNumber: '',
@@ -167,6 +251,11 @@ export function ContractFormView({ id }) {
     formState: { isSubmitting },
   } = methods;
 
+  const contactFields = useFieldArray({ control: methods.control, name: 'customerContacts' });
+  const watchedContacts = watch('customerContacts') || [];
+  const submissionChannel = watch('submissionChannel');
+  const approverOptions = watchedContacts.filter((c) => c.role === 'approver');
+
   useEffect(() => {
     const c = existing?.contract;
     if (!c) return;
@@ -177,11 +266,11 @@ export function ContractFormView({ id }) {
         id: c.customerId,
         name: c.customerName,
       },
-      customerContactName: c.customerContactName || '',
-      customerContactEmail: c.customerContactEmail || '',
-      customerContactCc: c.customerContactCc || '',
-      financeContactName: c.financeContactName || '',
-      financeContactEmail: c.financeContactEmail || '',
+      customerContacts: contactsFromContract(c),
+      submissionChannel: c.submissionChannel || 'email',
+      portalSystem: c.portalSystem || '',
+      portalUrl: c.portalUrl || '',
+      portalAccountRef: c.portalAccountRef || '',
       iotaOffice: c.iotaOffice || 'KSA',
       vatRate: Number(c.vatRate ?? 15),
       poNumber: c.poNumber || '',
@@ -248,16 +337,41 @@ export function ContractFormView({ id }) {
 
   const onSubmit = handleSubmit(async (data) => {
     const office = OFFICES.find((o) => o.value === data.iotaOffice) || OFFICES[0];
+    const contacts = (data.customerContacts || []).map((c) => ({
+      id: c.id,
+      name: (c.name || '').trim(),
+      email: (c.email || '').trim().toLowerCase() || undefined,
+      title: (c.title || '').trim() || undefined,
+      role: c.role,
+      notify: c.notify !== 'dnd',
+      ...(c.role === 'delegate' && c.delegateFor ? { delegateFor: c.delegateFor } : {}),
+      ...(c.role === 'delegate' && c.delegateUntil ? { delegateUntil: c.delegateUntil } : {}),
+    }));
+    const approvers = contacts.filter((c) => c.role === 'approver' || c.role === 'delegate');
+    const primary = approvers.find((c) => c.notify && c.email) || approvers[0];
+    const finance = contacts.find((c) => c.role === 'finance');
     const payload = {
       title: data.title,
       contractType: data.contractType,
       customerId: String(data.customer.id),
       customerName: data.customer.name,
-      customerContactName: data.customerContactName || undefined,
-      customerContactEmail: data.customerContactEmail || undefined,
-      customerContactCc: data.customerContactCc || undefined,
-      financeContactName: data.financeContactName || undefined,
-      financeContactEmail: data.financeContactEmail || undefined,
+      customerContacts: contacts,
+      // The single-contact fields older screens read: first approver who can
+      // be emailed, first finance contact, and the cc list.
+      customerContactName: primary?.name || undefined,
+      customerContactEmail: primary?.email || undefined,
+      customerContactCc:
+        contacts
+          .filter((c) => c.role === 'cc' && c.notify && c.email)
+          .map((c) => c.email)
+          .join(', ') || undefined,
+      financeContactName: finance?.name || undefined,
+      financeContactEmail: finance?.email || undefined,
+      submissionChannel: data.submissionChannel,
+      portalSystem: data.submissionChannel === 'portal' ? data.portalSystem || 'other' : undefined,
+      portalUrl: data.submissionChannel === 'portal' ? data.portalUrl || undefined : undefined,
+      portalAccountRef:
+        data.submissionChannel === 'portal' ? data.portalAccountRef || undefined : undefined,
       iotaOffice: data.iotaOffice,
       currencyCode: office.currency,
       vatRate: data.vatRate,
@@ -468,33 +582,171 @@ export function ContractFormView({ id }) {
 
             <Card sx={{ p: 3, mb: 3 }}>
               <Typography variant="h6" mb={0.5}>
-                Customer contacts
+                Invoice submission & customer contacts
               </Typography>
               <Typography variant="body2" color="text.secondary" mb={2}>
-                The department / employee manager receives and approves each invoice; Finance raises
-                the payment receipt.
+                How each invoice reaches the customer, and who on their side approves it. Contacts
+                are optional when the customer takes invoices only through its own system.
               </Typography>
-              <Grid container spacing={2}>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Field.Text name="customerContactName" label="Department / employee manager" />
+
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid size={{ xs: 12, sm: submissionChannel === 'portal' ? 6 : 12 }}>
+                  <Field.Select name="submissionChannel" label="Submission channel *">
+                    {Object.entries(SUBMISSION_CHANNELS).map(([value, label]) => (
+                      <MenuItem key={value} value={value}>
+                        {label}
+                      </MenuItem>
+                    ))}
+                  </Field.Select>
                 </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Field.Text name="customerContactEmail" label="Manager email" type="email" />
-                </Grid>
-                <Grid size={{ xs: 12 }}>
-                  <Field.Text
-                    name="customerContactCc"
-                    label="Cc on every invoice"
-                    helperText="Comma-separated emails"
-                  />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Field.Text name="financeContactName" label="Finance contact" />
-                </Grid>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <Field.Text name="financeContactEmail" label="Finance email" type="email" />
-                </Grid>
+                {submissionChannel === 'portal' && (
+                  <>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <Field.Select name="portalSystem" label="Customer system">
+                        {Object.entries(PORTAL_SYSTEMS).map(([value, label]) => (
+                          <MenuItem key={value} value={value}>
+                            {label}
+                          </MenuItem>
+                        ))}
+                      </Field.Select>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <Field.Text name="portalUrl" label="Portal address" placeholder="https://" />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <Field.Text
+                        name="portalAccountRef"
+                        label="IOTA supplier / vendor number there"
+                      />
+                    </Grid>
+                    <Grid size={{ xs: 12 }}>
+                      <Alert severity="info">
+                        Invoices on this contract are not emailed. After internal approval you
+                        download the PDF, submit it on the customer&apos;s system and record the
+                        reference it returns.
+                      </Alert>
+                    </Grid>
+                  </>
+                )}
               </Grid>
+
+              <Stack spacing={2}>
+                {contactFields.fields.map((item, index) => {
+                  const contact = watchedContacts[index] || {};
+                  const isDelegate = contact.role === 'delegate';
+                  return (
+                    <Card key={item.id} variant="outlined" sx={{ p: 2 }}>
+                      <Grid container spacing={2} alignItems="flex-start">
+                        <Grid size={{ xs: 12, sm: 4 }}>
+                          <Field.Text name={`customerContacts.${index}.name`} label="Name" />
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 4 }}>
+                          <Field.Text
+                            name={`customerContacts.${index}.email`}
+                            label="Email"
+                            type="email"
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 10, sm: 3 }}>
+                          <Field.Text
+                            name={`customerContacts.${index}.title`}
+                            label="Title / department"
+                          />
+                        </Grid>
+                        <Grid size={{ xs: 2, sm: 1 }} sx={{ textAlign: 'right' }}>
+                          <IconButton color="error" onClick={() => contactFields.remove(index)}>
+                            <Iconify icon="eva:trash-2-outline" />
+                          </IconButton>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: isDelegate ? 4 : 6 }}>
+                          <Field.Select name={`customerContacts.${index}.role`} label="Role">
+                            {Object.entries(CONTACT_ROLES).map(([value, label]) => (
+                              <MenuItem key={value} value={value}>
+                                {label}
+                              </MenuItem>
+                            ))}
+                          </Field.Select>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: isDelegate ? 3 : 6 }}>
+                          <Field.Select
+                            name={`customerContacts.${index}.notify`}
+                            label="Invoice emails"
+                          >
+                            <MenuItem value="email">Send email</MenuItem>
+                            <MenuItem value="dnd">Do not disturb</MenuItem>
+                          </Field.Select>
+                        </Grid>
+                        {isDelegate && (
+                          <>
+                            <Grid size={{ xs: 12, sm: 3 }}>
+                              <Field.Select
+                                name={`customerContacts.${index}.delegateFor`}
+                                label="Acts for"
+                              >
+                                <MenuItem value="">
+                                  <em>Any approver</em>
+                                </MenuItem>
+                                {approverOptions.map((a) => (
+                                  <MenuItem key={a.id} value={a.id}>
+                                    {a.name || a.email || 'Unnamed approver'}
+                                  </MenuItem>
+                                ))}
+                              </Field.Select>
+                            </Grid>
+                            <Grid size={{ xs: 12, sm: 2 }}>
+                              <Field.Text
+                                name={`customerContacts.${index}.delegateUntil`}
+                                label="Until"
+                                type="date"
+                                InputLabelProps={{ shrink: true }}
+                              />
+                            </Grid>
+                          </>
+                        )}
+                      </Grid>
+                    </Card>
+                  );
+                })}
+
+                {contactFields.fields.length === 0 && (
+                  <Typography variant="body2" color="text.secondary">
+                    No contacts yet.
+                    {submissionChannel === 'email' &&
+                      ' Add at least one approver, or each invoice will need a recipient typed in when it is sent.'}
+                  </Typography>
+                )}
+
+                <Stack direction="row" spacing={1} flexWrap="wrap">
+                  <Button
+                    size="small"
+                    startIcon={<Iconify icon="eva:plus-fill" />}
+                    onClick={() => contactFields.append(newContact('approver'))}
+                  >
+                    Add approver
+                  </Button>
+                  <Button
+                    size="small"
+                    startIcon={<Iconify icon="eva:plus-fill" />}
+                    onClick={() => contactFields.append(newContact('delegate'))}
+                  >
+                    Add delegate
+                  </Button>
+                  <Button
+                    size="small"
+                    startIcon={<Iconify icon="eva:plus-fill" />}
+                    onClick={() => contactFields.append(newContact('finance'))}
+                  >
+                    Add finance contact
+                  </Button>
+                  <Button
+                    size="small"
+                    startIcon={<Iconify icon="eva:plus-fill" />}
+                    onClick={() => contactFields.append(newContact('cc'))}
+                  >
+                    Add cc
+                  </Button>
+                </Stack>
+              </Stack>
             </Card>
           </Grid>
 

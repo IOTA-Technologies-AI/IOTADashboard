@@ -37,9 +37,9 @@ import { ConfirmDialog } from 'src/components/custom-dialog';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 import { StageLabel } from '../stage-label';
-import { periodLabel } from '../utils/stages';
 import { ContractStatusLabel } from './contract-list-view';
 import { ContractLineDialog } from '../contract-line-dialog';
+import { periodLabel, portalLabel, SUBMISSION_CHANNELS } from '../utils/stages';
 
 // ----------------------------------------------------------------------
 
@@ -90,6 +90,27 @@ export function ContractDetailsView({ id }) {
 
   const { contract, lines = [], invoices = [] } = data;
   const currency = contract.currencyCode || 'SAR';
+  const channel = contract.submissionChannel || 'email';
+  // Contracts saved before the contact list existed still show their single contact
+  const contacts =
+    Array.isArray(contract.customerContacts) && contract.customerContacts.length
+      ? contract.customerContacts
+      : [
+          (contract.customerContactName || contract.customerContactEmail) && {
+            id: 'c1',
+            name: contract.customerContactName,
+            email: contract.customerContactEmail,
+            role: 'approver',
+            notify: true,
+          },
+          (contract.financeContactName || contract.financeContactEmail) && {
+            id: 'f1',
+            name: contract.financeContactName,
+            email: contract.financeContactEmail,
+            role: 'finance',
+            notify: true,
+          },
+        ].filter(Boolean);
   const activeLines = lines.filter((l) => l.isActive);
   const monthlyTotal = activeLines.reduce(
     (s, l) => s + (Number(l.rateOverride ?? l.monthlyRate) || 0),
@@ -214,11 +235,61 @@ export function ContractDetailsView({ id }) {
             </Stack>
             <Grid container spacing={2}>
               <Grid size={{ xs: 12, sm: 6 }}>
-                <InfoRow label="Department / manager" value={contract.customerContactName} />
-                <InfoRow label="Manager email" value={contract.customerContactEmail} />
-                <InfoRow label="Cc" value={contract.customerContactCc} />
-                <InfoRow label="Finance contact" value={contract.financeContactName} />
-                <InfoRow label="Finance email" value={contract.financeContactEmail} />
+                <InfoRow
+                  label="Invoices submitted by"
+                  value={
+                    channel === 'portal'
+                      ? `${portalLabel(contract.portalSystem)}${contract.portalAccountRef ? ` · supplier ${contract.portalAccountRef}` : ''}`
+                      : SUBMISSION_CHANNELS[channel]
+                  }
+                />
+                {channel === 'portal' && contract.portalUrl && (
+                  <InfoRow label="Portal" value={contract.portalUrl} />
+                )}
+                {contacts.length === 0 && (
+                  <Typography variant="body2" color="text.secondary">
+                    No customer contacts on this contract.
+                  </Typography>
+                )}
+                {contacts.map((c) => {
+                  const actsFor = c.delegateFor
+                    ? contacts.find((a) => a.id === c.delegateFor)
+                    : null;
+                  return (
+                    <Stack key={c.id} sx={{ mb: 1.25 }}>
+                      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                        <Typography variant="body2" fontWeight={600}>
+                          {c.name || c.email}
+                        </Typography>
+                        <Label
+                          variant="soft"
+                          color={c.role === 'delegate' ? 'secondary' : 'default'}
+                        >
+                          {c.role}
+                        </Label>
+                        {c.notify === false ? (
+                          <Label variant="soft" color="warning">
+                            Do not disturb
+                          </Label>
+                        ) : (
+                          <Label variant="soft" color="success">
+                            Emails on
+                          </Label>
+                        )}
+                      </Stack>
+                      <Typography variant="caption" color="text.secondary">
+                        {[
+                          c.title,
+                          c.email,
+                          c.role === 'delegate' &&
+                            `acts for ${actsFor?.name || actsFor?.email || 'any approver'}${c.delegateUntil ? ` until ${fDate(c.delegateUntil)}` : ''}`,
+                        ]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </Typography>
+                    </Stack>
+                  );
+                })}
               </Grid>
               <Grid size={{ xs: 12, sm: 6 }}>
                 <InfoRow

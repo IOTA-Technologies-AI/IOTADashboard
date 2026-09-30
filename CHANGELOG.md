@@ -84,6 +84,23 @@ is running.
   and devices — and the Links tab has a "View activity" action that shows the
   same for links that have not been submitted yet. Requires
   `sql/add_audit_context_to_employee_onboarding.sql`.
+- **Customer contacts on billing contracts.** A contract can name several
+  people on the customer's side, each with a role (approver, delegate, finance,
+  cc). Each contact is either emailed or marked **Do Not Disturb**, and an
+  approver can have a **delegate** who acts for them, optionally until a date.
+  When an invoice is sent, Do Not Disturb contacts are left out and an active
+  delegate takes the approver's place; the send dialog shows who is being
+  skipped and why. Contracts saved with the single contact fields keep working.
+- **Contracts without contacts, for customers who use their own system.** A
+  contract's submission channel can be email, the customer's portal (Oracle
+  Cloud, SAP Ariba, Coupa or other, with the portal address and IOTA's supplier
+  number) or manual. Portal contracts are never emailed: after internal
+  approval you download the PDF, submit it on the customer's system and record
+  the reference it returned, which then shows on the Collections board.
+  Requires `sql/add_contacts_and_channel_to_employee_billing.sql`.
+- **Employee invoices print in English and Arabic.** Each generated line carries
+  the employee's Arabic name from their record and an Arabic description with
+  the billing month.
 - Billing contracts record the commercial trail that precedes billing: the
   approved proposal (resource calculation), SOW number, the customer's
   requisition number (printed on every invoice as the reference), SOW received
@@ -231,6 +248,11 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- Invoices were submitted to ZATCA with no line items. Lines are stored with
+  the invoice as a list, but the e-invoice builder read a field that is never
+  filled, so every submission carried totals and nothing else. The builder now
+  sends each stored line, in English and Arabic where present, for every
+  invoice type.
 - Submitting the onboarding form as a new joiner failed with "unable to decode
   request body: middleName: invalid type … expected a string". Blank pre-filled
   fields were sent as `null`, which the API rejects for text answers. Blank

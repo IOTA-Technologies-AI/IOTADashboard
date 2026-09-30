@@ -146,3 +146,51 @@ export function periodLabel(period) {
   const date = new Date(Date.UTC(Number(y), Number(m) - 1, 1));
   return date.toLocaleDateString('en-GB', { month: 'short', year: 'numeric', timeZone: 'UTC' });
 }
+
+// ─── Customer contacts and submission channel ────────────────────────────────
+
+export const CONTACT_ROLES = {
+  approver: 'Approver (department / employee manager)',
+  delegate: 'Delegate (acts for an approver)',
+  finance: 'Finance (raises the payment receipt)',
+  cc: 'Copied on every invoice',
+};
+
+export const SUBMISSION_CHANNELS = {
+  email: 'Email to the contacts below',
+  portal: 'Customer portal (Oracle Cloud, SAP Ariba…)',
+  manual: 'Handed over another way',
+};
+
+export const PORTAL_SYSTEMS = {
+  oracle_cloud: 'Oracle Cloud',
+  sap_ariba: 'SAP Ariba',
+  coupa: 'Coupa',
+  other: 'Customer portal',
+};
+
+export function portalLabel(system) {
+  return PORTAL_SYSTEMS[system] || 'customer portal';
+}
+
+/**
+ * The actions offered for an invoice. A contract that is submitted through the
+ * customer's own system has no one to email, so "send" becomes "record the
+ * submission" with the reference the portal returned.
+ */
+export function actionsFor(row) {
+  const base = NEXT_ACTIONS[row?.effectiveStage] || [];
+  if (row?.submissionChannel !== 'portal') return base;
+  const canSubmit = base.some((a) => a.stage === 'sent_to_customer');
+  const others = base.filter((a) => a.stage !== 'sent_to_customer');
+  if (!canSubmit) return others;
+  return [
+    {
+      kind: 'portal',
+      stage: 'sent_to_customer',
+      label: `Record submission on ${portalLabel(row.portalSystem)}`,
+      icon: 'eva:cloud-upload-fill',
+    },
+    ...others,
+  ];
+}

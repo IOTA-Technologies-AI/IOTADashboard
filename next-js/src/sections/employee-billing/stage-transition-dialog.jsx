@@ -17,6 +17,7 @@ import { recordBillingFollowUp, transitionBillingStage } from 'src/actions/emplo
 import { toast } from 'src/components/snackbar';
 
 import { StageLabel } from './stage-label';
+import { portalLabel } from './utils/stages';
 
 // ----------------------------------------------------------------------
 
@@ -30,6 +31,7 @@ export function StageTransitionDialog({ open, onClose, invoice, action, onDone }
   const [note, setNote] = useState('');
   const [nextFollowUpDate, setNextFollowUpDate] = useState('');
   const [paymentNotes, setPaymentNotes] = useState('');
+  const [portalReference, setPortalReference] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -37,6 +39,7 @@ export function StageTransitionDialog({ open, onClose, invoice, action, onDone }
       setNote('');
       setNextFollowUpDate('');
       setPaymentNotes('');
+      setPortalReference('');
     }
   }, [open]);
 
@@ -44,11 +47,18 @@ export function StageTransitionDialog({ open, onClose, invoice, action, onDone }
 
   const isFollowUp = action.kind === 'follow_up';
   const isPaid = action.kind === 'paid';
+  // Submitted on the customer's own system (Oracle Cloud, SAP Ariba…), not emailed
+  const isPortal = action.kind === 'portal';
+  const isManualSend = action.kind === 'stage' && action.stage === 'sent_to_customer';
   const noteRequired = isFollowUp || action.stage === 'customer_queried';
 
   const handleSubmit = async () => {
     if (noteRequired && !note.trim()) {
       toast.error('Please add a note.');
+      return;
+    }
+    if (isPortal && !portalReference.trim()) {
+      toast.error('Enter the reference the portal gave this invoice.');
       return;
     }
     setSaving(true);
@@ -63,6 +73,10 @@ export function StageTransitionDialog({ open, onClose, invoice, action, onDone }
             ...(note.trim() ? { note: note.trim() } : {}),
             ...(nextFollowUpDate ? { nextFollowUpDate } : {}),
             ...(isPaid && paymentNotes.trim() ? { paymentNotes: paymentNotes.trim() } : {}),
+            ...(isPortal
+              ? { submittedVia: 'portal', portalReference: portalReference.trim() }
+              : {}),
+            ...(isManualSend ? { submittedVia: 'manual' } : {}),
           });
       toast.success(
         isFollowUp ? 'Follow-up recorded' : `${invoice.invoiceNumber} → ${action.label}`
@@ -95,6 +109,29 @@ export function StageTransitionDialog({ open, onClose, invoice, action, onDone }
               )}
             </Stack>
           </Alert>
+          {isPortal && (
+            <>
+              <Alert severity="info">
+                This customer takes invoices through {portalLabel(invoice.portalSystem)}, so nothing
+                is emailed. Download the PDF from the invoice menu, submit it there, then record the
+                reference the portal returned.
+                {invoice.portalUrl && (
+                  <>
+                    {' '}
+                    <a href={invoice.portalUrl} target="_blank" rel="noreferrer">
+                      Open the portal
+                    </a>
+                  </>
+                )}
+              </Alert>
+              <TextField
+                label="Portal reference / document number *"
+                value={portalReference}
+                onChange={(e) => setPortalReference(e.target.value)}
+                placeholder="The number shown after submitting"
+              />
+            </>
+          )}
           {isPaid && (
             <Alert severity="success">
               This marks the invoice as <strong>paid</strong> in the Invoice module and closes the

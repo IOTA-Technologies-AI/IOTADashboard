@@ -42,7 +42,7 @@ import { SendInvoiceDialog } from '../send-invoice-dialog';
 import { GenerateRunDialog } from '../generate-run-dialog';
 import { StageTransitionDialog } from '../stage-transition-dialog';
 import { downloadInvoicePdf } from '../utils/build-invoice-for-pdf';
-import { STAGES, periodLabel, isOpenStage, NEXT_ACTIONS } from '../utils/stages';
+import { STAGES, actionsFor, periodLabel, isOpenStage, portalLabel } from '../utils/stages';
 
 // ----------------------------------------------------------------------
 
@@ -172,6 +172,8 @@ export function BillingCollectionsView() {
           <Typography variant="caption" color="text.secondary">
             {row.contractNumber} ·{' '}
             {row.contractType === 'managed_services' ? 'Managed services' : 'Single employee'}
+            {row.submissionChannel === 'portal' && ` · via ${portalLabel(row.portalSystem)}`}
+            {row.portalReference && ` #${row.portalReference}`}
           </Typography>
         </Box>
       ),
@@ -243,7 +245,7 @@ export function BillingCollectionsView() {
   ];
 
   const menuRow = menu.row;
-  const nextActions = menuRow ? NEXT_ACTIONS[menuRow.effectiveStage] || [] : [];
+  const nextActions = menuRow ? actionsFor(menuRow) : [];
 
   return (
     <DashboardContent>

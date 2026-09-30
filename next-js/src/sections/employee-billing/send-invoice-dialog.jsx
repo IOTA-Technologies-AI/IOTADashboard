@@ -36,8 +36,11 @@ export function SendInvoiceDialog({ open, onClose, invoice, onDone }) {
 
   useEffect(() => {
     if (open && invoice) {
-      setTo(invoice.customerContactEmail || '');
-      setCc('');
+      // Worked out by the API from the contract's contacts: Do Not Disturb
+      // contacts are left out and an active delegate takes the approver's place.
+      const recipients = invoice.recipients || {};
+      setTo((recipients.to || []).join(', ') || invoice.customerContactEmail || '');
+      setCc((recipients.cc || []).join(', '));
       setMessage(
         `Please find attached invoice ${invoice.invoiceNumber} for ${periodLabel(invoice.period)} covering ${
           invoice.headcount
@@ -48,6 +51,9 @@ export function SendInvoiceDialog({ open, onClose, invoice, onDone }) {
   }, [open, invoice]);
 
   if (!invoice) return null;
+
+  const skipped = invoice.recipients?.skipped || [];
+  const noRecipients = !(invoice.recipients?.to || []).length && !invoice.customerContactEmail;
 
   const handleSend = async () => {
     if (!to.trim()) {
@@ -88,15 +94,20 @@ export function SendInvoiceDialog({ open, onClose, invoice, onDone }) {
               {fCurrency(invoice.total, { currencyCode: invoice.currencyCode })} incl. VAT
             </Typography>
           </Alert>
-          {!invoice.customerContactEmail && (
+          {skipped.length > 0 && (
+            <Alert severity="info">
+              Not emailed: {skipped.map((k) => `${k.name} (${k.reason.toLowerCase()})`).join(', ')}.
+            </Alert>
+          )}
+          {noRecipients && (
             <Alert severity="warning">
-              The contract has no department contact email. Enter one here and add it to the
-              contract so future invoices are addressed automatically.
+              Nobody on this contract can be emailed. Enter a recipient here, add a delegate or
+              contact on the contract, or use “Mark as sent” if it went another way.
             </Alert>
           )}
           <TextField
-            label="To (department / employee manager) *"
-            type="email"
+            label="To (approver or delegate) *"
+            helperText="Comma-separated for several recipients"
             value={to}
             onChange={(e) => setTo(e.target.value)}
           />
