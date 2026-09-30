@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
@@ -24,6 +24,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import {
   getOnboardingToken,
   verifyOnboardingOtp,
+  saveOnboardingDraft,
   requestOnboardingOtp,
   submitOnboardingForm,
 } from 'src/actions/employee-onboarding';
@@ -128,6 +129,38 @@ const REQUIRED_BY_STEP = {
   6: [],
   7: [['declarationAccepted', 'Declaration']],
 };
+
+/** Shown on the form from HR's side; never sent back as answers. */
+const PREFILL_ONLY_KEYS = ['employeeCode', 'designation', 'department', 'joiningDate'];
+
+/**
+ * What actually goes to the API, for a draft or a submission. Blank answers are
+ * LEFT OUT rather than sent as null or '': the API types every answer as text,
+ * a number or a yes/no and rejects null outright ("expected a string").
+ */
+function cleanFormData(formData) {
+  const isBlank = (v) => v === null || v === undefined || v === '';
+  const data = {};
+  Object.entries(formData).forEach(([key, value]) => {
+    if (PREFILL_ONLY_KEYS.includes(key) || isBlank(value)) return;
+    data[key] = value;
+  });
+  data.dependents = (Array.isArray(formData.dependents) ? formData.dependents : []).map((dep) => {
+    const clean = {};
+    Object.entries(dep || {}).forEach(([key, value]) => {
+      if (!isBlank(value)) clean[key] = value;
+    });
+    return clean;
+  });
+  data.numberOfDependents = data.dependents.length;
+  return data;
+}
+
+/** Drop blanks before merging server data into form state. */
+const withoutBlanks = (obj) =>
+  Object.fromEntries(
+    Object.entries(obj || {}).filter(([, v]) => v !== null && v !== undefined && v !== '')
+  );
 
 const todayStr = () => new Date().toISOString().split('T')[0];
 const maxDobStr = () => {
@@ -238,7 +271,7 @@ function StepVerifyIdentity({ tokenRecord, token, onVerified }) {
     setVerifying(true);
     try {
       const res = await verifyOnboardingOtp(token, email, otp);
-      onVerified(res.sessionToken, email);
+      onVerified(res.sessionToken, email, res);
     } catch (e) {
       setError(e?.response?.data?.message || e?.message || 'Invalid code. Please try again.');
     } finally {
@@ -991,6 +1024,16 @@ export function OnboardingPublicForm() {
 
   const [formData, setFormData] = useState({ numberOfDependents: 0, dependents: [] });
 
+  // Draft saving: progress is stored on the link, server-side, and handed back
+  // only after the one-time code is verified again.
+  const [draftSavedAt, setDraftSavedAt] = useState(null);
+  const [savingDraft, setSavingDraft] = useState(false);
+  const [draftNotice, setDraftNotice] = useState('');
+  // True once the person has typed anything in this visit — a server draft must
+  // not then overwrite what is on screen (e.g. after a session timeout).
+  const dirtyRef = useRef(false);
+  const resumeStepRef = useRef(1);
+
   useEffect(() => {
     if (!token) return;
     setLoading(true);
@@ -998,7 +1041,7 @@ export function OnboardingPublicForm() {
       .then((res) => {
         setTokenRecord(res.token);
         if (res.alreadySubmitted) setAlreadySubmitted(true);
-        if (res.prefill) setFormData((prev) => ({ ...prev, ...res.prefill }));
+        if (res.prefill) setFormData((prev) => ({ ...prev, ...withoutBlanks(res.prefill) }));
       })
       .catch((e) => {
         setTokenError(
@@ -1009,14 +1052,67 @@ export function OnboardingPublicForm() {
   }, [token]);
 
   const handleFieldChange = useCallback((name, value) => {
+    dirtyRef.current = true;
     setFormData((prev) => ({ ...prev, [name]: value }));
   }, []);
 
-  const handleVerified = useCallback((sToken, email) => {
+  const handleVerified = useCallback((sToken, email, res) => {
     setSessionToken(sToken);
     setVerifiedEmail(email);
+    setStepError('');
+    if (dirtyRef.current) {
+      // Re-verified mid-form (session timed out): keep what is on screen.
+      setActiveStep(resumeStepRef.current || 1);
+      return;
+    }
+    const draft = res?.draft && typeof res.draft === 'object' ? withoutBlanks(res.draft) : null;
+    if (draft && Object.keys(draft).length) {
+      setFormData((prev) => ({
+        ...prev,
+        ...draft,
+        dependents: Array.isArray(draft.dependents) ? draft.dependents : prev.dependents,
+      }));
+      setDraftSavedAt(res.draftSavedAt || null);
+      setDraftNotice('Your saved draft has been restored. Carry on from where you stopped.');
+      const step = Number(res.draftStep);
+      setActiveStep(step >= 1 && step <= STEPS.length - 1 ? step : 1);
+      return;
+    }
     setActiveStep(1);
   }, []);
+
+  /**
+   * Save progress. `silent` is the automatic save on Next/Back: it never
+   * blocks navigation and only speaks up when the session has run out.
+   */
+  const saveDraft = async (step, { silent = false } = {}) => {
+    if (!sessionToken) return false;
+    if (!silent) setSavingDraft(true);
+    try {
+      const res = await saveOnboardingDraft(token, sessionToken, cleanFormData(formData), step);
+      setDraftSavedAt(res.savedAt || new Date().toISOString());
+      if (!silent)
+        setDraftNotice('Draft saved. You can close this page and return with the same link.');
+      return true;
+    } catch (e) {
+      const status = e?.response?.status;
+      if (status === 401) {
+        // Keep everything on screen; just ask for a fresh code.
+        resumeStepRef.current = step;
+        setSessionToken('');
+        setActiveStep(0);
+        setDraftNotice('');
+        setStepError(
+          'Your session timed out. Verify with a new code to continue — what you have entered is still here.'
+        );
+      } else if (!silent) {
+        setStepError(e?.response?.data?.message || e?.message || 'Could not save the draft.');
+      }
+      return false;
+    } finally {
+      if (!silent) setSavingDraft(false);
+    }
+  };
 
   const missingForStep = (step) => {
     const missing = (REQUIRED_BY_STEP[step] || [])
@@ -1049,11 +1145,18 @@ export function OnboardingPublicForm() {
       return;
     }
     setStepError('');
-    setActiveStep((s) => s + 1);
+    setDraftNotice('');
+    const next = activeStep + 1;
+    setActiveStep(next);
+    saveDraft(next, { silent: true });
   };
   const handleBack = () => {
     setStepError('');
-    setActiveStep((s) => s - 1);
+    setDraftNotice('');
+    const prev = activeStep - 1;
+    setActiveStep(prev);
+    // Step 0 is the verification screen; going back to it is not progress to save.
+    if (prev >= 1) saveDraft(prev, { silent: true });
   };
 
   const handleSubmit = async () => {
@@ -1065,21 +1168,23 @@ export function OnboardingPublicForm() {
     setSubmitting(true);
     setSubmitError('');
     try {
-      // Prefill-only keys are not form fields
-      const data = { ...formData };
-      ['employeeCode', 'designation', 'department', 'joiningDate'].forEach(
-        (key) => delete data[key]
-      );
-      Object.keys(data).forEach((key) => {
-        if (data[key] === '' || data[key] === undefined) delete data[key];
-      });
-      data.numberOfDependents = (data.dependents || []).length;
-      await submitOnboardingForm(token, sessionToken, data);
+      await submitOnboardingForm(token, sessionToken, cleanFormData(formData));
       setSubmitted(true);
     } catch (e) {
-      setSubmitError(
-        e?.response?.data?.message || e?.message || 'Submission failed. Please try again.'
-      );
+      if (e?.response?.status === 401) {
+        resumeStepRef.current = STEPS.length - 1;
+        setSessionToken('');
+        setActiveStep(0);
+        setStepError(
+          'Your session timed out. Verify with a new code to submit — what you have entered is still here.'
+        );
+      } else {
+        setSubmitError(
+          e?.response?.data?.message || e?.message || 'Submission failed. Please try again.'
+        );
+        // Whatever went wrong, do not make them type it all again.
+        saveDraft(activeStep, { silent: true });
+      }
     } finally {
       setSubmitting(false);
     }
@@ -1222,8 +1327,22 @@ export function OnboardingPublicForm() {
           )}
         </Card>
 
+        {activeStep > 0 && draftNotice && (
+          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setDraftNotice('')}>
+            {draftNotice}
+          </Alert>
+        )}
+
         {activeStep > 0 && (
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2 }}>
+          <Box
+            sx={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: 2,
+            }}
+          >
             <Button
               variant="outlined"
               onClick={handleBack}
@@ -1232,6 +1351,24 @@ export function OnboardingPublicForm() {
             >
               Back
             </Button>
+            <Stack alignItems="center" sx={{ flex: 1 }}>
+              <LoadingButton
+                variant="text"
+                loading={savingDraft}
+                disabled={submitting}
+                onClick={() => saveDraft(activeStep)}
+              >
+                Save draft
+              </LoadingButton>
+              <Typography variant="caption" color="text.secondary">
+                {draftSavedAt
+                  ? `Draft saved ${new Date(draftSavedAt).toLocaleTimeString([], {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    })} · also saved each time you move between steps`
+                  : 'Saved automatically each time you move between steps'}
+              </Typography>
+            </Stack>
             {isLastStep ? (
               <LoadingButton
                 variant="contained"

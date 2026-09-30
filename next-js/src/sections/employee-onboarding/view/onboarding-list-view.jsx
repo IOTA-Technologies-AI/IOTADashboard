@@ -334,6 +334,12 @@ export function OnboardingListView() {
       renderCell: ({ value }) => <StatusLabel map={TOKEN_STATUS} value={value} />,
     },
     {
+      field: 'draftSavedAt',
+      headerName: 'Draft saved',
+      width: 130,
+      valueFormatter: (value) => (value ? fDate(value) : '—'),
+    },
+    {
       field: 'expiresAt',
       headerName: 'Expires',
       width: 130,

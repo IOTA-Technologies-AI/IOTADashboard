@@ -66,6 +66,14 @@ is running.
   mailbox exists. For an existing employee the link now defaults to the
   personal email on record and the address can be changed before sending.
   Requires `sql/alter_employee_onboarding_for_new_joiners.sql`.
+- The onboarding form can be **saved as a draft**. Progress is stored on the
+  link each time the person moves between steps and whenever they press "Save
+  draft", so they can close the page and return with the same link; the draft
+  is handed back only after the one-time code is verified again and is cleared
+  on submission. A session that times out mid-form now asks for a new code and
+  keeps everything on screen instead of losing it, and HR sees when a draft was
+  last saved on the Links tab. Requires
+  `sql/add_draft_to_employee_onboarding_tokens.sql`.
 - Billing contracts record the commercial trail that precedes billing: the
   approved proposal (resource calculation), SOW number, the customer's
   requisition number (printed on every invoice as the reference), SOW received
@@ -186,6 +194,11 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- Submitting the onboarding form as a new joiner failed with "unable to decode
+  request body: middleName: invalid type … expected a string". Blank pre-filled
+  fields were sent as `null`, which the API rejects for text answers. Blank
+  answers are now left out of the request, and the pre-fill no longer contains
+  nulls.
 - The Cost Center and Expense Type dropdowns on the new-expense form (and on
   the invoice form and the company performance view, which read the same lists)
   came back empty for a signed-in user, with a 401 in the console. These lists

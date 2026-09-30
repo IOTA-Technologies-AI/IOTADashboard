@@ -68,6 +68,16 @@ export async function verifyOnboardingOtp(token, email, code) {
   return response.data;
 }
 
+/** Save progress. The draft comes back from verify-otp on the next visit. */
+export async function saveOnboardingDraft(token, sessionToken, draft, step) {
+  const response = await iotaApi.post(`/employee-onboarding/tokens/${token}/draft`, {
+    sessionToken,
+    draft,
+    step,
+  });
+  return response.data;
+}
+
 export async function submitOnboardingForm(token, sessionToken, formData) {
   const response = await iotaApi.post(`/employee-onboarding/tokens/${token}/submit`, {
     sessionToken,
