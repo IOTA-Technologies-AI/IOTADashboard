@@ -29,6 +29,22 @@ Two recipients, chosen in the Send dialog:
 
 Migration: `sql/alter_employee_onboarding_for_new_joiners.sql`.
 
+### Draft, resume and audit trail
+
+- The form saves to the link (`draft`, `draftStep`, `draftSavedAt`) on every
+  step change and on "Save draft". Nothing is kept in the browser.
+- Resuming always requires a fresh one-time code sent to the same email. The
+  draft is returned only by `verify-otp`, never by the public link lookup.
+- Every event is written to `employeeOnboardingAuditLog` with `ipAddress`,
+  `userAgent`, parsed `browser` / `os` / `deviceType`, and `country` / `region`
+  / `city` from a geo-IP lookup (best-effort, cached, approximate), plus the
+  browser's timezone, language and screen size in `metadata.client`.
+- HR reads it on the submission page and, for links not yet submitted, through
+  `GET /employee-onboarding/tokens/:id/activity`.
+
+Migrations: `sql/add_draft_to_employee_onboarding_tokens.sql`,
+`sql/add_audit_context_to_employee_onboarding.sql`.
+
 ## 2. Status model
 
 The existing `invoices.status` machine is **unchanged**:

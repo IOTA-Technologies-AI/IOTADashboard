@@ -31,6 +31,12 @@ export async function listOnboardingSubmissions(params = {}) {
   return response.data || { submissions: [], tokens: [] };
 }
 
+/** Full audit trail of one link — also for links that have not been submitted. */
+export async function getOnboardingActivity(tokenId) {
+  const response = await iotaApi.get(`/employee-onboarding/tokens/${tokenId}/activity`);
+  return response.data;
+}
+
 export async function getOnboardingSubmission(id) {
   const response = await iotaApi.get(`/employee-onboarding/submissions/${id}`);
   return response.data;
@@ -53,35 +59,40 @@ export async function getOnboardingToken(token) {
   return response.data;
 }
 
-export async function requestOnboardingOtp(token, email) {
+export async function requestOnboardingOtp(token, email, client) {
   const response = await iotaApi.post(`/employee-onboarding/tokens/${token}/request-otp`, {
     email,
+    ...(client ? { client } : {}),
   });
   return response.data;
 }
 
-export async function verifyOnboardingOtp(token, email, code) {
+export async function verifyOnboardingOtp(token, email, code, client) {
   const response = await iotaApi.post(`/employee-onboarding/tokens/${token}/verify-otp`, {
     email,
     code,
+    ...(client ? { client } : {}),
   });
   return response.data;
 }
 
 /** Save progress. The draft comes back from verify-otp on the next visit. */
-export async function saveOnboardingDraft(token, sessionToken, draft, step) {
+export async function saveOnboardingDraft(token, sessionToken, draft, step, { auto, client } = {}) {
   const response = await iotaApi.post(`/employee-onboarding/tokens/${token}/draft`, {
     sessionToken,
     draft,
     step,
+    auto: !!auto,
+    ...(client ? { client } : {}),
   });
   return response.data;
 }
 
-export async function submitOnboardingForm(token, sessionToken, formData) {
+export async function submitOnboardingForm(token, sessionToken, formData, client) {
   const response = await iotaApi.post(`/employee-onboarding/tokens/${token}/submit`, {
     sessionToken,
     ...formData,
+    ...(client ? { client } : {}),
   });
   return response.data;
 }

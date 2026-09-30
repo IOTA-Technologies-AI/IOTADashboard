@@ -156,6 +156,23 @@ function cleanFormData(formData) {
   return data;
 }
 
+/**
+ * What the browser says about itself, recorded with each step of the audit
+ * trail HR sees (alongside the IP address and browser the server observes).
+ */
+function clientInfo() {
+  try {
+    return {
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || undefined,
+      language: navigator.language || undefined,
+      screen: window.screen ? `${window.screen.width}x${window.screen.height}` : undefined,
+      platform: navigator.platform || undefined,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 /** Drop blanks before merging server data into form state. */
 const withoutBlanks = (obj) =>
   Object.fromEntries(
@@ -255,7 +272,7 @@ function StepVerifyIdentity({ tokenRecord, token, onVerified }) {
     setSuccessMsg('');
     setRequesting(true);
     try {
-      const res = await requestOnboardingOtp(token, email);
+      const res = await requestOnboardingOtp(token, email, clientInfo());
       setOtpSent(true);
       setSuccessMsg(res.message || 'Verification code sent to your email.');
       setCountdown(60);
@@ -270,7 +287,7 @@ function StepVerifyIdentity({ tokenRecord, token, onVerified }) {
     setError('');
     setVerifying(true);
     try {
-      const res = await verifyOnboardingOtp(token, email, otp);
+      const res = await verifyOnboardingOtp(token, email, otp, clientInfo());
       onVerified(res.sessionToken, email, res);
     } catch (e) {
       setError(e?.response?.data?.message || e?.message || 'Invalid code. Please try again.');
@@ -1089,7 +1106,10 @@ export function OnboardingPublicForm() {
     if (!sessionToken) return false;
     if (!silent) setSavingDraft(true);
     try {
-      const res = await saveOnboardingDraft(token, sessionToken, cleanFormData(formData), step);
+      const res = await saveOnboardingDraft(token, sessionToken, cleanFormData(formData), step, {
+        auto: silent,
+        client: clientInfo(),
+      });
       setDraftSavedAt(res.savedAt || new Date().toISOString());
       if (!silent)
         setDraftNotice('Draft saved. You can close this page and return with the same link.');
@@ -1168,7 +1188,7 @@ export function OnboardingPublicForm() {
     setSubmitting(true);
     setSubmitError('');
     try {
-      await submitOnboardingForm(token, sessionToken, cleanFormData(formData));
+      await submitOnboardingForm(token, sessionToken, cleanFormData(formData), clientInfo());
       setSubmitted(true);
     } catch (e) {
       if (e?.response?.status === 401) {

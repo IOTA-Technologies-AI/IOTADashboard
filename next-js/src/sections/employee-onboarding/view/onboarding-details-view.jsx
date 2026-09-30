@@ -9,21 +9,15 @@ import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
-import Timeline from '@mui/lab/Timeline';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import MenuItem from '@mui/material/MenuItem';
-import TimelineDot from '@mui/lab/TimelineDot';
 import TextField from '@mui/material/TextField';
-import TimelineItem from '@mui/lab/TimelineItem';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
-import TimelineContent from '@mui/lab/TimelineContent';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import TimelineSeparator from '@mui/lab/TimelineSeparator';
-import TimelineConnector from '@mui/lab/TimelineConnector';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
@@ -43,19 +37,9 @@ import { Iconify } from 'src/components/iconify';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
-// ----------------------------------------------------------------------
+import { OnboardingActivity } from '../onboarding-activity';
 
-const AUDIT_LABELS = {
-  token_created: { label: 'Link sent', color: 'primary' },
-  token_viewed: { label: 'Link opened', color: 'grey' },
-  token_revoked: { label: 'Link revoked', color: 'error' },
-  otp_requested: { label: 'Code requested', color: 'info' },
-  otp_verified: { label: 'Identity verified', color: 'success' },
-  otp_failed: { label: 'Code failed', color: 'warning' },
-  form_submitted: { label: 'Form submitted', color: 'success' },
-  submission_viewed: { label: 'Viewed by HR', color: 'grey' },
-  submission_applied: { label: 'Applied to employee record', color: 'success' },
-};
+// ----------------------------------------------------------------------
 
 function SectionCard({ title, icon, children }) {
   return (
@@ -376,39 +360,19 @@ export function OnboardingDetailsView({ id }) {
               <InfoRow label="HR notes" value={t?.notes} />
             </Stack>
           </Card>
-
-          <Card sx={{ p: 3 }}>
-            <Typography variant="subtitle1" fontWeight={700} mb={1}>
-              Activity
-            </Typography>
-            <Timeline
-              sx={{ p: 0, m: 0, '& .MuiTimelineItem-root:before': { flex: 0, padding: 0 } }}
-            >
-              {auditLog.map((entry, idx) => {
-                const meta = AUDIT_LABELS[entry.action] || { label: entry.action, color: 'grey' };
-                return (
-                  <TimelineItem key={entry.id || idx}>
-                    <TimelineSeparator>
-                      <TimelineDot color={meta.color} />
-                      {idx < auditLog.length - 1 && <TimelineConnector />}
-                    </TimelineSeparator>
-                    <TimelineContent>
-                      <Typography variant="body2" fontWeight={600}>
-                        {meta.label}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {fDateTime(entry.occurredAt)}
-                        {entry.actorEmail ? ` · ${entry.actorEmail}` : ''}
-                        {entry.metadata?.reason ? ` · ${entry.metadata.reason}` : ''}
-                      </Typography>
-                    </TimelineContent>
-                  </TimelineItem>
-                );
-              })}
-            </Timeline>
-          </Card>
         </Grid>
       </Grid>
+
+      <Card sx={{ p: 3, mt: 3 }}>
+        <Typography variant="h6" mb={0.5}>
+          Audit trail
+        </Typography>
+        <Typography variant="body2" color="text.secondary" mb={2}>
+          Every time the link was opened, each login, every draft save and re-open, and the final
+          submission — with the IP address, approximate location and browser used.
+        </Typography>
+        <OnboardingActivity auditLog={auditLog} />
+      </Card>
 
       <ConfirmDialog
         open={confirm.value}

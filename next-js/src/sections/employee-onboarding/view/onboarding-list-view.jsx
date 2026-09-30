@@ -33,6 +33,7 @@ import { getEmployees } from 'src/utils/apiHelper';
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
   revokeOnboardingToken,
+  getOnboardingActivity,
   generateOnboardingLink,
   listOnboardingSubmissions,
 } from 'src/actions/employee-onboarding';
@@ -41,6 +42,8 @@ import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+
+import { OnboardingActivity } from '../onboarding-activity';
 
 // ----------------------------------------------------------------------
 
@@ -271,6 +274,37 @@ function SendLinkDialog({ open, onClose, onSent, employees }) {
   );
 }
 
+/** Audit trail for one link — works before anything has been submitted. */
+function ActivityDialog({ token, onClose }) {
+  const { data, isLoading, error } = useSWR(
+    token ? `employee-onboarding/activity/${token.id}` : null,
+    () => getOnboardingActivity(token.id)
+  );
+
+  return (
+    <Dialog open={!!token} onClose={onClose} maxWidth="lg" fullWidth>
+      <DialogTitle>
+        Activity — {token?.employeeName}
+        <Typography variant="body2" color="text.secondary">
+          {token?.employeeEmail}
+        </Typography>
+      </DialogTitle>
+      <DialogContent>
+        {isLoading && <Typography variant="body2">Loading…</Typography>}
+        {error && (
+          <Alert severity="error">
+            {error?.response?.data?.message || error?.message || 'Could not load the activity.'}
+          </Alert>
+        )}
+        {data && <OnboardingActivity auditLog={data.auditLog || []} />}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Close</Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
 // ----------------------------------------------------------------------
 
 export function OnboardingListView() {
@@ -278,6 +312,7 @@ export function OnboardingListView() {
   const [tab, setTab] = useState(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [revoking, setRevoking] = useState(null);
+  const [activityToken, setActivityToken] = useState(null);
 
   const { data, isLoading, mutate } = useSWR('employee-onboarding/list', () =>
     listOnboardingSubmissions()
@@ -356,7 +391,7 @@ export function OnboardingListView() {
       field: 'actions',
       type: 'actions',
       headerName: '',
-      width: 100,
+      width: 130,
       getActions: ({ row }) => [
         <GridActionsCellItem
           key="copy"
@@ -370,6 +405,18 @@ export function OnboardingListView() {
           label="Copy link"
           onClick={() => handleCopyLink(row.token)}
           disabled={row.status !== 'active'}
+        />,
+        <GridActionsCellItem
+          key="activity"
+          icon={
+            <Tooltip title="View activity">
+              <span>
+                <Iconify icon="eva:activity-fill" />
+              </span>
+            </Tooltip>
+          }
+          label="View activity"
+          onClick={() => setActivityToken(row)}
         />,
         <GridActionsCellItem
           key="revoke"
@@ -527,6 +574,7 @@ export function OnboardingListView() {
         onSent={mutate}
         employees={employeeList}
       />
+      <ActivityDialog token={activityToken} onClose={() => setActivityToken(null)} />
     </DashboardContent>
   );
 }

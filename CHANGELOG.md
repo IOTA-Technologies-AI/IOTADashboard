@@ -74,6 +74,16 @@ is running.
   keeps everything on screen instead of losing it, and HR sees when a draft was
   last saved on the Links tab. Requires
   `sql/add_draft_to_employee_onboarding_tokens.sql`.
+- **Onboarding audit trail for HR.** Every event on an onboarding link is
+  recorded with the IP address, the approximate location derived from it, and
+  the browser, operating system and device: each time the link is opened, each
+  code request, each login (code verified) and failed attempt, every draft save
+  (automatic or manual, and at which step), each time a saved draft is
+  re-opened, and the final submission. The submission page shows the trail with
+  totals — logins, failed logins, drafts saved, re-opens, distinct IP addresses
+  and devices — and the Links tab has a "View activity" action that shows the
+  same for links that have not been submitted yet. Requires
+  `sql/add_audit_context_to_employee_onboarding.sql`.
 - Billing contracts record the commercial trail that precedes billing: the
   approved proposal (resource calculation), SOW number, the customer's
   requisition number (printed on every invoice as the reference), SOW received
