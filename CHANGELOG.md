@@ -248,6 +248,15 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- To-do reminders were not being sent. The reminder jobs run on a schedule with
+  no signed-in user, and the endpoints they called started requiring one when
+  gateway authentication was introduced, so every run was rejected before it
+  started. The two-minute reminder dispatch, the 7:00 morning summary and the
+  clean-up of finished tasks now run through private endpoints that only the
+  scheduler can reach.
+- The to-do board and the sales pipeline could fail to load after the move of
+  credentials to Encore secrets: one set of request headers was still built
+  once when the service started instead of per request.
 - Invoices were submitted to ZATCA with no line items. Lines are stored with
   the invoice as a list, but the e-invoice builder read a field that is never
   filled, so every submission carried totals and nothing else. The builder now
