@@ -102,6 +102,9 @@ const mapBackendInvoiceToFrontend = (invoice) => ({
   createdByEmail: invoice.createdByEmail || '',
   approvedBy: invoice.approvedBy || null,
   approvedDate: invoice.approvedDate || null,
+  // Employee-billing invoices: collection stage after internal approval
+  collectionStage: invoice.collectionStage || null,
+  billingPeriod: invoice.billingPeriod || null,
 });
 
 export function InvoiceListView() {

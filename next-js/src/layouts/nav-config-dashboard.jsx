@@ -231,6 +231,15 @@ export const navData = [
           { title: 'Employee Vetting', path: paths.dashboard.hr.employeeVetting.root },
           { title: 'NDA Management', path: paths.dashboard.hr.ndaManagement.root },
           { title: 'Candidate Intake', path: paths.dashboard.hr.candidateIntake.root },
+          { title: 'Employee Onboarding', path: paths.dashboard.hr.employeeOnboarding.root },
+          {
+            title: 'Employee Billing',
+            path: paths.dashboard.hr.employeeBilling.root,
+            children: [
+              { title: 'Collections', path: paths.dashboard.hr.employeeBilling.root },
+              { title: 'Contracts', path: paths.dashboard.hr.employeeBilling.contracts.root },
+            ],
+          },
           {
             title: 'Partnership Agreements',
             path: paths.dashboard.hr.partnershipAgreement.root,

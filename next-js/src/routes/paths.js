@@ -287,6 +287,19 @@ export const paths = {
         root: path(ROOTS.DASHBOARD, '/hr/candidate-intake'),
         details: (id) => path(ROOTS.DASHBOARD, `/hr/candidate-intake/${id}`),
       },
+      employeeOnboarding: {
+        root: path(ROOTS.DASHBOARD, '/hr/employee-onboarding'),
+        details: (id) => path(ROOTS.DASHBOARD, `/hr/employee-onboarding/${id}`),
+      },
+      employeeBilling: {
+        root: path(ROOTS.DASHBOARD, '/hr/employee-billing'),
+        contracts: {
+          root: path(ROOTS.DASHBOARD, '/hr/employee-billing/contracts'),
+          new: path(ROOTS.DASHBOARD, '/hr/employee-billing/contracts/new'),
+          details: (id) => path(ROOTS.DASHBOARD, `/hr/employee-billing/contracts/${id}`),
+          edit: (id) => path(ROOTS.DASHBOARD, `/hr/employee-billing/contracts/${id}/edit`),
+        },
+      },
     },
     user: {
       root: `${ROOTS.DASHBOARD}/user`,

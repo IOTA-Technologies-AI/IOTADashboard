@@ -25,6 +25,46 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Employee Onboarding** (Management > HR > Employee Onboarding): a secure,
+  one-time, OTP-verified form sent only to employees who already exist in
+  HR > Employees, on the same pattern as Candidate Intake. The employee
+  confirms pre-filled details and provides contact and emergency contact,
+  identity documents, **family and dependant details** (spouse, dependants,
+  insurance inclusion), bank/IBAN and GOSI, insurance preferences and a
+  declaration; mandatory fields are enforced per step and again on the server.
+  HR reviews the submission and **applies** it to the employee record in one
+  click, so payroll, GOSI, insurance and billing run on confirmed data. The
+  public form lives at `aspirants.iotatechnologies.io/onboarding/<link>`.
+  Requires deploying `../IOTAApiServer` (new `employeeonboarding` service) and
+  running `sql/create_employee_onboarding_tables.sql`.
+- **Employee Billing** (Management > HR > Employee Billing): billing contracts
+  per customer of type *single employee* or *managed services* (several
+  employees on one invoice), each employee line carrying a costed rate card
+  (salary, GOSI employer share by nationality, medical insurance by family
+  status, iqama, tickets, Saudization, end-of-service accrual, admin fees, an
+  optional Zakat provision and IOTA charges) computed with the same engine as
+  the resource-calculation quotation and configurable in `appConfig`
+  (`employeeBilling` namespace). A monthly run previews and raises one invoice
+  per contract per period (pro-rated for mid-month starts and ends) straight
+  into the Invoice module as *pending*, so the existing internal approval
+  (super-admin, TOTP, OneDrive, ZATCA, AR ledger) is reused unchanged. After
+  approval a **Collections** board drives each invoice through send to the
+  customer's department contact with the PDF → customer approved / queried →
+  receipt requested from Finance → paid, with validated transitions, history,
+  automatic follow-up dates, and counts of what is pending and what needs
+  chasing. Invoices can be downloaded as PDF at any stage. Requires deploying
+  `../IOTAApiServer` (new `employeebilling` service) and running
+  `sql/create_employee_billing_tables.sql`, which also seeds the two invoice
+  types *Employee Contract Invoice* and *Managed Services Invoice*.
+- Billing contracts record the commercial trail that precedes billing: the
+  approved proposal (resource calculation), SOW number, the customer's
+  requisition number (printed on every invoice as the reference), SOW received
+  and signed dates, the **signed SOW document** (uploaded to storage), contract
+  term (6/12/24 months), renewal date and the contract it renews. Contract
+  status follows the same flow (proposal sent → customer approved → SOW received
+  → signed → active → renewal due → ended); only active contracts are billed.
+  Adding an employee whose onboarding is not complete shows a warning. Requires
+  `sql/add_sow_to_employee_billing_contracts.sql` after the billing tables.
 - Download an Employee Vetting report as an IOTA-branded PDF, in two copies.
   The **client copy** is what a customer asking for vetting details receives:
   each check with its scope, completion date and outcome, identifiers masked
@@ -112,6 +152,10 @@ is running.
 - This changelog.
 
 ### Changed
+- Invoice list rows show the employee-billing collection stage next to the
+  status for invoices raised from a billing contract. No other invoice
+  behaviour changed; the backend skips the automatic supplier proforma for
+  those invoices.
 - Employment Verification now collects exactly IDfy's 15 mandatory attributes.
   Their six optional ones (department, resigned, salary, salary type, salary
   currency, reason for leaving) are no longer asked for — they added six inputs

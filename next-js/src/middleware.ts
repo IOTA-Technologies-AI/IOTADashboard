@@ -21,8 +21,15 @@ export function middleware(request: NextRequest) {
 
     // /<uuid>  →  transparently serve /candidate-intake/<uuid>
     // Already on the correct internal path — pass through
-    if (pathname.startsWith('/candidate-intake/')) {
+    if (pathname.startsWith('/candidate-intake/') || pathname.startsWith('/employee-onboarding/')) {
       return NextResponse.next();
+    }
+
+    // /onboarding/<uuid>  →  the employee onboarding form (sent to existing employees)
+    if (pathname.startsWith('/onboarding/')) {
+      const onboarding = request.nextUrl.clone();
+      onboarding.pathname = `/employee-onboarding${pathname.slice('/onboarding'.length)}`;
+      return NextResponse.rewrite(onboarding);
     }
 
     // /<anything-else>  →  rewrite to /candidate-intake/<anything-else>

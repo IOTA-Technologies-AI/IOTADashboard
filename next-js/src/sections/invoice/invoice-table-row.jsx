@@ -21,10 +21,10 @@ import { fDate, fTime } from 'src/utils/format-time';
 import { markInvoicePaid } from 'src/utils/apiHelper';
 
 import { Label } from 'src/components/label';
+import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 import { CustomPopover } from 'src/components/custom-popover';
-import { toast } from 'src/components/snackbar';
 
 // ----------------------------------------------------------------------
 
@@ -249,6 +249,12 @@ export function InvoiceTableRow({
           >
             {row.status}
           </Label>
+          {/* Employee-billing invoices carry a collection stage once approved */}
+          {row.collectionStage && (
+            <Label variant="outlined" color="secondary" sx={{ ml: 0.5 }}>
+              {String(row.collectionStage).replace(/_/g, ' ')}
+            </Label>
+          )}
         </TableCell>
 
         <TableCell align="right" sx={{ px: 1 }}>
