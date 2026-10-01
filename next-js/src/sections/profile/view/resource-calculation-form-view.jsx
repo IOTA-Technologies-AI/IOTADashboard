@@ -70,6 +70,8 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
 
+import { normalizeResource } from '../resource-calculation-payload';
+
 // ----------------------------------------------------------------------
 
 const STATUS_OPTIONS = ['draft', 'submitted', 'approved', 'rejected'];
@@ -1007,35 +1009,9 @@ export function ResourceCalculationFormView({ id }) {
       // Commit the open editor before saving, or the resource being edited would
       // be sent in whatever state it was last switched away from.
       //
-      // Every numeric field is coerced here as well. The API types them as
-      // numbers and rejects the whole request for a single string — a premium
-      // factor typed into its field arrived as "2.1" and failed with "invalid
-      // type: string, expected a number". The flat fields below were always
-      // coerced; the per-resource copies, added with multi-resource proposals,
-      // were not.
-      const toNumber = (value, fallback = 0) => {
-        const n = Number(String(value ?? '').replace(/,/g, ''));
-        return Number.isFinite(n) ? n : fallback;
-      };
-      const resourcesToSave = commitEditor().map((r, i) => ({
-        ...r,
-        id: String(r.id || `r${i + 1}`),
-        quantity: Math.max(1, Math.round(toNumber(r.quantity, 1)) || 1),
-        insurancePremiumFactor: toNumber(r.insurancePremiumFactor, 1) || 1,
-        dependentsCount: Math.max(0, Math.round(toNumber(r.dependentsCount))),
-        familyStatus: Boolean(r.familyStatus),
-        insuranceCostPerPax: toNumber(r.insuranceCostPerPax, 3000) || 3000,
-        ticketCostPerPax: toNumber(r.ticketCostPerPax, 2500) || 2500,
-        baseSalary: toNumber(r.baseSalary),
-        ...(r.totalMonthly !== undefined ? { totalMonthly: toNumber(r.totalMonthly) } : {}),
-        ...(r.totalAnnual !== undefined ? { totalAnnual: toNumber(r.totalAnnual) } : {}),
-        lineItems: (r.lineItems || []).map((item) => ({
-          ...item,
-          monthly: toNumber(item.monthly),
-          annual: toNumber(item.annual),
-          order: toNumber(item.order),
-        })),
-      }));
+      // Shaped exactly as the API declares a resource — every field present and
+      // typed — so one stray text value or missing total cannot fail the save.
+      const resourcesToSave = commitEditor().map(normalizeResource);
       // The flat fields stay populated from the FIRST resource: the list screen,
       // its search and any report still read those columns, and they must not go
       // blank just because a proposal now carries more than one person.

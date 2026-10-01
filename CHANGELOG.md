@@ -248,12 +248,14 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
-- Saving a resource calculation failed with "unable to decode request body:
-  resources[0].insurancePremiumFactor: invalid type: string, expected a number"
-  whenever the Bupa premium factor had been typed in. The field keeps what is
-  typed as text, and the per-resource copy added with multi-resource proposals
-  was sent as it was. The factor and every other numeric field of each resource
-  and its line items are now sent as numbers.
+- Saving a resource calculation failed with "unable to decode request body"
+  errors — first for a premium factor sent as text ("2.1"), then for resources
+  missing `totalMonthly` and `totalAnnual`. The per-resource records added with
+  multi-resource proposals were sent as the editor held them. Each resource is
+  now shaped to the API's declared type before sending: every field present,
+  numbers as numbers, blanks as empty text, totals filled in. A script,
+  `next-js/scripts/check-resource-calculation-payload.js`, verifies the request
+  against the backend's interface so this can be checked without a deployment.
 - To-do reminders were not being sent. The reminder jobs run on a schedule with
   no signed-in user, and the endpoints they called started requiring one when
   gateway authentication was introduced, so every run was rejected before it
