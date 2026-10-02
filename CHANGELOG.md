@@ -267,6 +267,13 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- "Expense By" could show no users about an hour after signing in. The list is
+  read from the Microsoft directory with the sign-in token; when that token was
+  refreshed, the refresh asked Microsoft for a narrower set of permissions that
+  no longer included reading the directory, so the refreshed token was refused.
+  The refresh now keeps the same permission. When the list cannot load, the
+  field now says why (token missing, permission refused, or the Microsoft error)
+  instead of a generic "connect Microsoft".
 - Saving a resource calculation failed with "unable to decode request body"
   errors — first for a premium factor sent as text ("2.1"), then for resources
   missing `totalMonthly` and `totalAnnual`. The per-resource records added with

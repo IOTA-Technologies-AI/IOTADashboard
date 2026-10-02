@@ -105,7 +105,20 @@ export function ExpenseNewEditForm({ currentExpense }) {
   const router = useRouter();
   const { user } = useAuthContext();
   const { profile } = useMicrosoftProfile();
-  const { users: microsoftUsers, loading: loadingUsers } = useMicrosoftUsers();
+  const { users: microsoftUsers, loading: loadingUsers, error: usersError } = useMicrosoftUsers();
+
+  // Why the directory could not be read, in words the person can act on.
+  const usersProblem = (() => {
+    if (loadingUsers || microsoftUsers.length || !usersError) return '';
+    switch (usersError.code) {
+      case 'NO_TOKEN':
+        return 'Your Microsoft sign-in token is missing. Sign out and sign in again to load the directory.';
+      case 'INSUFFICIENT_PRIVILEGES':
+        return 'Microsoft refused the directory request (insufficient privileges). The IOTA app needs User.ReadBasic.All consent in Microsoft Entra.';
+      default:
+        return `Could not load users from Microsoft: ${usersError.message || 'unknown error'}. Sign out and sign in again; if it persists, send this message to IT.`;
+    }
+  })();
 
   const roleIdToName = {
     1: 'regular',
@@ -835,6 +848,8 @@ export function ExpenseNewEditForm({ currentExpense }) {
           label="Expense By"
           InputLabelProps={{ shrink: true }}
           displayEmpty
+          helperText={usersProblem || undefined}
+          error={!!usersProblem}
         >
           <MenuItem value="">
             <em>{loadingUsers ? 'Loading users...' : 'Select user'}</em>
@@ -844,7 +859,9 @@ export function ExpenseNewEditForm({ currentExpense }) {
               <CircularProgress size={20} sx={{ mr: 1 }} /> Loading...
             </MenuItem>
           ) : microsoftUsers.length === 0 ? (
-            <MenuItem disabled>No users found — connect Microsoft to load users</MenuItem>
+            <MenuItem disabled>
+              {usersProblem ? 'Directory unavailable — see the note below' : 'No users found'}
+            </MenuItem>
           ) : (
             microsoftUsers.map((msUser) => (
               <MenuItem key={msUser.id} value={msUser.name}>
@@ -1080,9 +1097,7 @@ export function ExpenseNewEditForm({ currentExpense }) {
           2. Editing a pending expense as a superAdmin, OR
           3. Editing an approved/rejected expense as a superAdmin while
              Record Edit Mode is on. */}
-      {(!currentExpense ||
-        (isSuperAdmin && isPendingExpense) ||
-        canEditLockedExpense) && (
+      {(!currentExpense || (isSuperAdmin && isPendingExpense) || canEditLockedExpense) && (
         <LoadingButton
           fullWidth
           type="submit"
@@ -1114,11 +1129,9 @@ export function ExpenseNewEditForm({ currentExpense }) {
 
             {canEditLockedExpense && (
               <Alert severity="info">
-                <strong>Record edit mode is on.</strong> You are editing an expense that has
-                already been {currentExpense?.expenseApprovalStatus === true
-                  ? 'approved'
-                  : 'rejected'}
-                . Every field you change is written to the audit trail.
+                <strong>Record edit mode is on.</strong> You are editing an expense that has already
+                been {currentExpense?.expenseApprovalStatus === true ? 'approved' : 'rejected'}.
+                Every field you change is written to the audit trail.
               </Alert>
             )}
 
