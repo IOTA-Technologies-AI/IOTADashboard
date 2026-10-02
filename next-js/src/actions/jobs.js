@@ -223,9 +223,7 @@ export async function updateJobApplicationStatus(applicationId, status, notes, r
 
 export async function getIntegration(integrationName, integrationType) {
   try {
-    const response = await iotaApi.get(
-      `integrations/${integrationName}/${integrationType}`
-    );
+    const response = await iotaApi.get(`integrations/${integrationName}/${integrationType}`);
     return response.data?.integration || null;
   } catch (error) {
     console.error('Error fetching integration:', error);
@@ -235,10 +233,11 @@ export async function getIntegration(integrationName, integrationType) {
 
 export async function updateIntegration(integrationName, integrationType, data) {
   try {
-    const response = await iotaApi.patch(
-      `integrations/${integrationName}/${integrationType}`,
-      { integrationName, integrationType, ...data }
-    );
+    const response = await iotaApi.patch(`integrations/${integrationName}/${integrationType}`, {
+      integrationName,
+      integrationType,
+      ...data,
+    });
     return response.data;
   } catch (error) {
     console.error('Error updating integration:', error);
@@ -309,3 +308,27 @@ export const TECHNOLOGY_AREA_OPTIONS = [
   { label: 'Data Science', value: 'Data Science' },
   { label: 'Cybersecurity', value: 'Cybersecurity' },
 ];
+
+// ─── Careers intake (website → dashboard) ────────────────────────────────────
+
+/** A short-lived download link for an application's résumé; the file itself is never public. */
+export async function getApplicationResumeLink(applicationId) {
+  const response = await iotaApi.get(`applications/${applicationId}/resume-link`);
+  return response.data;
+}
+
+export async function getCareersIntake() {
+  const response = await iotaApi.get('careers/intake');
+  return response.data;
+}
+
+export async function updateCareersIntake(payload) {
+  const response = await iotaApi.post('careers/intake', payload);
+  return response.data;
+}
+
+/** Create (or replace) the Webflow form-submission webhook that feeds applications in. */
+export async function registerCareersWebhook(payload) {
+  const response = await iotaApi.post('careers/webflow/register', payload);
+  return response.data;
+}

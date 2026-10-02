@@ -1,27 +1,27 @@
 'use client';
 
+import useSWR from 'swr';
 import { useState, useCallback } from 'react';
 import { useTabs, useBoolean } from 'minimal-shared/hooks';
 
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
-import Button from '@mui/material/Button';
 import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
 
 import { paths } from 'src/routes/paths';
 
 import { DashboardContent } from 'src/layouts/dashboard';
+import { updateJob, syncJobToWebflow, getJobApplications } from 'src/actions/jobs';
 
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 
-import { syncJobToWebflow, updateJob } from 'src/actions/jobs';
-
 import { JobApplyDialog } from '../job-apply-dialog';
+import { JobApplications } from '../job-applications';
 import { JobDetailsToolbar } from '../job-details-toolbar';
 import { JobDetailsContent } from '../job-details-content';
-import { JobDetailsCandidates } from '../job-details-candidates';
 
 // ----------------------------------------------------------------------
 
@@ -36,6 +36,10 @@ const JOB_PUBLISH_OPTIONS = [
 ];
 
 export function JobDetailsView({ job: apiJob }) {
+  // Same key as the Candidates tab, so the count and the list share one request.
+  const { data: applications } = useSWR(apiJob?.id ? ['job-applications', apiJob.id] : null, () =>
+    getJobApplications(apiJob.id)
+  );
   const tabs = useTabs('content');
   const applyDialog = useBoolean(false);
 
@@ -145,7 +149,7 @@ export function JobDetailsView({ job: apiJob }) {
           label={tab.label}
           icon={
             tab.value === 'candidates' ? (
-              <Label variant="filled">{job?.candidates?.length || 0}</Label>
+              <Label variant="filled">{applications?.length || 0}</Label>
             ) : (
               ''
             )
@@ -161,7 +165,7 @@ export function JobDetailsView({ job: apiJob }) {
 
       {renderTabs()}
       {tabs.value === 'content' && <JobDetailsContent job={job} />}
-      {tabs.value === 'candidates' && <JobDetailsCandidates candidates={job?.candidates ?? []} />}
+      {tabs.value === 'candidates' && <JobApplications jobId={apiJob?.id} />}
 
       <JobApplyDialog open={applyDialog.value} onClose={applyDialog.onFalse} job={apiJob} />
     </DashboardContent>

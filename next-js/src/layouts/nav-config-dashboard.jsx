@@ -335,6 +335,7 @@ export const navData = [
           { title: 'Details', path: paths.dashboard.job.demo.details },
           { title: 'Create', path: paths.dashboard.job.new },
           { title: 'Edit', path: paths.dashboard.job.demo.edit },
+          { title: 'Careers Intake', path: paths.dashboard.job.careersIntake },
         ],
       },
       {

@@ -394,6 +394,7 @@ export const paths = {
     job: {
       root: `${ROOTS.DASHBOARD}/job`,
       new: `${ROOTS.DASHBOARD}/job/new`,
+      careersIntake: `${ROOTS.DASHBOARD}/job/careers-intake`,
       details: (id) => `${ROOTS.DASHBOARD}/job/${id}`,
       edit: (id) => `${ROOTS.DASHBOARD}/job/${id}/edit`,
       demo: {

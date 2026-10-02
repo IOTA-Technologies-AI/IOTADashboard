@@ -25,6 +25,25 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Careers intake from iotatechnologies.ai.** Applications submitted on the
+  website now land in the dashboard. Two doors, both feeding the same pipeline:
+  the Webflow form on each job page, delivered through a Webflow
+  form-submission webhook that the dashboard registers itself under Job >
+  Careers Intake; or a custom form posting to the careers API. The webhook URL
+  carries a long random secret, each call is checked against Webflow's HMAC
+  signature when a signing secret is set, must be fresh (5 minutes), must come
+  from IOTA's site, and is accepted once per event. The API door is protected by
+  Cloudflare Turnstile, a honeypot field and throttling per address and per
+  candidate. Every text field is bounded and stripped of markup. Each résumé is
+  checked for type by its bytes (PDF or Word .docx only), size, PDF scripting
+  and launch actions, Word macros, embedded objects and remote templates, and
+  decompression bombs; a configurable antivirus engine (self-hosted ClamAV or
+  VirusTotal) then scans it. Files that fail are not stored; the application is
+  still recorded with the reason. Stored résumés are private and downloaded
+  through 10-minute signed links. The job's Candidates tab now lists the real
+  applications with source, scan result, status and download. Requires
+  deploying `../IOTAApiServer` (its migration runs automatically) and
+  `sql/add_careers_intake_nav_permission.sql`.
 - **Employee Onboarding** (Management > HR > Employee Onboarding): a secure,
   one-time, OTP-verified form sent only to employees who already exist in
   HR > Employees, on the same pattern as Candidate Intake. The employee
