@@ -1,7 +1,7 @@
-'use server';
-
+// Runs in the browser: apiHelper's axios interceptor attaches the signed-in user's
+// bearer token there. As a server action there is no session, so every call to the
+// `auth: true` integration endpoints returns 401.
 import { apiHelper } from '../utils/apiHelper';
-
 import { AVAILABLE_INTEGRATIONS } from '../sections/integration/integration-constants';
 
 // ----------------------------------------------------------------------

@@ -1,13 +1,9 @@
-import { getCommissions } from 'src/actions/commission';
-
-import { CommissionListView } from 'src/sections/commission/view/commission-list-view';
+import CommissionListWrapper from './list-wrapper';
 
 // ----------------------------------------------------------------------
 
 export const metadata = { title: `Commission` };
 
-export default async function Page() {
-  const commissions = await getCommissions();
-
-  return <CommissionListView commissions={commissions} />;
+export default function Page() {
+  return <CommissionListWrapper />;
 }

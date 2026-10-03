@@ -1,20 +1,13 @@
-import { notFound } from 'next/navigation';
+import { CONFIG } from 'src/global-config';
 
-import { getBDM } from 'src/actions/bdm';
-import { getCommissions } from 'src/actions/commission';
+import BDMProfileWrapper from './profile-wrapper';
 
-import { BDMProfileView } from 'src/sections/bdm/view/bdm-profile-view';
+// ----------------------------------------------------------------------
+
+export const metadata = { title: `BDM | Dashboard - ${CONFIG.appName}` };
 
 export default async function Page({ params }) {
-  const { id } = params;
+  const { id } = await params;
 
-  const [bdm, deals] = await Promise.all([getBDM(id), getCommissions()]);
-
-  if (!bdm) {
-    notFound();
-  }
-
-  const bdmDeals = (deals || []).filter((deal) => String(deal.bdmId) === String(id));
-
-  return <BDMProfileView bdm={bdm} deals={bdmDeals} />;
+  return <BDMProfileWrapper id={id} />;
 }

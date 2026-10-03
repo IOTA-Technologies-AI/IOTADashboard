@@ -267,6 +267,15 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- Reports (P&L, Employee P&L, BDM report), the BDM list and profile pages, the
+  Commission list, Job details/edit, the Employee Wallet page, Bank Accounts and
+  reconciliation, the Integrations tab, and the Finance payments/aging reports
+  failed with `HTTP 401 unauthenticated` after the API was locked down. These
+  screens fetched from the API on the server (as Next server actions or server
+  components) or with a bare `fetch`, so no sign-in token was ever sent. They
+  now fetch in the browser with the signed-in user's live token, via a shared
+  `apiFetch` helper; the server pages are now thin pages that render a client
+  wrapper behind `PageGuard`, matching the rest of the dashboard.
 - "Expense By" could show no users about an hour after signing in. The list is
   read from the Microsoft directory with the sign-in token; when that token was
   refreshed, the refresh asked Microsoft for a narrower set of permissions that

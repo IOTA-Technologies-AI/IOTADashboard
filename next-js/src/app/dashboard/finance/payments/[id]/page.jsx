@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, use } from 'react';
+import { use, useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 
 import {
@@ -22,6 +22,7 @@ import {
   TableContainer,
 } from '@mui/material';
 
+import { apiFetch } from 'src/lib/api-fetch';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
@@ -42,9 +43,7 @@ export default function PaymentDetailPage() {
   const fetchPaymentDetails = async () => {
     setLoading(true);
     try {
-      const response = await fetch(
-        `https://staging-iotaapiserver-s572.encr.app/supabaseservices.getPaymentById?id=${params.id}`
-      );
+      const response = await apiFetch(`/supabaseservices.getPaymentById?id=${params.id}`);
       const data = await response.json();
       setPayment(data.data);
       setAllocations(data.data.allocations || []);

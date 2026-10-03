@@ -19,6 +19,7 @@ import {
 import { fDate } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
 
+import { apiFetch } from 'src/lib/api-fetch';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 export default function ARAgingReport() {
@@ -40,9 +41,7 @@ export default function ARAgingReport() {
   const fetchInvoices = async () => {
     setLoading(true);
     try {
-      const response = await fetch(
-        'https://staging-iotaapiserver-s572.encr.app/supabaseservices.getInvoices'
-      );
+      const response = await apiFetch('/supabaseservices.getInvoices');
       const data = await response.json();
       const unpaidInvoices = (data.data || []).filter((inv) => parseFloat(inv.balance) > 0);
 

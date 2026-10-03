@@ -19,6 +19,7 @@ import {
 
 import { fCurrency } from 'src/utils/format-number';
 
+import { apiFetch } from 'src/lib/api-fetch';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 export default function ExpenseByCategoryReport() {
@@ -37,9 +38,7 @@ export default function ExpenseByCategoryReport() {
   const fetchExpenses = async () => {
     setLoading(true);
     try {
-      const response = await fetch(
-        'https://staging-iotaapiserver-s572.encr.app/supabaseservices.getExpenses'
-      );
+      const response = await apiFetch('/supabaseservices.getExpenses');
       const data = await response.json();
       setExpenses(data.data || []);
       processExpenses(data.data || []);

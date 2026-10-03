@@ -1,10 +1,10 @@
-'use server';
+import { apiFetch } from 'src/lib/api-fetch';
 
-const API_URL = 'https://staging-iotaapiserver-s572.encr.app';
+// Runs in the browser so the signed-in user's bearer token is attached; see src/lib/api-fetch.
 
 export async function getBDMs() {
   try {
-    const response = await fetch(`${API_URL}/bdms`, {
+    const response = await apiFetch(`/bdms`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
@@ -20,7 +20,7 @@ export async function getBDMs() {
 
 export async function getBDM(id) {
   try {
-    const response = await fetch(`${API_URL}/bdms/${id}`, {
+    const response = await apiFetch(`/bdms/${id}`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
@@ -51,7 +51,7 @@ export async function getBDM(id) {
 
 export async function createBDM(bdmData) {
   try {
-    const response = await fetch(`${API_URL}/bdm.createBDM`, {
+    const response = await apiFetch(`/bdm.createBDM`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(bdmData),
@@ -67,7 +67,7 @@ export async function createBDM(bdmData) {
 
 export async function updateBDM(id, bdmData) {
   try {
-    const response = await fetch(`${API_URL}/bdm.updateBDM`, {
+    const response = await apiFetch(`/bdm.updateBDM`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, ...bdmData }),
@@ -83,7 +83,7 @@ export async function updateBDM(id, bdmData) {
 
 export async function getBDMCommissions(id) {
   try {
-    const response = await fetch(`${API_URL}/bdm.getBDMCommissions`, {
+    const response = await apiFetch(`/bdm.getBDMCommissions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
@@ -100,7 +100,7 @@ export async function getBDMCommissions(id) {
 
 export async function getPendingBDMCommissions(id) {
   try {
-    const response = await fetch(`${API_URL}/bdm.getPendingBDMCommissions`, {
+    const response = await apiFetch(`/bdm.getPendingBDMCommissions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
@@ -117,7 +117,7 @@ export async function getPendingBDMCommissions(id) {
 
 export async function markCommissionsPaid(id, invoiceIds, expenseIds) {
   try {
-    const response = await fetch(`${API_URL}/bdm.markCommissionsPaid`, {
+    const response = await apiFetch(`/bdm.markCommissionsPaid`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, invoiceIds, expenseIds }),

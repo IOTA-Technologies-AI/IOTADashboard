@@ -1,6 +1,6 @@
-'use server';
+import { apiFetch } from 'src/lib/api-fetch';
 
-const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
+// Runs in the browser so the signed-in user's bearer token is attached; see src/lib/api-fetch.
 
 // ----------------------------------------------------------------------
 // BANK ACCOUNTS
@@ -8,14 +8,14 @@ const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
 
 export async function fetchBankAccounts(filters = {}) {
   try {
-    let url = `${API_BASE_URL}/bankAccounts`;
+    let url = `/bankAccounts`;
 
     // Use region-specific endpoint if filter is provided
     if (filters.region) {
-      url = `${API_BASE_URL}/bankAccounts/region/${filters.region}`;
+      url = `/bankAccounts/region/${filters.region}`;
     }
 
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -32,7 +32,7 @@ export async function fetchBankAccounts(filters = {}) {
 
     // Apply status filter client-side if needed
     if (filters.status) {
-      data = data.filter(account => account.status === filters.status);
+      data = data.filter((account) => account.status === filters.status);
     }
 
     return { success: true, data };
@@ -44,7 +44,7 @@ export async function fetchBankAccounts(filters = {}) {
 
 export async function fetchBankAccountById(accountId) {
   try {
-    const response = await fetch(`${API_BASE_URL}/bankAccounts/${accountId}`, {
+    const response = await apiFetch(`/bankAccounts/${accountId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -66,7 +66,7 @@ export async function fetchBankAccountById(accountId) {
 
 export async function createBankAccount(accountData) {
   try {
-    const response = await fetch(`${API_BASE_URL}/bankAccounts`, {
+    const response = await apiFetch(`/bankAccounts`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -89,7 +89,7 @@ export async function createBankAccount(accountData) {
 
 export async function updateBankAccount(accountId, updates) {
   try {
-    const response = await fetch(`${API_BASE_URL}/bankAccounts/${accountId}`, {
+    const response = await apiFetch(`/bankAccounts/${accountId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -112,7 +112,7 @@ export async function updateBankAccount(accountId, updates) {
 
 export async function updateBankAccountBalance(accountId, newBalance) {
   try {
-    const response = await fetch(`${API_BASE_URL}/bankAccounts/${accountId}/balance`, {
+    const response = await apiFetch(`/bankAccounts/${accountId}/balance`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -139,16 +139,16 @@ export async function updateBankAccountBalance(accountId, newBalance) {
 
 export async function fetchBankTransactions(filters = {}) {
   try {
-    let url = `${API_BASE_URL}/bankTransactions`;
+    let url = `/bankTransactions`;
 
     // Use account-specific endpoint if filter is provided
     if (filters.accountId) {
-      url = `${API_BASE_URL}/bankTransactions/account/${filters.accountId}`;
+      url = `/bankTransactions/account/${filters.accountId}`;
     } else if (filters.statementId) {
-      url = `${API_BASE_URL}/bankTransactions/statement/${filters.statementId}`;
+      url = `/bankTransactions/statement/${filters.statementId}`;
     }
 
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -165,16 +165,16 @@ export async function fetchBankTransactions(filters = {}) {
 
     // Apply additional filters client-side
     if (filters.transactionType) {
-      data = data.filter(txn => txn.transactionType === filters.transactionType);
+      data = data.filter((txn) => txn.transactionType === filters.transactionType);
     }
     if (filters.category) {
-      data = data.filter(txn => txn.category === filters.category);
+      data = data.filter((txn) => txn.category === filters.category);
     }
     if (filters.startDate) {
-      data = data.filter(txn => txn.transactionDate >= filters.startDate);
+      data = data.filter((txn) => txn.transactionDate >= filters.startDate);
     }
     if (filters.endDate) {
-      data = data.filter(txn => txn.transactionDate <= filters.endDate);
+      data = data.filter((txn) => txn.transactionDate <= filters.endDate);
     }
     if (filters.limit) {
       data = data.slice(0, filters.limit);
@@ -189,7 +189,7 @@ export async function fetchBankTransactions(filters = {}) {
 
 export async function createBankTransaction(transactionData) {
   try {
-    const response = await fetch(`${API_BASE_URL}/bankTransactions`, {
+    const response = await apiFetch(`/bankTransactions`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -212,7 +212,7 @@ export async function createBankTransaction(transactionData) {
 
 export async function createBulkTransactions(transactions) {
   try {
-    const response = await fetch(`${API_BASE_URL}/bankTransactions/bulk`, {
+    const response = await apiFetch(`/bankTransactions/bulk`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -236,7 +236,7 @@ export async function createBulkTransactions(transactions) {
 
 export async function updateBankTransaction(transactionId, updates) {
   try {
-    const response = await fetch(`${API_BASE_URL}/bankTransactions/${transactionId}`, {
+    const response = await apiFetch(`/bankTransactions/${transactionId}`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',
@@ -259,7 +259,7 @@ export async function updateBankTransaction(transactionId, updates) {
 
 export async function deleteBankTransaction(transactionId) {
   try {
-    const response = await fetch(`${API_BASE_URL}/bankTransactions/${transactionId}`, {
+    const response = await apiFetch(`/bankTransactions/${transactionId}`, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
@@ -284,7 +284,7 @@ export async function deleteBankTransaction(transactionId) {
 
 export async function createBankStatement(statementData) {
   try {
-    const response = await fetch(`${API_BASE_URL}/bankStatements`, {
+    const response = await apiFetch(`/bankStatements`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -307,13 +307,13 @@ export async function createBankStatement(statementData) {
 
 export async function fetchBankStatements(accountId = null) {
   try {
-    let url = `${API_BASE_URL}/bankStatements`;
+    let url = `/bankStatements`;
 
     if (accountId) {
-      url = `${API_BASE_URL}/bankStatements/account/${accountId}`;
+      url = `/bankStatements/account/${accountId}`;
     }
 
-    const response = await fetch(url, {
+    const response = await apiFetch(url, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -335,7 +335,7 @@ export async function fetchBankStatements(accountId = null) {
 
 export async function updateBankStatementStatus(statementId, status, errorMessage = null) {
   try {
-    const response = await fetch(`${API_BASE_URL}/bankStatements/${statementId}/status`, {
+    const response = await apiFetch(`/bankStatements/${statementId}/status`, {
       method: 'PATCH',
       headers: {
         'Content-Type': 'application/json',

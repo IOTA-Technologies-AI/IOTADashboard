@@ -24,6 +24,7 @@ import {
   TableContainer,
 } from '@mui/material';
 
+import { apiFetch } from 'src/lib/api-fetch';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { Iconify } from 'src/components/iconify';
@@ -44,10 +45,10 @@ export default function PaymentsPage() {
     try {
       const url =
         filterType === 'all'
-          ? 'https://staging-iotaapiserver-s572.encr.app/supabaseservices.getPayments'
-          : `https://staging-iotaapiserver-s572.encr.app/supabaseservices.getPaymentsByType?paymentType=${filterType}`;
+          ? '/supabaseservices.getPayments'
+          : `/supabaseservices.getPaymentsByType?paymentType=${filterType}`;
 
-      const response = await fetch(url);
+      const response = await apiFetch(url);
       const data = await response.json();
       setPayments(data.data || []);
     } catch (error) {
@@ -59,12 +60,9 @@ export default function PaymentsPage() {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this payment?')) {
       try {
-        await fetch(
-          `https://staging-iotaapiserver-s572.encr.app/supabaseservices.deletePayment?id=${id}`,
-          {
-            method: 'DELETE',
-          }
-        );
+        await apiFetch(`/supabaseservices.deletePayment?id=${id}`, {
+          method: 'DELETE',
+        });
         fetchPayments();
       } catch (error) {
         console.error('Error deleting payment:', error);

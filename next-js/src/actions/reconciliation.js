@@ -1,13 +1,13 @@
-'use server';
+import { apiFetch } from 'src/lib/api-fetch';
 
-const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
+// Runs in the browser so the signed-in user's bearer token is attached; see src/lib/api-fetch.
 
 /**
  * Run auto-reconciliation for a recently uploaded bank statement.
  */
 export async function runAutoReconciliation({ statementId }) {
   try {
-    const response = await fetch(`${API_BASE_URL}/reconciliation/auto`, {
+    const response = await apiFetch(`/reconciliation/auto`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ statementId }),
@@ -26,7 +26,7 @@ export async function runAutoReconciliation({ statementId }) {
  */
 export async function fetchUnmatchedTransactions() {
   try {
-    const response = await fetch(`${API_BASE_URL}/reconciliation/unmatched`, {
+    const response = await apiFetch(`/reconciliation/unmatched`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
@@ -48,7 +48,7 @@ export async function submitManualMatch({
   requestedBy,
 }) {
   try {
-    const response = await fetch(`${API_BASE_URL}/reconciliation/manual`, {
+    const response = await apiFetch(`/reconciliation/manual`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ statementTransactionId, manualTransactionId, requestedBy }),
@@ -67,7 +67,7 @@ export async function submitManualMatch({
  */
 export async function fetchPendingReconciliation() {
   try {
-    const response = await fetch(`${API_BASE_URL}/reconciliation/pending`, {
+    const response = await apiFetch(`/reconciliation/pending`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
@@ -85,7 +85,7 @@ export async function fetchPendingReconciliation() {
  */
 export async function approveReconciliation({ id, action, reviewedBy, rejectionReason }) {
   try {
-    const response = await fetch(`${API_BASE_URL}/reconciliation/approve`, {
+    const response = await apiFetch(`/reconciliation/approve`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, action, reviewedBy, rejectionReason }),

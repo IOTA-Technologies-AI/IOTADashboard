@@ -26,6 +26,8 @@ import {
   TableContainer,
 } from '@mui/material';
 
+import { apiFetch } from 'src/lib/api-fetch';
+
 const PAYMENT_METHODS = [
   'Cash',
   'Bank Transfer',
@@ -77,9 +79,7 @@ export function PaymentCreateEditForm({ currentPaymentId }) {
   const fetchPaymentData = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
-        `https://staging-iotaapiserver-s572.encr.app/supabaseservices.getPayment?id=${currentPaymentId}`
-      );
+      const response = await apiFetch(`/supabaseservices.getPayment?id=${currentPaymentId}`);
       const data = await response.json();
 
       if (data.success && data.data) {
@@ -115,7 +115,7 @@ export function PaymentCreateEditForm({ currentPaymentId }) {
           ? 'supabaseservices.getInvoices'
           : 'supabaseservices.getExpenses';
 
-      const response = await fetch(`https://staging-iotaapiserver-s572.encr.app/${endpoint}`);
+      const response = await apiFetch(`/${endpoint}`);
       const data = await response.json();
 
       // Filter to show only unpaid or partially paid invoices/bills
@@ -195,7 +195,7 @@ export function PaymentCreateEditForm({ currentPaymentId }) {
 
       const endpoint = isEdit ? 'supabaseservices.updatePayment' : 'supabaseservices.createPayment';
 
-      const response = await fetch(`https://staging-iotaapiserver-s572.encr.app/${endpoint}`, {
+      const response = await apiFetch(`/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(isEdit ? { id: currentPaymentId, ...paymentPayload } : paymentPayload),

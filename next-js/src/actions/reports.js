@@ -1,6 +1,6 @@
-'use server';
+import { apiFetch } from 'src/lib/api-fetch';
 
-const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
+// Runs in the browser so the signed-in user's bearer token is attached; see src/lib/api-fetch.
 
 /**
  * Fetch P&L report data from the backend.
@@ -12,8 +12,8 @@ const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
  */
 export async function fetchPLReport({ year, groupBy = 'month', dimension = 'overall' }) {
   try {
-    const url = `${API_BASE_URL}/reports/pl?year=${year}&groupBy=${groupBy}&dimension=${dimension}`;
-    const response = await fetch(url, {
+    const url = `/reports/pl?year=${year}&groupBy=${groupBy}&dimension=${dimension}`;
+    const response = await apiFetch(url, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
@@ -38,8 +38,8 @@ export async function fetchPLReport({ year, groupBy = 'month', dimension = 'over
  */
 export async function fetchEmployeePLReport({ year }) {
   try {
-    const url = `${API_BASE_URL}/reports/employee?year=${year}`;
-    const response = await fetch(url, {
+    const url = `/reports/employee?year=${year}`;
+    const response = await apiFetch(url, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',
@@ -68,8 +68,8 @@ export async function fetchBdmReport({ bdmId, year } = {}) {
     const params = new URLSearchParams();
     if (bdmId) params.set('bdmId', bdmId);
     if (year) params.set('year', String(year));
-    const url = `${API_BASE_URL}/reports/bdm${params.toString() ? `?${params}` : ''}`;
-    const response = await fetch(url, {
+    const url = `/reports/bdm${params.toString() ? `?${params}` : ''}`;
+    const response = await apiFetch(url, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
       cache: 'no-store',

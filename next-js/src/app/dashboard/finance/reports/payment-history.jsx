@@ -25,6 +25,7 @@ import {
 import { fDate } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
 
+import { apiFetch } from 'src/lib/api-fetch';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 export default function PaymentHistoryReport() {
@@ -51,10 +52,10 @@ export default function PaymentHistoryReport() {
     try {
       const url =
         filterType === 'all'
-          ? 'https://staging-iotaapiserver-s572.encr.app/supabaseservices.getPayments'
-          : `https://staging-iotaapiserver-s572.encr.app/supabaseservices.getPaymentsByType?paymentType=${filterType}`;
+          ? '/supabaseservices.getPayments'
+          : `/supabaseservices.getPaymentsByType?paymentType=${filterType}`;
 
-      const response = await fetch(url);
+      const response = await apiFetch(url);
       const data = await response.json();
       const allPayments = data.data || [];
 

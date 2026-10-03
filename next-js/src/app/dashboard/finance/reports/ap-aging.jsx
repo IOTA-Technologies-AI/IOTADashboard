@@ -19,6 +19,7 @@ import {
 import { fDate } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
 
+import { apiFetch } from 'src/lib/api-fetch';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 export default function APAgingReport() {
@@ -40,9 +41,7 @@ export default function APAgingReport() {
   const fetchExpenses = async () => {
     setLoading(true);
     try {
-      const response = await fetch(
-        'https://staging-iotaapiserver-s572.encr.app/supabaseservices.getExpenses'
-      );
+      const response = await apiFetch('/supabaseservices.getExpenses');
       const data = await response.json();
 
       // Filter approved expenses that have outstanding balance
