@@ -267,6 +267,12 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- The BDM report answered `HTTP 500 internal error`. The backend read deals
+  from a `deals` table that does not exist — deals are rows of the `commissions`
+  table, which the Commission module and the BDM pages already use. The report
+  now reads `commissions`. Report queries that fail now say which table and why
+  (PostgREST's message) instead of a bare "an internal error occurred".
+  *(Backend: `reports/reports.ts`.)*
 - Reports (P&L, Employee P&L, BDM report), the BDM list and profile pages, the
   Commission list, Job details/edit, the Employee Wallet page, Bank Accounts and
   reconciliation, the Integrations tab, and the Finance payments/aging reports
