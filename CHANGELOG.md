@@ -256,6 +256,22 @@ is running.
   to the API; they previously called it anonymously.
 
 ### Changed
+- **Payslip.** The year-to-date column is gone; the payslip shows the period
+  only. The employee details panel is one typeface throughout (the Employee
+  ID, IBAN, days paid and joining date were in a different, monospaced face).
+  Deductions are now itemised: each one is printed on its own row with its
+  reason, where a lump sum used to print as a single "Other Deductions" line.
+- **Deductions are captured with their details.** Adjust on a payroll run now
+  takes a list of deductions, each with a reason (common ones are suggested)
+  and an amount, and shows the resulting net pay including GOSI and loss of
+  pay. A deduction without a reason cannot be saved, on Adjust or when
+  generating a run, and deductions larger than the pay are refused. Needs the
+  migration `supabase/sql/20261005_payroll_deduction_items.sql`; until it is
+  run the deductions still save, as one summarised line.
+  *(Backend: `payroll/`, deploy with the dashboard.)*
+- **The Payslip button on Finance > Payroll opens a menu** with View and
+  Download instead of downloading at once. View shows the payslip on screen,
+  with a Download button beside it.
 - **Invoice line items are strictly bilingual.** Every line must carry an
   English and an Arabic title, and a description must be given in both
   languages or not at all; text typed in the wrong box (English in the Arabic

@@ -386,6 +386,18 @@ export default function GeneratePayrollPage() {
         })
         .filter(Boolean);
 
+      // A deduction is printed on the payslip with its reason, so one without a
+      // reason cannot go into a run. The API refuses it too.
+      const unexplained = selectedPayrollData.filter(
+        (row) => row.manualDeductionAmount > 0 && !String(row.manualDeductionRemarks || '').trim()
+      );
+      if (unexplained.length) {
+        toast.error(
+          `Enter a deduction reason for: ${unexplained.map((row) => row.fullName || row.employeeName).join(', ')}`
+        );
+        return;
+      }
+
       // Build per-employee manual deduction overrides (keyed by DB id)
       const lineItemOverrides = {};
       selectedPayrollData.forEach((row) => {
@@ -431,7 +443,7 @@ export default function GeneratePayrollPage() {
       }
     } catch (error) {
       console.error('Error generating payroll:', error);
-      toast.error('Failed to generate payroll');
+      toast.error(error?.response?.data?.message || 'Failed to generate payroll');
     } finally {
       setGenerating(false);
     }
@@ -572,7 +584,7 @@ export default function GeneratePayrollPage() {
       minWidth: 170,
       editable: true,
       renderHeader: () => (
-        <span title="Describe the reason for the extra deduction (e.g. Advance repayment). Editable.">
+        <span title="Required with an extra deduction — it is printed on the payslip (e.g. Salary advance recovery). Several deductions for one employee can be itemised with Adjust after the run is generated. Editable.">
           Deduction Reason ✎
         </span>
       ),

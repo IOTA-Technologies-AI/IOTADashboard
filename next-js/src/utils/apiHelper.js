@@ -733,15 +733,21 @@ export async function sendPayrollPayslips(id, payslips) {
  * @since 2026-04-21
  * @modified 2026-04-21
  * @param {string|number} id - The payroll line item ID.
- * @param {{ manualDeductionAmount: number, manualDeductionRemarks: string }} params - Deduction update payload.
+ * @description `manualDeductionItems` is the breakdown ({ label, amount } per deduction) that
+ * the payslip prints row by row; when given, the API derives the amount and remarks from it.
+ * @param {{ manualDeductionAmount: number, manualDeductionRemarks?: string, manualDeductionItems?: Array<{ label: string, amount: number }> }} params - Deduction update payload.
  * @returns {Promise<object>} The updated line item.
  */
 export async function updatePayrollLineItemDeductions(
   id,
-  { manualDeductionAmount, manualDeductionRemarks }
+  { manualDeductionAmount, manualDeductionRemarks, manualDeductionItems }
 ) {
   const url = `${API_BASE_URL}/payroll/line-items/${id}`;
-  const response = await axios.patch(url, { manualDeductionAmount, manualDeductionRemarks });
+  const response = await axios.patch(url, {
+    manualDeductionAmount,
+    manualDeductionRemarks,
+    manualDeductionItems,
+  });
   return response.data;
 }
 

@@ -5,9 +5,10 @@ import { toWordsEn } from 'src/utils/invoice-i18n';
 // ---------------------------------------------------------------------------
 // Fonts
 // ---------------------------------------------------------------------------
-// The payslip design is set in Plus Jakarta Sans with JetBrains Mono for every
-// figure and label — tabular numerals are what keep the amount columns
-// optically aligned down the page. Static instances are used rather than the
+// The payslip design is set in Plus Jakarta Sans, with JetBrains Mono for the
+// small labels and the amount columns — tabular numerals are what keep the
+// amounts optically aligned down the page. The employee details panel is one
+// face throughout: every value in it is Plus Jakarta Sans. Static instances are used rather than the
 // variable faces: react-pdf's subsetter renders a variable font at its default
 // weight only, which would flatten the whole type hierarchy.
 
@@ -135,7 +136,6 @@ const styles = StyleSheet.create({
     marginBottom: px(4),
   },
   metaValue: { fontSize: px(13), fontWeight: 700 },
-  metaValueMono: { fontFamily: 'JetBrainsMono', fontWeight: 500, fontSize: px(12.5) },
 
   // ── Amount tables ────────────────────────────────────────────────────────
   table: { marginBottom: BLOCK_GAP },
@@ -174,7 +174,9 @@ const styles = StyleSheet.create({
     borderBottomStyle: 'solid',
   },
   totalRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: px(13) },
-  rowLabel: { fontSize: px(13), fontWeight: 500, flexGrow: 1 },
+  // `flex: 1` lets a long deduction reason wrap instead of pushing the amount
+  // column off the page.
+  rowLabel: { fontSize: px(13), fontWeight: 500, flex: 1 },
   totalLabel: { fontSize: px(13), fontWeight: 800, flexGrow: 1 },
   amount: {
     fontFamily: 'JetBrainsMono',
@@ -185,7 +187,6 @@ const styles = StyleSheet.create({
     marginLeft: COL_GAP,
   },
   amountTotal: { fontWeight: 700 },
-  amountYtd: { color: MUTED },
   emptyNote: { fontSize: px(12), color: MUTED, paddingVertical: px(14) },
 
   // ── Net pay ──────────────────────────────────────────────────────────────
@@ -333,45 +334,58 @@ const trimRate = (rate) => String(Number(rate.toFixed(2)));
 // Building blocks
 // ---------------------------------------------------------------------------
 
-function MetaCell({ label, value, mono = true, last = false }) {
+function MetaCell({ label, value, last = false }) {
   return (
     <View style={[styles.metaCell, last && styles.metaCellLast]}>
       <Text style={styles.metaLabel}>{label}</Text>
-      <Text style={mono ? [styles.metaValue, styles.metaValueMono] : styles.metaValue}>
-        {value || '—'}
-      </Text>
+      <Text style={styles.metaValue}>{value || '—'}</Text>
     </View>
   );
 }
 
-function AmountRow({ label, amount, ytd, showYtd, total = false }) {
+function AmountRow({ label, amount, total = false }) {
   return (
     <View style={total ? styles.totalRow : styles.row}>
       <Text style={total ? styles.totalLabel : styles.rowLabel}>{label}</Text>
       <Text style={total ? [styles.amount, styles.amountTotal] : styles.amount}>{fmt(amount)}</Text>
-      {showYtd && (
-        <Text
-          style={
-            total
-              ? [styles.amount, styles.amountTotal, styles.amountYtd]
-              : [styles.amount, styles.amountYtd]
-          }
-        >
-          {fmt(ytd)}
-        </Text>
-      )}
     </View>
   );
 }
 
-function TableHead({ title, periodLabel, showYtd }) {
+function TableHead({ title, periodLabel }) {
   return (
     <View style={styles.tableHead}>
       <Text style={styles.tableTitle}>{title}</Text>
       <Text style={styles.tableHeadCol}>{periodLabel}</Text>
-      {showYtd && <Text style={styles.tableHeadCol}>YTD</Text>}
     </View>
   );
+}
+
+/**
+ * The manual deductions of a line item, one entry per reason.
+ *
+ * `manualDeductionItems` is the breakdown HR entered. Line items saved before
+ * the breakdown existed carry only a lump sum and (sometimes) a note, which
+ * print as a single row. Should the stored items not add up to the stored
+ * amount, the difference is shown rather than hidden, so the rows always sum
+ * to the total printed beneath them.
+ */
+export function manualDeductionRows(lineItem) {
+  const manual = num(lineItem?.manualDeductionAmount);
+  const items = (Array.isArray(lineItem?.manualDeductionItems) ? lineItem.manualDeductionItems : [])
+    .map((item) => ({ label: String(item?.label || '').trim(), amount: num(item?.amount) }))
+    .filter((item) => item.amount > 0);
+
+  if (!items.length) {
+    return manual > 0
+      ? [{ label: lineItem.manualDeductionRemarks || 'Other Deductions', amount: manual }]
+      : [];
+  }
+
+  const rows = items.map((item) => ({ ...item, label: item.label || 'Other Deductions' }));
+  const gap = Math.round((manual - items.reduce((sum, item) => sum + item.amount, 0)) * 100) / 100;
+  if (gap > 0) rows.push({ label: 'Other Deductions', amount: gap });
+  return rows;
 }
 
 // ---------------------------------------------------------------------------
@@ -384,9 +398,6 @@ function TableHead({ title, periodLabel, showYtd }) {
  * Props:
  *   lineItem    — a PayrollLineItem object
  *   payroll     — the parent PayrollRun object
- *   ytd         — optional PayslipYtdEntry for this employee. When absent the
- *                 YTD column is dropped entirely rather than printed empty:
- *                 a blank column reads as "nothing earned this year".
  *   companyName — override company name
  *   companyAddress — override the registered address line
  *   logoSrc     — override the header mark
@@ -394,7 +405,6 @@ function TableHead({ title, periodLabel, showYtd }) {
 export function PayslipDocument({
   lineItem,
   payroll,
-  ytd = null,
   companyName = 'IOTA Technologies',
   companyAddress = '2885, Office #9, Jarir Street, AlMalaz, Riyadh 12836',
   logoSrc = '/logo/iota-mark.png',
@@ -403,20 +413,21 @@ export function PayslipDocument({
   const period = `${month} ${payroll.periodYear}`;
   const periodShort = `${month.slice(0, 3).toUpperCase()} ${payroll.periodYear}`;
   const currency = lineItem.currencyCode || 'SAR';
-  const showYtd = Boolean(ytd);
 
   // ── Earnings ──
   const basic = num(lineItem.basicSalary);
   const housing = num(lineItem.housingAllowance);
   const transport = num(lineItem.transportAllowance);
   const other = num(lineItem.otherAllowances);
-  const gross = lineItem.grossSalary != null ? num(lineItem.grossSalary) : basic + housing + transport + other;
+  const gross =
+    lineItem.grossSalary != null ? num(lineItem.grossSalary) : basic + housing + transport + other;
 
   // ── Deductions ──
   const gosi = num(lineItem.gosiDeduction);
   const lopDays = num(lineItem.lopDays);
   const lopAmount = num(lineItem.lopAmount);
   const manual = num(lineItem.manualDeductionAmount);
+  const manualRows = manualDeductionRows(lineItem);
   const totalDeductions =
     lineItem.deductions != null ? num(lineItem.deductions) : gosi + lopAmount + manual;
 
@@ -476,10 +487,10 @@ export function PayslipDocument({
           {/* ── Employee meta ── */}
           <View style={styles.meta}>
             <View style={[styles.metaRow, styles.metaRowSpaced]}>
-              <MetaCell label="EMPLOYEE" value={lineItem.employeeName} mono={false} />
+              <MetaCell label="EMPLOYEE" value={lineItem.employeeName} />
               <MetaCell label="EMPLOYEE ID" value={lineItem.employeeId} />
-              <MetaCell label="DESIGNATION" value={lineItem.designation} mono={false} />
-              <MetaCell label="DEPARTMENT" value={lineItem.department} mono={false} last />
+              <MetaCell label="DESIGNATION" value={lineItem.designation} />
+              <MetaCell label="DEPARTMENT" value={lineItem.department} last />
             </View>
             <View style={styles.metaRow}>
               <MetaCell
@@ -494,78 +505,30 @@ export function PayslipDocument({
 
           {/* ── Earnings ── */}
           <View style={styles.table}>
-            <TableHead title="EARNINGS" periodLabel={periodShort} showYtd={showYtd} />
-            <AmountRow
-              label="Basic Salary"
-              amount={basic}
-              ytd={ytd?.basicSalary}
-              showYtd={showYtd}
-            />
-            <AmountRow
-              label="Housing Allowance"
-              amount={housing}
-              ytd={ytd?.housingAllowance}
-              showYtd={showYtd}
-            />
-            <AmountRow
-              label="Transportation Allowance"
-              amount={transport}
-              ytd={ytd?.transportAllowance}
-              showYtd={showYtd}
-            />
-            {other > 0 && (
-              <AmountRow
-                label="Other Allowances"
-                amount={other}
-                ytd={ytd?.otherAllowances}
-                showYtd={showYtd}
-              />
-            )}
-            <AmountRow
-              label="Gross Earnings"
-              amount={gross}
-              ytd={ytd?.grossSalary}
-              showYtd={showYtd}
-              total
-            />
+            <TableHead title="EARNINGS" periodLabel={periodShort} />
+            <AmountRow label="Basic Salary" amount={basic} />
+            <AmountRow label="Housing Allowance" amount={housing} />
+            <AmountRow label="Transportation Allowance" amount={transport} />
+            {other > 0 && <AmountRow label="Other Allowances" amount={other} />}
+            <AmountRow label="Gross Earnings" amount={gross} total />
           </View>
 
           {/* ── Deductions ── */}
           <View style={styles.table}>
-            <TableHead title="DEDUCTIONS" periodLabel={periodShort} showYtd={showYtd} />
+            <TableHead title="DEDUCTIONS" periodLabel={periodShort} />
             {hasDeductions ? (
               <>
-                {gosi > 0 && (
-                  <AmountRow
-                    label={gosiLabel}
-                    amount={gosi}
-                    ytd={ytd?.gosiDeduction}
-                    showYtd={showYtd}
-                  />
-                )}
+                {gosi > 0 && <AmountRow label={gosiLabel} amount={gosi} />}
                 {lopAmount > 0 && (
                   <AmountRow
                     label={`Loss of Pay${lopDays > 0 ? ` — ${lopDays} day${lopDays === 1 ? '' : 's'}` : ''}`}
                     amount={lopAmount}
-                    ytd={ytd?.lopAmount}
-                    showYtd={showYtd}
                   />
                 )}
-                {manual > 0 && (
-                  <AmountRow
-                    label={lineItem.manualDeductionRemarks || 'Other Deductions'}
-                    amount={manual}
-                    ytd={ytd?.manualDeductionAmount}
-                    showYtd={showYtd}
-                  />
-                )}
-                <AmountRow
-                  label="Total Deductions"
-                  amount={totalDeductions}
-                  ytd={ytd?.deductions}
-                  showYtd={showYtd}
-                  total
-                />
+                {manualRows.map((row, index) => (
+                  <AmountRow key={index} label={row.label} amount={row.amount} />
+                ))}
+                <AmountRow label="Total Deductions" amount={totalDeductions} total />
               </>
             ) : (
               <Text style={styles.emptyNote}>No deductions this period</Text>
