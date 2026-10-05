@@ -17,6 +17,7 @@ import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
 import { today, fIsAfter } from 'src/utils/format-time';
+import { hasArabicText, hasEnglishText } from 'src/utils/invoice-lines';
 import { createInvoice, updateInvoice, getCostCenters, getInvoiceTypes } from 'src/utils/apiHelper';
 
 import { useCanEditLockedRecord } from 'src/actions/admin-edit-mode';
@@ -54,20 +55,47 @@ export const InvoiceCreateSchema = z
     // Optional: blank means "same as the invoice date".
     supplyDate: schemaUtils.date().nullable().optional(),
     poNumber: z.string().optional(),
-    items: z.array(
-      z.object({
-        title: z.string().min(1, { error: 'Title is required!' }),
-        // Arabic title / description — printed under the English text on the
-        // bilingual invoice. Optional; the line renders English-only without it.
-        titleAr: z.string().optional(),
-        service: z.string().optional(),
-        quantity: z.number().int().positive().min(1, { error: 'Quantity must be more than 0' }),
-        price: z.number(),
-        total: z.number(),
-        description: z.string(),
-        descriptionAr: z.string().optional(),
-      })
-    ),
+    // Every line is printed in English and Arabic, so both titles are
+    // mandatory and a description is given in both languages or not at all.
+    // The API applies the same rule (src/utils/invoice-lines.js mirrors it).
+    items: z
+      .array(
+        z
+          .object({
+            title: z
+              .string()
+              .trim()
+              .min(1, { error: 'English title is required!' })
+              .refine(hasEnglishText, { error: 'Write the English title in English' }),
+            titleAr: z
+              .string()
+              .trim()
+              .min(1, { error: 'Arabic title is required!' })
+              .refine(hasArabicText, { error: 'Write the Arabic title in Arabic' }),
+            service: z.string().optional(),
+            quantity: z.number().int().positive().min(1, { error: 'Quantity must be more than 0' }),
+            price: z.number(),
+            total: z.number(),
+            description: z.string(),
+            descriptionAr: z.string().optional(),
+          })
+          .superRefine((item, ctx) => {
+            const description = (item.description || '').trim();
+            const descriptionAr = (item.descriptionAr || '').trim();
+            const issue = (path, message) =>
+              ctx.addIssue({ code: z.ZodIssueCode.custom, message, path: [path] });
+
+            if (description && !descriptionAr)
+              issue('descriptionAr', 'Arabic description is required when an English one is given');
+            if (descriptionAr && !description)
+              issue('description', 'English description is required when an Arabic one is given');
+            if (description && !hasEnglishText(description))
+              issue('description', 'Write the English description in English');
+            if (descriptionAr && !hasArabicText(descriptionAr))
+              issue('descriptionAr', 'Write the Arabic description in Arabic');
+          })
+      )
+      .min(1, { error: 'Add at least one line item' }),
     taxes: z.number(),
     status: z.string(),
     discount: z.number(),

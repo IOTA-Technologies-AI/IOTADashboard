@@ -243,6 +243,23 @@ is running.
   to the API; they previously called it anonymously.
 
 ### Changed
+- **Invoice line items are strictly bilingual.** Every line must carry an
+  English and an Arabic title, and a description must be given in both
+  languages or not at all; text typed in the wrong box (English in the Arabic
+  field or the reverse) is refused. The invoice form enforces it on save, and
+  the API enforces it again when an invoice is submitted for approval and when
+  it is approved, so no path reaches ZATCA or the customer with a line in one
+  language. The approval dialog now lists each line in both languages, names
+  any incomplete line, and disables Approve until the creator completes it
+  (Reject still works). The invoice details page shows the Arabic text under
+  the English. The monthly employee-billing run skips a contract whose
+  employee has no Arabic name on the HR record and says who. The invoice
+  email to the customer lists the lines in both languages (it used to print
+  the raw stored line data as one title). Invoices approved before this
+  change are untouched.
+  *(Backend: `shared/invoice-lines.ts`, `supabase/supabase.ts`,
+  `employeebilling/`, `emails/invoiceEmailTemplate.tsx` — deploy with the
+  dashboard.)*
 - Invoice list rows show the employee-billing collection stage next to the
   status for invoices raised from a billing contract. No other invoice
   behaviour changed; the backend skips the automatic supplier proforma for

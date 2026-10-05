@@ -78,10 +78,25 @@ export function InvoiceDetails({ invoice }) {
               <TableCell>
                 <Box sx={{ maxWidth: 560 }}>
                   <Typography variant="subtitle2">{row.title}</Typography>
+                  {row.titleAr ? (
+                    <Typography variant="subtitle2" dir="rtl" sx={{ textAlign: 'right' }}>
+                      {row.titleAr}
+                    </Typography>
+                  ) : null}
 
                   <Typography variant="body2" sx={{ color: 'text.secondary' }} noWrap>
                     {row.description}
                   </Typography>
+                  {row.descriptionAr ? (
+                    <Typography
+                      variant="body2"
+                      dir="rtl"
+                      sx={{ color: 'text.secondary', textAlign: 'right' }}
+                      noWrap
+                    >
+                      {row.descriptionAr}
+                    </Typography>
+                  ) : null}
                 </Box>
               </TableCell>
 

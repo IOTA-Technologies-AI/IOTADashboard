@@ -23,7 +23,8 @@ import { InvoiceTotalSummary } from './invoice-total-summary';
 export const defaultItem = {
   title: '',
   // Arabic title / description — printed under the English text on the
-  // bilingual invoice. Optional: the line renders English-only when blank.
+  // bilingual invoice. The Arabic title is mandatory; the Arabic description
+  // is mandatory whenever an English description is given.
   titleAr: '',
   description: '',
   descriptionAr: '',
@@ -189,12 +190,18 @@ export function InvoiceItem({ onRemoveItem, fieldNames, currency }) {
   return (
     <Stack spacing={3}>
       <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ width: 1 }}>
-        <Field.Text name={fieldNames.title} label="Title" InputLabelProps={{ shrink: true }} />
+        <Field.Text
+          required
+          name={fieldNames.title}
+          label="Title (English)"
+          InputLabelProps={{ shrink: true }}
+        />
 
         <Field.Text
+          required
           name={fieldNames.titleAr}
           label="Title (Arabic)"
-          placeholder="اختياري"
+          placeholder="عنوان البند بالعربية"
           InputLabelProps={{ shrink: true }}
           inputProps={{ dir: 'rtl' }}
         />
@@ -248,7 +255,7 @@ export function InvoiceItem({ onRemoveItem, fieldNames, currency }) {
           multiline
           rows={3}
           name={fieldNames.description}
-          label="Description"
+          label="Description (English)"
           InputLabelProps={{ shrink: true }}
         />
 
@@ -257,7 +264,7 @@ export function InvoiceItem({ onRemoveItem, fieldNames, currency }) {
           rows={3}
           name={fieldNames.descriptionAr}
           label="Description (Arabic)"
-          placeholder="اختياري"
+          placeholder="وصف البند بالعربية — مطلوب عند إدخال وصف بالإنجليزية"
           InputLabelProps={{ shrink: true }}
           inputProps={{ dir: 'rtl' }}
         />

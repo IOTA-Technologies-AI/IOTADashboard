@@ -22,6 +22,7 @@ import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
 import { fIsAfter } from 'src/utils/format-time';
+import { parseInvoiceLines } from 'src/utils/invoice-lines';
 import { getExchangeRate } from 'src/utils/currency-converter';
 import { fetchInvoices, deleteInvoice } from 'src/utils/apiHelper';
 
@@ -88,8 +89,9 @@ const mapBackendInvoiceToFrontend = (invoice) => ({
   // ✅ Convert status to lowercase
   status: (invoice.status || 'draft').toLowerCase(),
 
-  // Optional fields
-  items: invoice.items || [],
+  // Line items live in the description column; the approval dialog reviews
+  // them in both languages.
+  items: parseInvoiceLines(invoice.description),
   subtotal: invoice.baseAmount || 0,
   taxes: invoice.vatAmount ? `${invoice.vatRate}%` : '0%',
   vatAmount: invoice.vatAmount || 0,

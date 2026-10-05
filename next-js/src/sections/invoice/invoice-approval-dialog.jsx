@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
+import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
@@ -16,6 +17,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { fDate } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
+import { bilingualLineFaults } from 'src/utils/invoice-lines';
 import { totpStatus, approveInvoice } from 'src/utils/apiHelper';
 
 import { Label } from 'src/components/label';
@@ -55,6 +57,10 @@ export function InvoiceApprovalDialog({ open, onClose, invoice, onApprovalComple
   // Also reviewable: an invoice issued before it was approved, left in 'sent'.
   const isPending =
     invoice.status === 'pending' || (invoice.status === 'sent' && !invoice.approvedBy);
+  // Every line must be in English and Arabic before approval; the API refuses
+  // otherwise. Rejecting sends it back to the creator to complete.
+  const lineFaults = bilingualLineFaults(invoice.items);
+  const linesAreBilingual = lineFaults.length === 0;
   const approverName = user?.displayName || user?.name || user?.email || 'Unknown';
   const approverEmail = user?.email || '';
 
@@ -108,7 +114,9 @@ export function InvoiceApprovalDialog({ open, onClose, invoice, onApprovalComple
       onClose();
     } catch (error) {
       console.error('[InvoiceApprovalDialog] Error:', error);
-      toast.error(`Failed to ${approved ? 'approve' : 'reject'} invoice`);
+      toast.error(
+        error?.response?.data?.message || `Failed to ${approved ? 'approve' : 'reject'} invoice`
+      );
     } finally {
       setLoading(false);
       setRejecting(false);
@@ -195,11 +203,27 @@ export function InvoiceApprovalDialog({ open, onClose, invoice, onApprovalComple
                       alignItems: 'flex-start',
                     }}
                   >
-                    <Box>
+                    <Box sx={{ flexGrow: 1 }}>
                       <Typography variant="body2">{item.title || item.name}</Typography>
+                      {item.titleAr && (
+                        <Typography variant="body2" dir="rtl" sx={{ textAlign: 'right' }}>
+                          {item.titleAr}
+                        </Typography>
+                      )}
                       {item.description && (
-                        <Typography variant="caption" color="text.secondary">
+                        <Typography variant="caption" color="text.secondary" component="div">
                           {item.description}
+                        </Typography>
+                      )}
+                      {item.descriptionAr && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          component="div"
+                          dir="rtl"
+                          sx={{ textAlign: 'right' }}
+                        >
+                          {item.descriptionAr}
                         </Typography>
                       )}
                     </Box>
@@ -212,6 +236,19 @@ export function InvoiceApprovalDialog({ open, onClose, invoice, onApprovalComple
                 ))}
               </Stack>
             </>
+          )}
+
+          {isPending && !linesAreBilingual && (
+            <Alert severity="error">
+              This invoice cannot be approved until every line is in English and Arabic. Reject it
+              so the creator can complete it.
+              {lineFaults.map((fault) => (
+                <Box key={fault.line} component="div" sx={{ mt: 0.5 }}>
+                  {fault.line ? `Line ${fault.line}: ` : ''}
+                  {fault.problems.join(', ')}
+                </Box>
+              ))}
+            </Alert>
           )}
 
           {/* Existing rejection reason if already rejected */}
@@ -265,7 +302,7 @@ export function InvoiceApprovalDialog({ open, onClose, invoice, onApprovalComple
               color="success"
               startIcon={<Iconify icon="solar:check-circle-bold" />}
               onClick={() => setTotpModalOpen(true)}
-              disabled={loading}
+              disabled={loading || !linesAreBilingual}
             >
               Approve
             </Button>
