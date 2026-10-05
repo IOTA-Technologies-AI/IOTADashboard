@@ -267,6 +267,22 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- An invoice that had been issued with **Issue & Email** could no longer be
+  marked as paid. Issuing overwrote the invoice's `approved` status with `sent`,
+  and Mark as Paid only accepts an approved invoice. Issuing now leaves the
+  status alone, records the issue time, and shows "sent to customer" as the
+  collection stage. Issue & Email is available only once the invoice is
+  approved (it used to email unapproved drafts too, before ZATCA clearance).
+  Invoices already left in `sent` get a way forward from the list: Mark as Paid
+  if they had been approved, otherwise Review & Approve.
+  *(Backend: `supabase/supabase.ts`, deploy with the dashboard.)*
+- Shipping was subtracted from the invoice total instead of added. New and
+  edited invoices now total subtotal + VAT − discount + shipping. Invoices
+  already saved keep their stored total until they are edited.
+- The invoice PDF archived to OneDrive on approval had no line items, customer
+  address, PO number or supply date, because it was built from the list row's
+  summary. It is now built from the stored invoice, the same way the details
+  page and Issue & Email build it.
 - The BDM report answered `HTTP 500 internal error`. The backend read deals
   from a `deals` table that does not exist — deals are rows of the `commissions`
   table, which the Commission module and the BDM pages already use. The report

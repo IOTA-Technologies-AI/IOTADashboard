@@ -16,12 +16,17 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { fDate } from 'src/utils/format-time';
 import { fCurrency } from 'src/utils/format-number';
-import { approveInvoice, fetchOfficeConfigs, totpStatus } from 'src/utils/apiHelper';
+import { totpStatus, approveInvoice } from 'src/utils/apiHelper';
 
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { TOTPModal } from 'src/components/totp-modal/TOTPModal';
+
+import {
+  blobToBase64,
+  renderInvoicePdfBlob,
+} from 'src/sections/employee-billing/utils/build-invoice-for-pdf';
 
 import { useAuthContext } from 'src/auth/hooks';
 
@@ -34,15 +39,8 @@ export function InvoiceApprovalDialog({ open, onClose, invoice, onApprovalComple
   const [rejecting, setRejecting] = useState(false);
   const [rejectionReason, setRejectionReason] = useState('');
   const [reasonError, setReasonError] = useState('');
-  const [liveOffices, setLiveOffices] = useState(null);
   const [totpEnabled, setTotpEnabled] = useState(false);
   const [totpModalOpen, setTotpModalOpen] = useState(false);
-
-  useEffect(() => {
-    fetchOfficeConfigs().then((offices) => {
-      if (offices?.length) setLiveOffices(offices);
-    });
-  }, []);
 
   useEffect(() => {
     if (open && userIdentifier) {
@@ -54,7 +52,9 @@ export function InvoiceApprovalDialog({ open, onClose, invoice, onApprovalComple
 
   if (!invoice) return null;
 
-  const isPending = invoice.status === 'pending';
+  // Also reviewable: an invoice issued before it was approved, left in 'sent'.
+  const isPending =
+    invoice.status === 'pending' || (invoice.status === 'sent' && !invoice.approvedBy);
   const approverName = user?.displayName || user?.name || user?.email || 'Unknown';
   const approverEmail = user?.email || '';
 
@@ -82,24 +82,10 @@ export function InvoiceApprovalDialog({ open, onClose, invoice, onApprovalComple
       let pdfBase64 = '';
       if (approved) {
         try {
-          const [{ pdf: renderPdf }, { InvoicePdfDocument }] = await Promise.all([
-            import('@react-pdf/renderer'),
-            import('./invoice-pdf'),
-          ]);
-          const blob = await renderPdf(
-            <InvoicePdfDocument
-              invoice={invoice}
-              currentStatus="approved"
-              offices={liveOffices || undefined}
-            />
-          ).toBlob();
-          const arrayBuffer = await blob.arrayBuffer();
-          const bytes = new Uint8Array(arrayBuffer);
-          let binary = '';
-          for (let i = 0; i < bytes.byteLength; i++) {
-            binary += String.fromCharCode(bytes[i]);
-          }
-          pdfBase64 = btoa(binary);
+          // The list row carries only summary fields. Load the stored invoice
+          // so the archived PDF has its line items, customer and PO details.
+          const { blob } = await renderInvoicePdfBlob(invoice.invoiceId || invoice.id);
+          pdfBase64 = await blobToBase64(blob);
         } catch (pdfErr) {
           console.warn('[InvoiceApprovalDialog] PDF generation failed (non-blocking):', pdfErr);
         }

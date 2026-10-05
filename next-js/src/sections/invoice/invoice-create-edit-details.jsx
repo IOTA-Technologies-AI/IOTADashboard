@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
 import { sumBy } from 'es-toolkit';
+import { useState, useEffect } from 'react';
 import { useFieldArray, useFormContext } from 'react-hook-form';
 
 import Box from '@mui/material/Box';
@@ -10,8 +10,8 @@ import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
 import { inputBaseClasses } from '@mui/material/InputBase';
 
-import { calculateVAT } from 'src/utils/vat-calculator';
 import { getVatConfigs } from 'src/utils/apiHelper';
+import { calculateVAT } from 'src/utils/vat-calculator';
 
 import { Field } from 'src/components/hook-form';
 import { Iconify } from 'src/components/iconify';
@@ -74,8 +74,8 @@ export function InvoiceCreateEditDetails() {
   // Look up VAT using DB-loaded configs (falls back to hardcoded rates if not loaded yet)
   const vatDetails = calculateVAT(subtotal || 0, officeCountryCode, vatConfigs);
 
-  // Calculate total after discount and shipping
-  const totalAmount = vatDetails.totalWithVAT - discount - shipping;
+  // Discount comes off the total; shipping is a charge and is added to it
+  const totalAmount = vatDetails.totalWithVAT - discount + shipping;
 
   // Extract primitive values BEFORE useEffect
   const baseAmountValue = vatDetails?.baseAmount || 0;

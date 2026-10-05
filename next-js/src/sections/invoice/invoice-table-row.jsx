@@ -47,6 +47,11 @@ export function InvoiceTableRow({
   const paidDialog = useBoolean();
   const [marking, setMarking] = useState(false);
 
+  // 'sent' is the status Issue & Email used to write over the real one. Such a
+  // row still needs a way forward: mark-paid if it had been approved, otherwise
+  // the approval it skipped.
+  const isLegacySent = row.status === 'sent';
+
   const renderMenuActions = () => (
     <CustomPopover
       open={menuActions.open}
@@ -62,7 +67,7 @@ export function InvoiceTableRow({
           </MenuItem>
         </li>
 
-        {canApprove && row.status === 'pending' && (
+        {canApprove && (row.status === 'pending' || (isLegacySent && !row.approvedBy)) && (
           <li>
             <MenuItem
               onClick={() => {
@@ -77,7 +82,7 @@ export function InvoiceTableRow({
           </li>
         )}
 
-        {canMarkPaid && row.status === 'approved' && (
+        {canMarkPaid && (row.status === 'approved' || (isLegacySent && !!row.approvedBy)) && (
           <li>
             <MenuItem
               onClick={() => {

@@ -56,6 +56,9 @@ export function InvoiceToolbar({
     (isPending && !!invoice?.createdByEmail && invoice?.createdByEmail === user?.email);
 
   const isPaid = currentStatus === 'paid';
+  // The API only issues an approved invoice ('sent' is the status older issues
+  // left behind; a paid invoice can be re-sent).
+  const canIssue = ['approved', 'sent', 'paid'].includes(editStatus);
   const publicLink = invoice?.viewToken ? `${DOCS_BASE_URL}/view/${invoice.viewToken}` : null;
 
   const handleCopyPublicLink = () => {
@@ -98,7 +101,7 @@ export function InvoiceToolbar({
       onRefresh?.();
     } catch (err) {
       console.error('[InvoiceToolbar] Issue failed:', err);
-      toast.error('Failed to issue invoice. Please try again.');
+      toast.error(err?.response?.data?.message || 'Failed to issue invoice. Please try again.');
     } finally {
       setIssuing(false);
     }
@@ -187,9 +190,17 @@ export function InvoiceToolbar({
             </span>
           </Tooltip>
 
-          <Tooltip title={issuing ? 'Issuing…' : 'Issue & Email to Customer'}>
+          <Tooltip
+            title={
+              issuing
+                ? 'Issuing…'
+                : canIssue
+                  ? 'Issue & Email to Customer'
+                  : 'Issue & Email is available once the invoice is approved'
+            }
+          >
             <span>
-              <IconButton onClick={handleIssue} disabled={issuing}>
+              <IconButton onClick={handleIssue} disabled={issuing || !canIssue}>
                 {issuing ? (
                   <CircularProgress size={20} color="inherit" />
                 ) : (
