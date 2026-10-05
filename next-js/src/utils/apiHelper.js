@@ -2837,6 +2837,25 @@ export async function issueInvoice(invoiceId, pdfBase64) {
   }
 }
 
+/**
+ * @summary Asks the API for AI suggestions for the missing language of invoice lines.
+ * @description Every invoice line is printed in English and Arabic. Each line's empty
+ * field is suggested from its counterpart; with `replaceArabic` the Arabic is suggested
+ * afresh from the English even when some is already there. Nothing is saved — the
+ * suggestions are for the form to show and the user to edit.
+ * @param {Array<{ title?: string, titleAr?: string, description?: string, descriptionAr?: string }>} lines
+ * @param {{ replaceArabic?: boolean }} [options]
+ * @returns {Promise<{ lines: Array<{ title: string, titleAr: string, description: string, descriptionAr: string }> }>}
+ */
+export async function suggestInvoiceLineTranslations(lines, { replaceArabic = false } = {}) {
+  const response = await axios.post(
+    `${API_BASE_URL}invoice-lines/translate`,
+    { lines, replaceArabic },
+    { headers: { 'Content-Type': 'application/json' } }
+  );
+  return response.data;
+}
+
 
 // ============================================================================
 // PROFORMA INVOICE API FUNCTIONS

@@ -25,6 +25,19 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **AI suggestions for the second language of an invoice line.** Now that every
+  line must be in English and Arabic, the invoice form proposes the missing
+  language itself: leaving a field fills its empty counterpart (English →
+  Arabic, or Arabic → English), "Suggest Arabic" on a line rewrites that line's
+  Arabic from the current English, and "Fill missing translations" completes
+  every line at once. A suggestion lands in the normal form field, marked
+  "AI suggestion — review and edit before saving" until someone edits it, and
+  nothing is stored until the invoice is saved. Text a person typed is never
+  overwritten by the automatic fill. Product names, codes, numbers and dates
+  are kept as written. Uses the Azure OpenAI deployment the profile service
+  already uses.
+  *(Backend: `supabase/invoice-translate.ts`, `POST /invoice-lines/translate` —
+  deploy with the dashboard.)*
 - **Careers intake from iotatechnologies.ai.** Applications submitted on the
   website now land in the dashboard. Two doors, both feeding the same pipeline:
   the Webflow form on each job page, delivered through a Webflow

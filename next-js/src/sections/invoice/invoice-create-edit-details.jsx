@@ -1,18 +1,22 @@
 import { sumBy } from 'es-toolkit';
-import { useState, useEffect } from 'react';
 import { useFieldArray, useFormContext } from 'react-hook-form';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 import Typography from '@mui/material/Typography';
 import InputAdornment from '@mui/material/InputAdornment';
 import { inputBaseClasses } from '@mui/material/InputBase';
+import CircularProgress from '@mui/material/CircularProgress';
 
-import { getVatConfigs } from 'src/utils/apiHelper';
 import { calculateVAT } from 'src/utils/vat-calculator';
+import { hasArabicText, hasEnglishText } from 'src/utils/invoice-lines';
+import { getVatConfigs, suggestInvoiceLineTranslations } from 'src/utils/apiHelper';
 
+import { toast } from 'src/components/snackbar';
 import { Field } from 'src/components/hook-form';
 import { Iconify } from 'src/components/iconify';
 
@@ -34,6 +38,26 @@ export const defaultItem = {
   total: 0,
 };
 
+// The four text fields of a line, as English / Arabic pairs.
+const LINE_TEXT_PAIRS = [
+  ['title', 'titleAr'],
+  ['description', 'descriptionAr'],
+];
+const LINE_TEXT_FIELDS = LINE_TEXT_PAIRS.flat();
+
+const trimmed = (value) => String(value || '').trim();
+
+// True when one language of a pair is written and the other is still empty —
+// the case an AI suggestion can fill without touching anything typed.
+const hasMissingTranslation = (line) =>
+  LINE_TEXT_PAIRS.some(([en, ar]) => {
+    const english = trimmed(line?.[en]);
+    const arabic = trimmed(line?.[ar]);
+    return (hasEnglishText(english) && !arabic) || (hasArabicText(arabic) && !english);
+  });
+
+const SUGGESTION_HINT = 'AI suggestion — review and edit before saving';
+
 const getFieldNames = (index) => ({
   title: `items[${index}].title`,
   titleAr: `items[${index}].titleAr`,
@@ -46,9 +70,96 @@ const getFieldNames = (index) => ({
 });
 
 export function InvoiceCreateEditDetails() {
-  const { control, setValue, watch } = useFormContext();
+  const { control, setValue, getValues, watch } = useFormContext();
 
   const { fields, append, remove } = useFieldArray({ control, name: 'items' });
+
+  // ── AI suggestions for the second language ────────────────────────────────
+  // Every line must be in English and Arabic. Staff type one language and the
+  // other is proposed straight into the form field, where it stays editable;
+  // nothing is saved until the invoice is. `suggested` remembers what was
+  // proposed (per line id, per field) so the field can say it is unreviewed.
+  const [suggested, setSuggested] = useState({});
+  const [busyLines, setBusyLines] = useState({});
+  const busyRef = useRef({});
+  // Line ids by position, readable from the async callback below.
+  const fieldIdsRef = useRef([]);
+  fieldIdsRef.current = fields.map((field) => field.id);
+
+  const suggestLines = useCallback(
+    async (indexes, { replaceArabic = false, silent = false } = {}) => {
+      const sent = getValues('items') || [];
+      const targets = indexes.filter(
+        (index) =>
+          sent[index] &&
+          !busyRef.current[index] &&
+          (replaceArabic || hasMissingTranslation(sent[index]))
+      );
+      if (!targets.length) {
+        if (!silent) toast.info('Every line already has both languages.');
+        return;
+      }
+
+      const markBusy = (value) => {
+        targets.forEach((index) => {
+          busyRef.current[index] = value;
+        });
+        setBusyLines({ ...busyRef.current });
+      };
+
+      markBusy(true);
+      try {
+        const res = await suggestInvoiceLineTranslations(
+          targets.map((index) =>
+            Object.fromEntries(
+              LINE_TEXT_FIELDS.map((field) => [field, trimmed(sent[index][field])])
+            )
+          ),
+          { replaceArabic }
+        );
+
+        const latest = getValues('items') || [];
+        const proposals = {};
+        targets.forEach((index, position) => {
+          const proposal = res?.lines?.[position];
+          const lineId = fieldIdsRef.current[index];
+          if (!proposal || !lineId) return;
+          LINE_TEXT_FIELDS.forEach((field) => {
+            const text = trimmed(proposal[field]);
+            const before = trimmed(sent[index][field]);
+            const now = trimmed(latest[index]?.[field]);
+            // Nothing new, or the person typed here while we were waiting.
+            if (!text || text === now || now !== before) return;
+            setValue(`items[${index}].${field}`, text, { shouldDirty: true, shouldValidate: true });
+            proposals[lineId] = { ...proposals[lineId], [field]: text };
+          });
+        });
+        if (Object.keys(proposals).length) {
+          setSuggested((prev) => {
+            const next = { ...prev };
+            Object.entries(proposals).forEach(([lineId, byField]) => {
+              next[lineId] = { ...next[lineId], ...byField };
+            });
+            return next;
+          });
+        } else if (!silent) {
+          toast.info('Nothing new to suggest. If the English text is empty, write it first.');
+        }
+      } catch (err) {
+        console.error('[InvoiceCreateEditDetails] Suggestion failed:', err);
+        if (!silent) {
+          toast.error(
+            err?.response?.data?.message || 'Could not get a suggestion. Type the text yourself.'
+          );
+        }
+      } finally {
+        markBusy(false);
+      }
+    },
+    [getValues, setValue]
+  );
+
+  const anyLineBusy = Object.values(busyLines).some(Boolean);
 
   // Load VAT configs from DB once
   const [vatConfigs, setVatConfigs] = useState([]);
@@ -112,6 +223,12 @@ export function InvoiceCreateEditDetails() {
             fieldNames={getFieldNames(index)}
             onRemoveItem={() => remove(index)}
             currency={currency}
+            suggested={suggested[item.id]}
+            suggesting={!!busyLines[index]}
+            // Leaving a field proposes the missing language, quietly
+            onAutoSuggest={() => suggestLines([index], { silent: true })}
+            // The button re-proposes the Arabic from the current English
+            onSuggestArabic={() => suggestLines([index], { replaceArabic: true })}
           />
         ))}
       </Stack>
@@ -135,6 +252,27 @@ export function InvoiceCreateEditDetails() {
         >
           Add item
         </Button>
+
+        <Tooltip title="Fills every empty Arabic or English field from its counterpart. Text already written is left alone.">
+          <span>
+            <Button
+              size="small"
+              color="inherit"
+              disabled={anyLineBusy}
+              startIcon={
+                anyLineBusy ? (
+                  <CircularProgress size={16} color="inherit" />
+                ) : (
+                  <Iconify icon="solar:magic-stick-3-bold" />
+                )
+              }
+              onClick={() => suggestLines(fields.map((_, index) => index))}
+              sx={{ flexShrink: 0 }}
+            >
+              Fill missing translations
+            </Button>
+          </span>
+        </Tooltip>
 
         <Box
           sx={{
@@ -182,10 +320,32 @@ export function InvoiceCreateEditDetails() {
 
 // ----------------------------------------------------------------------
 
-export function InvoiceItem({ onRemoveItem, fieldNames, currency }) {
+export function InvoiceItem({
+  onRemoveItem,
+  fieldNames,
+  currency,
+  suggested,
+  suggesting = false,
+  onAutoSuggest,
+  onSuggestArabic,
+}) {
   const { watch } = useFormContext();
   const quantity = watch(fieldNames.quantity);
   const price = watch(fieldNames.price);
+
+  // A field still holding exactly what the AI proposed has not been reviewed
+  // by a person yet; the hint goes away as soon as it is edited.
+  const [title, titleAr, description, descriptionAr] = watch([
+    fieldNames.title,
+    fieldNames.titleAr,
+    fieldNames.description,
+    fieldNames.descriptionAr,
+  ]);
+  const current = { title, titleAr, description, descriptionAr };
+  const hintFor = (field) =>
+    suggested?.[field] && trimmed(current[field]) === suggested[field]
+      ? SUGGESTION_HINT
+      : undefined;
 
   return (
     <Stack spacing={3}>
@@ -194,6 +354,8 @@ export function InvoiceItem({ onRemoveItem, fieldNames, currency }) {
           required
           name={fieldNames.title}
           label="Title (English)"
+          helperText={hintFor('title')}
+          onBlur={onAutoSuggest}
           InputLabelProps={{ shrink: true }}
         />
 
@@ -202,6 +364,8 @@ export function InvoiceItem({ onRemoveItem, fieldNames, currency }) {
           name={fieldNames.titleAr}
           label="Title (Arabic)"
           placeholder="عنوان البند بالعربية"
+          helperText={hintFor('titleAr')}
+          onBlur={onAutoSuggest}
           InputLabelProps={{ shrink: true }}
           inputProps={{ dir: 'rtl' }}
         />
@@ -256,6 +420,8 @@ export function InvoiceItem({ onRemoveItem, fieldNames, currency }) {
           rows={3}
           name={fieldNames.description}
           label="Description (English)"
+          helperText={hintFor('description')}
+          onBlur={onAutoSuggest}
           InputLabelProps={{ shrink: true }}
         />
 
@@ -265,19 +431,42 @@ export function InvoiceItem({ onRemoveItem, fieldNames, currency }) {
           name={fieldNames.descriptionAr}
           label="Description (Arabic)"
           placeholder="وصف البند بالعربية — مطلوب عند إدخال وصف بالإنجليزية"
+          helperText={hintFor('descriptionAr')}
+          onBlur={onAutoSuggest}
           InputLabelProps={{ shrink: true }}
           inputProps={{ dir: 'rtl' }}
         />
 
-        <Button
-          size="small"
-          color="error"
-          startIcon={<Iconify icon="solar:trash-bin-trash-bold" />}
-          onClick={onRemoveItem}
-          sx={{ flexShrink: 0 }}
-        >
-          Remove
-        </Button>
+        <Stack spacing={1} sx={{ flexShrink: 0, alignItems: 'flex-start' }}>
+          <Tooltip title="Writes an Arabic suggestion from the English title and description, replacing the Arabic that is there. You can edit it afterwards.">
+            <span>
+              <Button
+                size="small"
+                color="primary"
+                disabled={suggesting}
+                startIcon={
+                  suggesting ? (
+                    <CircularProgress size={16} color="inherit" />
+                  ) : (
+                    <Iconify icon="solar:magic-stick-3-bold" />
+                  )
+                }
+                onClick={onSuggestArabic}
+              >
+                Suggest Arabic
+              </Button>
+            </span>
+          </Tooltip>
+
+          <Button
+            size="small"
+            color="error"
+            startIcon={<Iconify icon="solar:trash-bin-trash-bold" />}
+            onClick={onRemoveItem}
+          >
+            Remove
+          </Button>
+        </Stack>
       </Stack>
     </Stack>
   );
