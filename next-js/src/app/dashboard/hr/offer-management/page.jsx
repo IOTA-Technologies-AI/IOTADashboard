@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -10,13 +10,13 @@ import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 
 import { paths } from 'src/routes/paths';
 
+import { getOffers } from 'src/utils/apiHelper';
+
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
-
-import { getOffers } from 'src/utils/apiHelper';
 
 // ── Status colour map ──────────────────────────────────────────────────────
 
@@ -58,12 +58,8 @@ export default function OfferManagementPage() {
     [router]
   );
 
-  const handleEditRow = useCallback(
-    (id) => {
-      router.push(paths.dashboard.hr.offerManagement.edit(id));
-    },
-    [router]
-  );
+  // There is no offer edit page: an offer is prepared on creation and then
+  // moves through approval and signing on its details page.
 
   const columns = [
     {
@@ -124,13 +120,6 @@ export default function OfferManagementPage() {
           icon={<Iconify icon="solar:eye-bold" />}
           label="View"
           onClick={() => handleViewRow(params.id)}
-        />,
-        <GridActionsCellItem
-          key="edit"
-          showInMenu
-          icon={<Iconify icon="solar:pen-bold" />}
-          label="Edit"
-          onClick={() => handleEditRow(params.id)}
         />,
       ],
     },

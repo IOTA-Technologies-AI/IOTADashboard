@@ -313,6 +313,19 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Dead links.** Six places sent the user to an address with no page behind
+  it (an error page, whatever the role). Each route in `paths.js` was checked
+  against the pages that exist: HR > Employees > **View** (a read-only
+  employee page now exists; Edit is unchanged); HR > Business Visa > **View**
+  (same); the **HR** crumb on every HR page and the HR group in the menu
+  (`/dashboard/hr`, now lands on the employee list); the four cards under
+  **Financial Reports** on the finance page (AR aging, AP aging, payment
+  history, expense by category — the pages were there but not wired to a
+  route); the **Journal Entry** quick action (removed — there is no journal),
+  **Create Invoice** (went nowhere, now opens the invoice form) and **View
+  Reports** (pointed at an undefined route, now opens Reports); and
+  HR > Offer Management > **Edit** (removed — an offer has no edit page; it is
+  prepared on creation and then approved and signed from its details page).
 - An invoice that had been issued with **Issue & Email** could no longer be
   marked as paid. Issuing overwrote the invoice's `approved` status with `sent`,
   and Mark as Paid only accepts an approved invoice. Issuing now leaves the

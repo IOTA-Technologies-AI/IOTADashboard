@@ -27,19 +27,15 @@ export function FinanceQuickActions({ ...other }) {
       name: 'Create Invoice',
       icon: 'solar:bill-list-bold-duotone',
       color: '#22C55E',
-      path: '#',
+      path: paths.dashboard.invoice.new,
     },
-    {
-      name: 'Journal Entry',
-      icon: 'solar:notebook-bold-duotone',
-      color: '#FF5630',
-      path: paths.dashboard.finance.journalEntries,
-    },
+    // "Journal Entry" was listed here, but there is no journal in the app —
+    // it led to a dead address.
     {
       name: 'View Reports',
       icon: 'solar:chart-2-bold-duotone',
       color: '#FFAB00',
-      path: paths.dashboard.finance.reports.root,
+      path: paths.dashboard.general.reports.root,
     },
   ];
 
