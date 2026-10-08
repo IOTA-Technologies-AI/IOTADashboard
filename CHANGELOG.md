@@ -25,6 +25,19 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Super-admins can enforce or relax the authenticator (TOTP) per user.**
+  Access Control → select a user → **TOTP enforced / TOTP relaxed** switch.
+  Relaxed: the user signs in with Microsoft only — no code, no periodic
+  re-verification — and the API accepts their session without the second
+  factor. Enforced (the default for everyone): as before. Only the
+  requirement changes; the user's registered authenticator is kept either
+  way, so re-enforcing asks for a code from the same app, not a new
+  registration. A user who never registered one is asked to set it up at
+  their next sign-in. Needs the migration
+  `supabase/sql/20261008_user_totp_required.sql`; until it runs everyone stays
+  enforced and the switch reports the missing column. *(Backend:
+  `auth/auth.ts` gate 4, `POST /totp/requirement`, `totpRequired` in
+  `/totp/status`.)*
 - **MFA screens show whose account it is.** The "Verify Your Identity" prompt,
   the setup-required prompt and the sign-in code page all show the signed-in
   name and email with a **Not you? Sign out** button, so someone can leave and

@@ -132,8 +132,14 @@ export default function SupabaseAuthCallbackPage() {
         return;
       }
       try {
-        const { totpEnabled, totpLocked } = await totpStatus(userEmail);
-        console.log('[TOTP Callback] status:', { totpEnabled, totpLocked });
+        const { totpEnabled, totpLocked, totpRequired } = await totpStatus(userEmail);
+        console.log('[TOTP Callback] status:', { totpEnabled, totpLocked, totpRequired });
+        if (totpRequired === false) {
+          // Relaxed by a super-admin: Microsoft sign-in alone is enough.
+          await markTotpVerified();
+          goToDashboard();
+          return;
+        }
         if (!totpEnabled) {
           // First-time user — auto-send QR, stay on this page
           await sendQrEmail();

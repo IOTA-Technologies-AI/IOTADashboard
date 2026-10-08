@@ -12,6 +12,7 @@ import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
+import Switch from '@mui/material/Switch';
 import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
 import Checkbox from '@mui/material/Checkbox';
@@ -28,28 +29,29 @@ import ListItemButton from '@mui/material/ListItemButton';
 import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
+import { clearVersionCheck, clearUserNavPermissionCache } from 'src/utils/pageAccess';
 import {
+  totpReset,
   fetchRoles,
-  fetchNavPermissions,
-  refreshNavPermissionsCache,
-  setUserNavPermissions,
-  fetchUserNavPermissions,
-  fetchUsersWithRoles,
-  grantDefaultPermissions,
-  fetchEnterpriseAppUsers,
-  addEnterpriseAppUser,
-  removeEnterpriseAppUser,
   totpStatus,
   totpUnlock,
-  totpReset,
+  totpSetRequirement,
+  fetchNavPermissions,
+  fetchUsersWithRoles,
+  addEnterpriseAppUser,
+  setUserNavPermissions,
+  fetchUserNavPermissions,
+  grantDefaultPermissions,
+  fetchEnterpriseAppUsers,
+  removeEnterpriseAppUser,
+  refreshNavPermissionsCache,
 } from 'src/utils/apiHelper';
-import { clearPermissionCache } from 'src/auth/guard/permission-guard';
-import { clearVersionCheck, clearUserNavPermissionCache } from 'src/utils/pageAccess';
 
 import { Iconify } from 'src/components/iconify';
 
 import { RoleGuard } from 'src/auth/guard';
 import { useAuthContext } from 'src/auth/hooks';
+import { clearPermissionCache } from 'src/auth/guard/permission-guard';
 import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 
 // ----------------------------------------------------------------------
@@ -142,6 +144,10 @@ export default function AccessControlPage() {
 
   // TOTP lockout state
   const [totpLocked, setTotpLocked] = useState(false);
+  // null until the selected user's status has loaded
+  const [totpRequired, setTotpRequired] = useState(null);
+  const [totpRegistered, setTotpRegistered] = useState(false);
+  const [savingRequirement, setSavingRequirement] = useState(false);
   const [unlocking, setUnlocking] = useState(false);
   const [resetting, setResetting] = useState(false);
 
@@ -308,6 +314,8 @@ export default function AccessControlPage() {
       setSuccessMessage('');
       setError('');
       setTotpLocked(false);
+      setTotpRequired(null);
+      setTotpRegistered(false);
       // Use email as the user identifier for permissions
       loadUserPermissions(user.email);
       // Check TOTP lockout status
@@ -315,6 +323,8 @@ export default function AccessControlPage() {
         try {
           const status = await totpStatus(user.email);
           setTotpLocked(!!status.totpLocked);
+          setTotpRequired(status.totpRequired !== false);
+          setTotpRegistered(!!status.totpEnabled);
         } catch {
           // Non-critical — don't block the page
         }
@@ -338,6 +348,37 @@ export default function AccessControlPage() {
       setUnlocking(false);
     }
   }, [selectedUser]);
+
+  // Enforce or relax the authenticator for the selected user. Only the
+  // requirement changes — the registered authenticator is kept, so enforcing
+  // again does not make the user register a new one.
+  const handleTotpRequirement = useCallback(
+    async (required) => {
+      if (!selectedUser?.email) return;
+      setSavingRequirement(true);
+      setError('');
+      try {
+        await totpSetRequirement(selectedUser.email, required);
+        setTotpRequired(required);
+        setSuccessMessage(
+          required
+            ? `Authenticator enforced for ${selectedUser.name}. ${
+                totpRegistered
+                  ? 'They will enter a code from their existing authenticator at their next sign-in.'
+                  : 'They have not registered one yet and will be asked to set it up at their next sign-in.'
+              }`
+            : `Authenticator relaxed for ${selectedUser.name}. They sign in with Microsoft only; their registered authenticator is kept.`
+        );
+      } catch (err) {
+        setError(
+          err?.response?.data?.message || err?.message || 'Failed to change the requirement.'
+        );
+      } finally {
+        setSavingRequirement(false);
+      }
+    },
+    [selectedUser, totpRegistered]
+  );
 
   // Reset TOTP for selected user (wipes secret, sends new QR email)
   const handleTotpReset = useCallback(async () => {
@@ -956,7 +997,31 @@ export default function AccessControlPage() {
                             </Typography>
                           )}
                         </Box>
-                        <Stack direction="row" spacing={1}>
+                        <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                          <Tooltip
+                            title={
+                              totpRequired === false
+                                ? 'Relaxed: this user signs in with Microsoft only. Switch on to require their authenticator code again (their existing registration is kept).'
+                                : 'Enforced: this user must enter an authenticator code at sign-in. Switch off to relax it.'
+                            }
+                          >
+                            <FormControlLabel
+                              sx={{ mr: 1 }}
+                              control={
+                                <Switch
+                                  size="small"
+                                  checked={totpRequired !== false}
+                                  disabled={totpRequired === null || savingRequirement}
+                                  onChange={(e) => handleTotpRequirement(e.target.checked)}
+                                />
+                              }
+                              label={
+                                <Typography variant="body2">
+                                  {totpRequired === false ? 'TOTP relaxed' : 'TOTP enforced'}
+                                </Typography>
+                              }
+                            />
+                          </Tooltip>
                           {totpLocked && (
                             <Tooltip title="This user is locked out due to too many failed TOTP attempts">
                               <Button

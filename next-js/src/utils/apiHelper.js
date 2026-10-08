@@ -5554,6 +5554,15 @@ export async function totpUnlock(userId) {
   return response.data;
 }
 
+/**
+ * Enforce (true) or relax (false) the authenticator requirement for a user.
+ * Super-admin only. The user's registered authenticator is kept either way.
+ */
+export async function totpSetRequirement(userId, required) {
+  const response = await axios.post(`${API_BASE_URL}totp/requirement`, { userId, required });
+  return response.data;
+}
+
 export async function totpReset(userId) {
   const response = await axios.post(`${API_BASE_URL}totp/reset`, { userId });
   return response.data;

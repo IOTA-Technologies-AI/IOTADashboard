@@ -152,18 +152,22 @@ export function TotpGuard({ children }) {
   // Permissions are fetched only once MFA is cleared (the endpoints are gated
   // on it). Load them before the dashboard renders, or every page would be
   // judged against an empty list and bounce to 403.
-  const becomeVerified = useCallback(async () => {
-    if (!permissionsReady) {
-      try {
-        await refreshPermissionsRef.current?.();
-      } catch (err) {
-        console.error('[TotpGuard] permissions load failed:', err);
+  const becomeVerified = useCallback(
+    async ({ reauth = true } = {}) => {
+      if (!permissionsReady) {
+        try {
+          await refreshPermissionsRef.current?.();
+        } catch (err) {
+          console.error('[TotpGuard] permissions load failed:', err);
+        }
       }
-    }
-    everVerifiedRef.current = true;
-    setState('verified');
-    scheduleReauthCheck();
-  }, [permissionsReady, scheduleReauthCheck]);
+      everVerifiedRef.current = true;
+      setState('verified');
+      if (reauth) scheduleReauthCheck();
+      else if (timerRef.current) clearTimeout(timerRef.current);
+    },
+    [permissionsReady, scheduleReauthCheck]
+  );
 
   const checkTotp = useCallback(async () => {
     if (!email) return;
@@ -177,7 +181,16 @@ export function TotpGuard({ children }) {
       const sessionId = await getLiveSessionId();
       sessionIdRef.current = sessionId;
 
-      const { totpEnabled, totpLocked, totpUnlockedAt } = await totpStatus(email);
+      const { totpEnabled, totpLocked, totpUnlockedAt, totpRequired } = await totpStatus(email);
+      // A super-admin has relaxed the second factor for this user: the API
+      // lets the session through without it, so no code is asked for and no
+      // re-verification is scheduled. Stamping the session lets the
+      // permission load (which waits for a cleared session) go ahead.
+      if (totpRequired === false) {
+        setTotpVerifiedAt(sessionId);
+        await becomeVerified({ reauth: false });
+        return;
+      }
       if (!totpEnabled) {
         setState('setup_required');
         return;
