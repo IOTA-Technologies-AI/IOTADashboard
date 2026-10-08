@@ -66,7 +66,8 @@ const IOTA_API_ORIGIN = new URL(API_BASE_URL).origin;
  */
 const isIotaApiRequest = (config) => {
   try {
-    const base = config.baseURL || (typeof window !== 'undefined' ? window.location.origin : undefined);
+    const base =
+      config.baseURL || (typeof window !== 'undefined' ? window.location.origin : undefined);
     const target = new URL(config.url || '', base);
 
     if (target.origin === IOTA_API_ORIGIN) return true;
@@ -2398,10 +2399,13 @@ export async function fetchVATTransactionsByDateRange(startDate, endDate) {
  */
 export async function fetchVATTransactionsByTaxPeriod(taxPeriod) {
   try {
-    const response = await encoreFetch(`${ENCORE_API_BASE_URL}/vatTransactions/period/${taxPeriod}`, {
-      method: 'GET',
-      headers: { 'Content-Type': 'application/json' },
-    });
+    const response = await encoreFetch(
+      `${ENCORE_API_BASE_URL}/vatTransactions/period/${taxPeriod}`,
+      {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
 
     if (!response.ok) throw new Error('Failed to fetch VAT transactions by period');
 
@@ -2853,6 +2857,17 @@ export async function issueInvoice(invoiceId, pdfBase64) {
  * @param {{ replaceArabic?: boolean }} [options]
  * @returns {Promise<{ lines: Array<{ title: string, titleAr: string, description: string, descriptionAr: string }> }>}
  */
+/**
+ * @summary Lists the organisation's people from Microsoft Entra, via the API.
+ * @description The API reads the directory with the app's own credentials, so this works
+ * regardless of whether the browser still holds the Microsoft token from sign-in.
+ * @returns {Promise<{ users: object[], cachedAt: string }>} Raw Graph user objects.
+ */
+export async function fetchMicrosoftUsers() {
+  const response = await axios.get(`${API_BASE_URL}microsoft/users`);
+  return response.data;
+}
+
 export async function suggestInvoiceLineTranslations(lines, { replaceArabic = false } = {}) {
   const response = await axios.post(
     `${API_BASE_URL}invoice-lines/translate`,
@@ -2861,7 +2876,6 @@ export async function suggestInvoiceLineTranslations(lines, { replaceArabic = fa
   );
   return response.data;
 }
-
 
 // ============================================================================
 // PROFORMA INVOICE API FUNCTIONS

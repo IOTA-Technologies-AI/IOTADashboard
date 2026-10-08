@@ -337,6 +337,16 @@ is running.
     has not cleared MFA, and refuses setup on a locked account.
   *(Backend: `supabase/supabase.ts` — `/totp/setup`; `/totp/unlock` and
   `/totp/reset` now check for super-admin as their comments always claimed.)*
+- **"Connect Microsoft to load users" / "Your Microsoft sign-in token is
+  missing" on the Users list, Expense By and every other people picker.** The
+  directory was read from the browser with the Microsoft token Supabase hands
+  over at sign-in. That token is issued once, kept in the browser and expires
+  after about an hour with nothing renewing it, so the pickers went blank
+  until the next sign-in. The API now reads the directory with the app's own
+  credentials (`GET /microsoft/users`, cached five minutes); the browser token
+  is only a fallback. If Entra refuses, the message names the missing
+  application permission (`User.Read.All`). *(Backend:
+  `profile/microsoft-users.ts`.)*
 - **"single sign-on required" after a Microsoft sign-in.** The API decided
   whether a session came through SSO from `app_metadata.provider`, which
   Supabase sets to the *first* identity an account ever had. A user whose

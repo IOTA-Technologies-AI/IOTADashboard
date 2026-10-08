@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 
+import { fetchMicrosoftUsers } from 'src/utils/apiHelper';
 import {
   getOneDriveToken,
   seedOneDriveToken,
@@ -130,28 +131,61 @@ export function useMicrosoftUsers() {
     }
   }, []);
 
-  useEffect(() => {
-    const stored = getOneDriveToken();
-    const accessToken = stored.accessToken || user?.provider_token || user?.providerToken;
-    const refreshToken =
-      stored.refreshToken || user?.provider_refresh_token || user?.providerRefreshToken;
-
-    console.info('Users fetch: tokens', {
-      hasAccessToken: !!accessToken,
-      hasRefreshToken: !!refreshToken,
-      fromStored: !!stored.accessToken,
-      fromProvider: !!user?.provider_token || !!user?.providerToken,
-    });
-
-    if (!accessToken) {
-      console.warn('Microsoft users: no access token available (provider_token missing)');
-      setError(buildError({ code: 'NO_TOKEN', message: 'Connect Microsoft to load users' }));
-      setUsers([]);
-      return;
+  // The directory read used to depend on the Microsoft token Supabase hands
+  // over at sign-in. That token is issued once, at the callback, lives in
+  // localStorage and expires after about an hour with nothing renewing it, so
+  // every people picker went blank ("Connect Microsoft to load users") until
+  // the next sign-in. The API now reads the directory with the app's own
+  // credentials; the browser token is only a fallback should the API refuse
+  // (for instance while the Entra application permission is still missing).
+  const fetchViaApi = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchMicrosoftUsers();
+      const mapped = (Array.isArray(data?.users) ? data.users : [])
+        .filter((u) => u?.accountEnabled !== false)
+        .map(mapUser);
+      setUsers(mapped);
+      return true;
+    } catch (err) {
+      console.warn(
+        'Microsoft users: API directory read failed, trying the browser token',
+        err?.response?.data?.message || err?.message
+      );
+      return false;
+    } finally {
+      setLoading(false);
     }
+  }, []);
 
-    fetchUsers(accessToken, refreshToken);
-  }, [fetchUsers, user]);
+  useEffect(() => {
+    if (!user) return undefined;
+    let cancelled = false;
+
+    (async () => {
+      if (await fetchViaApi()) return;
+      if (cancelled) return;
+
+      const stored = getOneDriveToken();
+      const accessToken = stored.accessToken || user?.provider_token || user?.providerToken;
+      const refreshToken =
+        stored.refreshToken || user?.provider_refresh_token || user?.providerRefreshToken;
+
+      if (!accessToken) {
+        console.warn('Microsoft users: no access token available (provider_token missing)');
+        setError(buildError({ code: 'NO_TOKEN', message: 'Connect Microsoft to load users' }));
+        setUsers([]);
+        return;
+      }
+
+      fetchUsers(accessToken, refreshToken);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchUsers, fetchViaApi, user]);
 
   return { users, loading, error };
 }
