@@ -31,11 +31,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
 
-import {
-  officeLabel,
-  stampForOffice,
-  governingLawFor,
-} from 'src/utils/iota-offices';
+import { stampNdaPdf, uint8ToBase64, signatureCaption } from 'src/utils/nda-pdf';
+import { officeLabel, stampForOffice, governingLawFor } from 'src/utils/iota-offices';
 import {
   getNda,
   cancelNda,
@@ -581,14 +578,6 @@ export default function NdaDetailsPage({ params }) {
 
   const handleFinalize = async () => {
     // Chunked btoa to avoid call-stack overflow on large PDFs
-    const uint8ToBase64 = (bytes) => {
-      let binary = '';
-      const chunk = 8192;
-      for (let i = 0; i < bytes.length; i += chunk) {
-        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-      }
-      return btoa(binary);
-    };
 
     try {
       setActionLoading(true);
@@ -662,133 +651,14 @@ export default function NdaDetailsPage({ params }) {
           sourceSignatureZones.length > 0 ||
           sourcePartnerSignatureZones.length > 0)
       ) {
-        const { PDFDocument } = await import('pdf-lib');
-        const pdfBytes = Uint8Array.from(atob(fileBase64), (c) => c.charCodeAt(0));
-        const pdfDoc = await PDFDocument.load(pdfBytes);
-        const pages = pdfDoc.getPages();
-
-        // Embed IOTA signature zones first
-        if (sourceSignatureZones.length > 0) {
-          const signatories = Array.isArray(latestNda?.iotaSignatories)
-            ? latestNda.iotaSignatories
-            : [];
-          for (const zone of sourceSignatureZones) {
-            const pageIdx = Math.max(0, (zone.page || 1) - 1);
-            const page = pages[pageIdx];
-            if (!page) continue;
-            const { width: pw, height: ph } = page.getSize();
-            const zoneX = (zone.xPct / 100) * pw;
-            const zoneY = ph - (zone.yPct / 100) * ph;
-            const zoneW = (zone.widthPct / 100) * pw;
-            const zoneH = (zone.heightPct / 100) * ph;
-
-            const signatoryIdx = zone.iotaSignatoryIndex ?? 0;
-            const signatory = signatories[signatoryIdx];
-            const sigData = signatory?.signatureData || null;
-
-            if (sigData && sigData.startsWith('data:image')) {
-              try {
-                const base64 = sigData.split(',')[1];
-                const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-                const sigImage = sigData.includes('image/png')
-                  ? await pdfDoc.embedPng(sigBytes)
-                  : await pdfDoc.embedJpg(sigBytes);
-                page.drawImage(sigImage, {
-                  x: zoneX,
-                  y: zoneY - zoneH,
-                  width: zoneW,
-                  height: zoneH,
-                  opacity: 1,
-                });
-              } catch (embedErr) {
-                throw new Error(
-                  `Failed to embed IOTA signature for ${signatory?.email || 'unknown signatory'}: ${embedErr?.message || embedErr}`
-                );
-              }
-            } else {
-              throw new Error(
-                `Missing signature data for IOTA signatory ${signatory?.email || 'unknown signatory'}.`
-              );
-            }
-          }
-        }
-
-        // Embed partner signature zones
-        if (sourcePartnerSignatureZones.length > 0) {
-          const partnerSignatories = Array.isArray(latestNda?.partnerSignatories)
-            ? latestNda.partnerSignatories
-            : [];
-          for (const zone of sourcePartnerSignatureZones) {
-            const pageIdx = Math.max(0, (zone.page || 1) - 1);
-            const page = pages[pageIdx];
-            if (!page) continue;
-            const { width: pw, height: ph } = page.getSize();
-            const zoneX = (zone.xPct / 100) * pw;
-            const zoneY = ph - (zone.yPct / 100) * ph;
-            const zoneW = (zone.widthPct / 100) * pw;
-            const zoneH = (zone.heightPct / 100) * ph;
-            const signatory = partnerSignatories[zone.partnerSignatoryIndex ?? 0];
-            const sigData = signatory?.signatureData || null;
-            if (sigData && sigData.startsWith('data:image')) {
-              try {
-                const base64 = sigData.split(',')[1];
-                const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-                const sigImage = sigData.includes('image/png')
-                  ? await pdfDoc.embedPng(sigBytes)
-                  : await pdfDoc.embedJpg(sigBytes);
-                page.drawImage(sigImage, {
-                  x: zoneX,
-                  y: zoneY - zoneH,
-                  width: zoneW,
-                  height: zoneH,
-                  opacity: 1,
-                });
-              } catch (embedErr) {
-                throw new Error(
-                  `Failed to embed partner signature for ${signatory?.email || 'unknown signatory'}: ${embedErr?.message || embedErr}`
-                );
-              }
-            } else {
-              throw new Error(
-                `Missing signature data for partner signatory ${signatory?.email || 'unknown signatory'}.`
-              );
-            }
-          }
-        }
-
-        // Embed IOTA stamp
-        if (sourceStampPlacements.length > 0) {
-          const stampAsset = stampForOffice(latestNda?.iotaOffice);
-          if (!stampAsset) {
-            throw new Error(
-              `No company stamp is configured for office "${latestNda?.iotaOffice}". ` +
-                'Remove the stamp placements, or execute this agreement from an office that has one.'
-            );
-          }
-          const stampRes = await fetch(stampAsset);
-          if (stampRes.ok) {
-            const stampArrayBuffer = await stampRes.arrayBuffer();
-            const stampImage = await pdfDoc.embedPng(new Uint8Array(stampArrayBuffer));
-            for (const placement of sourceStampPlacements) {
-              const pageIdx = Math.max(0, (placement.page || 1) - 1);
-              const page = pages[pageIdx];
-              if (!page) continue;
-              const { width: pw, height: ph } = page.getSize();
-              const stampW = (placement.widthPct / 100) * pw;
-              const stampH = stampW * (stampImage.height / stampImage.width);
-              page.drawImage(stampImage, {
-                x: (placement.xPct / 100) * pw - stampW / 2,
-                y: ph - (placement.yPct / 100) * ph - stampH / 2,
-                width: stampW,
-                height: stampH,
-                opacity: 0.85,
-              });
-            }
-          }
-        }
-
-        const saved = await pdfDoc.save();
-        fileBase64 = uint8ToBase64(saved);
+        ({ base64: fileBase64 } = await stampNdaPdf({
+          base64: fileBase64,
+          nda: latestNda,
+          signatureZones: sourceSignatureZones,
+          partnerSignatureZones: sourcePartnerSignatureZones,
+          stampPlacements: sourceStampPlacements,
+          requireAllSigned: true,
+        }));
       }
 
       const updated = await finalizeNda(id, fileBase64);
@@ -796,7 +666,9 @@ export default function NdaDetailsPage({ params }) {
       toast.success('NDA finalized and uploaded to OneDrive.');
     } catch (err) {
       console.error(err);
-      toast.error('Failed to finalize NDA');
+      toast.error(
+        `Failed to finalize NDA: ${err?.response?.data?.message || err?.message || 'unknown error'}`
+      );
     } finally {
       setActionLoading(false);
     }
@@ -906,134 +778,16 @@ export default function NdaDetailsPage({ params }) {
 
     if (isExternalPdf) {
       // For external PDFs: embed current stamps + sig zones inline, open in new tab and print
-      const uint8ToBase64 = (bytes) => {
-        let binary = '';
-        const chunk = 8192;
-        for (let i = 0; i < bytes.length; i += chunk) {
-          binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-        }
-        return btoa(binary);
-      };
       try {
         const printBase64 = docBase64 || (await fetchNdaDocumentContent(id).then((r) => r.base64));
-        const { PDFDocument } = await import('pdf-lib');
-        const pdfBytes = Uint8Array.from(atob(printBase64), (c) => c.charCodeAt(0));
-        const pdfDoc = await PDFDocument.load(pdfBytes);
-        const pages = pdfDoc.getPages();
-
-        // Embed signature zones (with actual sig data if available)
-        const signatories = Array.isArray(nda?.iotaSignatories) ? nda.iotaSignatories : [];
-        for (const zone of signatureZones) {
-          const pageIdx = Math.max(0, (zone.page || 1) - 1);
-          const page = pages[pageIdx];
-          if (!page) continue;
-          const { width: pw, height: ph } = page.getSize();
-          const zoneX = (zone.xPct / 100) * pw;
-          const zoneY = ph - (zone.yPct / 100) * ph;
-          const zoneW = (zone.widthPct / 100) * pw;
-          const zoneH = (zone.heightPct / 100) * ph;
-          const signatory = signatories[zone.iotaSignatoryIndex ?? 0];
-          const sigData = signatory?.signatureData || null;
-          if (sigData && sigData.startsWith('data:image')) {
-            try {
-              const base64 = sigData.split(',')[1];
-              const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-              const sigImage = sigData.includes('image/png')
-                ? await pdfDoc.embedPng(sigBytes)
-                : await pdfDoc.embedJpg(sigBytes);
-              page.drawImage(sigImage, {
-                x: zoneX,
-                y: zoneY - zoneH,
-                width: zoneW,
-                height: zoneH,
-                opacity: 1,
-              });
-            } catch (embedErr) {
-              throw new Error(
-                `Failed to embed IOTA signature for ${signatory?.email || 'unknown signatory'}: ${embedErr?.message || embedErr}`
-              );
-            }
-          } else {
-            throw new Error(
-              `Missing signature data for IOTA signatory ${signatory?.email || 'unknown signatory'}.`
-            );
-          }
-        }
-
-        // Embed stamp placements
-        if (stampPlacements.length > 0) {
-          const stampAsset = stampForOffice(nda?.iotaOffice);
-          if (!stampAsset) {
-            throw new Error(
-              `No company stamp is configured for office "${nda?.iotaOffice}". ` +
-                'Remove the stamp placements, or execute this agreement from an office that has one.'
-            );
-          }
-          const stampRes = await fetch(stampAsset);
-          if (stampRes.ok) {
-            const stampImage = await pdfDoc.embedPng(new Uint8Array(await stampRes.arrayBuffer()));
-            for (const placement of stampPlacements) {
-              const pageIdx = Math.max(0, (placement.page || 1) - 1);
-              const page = pages[pageIdx];
-              if (!page) continue;
-              const { width: pw, height: ph } = page.getSize();
-              const stampW = (placement.widthPct / 100) * pw;
-              const stampH = stampW * (stampImage.height / stampImage.width);
-              page.drawImage(stampImage, {
-                x: (placement.xPct / 100) * pw - stampW / 2,
-                y: ph - (placement.yPct / 100) * ph - stampH / 2,
-                width: stampW,
-                height: stampH,
-                opacity: 0.85,
-              });
-            }
-          }
-        }
-
-        // Embed partner signature zones
-        if (partnerSignatureZones.length > 0) {
-          const partnerSignatories = Array.isArray(nda?.partnerSignatories)
-            ? nda.partnerSignatories
-            : [];
-          for (const zone of partnerSignatureZones) {
-            const pageIdx = Math.max(0, (zone.page || 1) - 1);
-            const page = pages[pageIdx];
-            if (!page) continue;
-            const { width: pw, height: ph } = page.getSize();
-            const zoneX = (zone.xPct / 100) * pw;
-            const zoneY = ph - (zone.yPct / 100) * ph;
-            const zoneW = (zone.widthPct / 100) * pw;
-            const zoneH = (zone.heightPct / 100) * ph;
-            const signatory = partnerSignatories[zone.partnerSignatoryIndex ?? 0];
-            const sigData = signatory?.signatureData || null;
-            if (sigData && sigData.startsWith('data:image')) {
-              try {
-                const base64 = sigData.split(',')[1];
-                const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-                const sigImage = sigData.includes('image/png')
-                  ? await pdfDoc.embedPng(sigBytes)
-                  : await pdfDoc.embedJpg(sigBytes);
-                page.drawImage(sigImage, {
-                  x: zoneX,
-                  y: zoneY - zoneH,
-                  width: zoneW,
-                  height: zoneH,
-                  opacity: 1,
-                });
-              } catch (embedErr) {
-                throw new Error(
-                  `Failed to embed partner signature for ${signatory?.email || 'unknown signatory'}: ${embedErr?.message || embedErr}`
-                );
-              }
-            } else {
-              throw new Error(
-                `Missing signature data for partner signatory ${signatory?.email || 'unknown signatory'}.`
-              );
-            }
-          }
-        }
-
-        const processed = uint8ToBase64(await pdfDoc.save());
+        const { base64: processed, pending } = await stampNdaPdf({
+          base64: printBase64,
+          nda,
+          signatureZones,
+          partnerSignatureZones,
+          stampPlacements,
+        });
+        if (pending.length) toast.info(`Not signed yet: ${pending.join(', ')}.`);
         const bytes = Uint8Array.from(atob(processed), (c) => c.charCodeAt(0));
         const blob = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
         // Open the processed PDF in a new tab — the browser PDF viewer has its own
@@ -1044,7 +798,7 @@ export default function NdaDetailsPage({ params }) {
         setTimeout(() => URL.revokeObjectURL(blob), 60000);
       } catch (err) {
         console.error('Print failed', err);
-        toast.error('Failed to prepare document for printing');
+        toast.error(`Failed to prepare document for printing: ${err?.message || 'unknown error'}`);
       }
       return;
     }
@@ -1362,15 +1116,6 @@ export default function NdaDetailsPage({ params }) {
 
   // Download the uploaded document with stamps + signature zones embedded
   const handleDownloadProcessed = async () => {
-    const uint8ToBase64 = (bytes) => {
-      let binary = '';
-      const chunk = 8192;
-      for (let i = 0; i < bytes.length; i += chunk) {
-        binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
-      }
-      return btoa(binary);
-    };
-
     const downloadBase64 =
       docBase64 ||
       (await fetchNdaDocumentContent(id)
@@ -1401,133 +1146,25 @@ export default function NdaDetailsPage({ params }) {
 
     try {
       setDownloadProcessing(true);
-      const { PDFDocument } = await import('pdf-lib');
-      const pdfBytes = Uint8Array.from(atob(downloadBase64), (c) => c.charCodeAt(0));
-      const pdfDoc = await PDFDocument.load(pdfBytes);
-      const pages = pdfDoc.getPages();
-
-      // Embed IOTA signature zones
-      if (signatureZones.length > 0) {
-        const signatories = Array.isArray(nda?.iotaSignatories) ? nda.iotaSignatories : [];
-        for (const zone of signatureZones) {
-          const pageIdx = Math.max(0, (zone.page || 1) - 1);
-          const page = pages[pageIdx];
-          if (!page) continue;
-          const { width: pw, height: ph } = page.getSize();
-          const zoneX = (zone.xPct / 100) * pw;
-          const zoneY = ph - (zone.yPct / 100) * ph;
-          const zoneW = (zone.widthPct / 100) * pw;
-          const zoneH = (zone.heightPct / 100) * ph;
-          const signatory = signatories[zone.iotaSignatoryIndex ?? 0];
-          const sigData = signatory?.signatureData || null;
-          if (sigData && sigData.startsWith('data:image')) {
-            try {
-              const base64 = sigData.split(',')[1];
-              const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-              const sigImage = sigData.includes('image/png')
-                ? await pdfDoc.embedPng(sigBytes)
-                : await pdfDoc.embedJpg(sigBytes);
-              page.drawImage(sigImage, {
-                x: zoneX,
-                y: zoneY - zoneH,
-                width: zoneW,
-                height: zoneH,
-                opacity: 1,
-              });
-            } catch (embedErr) {
-              throw new Error(
-                `Failed to embed IOTA signature for ${signatory?.email || 'unknown signatory'}: ${embedErr?.message || embedErr}`
-              );
-            }
-          } else {
-            throw new Error(
-              `Missing signature data for IOTA signatory ${signatory?.email || 'unknown signatory'}.`
-            );
-          }
-        }
+      // Signatures that exist are embedded; zones whose signatory has not
+      // signed yet are left blank rather than failing the whole download.
+      const { base64: processed, pending } = await stampNdaPdf({
+        base64: downloadBase64,
+        nda,
+        signatureZones,
+        partnerSignatureZones,
+        stampPlacements,
+      });
+      if (pending.length) {
+        toast.info(`Downloaded. Not signed yet, left blank: ${pending.join(', ')}.`);
       }
-
-      // Embed partner signature zones
-      if (partnerSignatureZones.length > 0) {
-        const partnerSignatories = Array.isArray(nda?.partnerSignatories)
-          ? nda.partnerSignatories
-          : [];
-        for (const zone of partnerSignatureZones) {
-          const pageIdx = Math.max(0, (zone.page || 1) - 1);
-          const page = pages[pageIdx];
-          if (!page) continue;
-          const { width: pw, height: ph } = page.getSize();
-          const zoneX = (zone.xPct / 100) * pw;
-          const zoneY = ph - (zone.yPct / 100) * ph;
-          const zoneW = (zone.widthPct / 100) * pw;
-          const zoneH = (zone.heightPct / 100) * ph;
-          const signatory = partnerSignatories[zone.partnerSignatoryIndex ?? 0];
-          const sigData = signatory?.signatureData || null;
-          if (sigData && sigData.startsWith('data:image')) {
-            try {
-              const base64 = sigData.split(',')[1];
-              const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
-              const sigImage = sigData.includes('image/png')
-                ? await pdfDoc.embedPng(sigBytes)
-                : await pdfDoc.embedJpg(sigBytes);
-              page.drawImage(sigImage, {
-                x: zoneX,
-                y: zoneY - zoneH,
-                width: zoneW,
-                height: zoneH,
-                opacity: 1,
-              });
-            } catch (embedErr) {
-              throw new Error(
-                `Failed to embed partner signature for ${signatory?.email || 'unknown signatory'}: ${embedErr?.message || embedErr}`
-              );
-            }
-          } else {
-            throw new Error(
-              `Missing signature data for partner signatory ${signatory?.email || 'unknown signatory'}.`
-            );
-          }
-        }
-      }
-
-      // Embed IOTA stamp
-      if (stampPlacements.length > 0) {
-        const stampAsset = stampForOffice(nda?.iotaOffice);
-        if (!stampAsset) {
-          throw new Error(
-            `No company stamp is configured for office "${nda?.iotaOffice}". ` +
-              'Remove the stamp placements, or execute this agreement from an office that has one.'
-          );
-        }
-        const stampRes = await fetch(stampAsset);
-        if (stampRes.ok) {
-          const stampImage = await pdfDoc.embedPng(new Uint8Array(await stampRes.arrayBuffer()));
-          for (const placement of stampPlacements) {
-            const pageIdx = Math.max(0, (placement.page || 1) - 1);
-            const page = pages[pageIdx];
-            if (!page) continue;
-            const { width: pw, height: ph } = page.getSize();
-            const stampW = (placement.widthPct / 100) * pw;
-            const stampH = stampW * (stampImage.height / stampImage.width);
-            page.drawImage(stampImage, {
-              x: (placement.xPct / 100) * pw - stampW / 2,
-              y: ph - (placement.yPct / 100) * ph - stampH / 2,
-              width: stampW,
-              height: stampH,
-              opacity: 0.85,
-            });
-          }
-        }
-      }
-
-      const processed = uint8ToBase64(await pdfDoc.save());
       const a = document.createElement('a');
       a.href = `data:application/pdf;base64,${processed}`;
       a.download = nda.uploadedDocumentName;
       a.click();
     } catch (err) {
       console.error(err);
-      toast.error('Failed to process document for download');
+      toast.error(`Failed to process document for download: ${err?.message || 'unknown error'}`);
     } finally {
       setDownloadProcessing(false);
     }
@@ -1560,15 +1197,12 @@ export default function NdaDetailsPage({ params }) {
   // Editable up to the first signature and not past it — after that, the
   // document on file is the document somebody signed. assertEditable() on the
   // API is the enforcing copy; this one only decides what to render.
-  const signedSoFar = [
-    ...(nda.iotaSignatories || []),
-    ...(nda.partnerSignatories || []),
-  ].filter((s) => s.signedAt);
+  const signedSoFar = [...(nda.iotaSignatories || []), ...(nda.partnerSignatories || [])].filter(
+    (s) => s.signedAt
+  );
   const isEditableStatus = isDraft || isPendingIota || isPendingPartner;
-  const isCreator =
-    (nda.createdBy || '').trim().toLowerCase() === editorEmail.trim().toLowerCase();
-  const canEdit =
-    isEditableStatus && signedSoFar.length === 0 && (isCreator || editorIsSuperAdmin);
+  const isCreator = (nda.createdBy || '').trim().toLowerCase() === editorEmail.trim().toLowerCase();
+  const canEdit = isEditableStatus && signedSoFar.length === 0 && (isCreator || editorIsSuperAdmin);
 
   let editLockReason = '';
   if (!isEditableStatus) {
@@ -1750,7 +1384,9 @@ export default function NdaDetailsPage({ params }) {
                         loading={msUsersLoading}
                         value={msUsers.find((u) => u.email === row.email) || null}
                         isOptionEqualToValue={(opt, val) => opt.email === val?.email}
-                        getOptionLabel={(o) => (o?.name ? `${o.name} (${o.email})` : o?.email || '')}
+                        getOptionLabel={(o) =>
+                          o?.name ? `${o.name} (${o.email})` : o?.email || ''
+                        }
                         onChange={(_, selected) =>
                           setEditedIota((prev) =>
                             prev.map((r, idx) =>
@@ -1842,30 +1478,48 @@ export default function NdaDetailsPage({ params }) {
                   </Typography>
                 </Stack>
               ) : (
-              <Stack spacing={1.5}>
-                {(nda.iotaSignatories || []).map((s, i) => (
-                  <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Iconify
-                      icon={s.signedAt ? 'solar:check-circle-bold' : 'solar:clock-circle-bold'}
-                      color={s.signedAt ? 'success.main' : 'text.disabled'}
-                      width={18}
-                    />
-                    <Box>
-                      <Typography variant="body2" fontWeight={600}>
-                        {s.name}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {s.jobTitle} · {s.email}
-                      </Typography>
-                      {s.signedAt && (
-                        <Typography variant="caption" color="success.main" display="block">
-                          Signed {new Date(s.signedAt).toLocaleDateString()}
+                <Stack spacing={1.5}>
+                  {(nda.iotaSignatories || []).map((s, i) => (
+                    <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Iconify
+                        icon={s.signedAt ? 'solar:check-circle-bold' : 'solar:clock-circle-bold'}
+                        color={s.signedAt ? 'success.main' : 'text.disabled'}
+                        width={18}
+                      />
+                      <Box>
+                        <Typography variant="body2" fontWeight={600}>
+                          {s.name}
                         </Typography>
-                      )}
+                        <Typography variant="caption" color="text.secondary">
+                          {s.jobTitle} · {s.email}
+                        </Typography>
+                        {s.signedAt && (
+                          <Typography variant="caption" color="success.main" display="block">
+                            Signed {new Date(s.signedAt).toLocaleDateString()}
+                          </Typography>
+                        )}
+                      </Box>
+                      {/* The signature as given, so it can be checked at a glance */}
+                      {s.signedAt && s.signatureData ? (
+                        <Box
+                          component="img"
+                          src={s.signatureData}
+                          alt={`Signature of ${s.name || s.email}`}
+                          sx={{
+                            ml: 'auto',
+                            height: 40,
+                            maxWidth: 140,
+                            objectFit: 'contain',
+                            bgcolor: 'common.white',
+                            border: (theme) => `1px solid ${theme.vars.palette.divider}`,
+                            borderRadius: 0.75,
+                            px: 0.5,
+                          }}
+                        />
+                      ) : null}
                     </Box>
-                  </Box>
-                ))}
-              </Stack>
+                  ))}
+                </Stack>
               )}
             </Card>
 
@@ -1993,30 +1647,48 @@ export default function NdaDetailsPage({ params }) {
                   </Typography>
                 </Stack>
               ) : (
-              <Stack spacing={1.5}>
-                {(nda.partnerSignatories || []).map((s, i) => (
-                  <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Iconify
-                      icon={s.signedAt ? 'solar:check-circle-bold' : 'solar:clock-circle-bold'}
-                      color={s.signedAt ? 'success.main' : 'text.disabled'}
-                      width={18}
-                    />
-                    <Box>
-                      <Typography variant="body2" fontWeight={600}>
-                        {s.name}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {s.jobTitle} · {s.email}
-                      </Typography>
-                      {s.signedAt && (
-                        <Typography variant="caption" color="success.main" display="block">
-                          Signed {new Date(s.signedAt).toLocaleDateString()}
+                <Stack spacing={1.5}>
+                  {(nda.partnerSignatories || []).map((s, i) => (
+                    <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Iconify
+                        icon={s.signedAt ? 'solar:check-circle-bold' : 'solar:clock-circle-bold'}
+                        color={s.signedAt ? 'success.main' : 'text.disabled'}
+                        width={18}
+                      />
+                      <Box>
+                        <Typography variant="body2" fontWeight={600}>
+                          {s.name}
                         </Typography>
-                      )}
+                        <Typography variant="caption" color="text.secondary">
+                          {s.jobTitle} · {s.email}
+                        </Typography>
+                        {s.signedAt && (
+                          <Typography variant="caption" color="success.main" display="block">
+                            Signed {new Date(s.signedAt).toLocaleDateString()}
+                          </Typography>
+                        )}
+                      </Box>
+                      {/* The signature as given, so it can be checked at a glance */}
+                      {s.signedAt && s.signatureData ? (
+                        <Box
+                          component="img"
+                          src={s.signatureData}
+                          alt={`Signature of ${s.name || s.email}`}
+                          sx={{
+                            ml: 'auto',
+                            height: 40,
+                            maxWidth: 140,
+                            objectFit: 'contain',
+                            bgcolor: 'common.white',
+                            border: (theme) => `1px solid ${theme.vars.palette.divider}`,
+                            borderRadius: 0.75,
+                            px: 0.5,
+                          }}
+                        />
+                      ) : null}
                     </Box>
-                  </Box>
-                ))}
-              </Stack>
+                  ))}
+                </Stack>
               )}
             </Card>
 
@@ -2685,15 +2357,39 @@ export default function NdaDetailsPage({ params }) {
                               }}
                             >
                               {hasSigned ? (
-                                <img
-                                  src={iotaSignatory.signatureData}
-                                  alt="signature"
-                                  style={{
-                                    maxWidth: '100%',
-                                    maxHeight: '100%',
-                                    objectFit: 'contain',
+                                <Box
+                                  sx={{
+                                    width: '100%',
+                                    height: '100%',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
                                   }}
-                                />
+                                >
+                                  <Box
+                                    component="img"
+                                    src={iotaSignatory.signatureData}
+                                    alt={`Signature of ${iotaSignatory.name || iotaSignatory.email}`}
+                                    sx={{
+                                      flex: 1,
+                                      minHeight: 0,
+                                      maxWidth: '100%',
+                                      objectFit: 'contain',
+                                    }}
+                                  />
+                                  {/* Signer's name and date, as embedded in the PDF */}
+                                  <Typography
+                                    noWrap
+                                    sx={{
+                                      fontSize: '0.5rem',
+                                      lineHeight: 1.2,
+                                      maxWidth: '100%',
+                                      color: 'text.primary',
+                                    }}
+                                  >
+                                    {signatureCaption(iotaSignatory)}
+                                  </Typography>
+                                </Box>
                               ) : (
                                 <Typography
                                   variant="caption"
@@ -3290,15 +2986,39 @@ export default function NdaDetailsPage({ params }) {
                             }}
                           >
                             {hasSigned ? (
-                              <img
-                                src={signatory.signatureData}
-                                alt="signature"
-                                style={{
-                                  maxWidth: '100%',
-                                  maxHeight: '100%',
-                                  objectFit: 'contain',
+                              <Box
+                                sx={{
+                                  width: '100%',
+                                  height: '100%',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: 'center',
                                 }}
-                              />
+                              >
+                                <Box
+                                  component="img"
+                                  src={signatory.signatureData}
+                                  alt={`Signature of ${signatory.name || signatory.email}`}
+                                  sx={{
+                                    flex: 1,
+                                    minHeight: 0,
+                                    maxWidth: '100%',
+                                    objectFit: 'contain',
+                                  }}
+                                />
+                                {/* Signer's name and date, as embedded in the PDF */}
+                                <Typography
+                                  noWrap
+                                  sx={{
+                                    fontSize: '0.5rem',
+                                    lineHeight: 1.2,
+                                    maxWidth: '100%',
+                                    color: 'text.primary',
+                                  }}
+                                >
+                                  {signatureCaption(signatory)}
+                                </Typography>
+                              </Box>
                             ) : (
                               <Typography
                                 variant="caption"

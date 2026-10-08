@@ -330,6 +330,19 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **NDA → Download with Stamp & Signatures failed** with "Failed to process
+  document for download". Any signature zone whose signatory had not signed
+  yet aborted the whole download, and the message hid the reason. Unsigned
+  zones are now left blank and named in a notice ("Not signed yet, left
+  blank: …"); Finalize still requires every signature and now says who is
+  missing. Password-restricted PDFs (exported with "restrict editing") are
+  opened instead of refused, and any remaining failure shows its actual
+  cause. Finalize, Print and Download used three copies of the same code;
+  they now share one (`src/utils/nda-pdf.js`).
+- **Signer's name on NDA signatures.** Each embedded signature in the PDF
+  carries the signer's name and signing date beneath it, the signature-zone
+  previews show the same, and the IOTA and partner signatory lists show the
+  signature itself beside each signed name.
 - **Sign-in and MFA.** Three faults in the second-factor flow, all made
   visible by the API lock-down:
   - The dashboard was mounted (blurred) behind the "Verify Your Identity"
