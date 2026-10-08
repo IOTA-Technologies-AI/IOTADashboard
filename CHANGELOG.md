@@ -337,6 +337,14 @@ is running.
     has not cleared MFA, and refuses setup on a locked account.
   *(Backend: `supabase/supabase.ts` — `/totp/setup`; `/totp/unlock` and
   `/totp/reset` now check for super-admin as their comments always claimed.)*
+- **"single sign-on required" after a Microsoft sign-in.** The API decided
+  whether a session came through SSO from `app_metadata.provider`, which
+  Supabase sets to the *first* identity an account ever had. A user whose
+  account was invited or created by email before their first Microsoft sign-in
+  carries `email` there for life and was turned away on every attempt. The
+  gate now reads the token's `amr` claim — how *this* session was
+  authenticated — and accepts an OAuth/SAML step; email/password and
+  magic-link sessions are still refused. *(Backend: `auth/auth.ts`.)*
 - **Delete on HR > Business Visa and HR > Leave** called endpoints that did not
   exist. *(Backend: two new DELETE endpoints.)*
 - **Dead links.** Six places sent the user to an address with no page behind
