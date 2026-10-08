@@ -25,6 +25,10 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **MFA screens show whose account it is.** The "Verify Your Identity" prompt,
+  the setup-required prompt and the sign-in code page all show the signed-in
+  name and email with a **Not you? Sign out** button, so someone can leave and
+  sign in with another account. A locked account shows the same.
 - **AI suggestions for the second language of an invoice line.** Now that every
   line must be in English and Arabic, the invoice form proposes the missing
   language itself: leaving a field fills its empty counterpart (English →
@@ -313,6 +317,28 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Sign-in and MFA.** Three faults in the second-factor flow, all made
+  visible by the API lock-down:
+  - The dashboard was mounted (blurred) behind the "Verify Your Identity"
+    prompt, so every page fired its API calls before the code was entered and
+    each was rejected — the stream of authorization errors on the MFA screen.
+    Nothing renders behind the prompt now until the code is accepted; a
+    re-verification later keeps the page mounted so work in progress is kept.
+  - Permissions were fetched at sign-in, before MFA, from endpoints that
+    require a cleared session; the empty result then made every page a 403 for
+    anyone who is not a super-admin. They are fetched once MFA clears, before
+    the dashboard renders.
+  - When the authenticator status check failed, the login page started
+    authenticator **setup** instead, which replaces the secret the user already
+    holds — their existing codes then failed and the account locked after
+    three attempts. Both the login page and the in-dashboard guard now show
+    the error with Try Again / Sign out and never re-enrol on their own. The
+    API also refuses to replace an existing authenticator from a session that
+    has not cleared MFA, and refuses setup on a locked account.
+  *(Backend: `supabase/supabase.ts` — `/totp/setup`; `/totp/unlock` and
+  `/totp/reset` now check for super-admin as their comments always claimed.)*
+- **Delete on HR > Business Visa and HR > Leave** called endpoints that did not
+  exist. *(Backend: two new DELETE endpoints.)*
 - **Dead links.** Six places sent the user to an address with no page behind
   it (an error page, whatever the role). Each route in `paths.js` was checked
   against the pages that exist: HR > Employees > **View** (a read-only

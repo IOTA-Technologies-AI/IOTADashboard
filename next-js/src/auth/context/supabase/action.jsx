@@ -2,6 +2,8 @@
 
 import { paths } from 'src/routes/paths';
 
+import { clearAllTotpStamps } from 'src/utils/totp-session';
+
 import { supabase } from 'src/lib/supabase';
 
 // ----------------------------------------------------------------------
@@ -53,13 +55,7 @@ export const signOut = async () => {
   // so a stamp left behind would vouch for the NEXT session — which has not
   // cleared the second factor — and the gateway would reject every call while
   // the dashboard rendered as if all were well.
-  try {
-    Object.keys(sessionStorage)
-      .filter((k) => k.startsWith('totp_verified_at_'))
-      .forEach((k) => sessionStorage.removeItem(k));
-  } catch {
-    // sessionStorage unavailable — non-fatal
-  }
+  clearAllTotpStamps();
 
   const { error } = await supabase.auth.signOut();
 

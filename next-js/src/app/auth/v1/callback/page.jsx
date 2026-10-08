@@ -15,12 +15,15 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
 
-import { getLiveSessionId, getLiveAccessToken } from 'src/utils/jwt-auth';
+import { getLiveAccessToken } from 'src/utils/jwt-auth';
+import { markLiveSessionTotpVerified } from 'src/utils/totp-session';
 import { totpSetup, totpStatus, totpVerify, totpVerifySetup } from 'src/utils/apiHelper';
 
 import { supabase } from 'src/lib/supabase';
 
 import { Iconify } from 'src/components/iconify';
+
+import { signOut } from 'src/auth/context/supabase/action';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -34,21 +37,9 @@ const parseHashParams = (hashString) => {
   };
 };
 
-// Keyed on the Supabase session_id, matching TotpGuard and the gateway's own
-// `totpVerifiedSession` binding. An email-keyed stamp outlives the session it
-// was made for — sessionStorage survives a sign-out within the same tab — and
-// would then vouch for a session that never cleared MFA.
-const sessionKey = (sessionId) => `totp_verified_at_${sessionId}`;
-
-async function markTotpVerified() {
-  try {
-    const sessionId = await getLiveSessionId();
-    if (!sessionId) return;
-    sessionStorage.setItem(sessionKey(sessionId), String(Date.now()));
-  } catch {
-    // non-fatal
-  }
-}
+// The MFA stamp is keyed on the Supabase session_id, matching TotpGuard and
+// the gateway's own binding — see src/utils/totp-session.js.
+const markTotpVerified = markLiveSessionTotpVerified;
 
 // ── Phases ────────────────────────────────────────────────────────────────────
 // exchanging      → loading: authenticating with Supabase
@@ -71,11 +62,47 @@ export default function SupabaseAuthCallbackPage() {
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
   const [resendError, setResendError] = useState('');
+  const [switching, setSwitching] = useState(false);
 
   const nextRef = useRef(paths.dashboard.root);
   const emailRef = useRef('');
 
   const goToDashboard = () => router.replace(nextRef.current);
+
+  // Leave this account so someone else can sign in on this browser.
+  const useDifferentAccount = async () => {
+    setSwitching(true);
+    try {
+      await signOut();
+    } catch (err) {
+      console.error('[TOTP Callback] sign out failed:', err);
+    }
+    router.replace(paths.auth.supabase.signIn);
+  };
+
+  const signedInAs = (
+    <Stack spacing={1} alignItems="center">
+      <Typography variant="caption" color="text.disabled" textAlign="center">
+        Signed in as <strong>{emailRef.current}</strong>
+      </Typography>
+      <Button
+        size="small"
+        variant="text"
+        color="inherit"
+        onClick={useDifferentAccount}
+        disabled={switching}
+        startIcon={
+          switching ? (
+            <CircularProgress size={14} color="inherit" />
+          ) : (
+            <Iconify icon="solar:logout-2-bold" />
+          )
+        }
+      >
+        {switching ? 'Signing out…' : 'Not you? Sign in with a different account'}
+      </Button>
+    </Stack>
+  );
 
   // ── Auto-send QR email ────────────────────────────────────────────────────
   const sendQrEmail = async () => {
@@ -119,13 +146,23 @@ export default function SupabaseAuthCallbackPage() {
         setPhase('totp_required');
       } catch (statusErr) {
         const httpStatus = statusErr?.response?.status;
-        console.error('[TOTP Callback] totpStatus error:', httpStatus, statusErr?.response?.data?.message);
+        console.error(
+          '[TOTP Callback] totpStatus error:',
+          httpStatus,
+          statusErr?.response?.data?.message
+        );
         if (httpStatus === 404) {
           // Not in IOTA DB yet
           setPhase('account_not_found');
         } else {
-          // Unknown — auto-send QR rather than demanding an OTP they may not have
-          await sendQrEmail();
+          // Say so. This used to start authenticator SETUP instead, which
+          // replaces the secret the user already holds: their existing codes
+          // then failed and the account locked after three attempts.
+          setAuthError(
+            statusErr?.response?.data?.message ||
+              'Your authenticator status could not be checked. Please sign in again.'
+          );
+          setPhase('error');
         }
       }
     };
@@ -136,7 +173,11 @@ export default function SupabaseAuthCallbackPage() {
           access_token: accessToken,
           refresh_token: refreshToken,
         });
-        if (sessionError) { setAuthError(sessionError.message); setPhase('error'); return; }
+        if (sessionError) {
+          setAuthError(sessionError.message);
+          setPhase('error');
+          return;
+        }
         await afterSession(data?.user?.email);
         return;
       }
@@ -164,8 +205,14 @@ export default function SupabaseAuthCallbackPage() {
         return;
       }
 
-      const { error: exchError, data: exchData } = await supabase.auth.exchangeCodeForSession({ authCode: useCode });
-      if (exchError) { setAuthError(exchError.message); setPhase('error'); return; }
+      const { error: exchError, data: exchData } = await supabase.auth.exchangeCodeForSession({
+        authCode: useCode,
+      });
+      if (exchError) {
+        setAuthError(exchError.message);
+        setPhase('error');
+        return;
+      }
       await afterSession(exchData?.user?.email);
     };
 
@@ -199,7 +246,10 @@ export default function SupabaseAuthCallbackPage() {
   // ── Verify setup code (first-time) ────────────────────────────────────────
   const handleVerifySetup = async () => {
     const trimmed = otp.replace(/\s/g, '');
-    if (trimmed.length !== 6) { setOtpError('Enter the 6-digit code from your authenticator app.'); return; }
+    if (trimmed.length !== 6) {
+      setOtpError('Enter the 6-digit code from your authenticator app.');
+      return;
+    }
     setVerifying(true);
     setOtpError('');
     try {
@@ -207,7 +257,9 @@ export default function SupabaseAuthCallbackPage() {
       await markTotpVerified();
       goToDashboard();
     } catch (err) {
-      setOtpError(err?.response?.data?.message || err?.message || 'Incorrect code. Please try again.');
+      setOtpError(
+        err?.response?.data?.message || err?.message || 'Incorrect code. Please try again.'
+      );
     } finally {
       setVerifying(false);
     }
@@ -216,7 +268,10 @@ export default function SupabaseAuthCallbackPage() {
   // ── Verify OTP (returning user) ───────────────────────────────────────────
   const handleVerify = async () => {
     const trimmed = otp.replace(/\s/g, '');
-    if (trimmed.length !== 6) { setOtpError('Enter the 6-digit code from your authenticator app.'); return; }
+    if (trimmed.length !== 6) {
+      setOtpError('Enter the 6-digit code from your authenticator app.');
+      return;
+    }
     setVerifying(true);
     setOtpError('');
     try {
@@ -285,15 +340,15 @@ export default function SupabaseAuthCallbackPage() {
           <Box sx={{ p: 4 }}>
             <Stack spacing={3} alignItems="center">
               <Iconify icon="solar:user-block-bold" width={48} sx={{ color: 'warning.main' }} />
-              <Typography variant="h5" textAlign="center">Account Not Activated</Typography>
+              <Typography variant="h5" textAlign="center">
+                Account Not Activated
+              </Typography>
               <Typography variant="body2" color="text.secondary" textAlign="center">
                 You&apos;ve signed in with Microsoft successfully, but your account hasn&apos;t been
-                activated in the IOTA dashboard yet. Please ask your{' '}
-                <strong>Super Admin</strong> to grant you access via the Access Control page.
+                activated in the IOTA dashboard yet. Please ask your <strong>Super Admin</strong> to
+                grant you access via the Access Control page.
               </Typography>
-              <Typography variant="caption" color="text.disabled" textAlign="center">
-                Signed in as <strong>{emailRef.current}</strong>
-              </Typography>
+              {signedInAs}
             </Stack>
           </Box>
         </Card>
@@ -310,7 +365,9 @@ export default function SupabaseAuthCallbackPage() {
             <Stack spacing={3}>
               <Stack spacing={1} alignItems="center">
                 <Iconify icon="solar:letter-bold" width={40} sx={{ color: 'success.main' }} />
-                <Typography variant="h5" textAlign="center">Check Your Email</Typography>
+                <Typography variant="h5" textAlign="center">
+                  Check Your Email
+                </Typography>
                 <Typography variant="body2" color="text.secondary" textAlign="center">
                   We&apos;ve sent a QR code to <strong>{emailRef.current}</strong>.
                 </Typography>
@@ -327,15 +384,24 @@ export default function SupabaseAuthCallbackPage() {
                     <Stack key={n} direction="row" spacing={1.5} alignItems="flex-start">
                       <Box
                         sx={{
-                          minWidth: 24, height: 24, borderRadius: '50%',
-                          bgcolor: 'primary.main', color: 'primary.contrastText',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          fontSize: 12, fontWeight: 700, mt: 0.1,
+                          minWidth: 24,
+                          height: 24,
+                          borderRadius: '50%',
+                          bgcolor: 'primary.main',
+                          color: 'primary.contrastText',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 12,
+                          fontWeight: 700,
+                          mt: 0.1,
                         }}
                       >
                         {n}
                       </Box>
-                      <Typography variant="body2" color="text.secondary">{text}</Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {text}
+                      </Typography>
                     </Stack>
                   ))}
                 </Stack>
@@ -361,8 +427,10 @@ export default function SupabaseAuthCallbackPage() {
                 disabled={resending}
                 startIcon={resending ? <CircularProgress size={14} color="inherit" /> : null}
               >
-                {resending ? 'Resending…' : 'Didn\'t receive the email? Send again'}
+                {resending ? 'Resending…' : "Didn't receive the email? Send again"}
               </Button>
+
+              {signedInAs}
             </Stack>
           </Box>
         </Card>
@@ -379,7 +447,9 @@ export default function SupabaseAuthCallbackPage() {
             <Stack spacing={3}>
               <Stack spacing={1} alignItems="center">
                 <Iconify icon="solar:qr-code-bold" width={40} sx={{ color: 'success.main' }} />
-                <Typography variant="h5" textAlign="center">Enter the Code</Typography>
+                <Typography variant="h5" textAlign="center">
+                  Enter the Code
+                </Typography>
                 <Typography variant="body2" color="text.secondary" textAlign="center">
                   Open your authenticator app and enter the 6-digit code for{' '}
                   <strong>IOTA Technologies</strong> to complete setup.
@@ -392,8 +462,13 @@ export default function SupabaseAuthCallbackPage() {
                 label="Authenticator Code"
                 placeholder="000 000"
                 value={otp}
-                onChange={(e) => { setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6)); setOtpError(''); }}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleVerifySetup(); }}
+                onChange={(e) => {
+                  setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6));
+                  setOtpError('');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleVerifySetup();
+                }}
                 inputProps={{ inputMode: 'numeric', maxLength: 6 }}
                 error={!!otpError}
                 helperText={otpError}
@@ -407,14 +482,27 @@ export default function SupabaseAuthCallbackPage() {
                 color="success"
                 onClick={handleVerifySetup}
                 disabled={verifying || otp.replace(/\s/g, '').length !== 6}
-                startIcon={verifying ? <CircularProgress size={16} color="inherit" /> : <Iconify icon="solar:check-circle-bold" />}
+                startIcon={
+                  verifying ? (
+                    <CircularProgress size={16} color="inherit" />
+                  ) : (
+                    <Iconify icon="solar:check-circle-bold" />
+                  )
+                }
               >
                 {verifying ? 'Verifying…' : 'Complete Setup & Sign In'}
               </Button>
 
-              <Button size="small" variant="text" color="inherit" onClick={() => setPhase('setup_email_sent')}>
+              <Button
+                size="small"
+                variant="text"
+                color="inherit"
+                onClick={() => setPhase('setup_email_sent')}
+              >
                 ← Back to instructions
               </Button>
+
+              {signedInAs}
             </Stack>
           </Box>
         </Card>
@@ -430,8 +518,14 @@ export default function SupabaseAuthCallbackPage() {
           <Box sx={{ p: 4 }}>
             <Stack spacing={3}>
               <Stack spacing={1} alignItems="center">
-                <Iconify icon="solar:shield-keyhole-bold" width={40} sx={{ color: 'primary.main' }} />
-                <Typography variant="h5" textAlign="center">Two-Factor Verification</Typography>
+                <Iconify
+                  icon="solar:shield-keyhole-bold"
+                  width={40}
+                  sx={{ color: 'primary.main' }}
+                />
+                <Typography variant="h5" textAlign="center">
+                  Two-Factor Verification
+                </Typography>
                 <Typography variant="body2" color="text.secondary" textAlign="center">
                   Open <strong>Microsoft Authenticator</strong> (or your TOTP app) and enter the
                   6-digit code for <strong>IOTA Technologies</strong>.
@@ -444,8 +538,13 @@ export default function SupabaseAuthCallbackPage() {
                 label="Authenticator Code"
                 placeholder="000 000"
                 value={otp}
-                onChange={(e) => { setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6)); setOtpError(''); }}
-                onKeyDown={(e) => { if (e.key === 'Enter') handleVerify(); }}
+                onChange={(e) => {
+                  setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6));
+                  setOtpError('');
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleVerify();
+                }}
                 inputProps={{ inputMode: 'numeric', maxLength: 6 }}
                 error={!!otpError}
                 helperText={otpError}
@@ -458,10 +557,18 @@ export default function SupabaseAuthCallbackPage() {
                 variant="contained"
                 onClick={handleVerify}
                 disabled={verifying || otp.replace(/\s/g, '').length !== 6}
-                startIcon={verifying ? <CircularProgress size={16} color="inherit" /> : <Iconify icon="solar:lock-password-bold" />}
+                startIcon={
+                  verifying ? (
+                    <CircularProgress size={16} color="inherit" />
+                  ) : (
+                    <Iconify icon="solar:lock-password-bold" />
+                  )
+                }
               >
                 {verifying ? 'Verifying…' : 'Verify & Sign In'}
               </Button>
+
+              {signedInAs}
             </Stack>
           </Box>
         </Card>
@@ -477,14 +584,14 @@ export default function SupabaseAuthCallbackPage() {
           <Box sx={{ p: 4 }}>
             <Stack spacing={3} alignItems="center">
               <Iconify icon="solar:lock-bold" width={48} sx={{ color: 'error.main' }} />
-              <Typography variant="h5" textAlign="center" color="error">Account Locked</Typography>
+              <Typography variant="h5" textAlign="center" color="error">
+                Account Locked
+              </Typography>
               <Typography variant="body2" color="text.secondary" textAlign="center">
-                Your account has been locked after too many failed authentication attempts.
-                Please contact your <strong>Super Admin</strong> to unlock your account.
+                Your account has been locked after too many failed authentication attempts. Please
+                contact your <strong>Super Admin</strong> to unlock your account.
               </Typography>
-              <Typography variant="caption" color="text.disabled" textAlign="center">
-                Signed in as <strong>{emailRef.current}</strong>
-              </Typography>
+              {signedInAs}
             </Stack>
           </Box>
         </Card>

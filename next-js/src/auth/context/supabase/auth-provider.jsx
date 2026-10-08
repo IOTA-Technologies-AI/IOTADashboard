@@ -5,6 +5,7 @@ import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 
 import { fetchUserEnabledPaths } from 'src/utils/apiHelper';
 import { seedOneDriveToken } from 'src/utils/onedrive-helper';
+import { isLiveSessionTotpVerified } from 'src/utils/totp-session';
 import { fetchRoleBasedNavPermissions } from 'src/utils/pageAccess';
 
 import { supabase } from 'src/lib/supabase';
@@ -157,6 +158,9 @@ export function AuthProvider({ children }) {
   const [apiAppRoles, setApiAppRoles] = useState([]);
   const [allowedPaths, setAllowedPaths] = useState([]);
   const [permissionsLoading, setPermissionsLoading] = useState(false);
+  // True once allowedPaths reflects the API (or the super-admin wildcard).
+  // TotpGuard waits for this before it lets the dashboard render.
+  const [permissionsReady, setPermissionsReady] = useState(false);
   // Tracks whether permissions have been fetched at least once for this user.
   // Prevents showing the full-page SplashScreen when a Supabase token-refresh
   // silently re-fires the SIGNED_IN event (every ~60 min), which would otherwise
@@ -275,6 +279,7 @@ export function AuthProvider({ children }) {
     if (!state.user) {
       setAllowedPaths([]);
       permissionsInitialized.current = false;
+      setPermissionsReady(false);
       return;
     }
 
@@ -294,6 +299,17 @@ export function AuthProvider({ children }) {
 
     if (resolvedRole === 'superAdmin') {
       setAllowedPaths(['*']);
+      setPermissionsReady(true);
+      return;
+    }
+
+    // The permission endpoints sit behind the gateway's second-factor gate.
+    // Until this session has cleared MFA every call to them is rejected, and
+    // the empty result it left behind made every page a 403 after the code
+    // was finally entered. TotpGuard calls this again once MFA is cleared.
+    if (!(await isLiveSessionTotpVerified())) {
+      setAllowedPaths([]);
+      setPermissionsReady(false);
       return;
     }
 
@@ -321,14 +337,16 @@ export function AuthProvider({ children }) {
       }
 
       setAllowedPaths(newPaths);
+      setPermissionsReady(true);
     } catch (err) {
       console.error('[AuthProvider] Failed to load permissions:', err);
       setAllowedPaths([]);
+      setPermissionsReady(false);
     } finally {
       permissionsInitialized.current = true;
       setPermissionsLoading(false);
     }
-  }, [state.user, apiAppRoles]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.user, apiAppRoles]);  
 
   useEffect(() => {
     refreshPermissions();
@@ -419,6 +437,7 @@ export function AuthProvider({ children }) {
       unauthenticated: status === 'unauthenticated',
       allowedPaths,
       permissionsLoading,
+      permissionsReady,
       refreshPermissions,
     };
   }, [
@@ -428,6 +447,7 @@ export function AuthProvider({ children }) {
     status,
     allowedPaths,
     permissionsLoading,
+    permissionsReady,
     refreshPermissions,
   ]);
 

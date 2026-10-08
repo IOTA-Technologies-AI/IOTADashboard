@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import Avatar from '@mui/material/Avatar';
+import Divider from '@mui/material/Divider';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
@@ -14,86 +16,124 @@ import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
-import { usePathname } from 'src/routes/hooks';
 import { RouterLink } from 'src/routes/components';
+import { useRouter, usePathname } from 'src/routes/hooks';
+
+import { getLiveSessionId } from 'src/utils/jwt-auth';
+import { totpVerify, totpStatus } from 'src/utils/apiHelper';
+import {
+  REAUTH_MS,
+  setTotpVerifiedAt,
+  getTotpVerifiedAt,
+  isTotpStampExpired,
+  clearTotpVerifiedAt,
+} from 'src/utils/totp-session';
 
 import { Iconify } from 'src/components/iconify';
 import { SplashScreen } from 'src/components/loading-screen';
 
-import { totpVerify, totpStatus } from 'src/utils/apiHelper';
-import { getLiveSessionId } from 'src/utils/jwt-auth';
-
 import { useAuthContext } from '../hooks';
+import { signOut } from '../context/supabase/action';
 
 // ----------------------------------------------------------------------
-
-// How many hours before forcing re-authentication (default 8h, env-configurable).
-const REAUTH_HOURS =
-  Number(process.env.NEXT_PUBLIC_TOTP_REAUTH_HOURS) > 0
-    ? Number(process.env.NEXT_PUBLIC_TOTP_REAUTH_HOURS)
-    : 8;
-
-const REAUTH_MS = REAUTH_HOURS * 60 * 60 * 1000;
-
-/**
- * The stamp is keyed on the Supabase `session_id`, which is what the gateway
- * binds the second factor to (`auth/auth.ts` gate 4). It used to be keyed on
- * the user's EMAIL, which records only THAT THE USER once verified, not that
- * THIS SESSION did — and sessionStorage outlives a sign-out within the same
- * tab. A user who signed out and back in therefore carried the old stamp into
- * a session that had never cleared MFA: this guard read it, decided they were
- * verified, rendered the dashboard with no OTP prompt, and every API call came
- * back 401 "second factor required" behind a screen that looked perfectly
- * normal. Keyed on the session, the client and the server cannot disagree.
- */
-const sessionKey = (sessionId) => `totp_verified_at_${sessionId}`;
-
-function getVerifiedAt(sessionId) {
-  if (!sessionId) return null;
-  try {
-    const raw = sessionStorage.getItem(sessionKey(sessionId));
-    return raw ? Number(raw) : null;
-  } catch {
-    return null;
-  }
-}
-
-function setVerifiedAt(sessionId) {
-  if (!sessionId) return;
-  try {
-    sessionStorage.setItem(sessionKey(sessionId), String(Date.now()));
-  } catch {
-    // sessionStorage unavailable (SSR / private mode) — non-fatal
-  }
-}
-
-function isSessionExpired(sessionId) {
-  const ts = getVerifiedAt(sessionId);
-  if (!ts) return true;
-  return Date.now() - ts > REAUTH_MS;
-}
 
 // Pages where TOTP guard is bypassed so users can reach the setup page.
 const BYPASS_PATHS = [`${paths.dashboard.user.account}/authenticator`];
 
 // ----------------------------------------------------------------------
 
-export function TotpGuard({ children }) {
-  const { user, authenticated, loading: authLoading } = useAuthContext();
-  const pathname = usePathname();
+/**
+ * Who is signed in — shown on every MFA screen so the person entering a code
+ * knows whose account it is, and can leave if it is not theirs.
+ */
+function SignedInAs({ user, onSignOut, signingOut, disabled }) {
+  const name = user?.displayName || user?.user_metadata?.full_name || '';
+  const email = user?.email || '';
+  const initial = (name || email || '?').charAt(0).toUpperCase();
+  return (
+    <Box
+      sx={{
+        mt: 2,
+        p: 1.5,
+        gap: 1.5,
+        display: 'flex',
+        borderRadius: 1.5,
+        alignItems: 'center',
+        bgcolor: 'background.neutral',
+      }}
+    >
+      <Avatar sx={{ width: 36, height: 36 }}>{initial}</Avatar>
+      <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+        <Typography variant="caption" color="text.secondary" display="block">
+          Signed in as
+        </Typography>
+        {name ? (
+          <Typography variant="subtitle2" noWrap>
+            {name}
+          </Typography>
+        ) : null}
+        <Typography variant="body2" color={name ? 'text.secondary' : 'text.primary'} noWrap>
+          {email}
+        </Typography>
+      </Box>
+      <Button
+        size="small"
+        color="inherit"
+        onClick={onSignOut}
+        disabled={disabled || signingOut}
+        startIcon={
+          signingOut ? (
+            <CircularProgress size={14} color="inherit" />
+          ) : (
+            <Iconify icon="solar:logout-2-bold" />
+          )
+        }
+        sx={{ flexShrink: 0 }}
+      >
+        {signingOut ? 'Signing out…' : 'Not you? Sign out'}
+      </Button>
+    </Box>
+  );
+}
 
-  // 'loading' | 'setup_required' | 'otp_required' | 'verified'
+// ----------------------------------------------------------------------
+
+export function TotpGuard({ children }) {
+  const {
+    user,
+    authenticated,
+    loading: authLoading,
+    permissionsReady,
+    refreshPermissions,
+  } = useAuthContext();
+  const pathname = usePathname();
+  const router = useRouter();
+
+  // 'loading' | 'setup_required' | 'otp_required' | 'verified' | 'error'
   const [state, setState] = useState('loading');
   const [otp, setOtp] = useState('');
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState('');
   const [locked, setLocked] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   // Timer ref for re-auth polling
   const timerRef = useRef(null);
 
   // The Supabase session this guard has evaluated; null until resolved.
   const sessionIdRef = useRef(null);
+
+  // Whether the dashboard has been shown in this mount. On first entry the
+  // dashboard is NOT rendered behind the OTP prompt: mounting it fires every
+  // page's API calls, all of which the gateway rejects until the code is
+  // entered, and the screen filled with authorization errors before the user
+  // had typed anything. Once verified, a later re-verification keeps it
+  // mounted (blurred) so in-progress work is not lost.
+  const everVerifiedRef = useRef(false);
+
+  // Latest refreshPermissions without re-running the status check on each render.
+  const refreshPermissionsRef = useRef(refreshPermissions);
+  refreshPermissionsRef.current = refreshPermissions;
 
   const email = user?.email;
 
@@ -109,6 +149,22 @@ export function TotpGuard({ children }) {
     }, REAUTH_MS);
   }, []);
 
+  // Permissions are fetched only once MFA is cleared (the endpoints are gated
+  // on it). Load them before the dashboard renders, or every page would be
+  // judged against an empty list and bounce to 403.
+  const becomeVerified = useCallback(async () => {
+    if (!permissionsReady) {
+      try {
+        await refreshPermissionsRef.current?.();
+      } catch (err) {
+        console.error('[TotpGuard] permissions load failed:', err);
+      }
+    }
+    everVerifiedRef.current = true;
+    setState('verified');
+    scheduleReauthCheck();
+  }, [permissionsReady, scheduleReauthCheck]);
+
   const checkTotp = useCallback(async () => {
     if (!email) return;
     if (isBypassPath) {
@@ -121,9 +177,16 @@ export function TotpGuard({ children }) {
       const sessionId = await getLiveSessionId();
       sessionIdRef.current = sessionId;
 
-      const { totpEnabled, totpUnlockedAt } = await totpStatus(email);
+      const { totpEnabled, totpLocked, totpUnlockedAt } = await totpStatus(email);
       if (!totpEnabled) {
         setState('setup_required');
+        return;
+      }
+      if (totpLocked) {
+        setLocked(true);
+        setError('Account locked. Contact your Super Admin to unlock your account.');
+        setOtp('');
+        setState('otp_required');
         return;
       }
       // No resolvable session means no stamp can be trusted: ask for a code
@@ -136,41 +199,42 @@ export function TotpGuard({ children }) {
       }
       // If the admin unlocked the account AFTER the user last verified, invalidate their session.
       if (totpUnlockedAt) {
-        const verifiedAt = getVerifiedAt(sessionId);
+        const verifiedAt = getTotpVerifiedAt(sessionId);
         if (!verifiedAt || verifiedAt < new Date(totpUnlockedAt).getTime()) {
-          try {
-            sessionStorage.removeItem(sessionKey(sessionId));
-          } catch {
-            /* non-fatal */
-          }
+          clearTotpVerifiedAt(sessionId);
           setState('otp_required');
           return;
         }
       }
       // The callback page already verified TOTP on fresh login and stamped sessionStorage.
       // Here we only need to enforce the re-auth timer.
-      if (isSessionExpired(sessionId)) {
+      if (isTotpStampExpired(sessionId)) {
         setState('otp_required');
       } else {
-        setState('verified');
-        scheduleReauthCheck();
+        await becomeVerified();
       }
     } catch (err) {
       console.error('[TotpGuard] status check failed:', err);
-      // If we have a valid stamped session, let the user continue (re-auth failure shouldn't kick them out).
-      // Otherwise show setup_required — we can't demand a code they may not have.
-      const ts = getVerifiedAt(sessionIdRef.current);
-      if (ts && Date.now() - ts <= REAUTH_MS) {
-        setState('verified');
-        scheduleReauthCheck();
+      // A valid stamp lets the user continue — a failed status call must not
+      // throw them out. Otherwise say so and offer a retry. It used to send
+      // them to the SETUP page, which replaces the authenticator they already
+      // hold; their existing codes then stopped working and the account
+      // locked after three attempts.
+      if (!isTotpStampExpired(sessionIdRef.current)) {
+        await becomeVerified();
       } else {
-        setState('setup_required');
+        setError(
+          err?.response?.data?.message ||
+            err?.message ||
+            'The authenticator status could not be checked.'
+        );
+        setState('error');
       }
     }
-  }, [email, isBypassPath, scheduleReauthCheck]);
+  }, [email, isBypassPath, becomeVerified]);
 
   useEffect(() => {
-    if (authLoading || !authenticated) return;
+    if (authLoading || !authenticated) return undefined;
     checkTotp();
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -192,9 +256,8 @@ export function TotpGuard({ children }) {
       // two records are keyed identically.
       const sessionId = sessionIdRef.current ?? (await getLiveSessionId());
       sessionIdRef.current = sessionId;
-      setVerifiedAt(sessionId);
-      setState('verified');
-      scheduleReauthCheck();
+      setTotpVerifiedAt(sessionId);
+      await becomeVerified();
     } catch (err) {
       const encoreMsg = err?.response?.data?.message || err?.message || '';
       if (err?.response?.status === 403 || encoreMsg.toLowerCase().includes('locked')) {
@@ -208,10 +271,56 @@ export function TotpGuard({ children }) {
     }
   };
 
+  // Leave this account so someone else can sign in on this browser.
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    try {
+      await signOut();
+      router.replace(paths.auth.supabase.signIn);
+    } catch (err) {
+      console.error('[TotpGuard] sign out failed:', err);
+      setSigningOut(false);
+    }
+  };
+
   // ── Loading ──────────────────────────────────────────────────────────────
 
   if (authLoading || state === 'loading') {
     return <SplashScreen />;
+  }
+
+  // ── Status check failed ──────────────────────────────────────────────────
+
+  if (state === 'error') {
+    return (
+      <Dialog open disableEscapeKeyDown maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Iconify icon="solar:shield-warning-bold" width={24} />
+          Could Not Verify Your Account
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="error">{error}</Alert>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
+            Try again in a moment. If it keeps failing, sign out and in again, or contact your Super
+            Admin.
+          </Typography>
+          <SignedInAs user={user} onSignOut={handleSignOut} signingOut={signingOut} />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            variant="contained"
+            onClick={() => {
+              setError('');
+              setState('loading');
+              checkTotp();
+            }}
+            startIcon={<Iconify icon="solar:restart-bold" />}
+          >
+            Try Again
+          </Button>
+        </DialogActions>
+      </Dialog>
+    );
   }
 
   // ── Setup required ───────────────────────────────────────────────────────
@@ -228,6 +337,7 @@ export function TotpGuard({ children }) {
             Your organisation requires Microsoft Authenticator for dashboard access. Please set it
             up before continuing.
           </Typography>
+          <SignedInAs user={user} onSignOut={handleSignOut} signingOut={signingOut} />
         </DialogContent>
         <DialogActions>
           <Button
@@ -246,20 +356,24 @@ export function TotpGuard({ children }) {
   // ── OTP verification overlay ─────────────────────────────────────────────
 
   const needsOtp = state === 'otp_required';
+  // Keep the dashboard mounted only for a re-verification; on first entry
+  // nothing renders behind the prompt (see everVerifiedRef).
+  const showChildren = state === 'verified' || (needsOtp && everVerifiedRef.current);
 
   return (
     <>
-      {/* Children always rendered; blurred when OTP needed (re-auth case) */}
-      <Box
-        sx={{
-          filter: needsOtp ? 'blur(6px)' : 'none',
-          pointerEvents: needsOtp ? 'none' : 'auto',
-          userSelect: needsOtp ? 'none' : 'auto',
-          transition: 'filter 0.2s',
-        }}
-      >
-        {children}
-      </Box>
+      {showChildren ? (
+        <Box
+          sx={{
+            filter: needsOtp ? 'blur(6px)' : 'none',
+            pointerEvents: needsOtp ? 'none' : 'auto',
+            userSelect: needsOtp ? 'none' : 'auto',
+            transition: 'filter 0.2s',
+          }}
+        >
+          {children}
+        </Box>
+      ) : null}
 
       {needsOtp && (
         <Dialog open disableEscapeKeyDown maxWidth="xs" fullWidth>
@@ -270,8 +384,10 @@ export function TotpGuard({ children }) {
 
           <DialogContent>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-              Your session requires re-verification. Enter the 6-digit code from{' '}
-              <strong>Microsoft Authenticator</strong>.
+              {everVerifiedRef.current
+                ? 'Your session requires re-verification. '
+                : 'Finish signing in. '}
+              Enter the 6-digit code from <strong>Microsoft Authenticator</strong> for this account.
             </Typography>
 
             <TextField
@@ -282,14 +398,15 @@ export function TotpGuard({ children }) {
               value={otp}
               onChange={(e) => {
                 setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6));
-                setError('');
+                if (!locked) setError('');
               }}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleVerify();
               }}
               inputProps={{ inputMode: 'numeric', maxLength: 6 }}
+              disabled={locked}
               error={!!error}
-              helperText={error}
+              helperText={locked ? '' : error}
             />
 
             {error && (
@@ -297,6 +414,14 @@ export function TotpGuard({ children }) {
                 {error}
               </Alert>
             )}
+
+            <Divider sx={{ mt: 2, borderStyle: 'dashed' }} />
+            <SignedInAs
+              user={user}
+              onSignOut={handleSignOut}
+              signingOut={signingOut}
+              disabled={verifying}
+            />
           </DialogContent>
 
           <DialogActions>
