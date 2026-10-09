@@ -1,20 +1,32 @@
-import axios from 'axios';
+import iotaApi from 'src/lib/iota-api';
 
-const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
-
+/**
+ * Publishes every staged CMS item on the IOTA Webflow site.
+ *
+ * Throws an Error carrying the API's own message, so the toast says why it
+ * failed — a refused sign-in ("second factor required", "invalid or expired
+ * token") reads differently from Webflow rejecting the saved API key.
+ */
 export async function publishToWebflow() {
+  let response;
   try {
-    const response = await axios.post(`${API_BASE_URL}/webflow/publish`);
-
-    if (!response.data?.success) {
-      const errorMessage = response.data?.message || 'Failed to publish to Webflow';
-      console.error('Webflow publish failed:', errorMessage);
-      throw new Error(errorMessage);
-    }
-
-    return response.data;
+    response = await iotaApi.post('/webflow/publish', {});
   } catch (error) {
-    console.error('Error publishing to Webflow:', error);
-    throw error;
+    const status = error?.response?.status;
+    const apiMessage = error?.response?.data?.message;
+    console.error('Error publishing to Webflow:', status, error?.response?.data || error);
+    throw new Error(
+      status === 401
+        ? `Your sign-in was refused by the API (${apiMessage || 'unauthenticated'}). Reload the page; if it persists, sign out and in again.`
+        : apiMessage || error.message || 'Failed to publish to Webflow'
+    );
   }
+
+  if (!response.data?.success) {
+    // Webflow itself refused — usually the saved API key or site ID.
+    const message = response.data?.message || 'Failed to publish to Webflow';
+    console.error('Webflow publish failed:', message);
+    throw new Error(`Webflow refused the publish: ${message}`);
+  }
+  return response.data;
 }

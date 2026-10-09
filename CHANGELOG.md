@@ -387,6 +387,11 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Job → Publish to Webflow** showed only "Request failed with status code
+  401". The toast now says which side refused: the dashboard's sign-in (with
+  the API's reason) or Webflow itself (with Webflow's message, e.g. a rejected
+  API key or site ID). The call also goes through the shared API client like
+  the rest of the app.
 - **Mirrored IOTA mark.** The mark in `public/logo/logo-full.png` was a mirror
   image of the real one (rounded edge and slant swapped); only the mark is
   flipped back, the word is unchanged. Fixes the formatted resumes, the
