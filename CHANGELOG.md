@@ -25,6 +25,31 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **NDA review against the IOTA standard, with exceptional approval.** Every
+  uploaded NDA — and any IOTA-template NDA with added or rewritten clauses — is
+  checked by the Azure OpenAI deployment against IOTA's NDA standard
+  (liability, indemnities, penalties, non-compete, IP, non-solicitation,
+  mutuality, definitions, term, governing law for the executing office, audits,
+  data, termination, return/destruction, assignment). The review lists each
+  problem clause with the quoted wording, why it hurts IOTA, what to ask for and
+  suggested replacement text, plus a checklist and an overall risk level.
+  - **On upload**: a switch on New NDA (on by default) runs the review as soon
+    as the document is uploaded.
+  - **Existing NDAs**: an "IOTA review" column in the list and **Review
+    existing NDAs**, which checks every unreviewed NDA in turn; each NDA page
+    can run or re-run its review.
+  - **Gate**: an NDA that needs review cannot be submitted for signing until it
+    is reviewed and either clear, or carries an exception approved by an Admin
+    / Super Admin with a written reason. Requesting an exception emails the
+    Admins and Super Admins; an admin cannot approve their own request (a Super
+    Admin can). Uploading a new document or changing the wording clears the
+    review, so the revised NDA is checked again. Every review and decision is
+    in the NDA's audit log.
+  - The standard is one file in the API (`ndas/ndaStandard.ts`) — contract
+    policy: legal sign-off before changing it.
+  *(Backend: `ndas/ndaReview.ts`, `ndas/ndaReviewGate.ts`,
+  `ndas/ndaStandard.ts`, gate in `ndas/ndas.ts`; migration
+  `supabase/sql/20261011_nda_ai_review.sql`.)*
 - **Talent: resume IDs, search, candidates per requirement, and matching.**
   - Every resume has a permanent **resume ID** (`IOTA-R-00042`), shown in the
     library and on the resume page, and printed on the formatted PDF so a

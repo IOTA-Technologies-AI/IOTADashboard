@@ -51,11 +51,14 @@ import {
 } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
+import { ndaSigningBlockedReason } from 'src/actions/nda-review';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { NdaPdfDocument, NdaHtmlTemplate, NdaSignatureCanvas } from 'src/components/nda';
+
+import { NdaReviewPanel } from 'src/sections/nda/nda-review-panel';
 
 import { useAuthContext } from 'src/auth/hooks';
 import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
@@ -479,7 +482,7 @@ export default function NdaDetailsPage({ params }) {
       toast.success('NDA submitted for IOTA signatures. Signatories have been emailed.');
     } catch (err) {
       console.error(err);
-      toast.error('Failed to submit for signing');
+      toast.error(err?.response?.data?.message || 'Failed to submit for signing');
     } finally {
       setActionLoading(false);
     }
@@ -1215,6 +1218,9 @@ export default function NdaDetailsPage({ params }) {
     editLockReason = `Only ${nda.createdBy || 'the creator'} or a super admin can edit this NDA.`;
   }
 
+  // The review gate, as the API enforces it — shown on the submit button.
+  const signingBlockedReason = ndaSigningBlockedReason(nda);
+
   const isCancellable = ['draft', 'pending_iota_signatures', 'pending_partner_signatures'].includes(
     nda.status
   );
@@ -1253,6 +1259,9 @@ export default function NdaDetailsPage({ params }) {
         }
         sx={{ mb: { xs: 3, md: 5 } }}
       />
+
+      {/* Checked against the IOTA standard before it can go for signature */}
+      <NdaReviewPanel nda={nda} onChange={fetchNda} />
 
       <Grid container spacing={3}>
         {/* ── Left col: summary + actions ── */}
@@ -3574,17 +3583,27 @@ export default function NdaDetailsPage({ params }) {
           </Typography>
           <Stack spacing={1}>
             {isDraft && (
-              <LoadingButton
-                variant="contained"
-                size="small"
-                fullWidth
-                loading={actionLoading}
-                startIcon={<Iconify icon="solar:pen-bold" />}
-                onClick={handleSubmitForSigning}
-              >
-                Submit for IOTA Signing
-              </LoadingButton>
+              <Tooltip title={signingBlockedReason}>
+                <span>
+                  <LoadingButton
+                    variant="contained"
+                    size="small"
+                    fullWidth
+                    loading={actionLoading}
+                    disabled={!!signingBlockedReason}
+                    startIcon={<Iconify icon="solar:pen-bold" />}
+                    onClick={handleSubmitForSigning}
+                  >
+                    Submit for IOTA Signing
+                  </LoadingButton>
+                </span>
+              </Tooltip>
             )}
+            {isDraft && signingBlockedReason ? (
+              <Typography variant="caption" color="warning.main">
+                {signingBlockedReason}
+              </Typography>
+            ) : null}
 
             {isPendingPartner &&
               nda.partnerSigningMethod !== 'manual' &&

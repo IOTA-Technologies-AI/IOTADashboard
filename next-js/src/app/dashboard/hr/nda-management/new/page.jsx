@@ -40,6 +40,7 @@ import {
   fallbackOfficeOptions,
 } from 'src/utils/iota-offices';
 
+import { runNdaReview } from 'src/actions/nda-review';
 import { DashboardContent } from 'src/layouts/dashboard';
 
 import { toast } from 'src/components/snackbar';
@@ -60,6 +61,10 @@ export default function NdaNewPage() {
   const [requireOtp, setRequireOtp] = useState(false);
   const [requireConsent, setRequireConsent] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null); // native File object
+  // Check the uploaded NDA against the IOTA standard straight after upload.
+  // It must be reviewed before signing either way; this only decides "now".
+  const [reviewOnUpload, setReviewOnUpload] = useState(true);
+  const [stage, setStage] = useState('');
 
   // Offices come from appConfig (namespace 'iotaOffice') so adding an entity is
   // a data change, not a deploy.
@@ -211,11 +216,28 @@ export default function NdaNewPage() {
       }
 
       toast.success(`NDA ${nda.ndaNumber} created`);
+
+      // Step 3: review against the IOTA standard. A failure here doesn't undo
+      // the NDA — the review can be run again from its page.
+      const customWording = (data.clauses || []).some((c) => (c?.content || '').trim());
+      if (reviewOnUpload && (documentSource === 'external_upload' || customWording)) {
+        setStage('Checking the NDA against the IOTA standard…');
+        try {
+          const review = await runNdaReview(nda.id);
+          if (review?.reviewStatus === 'clear') toast.success('Review: meets the IOTA standard.');
+          else toast.warning('Review: some clauses need attention — see the NDA page.');
+        } catch (reviewErr) {
+          toast.warning(
+            `The review could not run now (${reviewErr?.response?.data?.message || reviewErr.message}). Run it from the NDA page.`
+          );
+        }
+      }
       router.push(paths.dashboard.hr.ndaManagement.details(nda.id));
     } catch (err) {
       console.error('Failed to create NDA:', err);
-      toast.error('Failed to create NDA');
+      toast.error(err?.response?.data?.message || err?.message || 'Failed to create NDA');
     } finally {
+      setStage('');
       setSubmitting(false);
     }
   };
@@ -249,9 +271,9 @@ export default function NdaNewPage() {
                 Executing IOTA Office
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                Which IOTA entity is entering into this agreement. This determines the company
-                stamp applied when the document is finalized, and the governing law and
-                registration details printed on it. It cannot be changed after creation.
+                Which IOTA entity is entering into this agreement. This determines the company stamp
+                applied when the document is finalized, and the governing law and registration
+                details printed on it. It cannot be changed after creation.
               </Typography>
               <TextField
                 select
@@ -409,7 +431,7 @@ export default function NdaNewPage() {
                         startIcon={<Iconify icon="solar:upload-bold" />}
                         onClick={() => newDocFileRef.current?.click()}
                       >
-                        Select File (PDF / DOCX / DOC)
+                        Select File (PDF / DOCX)
                       </Button>
                       <Alert severity="info" sx={{ mt: 1 }}>
                         The partner document will be stored securely. You can add IOTA stamp
@@ -417,6 +439,28 @@ export default function NdaNewPage() {
                       </Alert>
                     </Stack>
                   )}
+                  <FormControlLabel
+                    sx={{ mt: 1.5, alignItems: 'flex-start' }}
+                    control={
+                      <Switch
+                        checked={reviewOnUpload}
+                        onChange={(e) => setReviewOnUpload(e.target.checked)}
+                      />
+                    }
+                    label={
+                      <Box sx={{ pt: 0.75 }}>
+                        <Typography variant="body2">
+                          Check against the IOTA standard after upload
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          AI review for liability, indemnities, penalties, governing law,
+                          non-compete, IP and other clauses that could harm IOTA. Required before
+                          signing; clauses that need attention go to an Admin / Super Admin for
+                          exception approval.
+                        </Typography>
+                      </Box>
+                    }
+                  />
                 </Box>
               )}
             </Card>
@@ -764,6 +808,16 @@ export default function NdaNewPage() {
                 <LoadingButton type="submit" variant="contained" fullWidth loading={submitting}>
                   Create NDA
                 </LoadingButton>
+                {stage ? (
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    display="block"
+                    sx={{ mt: 1 }}
+                  >
+                    {stage} This can take up to a minute.
+                  </Typography>
+                ) : null}
               </Box>
             </Card>
           </Grid>
