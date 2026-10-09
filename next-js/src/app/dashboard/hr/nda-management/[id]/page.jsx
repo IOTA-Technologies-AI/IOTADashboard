@@ -1263,7 +1263,7 @@ export default function NdaDetailsPage({ params }) {
       />
 
       {/* Checked against the IOTA standard before it can go for signature */}
-      <NdaReviewPanel nda={nda} onChange={fetchNda} />
+      <NdaReviewPanel nda={nda} onChange={fetchNda} onEmail={() => setReviewEmailOpen(true)} />
 
       <Grid container spacing={3}>
         {/* ── Left col: summary + actions ── */}

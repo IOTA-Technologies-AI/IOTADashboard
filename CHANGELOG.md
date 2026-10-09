@@ -455,6 +455,12 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Publishing jobs to Webflow failed with "Field not described in schema".** The
+  careers site was rebuilt and its Careers collection has new fields. Jobs now
+  map to Position, Location, Position type, Contract type, Role description,
+  Qualifications and Meta description.
+- The NDA review panel now has its own "Email to IOTA" button, next to
+  "Review again".
 - The NDA Actions panel no longer shows up empty for uploaded NDAs stored in
   OneDrive; their download buttons now appear.
 - **HR never received form-submission emails.** Candidate Intake and Employee

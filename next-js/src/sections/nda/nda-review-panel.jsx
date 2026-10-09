@@ -145,9 +145,10 @@ function Finding({ f }) {
 /**
  * Review of an NDA against the IOTA standard, and the exception workflow.
  * `onChange` is called after anything that changes whether the NDA may be
- * submitted for signing, so the page can reload it.
+ * submitted for signing, so the page can reload it. `onEmail` opens the
+ * "Email review to IOTA" dialog.
  */
-export function NdaReviewPanel({ nda, onChange }) {
+export function NdaReviewPanel({ nda, onChange, onEmail }) {
   const { user } = useAuthContext();
   const roleId = Number(user?.roleId) || 0;
   const isApprover = roleId >= 3;
@@ -319,7 +320,16 @@ export function NdaReviewPanel({ nda, onChange }) {
             </Label>
           ) : null}
         </Stack>
-        <Stack direction="row" spacing={1}>
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          {result && onEmail ? (
+            <Button
+              variant="outlined"
+              startIcon={<Iconify icon="solar:letter-bold" />}
+              onClick={onEmail}
+            >
+              Email to IOTA
+            </Button>
+          ) : null}
           {state.reviewStatus === 'attention' &&
           isDraft &&
           ['none', 'rejected'].includes(state.exceptionStatus) ? (
