@@ -25,6 +25,19 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Vet existing onboarding submissions, and IDfy on the Integrations page.**
+  Employee Vetting → "From Onboarding" lists every onboarding submission and
+  runs the AML and passport checks for one the automatic run missed. A
+  submission made before the consent checkbox needs the user to confirm the
+  employee's consent, and that confirmation is recorded on the vetting.
+  Integrations now has an IDfy card where a Super Admin can:
+  - edit the EVE and BGV credentials and test the connection for free;
+  - switch automatic onboarding vetting on or off and choose its checks;
+  - track credits.
+  IDfy has no balance API, so the remaining credits are estimated: the balance
+  recorded from plans.idfy.com, minus the checks sent since, at the
+  per-check rates. A low-balance email goes out once the estimate falls to the
+  threshold, and a banner appears on the vetting page.
 - **Email an NDA review to the IOTA team.** "Email Review to IOTA" in the NDA's
   Actions panel sends the saved review as a formatted email. Each chosen clause
   appears as a review comment showing the highlighted wording, why it matters,

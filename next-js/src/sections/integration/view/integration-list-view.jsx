@@ -25,6 +25,7 @@ import { EmptyContent } from 'src/components/empty-content';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 import { IntegrationList } from '../integration-list';
+import { IdfyIntegrationCard } from '../idfy-integration-card';
 import { IntegrationEditDialog } from '../integration-edit-dialog';
 import { INTEGRATION_TYPES, AVAILABLE_INTEGRATIONS } from '../integration-constants';
 
@@ -234,6 +235,7 @@ export function IntegrationListView() {
 
       {renderHeader()}
       {renderStats()}
+      <IdfyIntegrationCard />
       {renderFilters()}
 
       {filteredIntegrations.length === 0 ? (

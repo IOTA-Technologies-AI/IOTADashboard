@@ -23,10 +23,13 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
+import { getIdfyStatus } from 'src/actions/idfy';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { listVettings } from 'src/actions/employee-vetting';
 
 import { Iconify } from 'src/components/iconify';
+
+import { VettingFromOnboardingDialog } from '../vetting-from-onboarding-dialog';
 
 // ----------------------------------------------------------------------
 
@@ -42,6 +45,13 @@ export function VettingListView() {
   const router = useRouter();
   const { data, error, isLoading, mutate } = useSWR('vetting/list', listVettings);
   const [search, setSearch] = useState('');
+  const [fromOnboarding, setFromOnboarding] = useState(false);
+  // Credit estimate for the low-balance banner; the page works without it.
+  const { data: idfy } = useSWR('idfy/status', getIdfyStatus, {
+    shouldRetryOnError: false,
+    revalidateOnFocus: false,
+  });
+  const credits = idfy?.credits;
 
   const rows = useMemo(() => data || [], [data]);
 
@@ -50,10 +60,18 @@ export function VettingListView() {
     if (!q) return rows;
     return rows.filter(
       (r) =>
-        String(r.employeeName || '').toLowerCase().includes(q) ||
-        String(r.nationality || '').toLowerCase().includes(q) ||
-        String(r.iotaOffice || '').toLowerCase().includes(q) ||
-        String(r.status || '').toLowerCase().includes(q)
+        String(r.employeeName || '')
+          .toLowerCase()
+          .includes(q) ||
+        String(r.nationality || '')
+          .toLowerCase()
+          .includes(q) ||
+        String(r.iotaOffice || '')
+          .toLowerCase()
+          .includes(q) ||
+        String(r.status || '')
+          .toLowerCase()
+          .includes(q)
     );
   }, [rows, search]);
 
@@ -73,14 +91,46 @@ export function VettingListView() {
             Background verification through IDfy, against the IOTA Employee Vetting Standard.
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<Iconify icon="mingcute:add-line" />}
-          onClick={() => router.push(paths.dashboard.hr.employeeVetting.new)}
-        >
-          New Vetting
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button
+            variant="outlined"
+            startIcon={<Iconify icon="solar:user-id-bold" />}
+            onClick={() => setFromOnboarding(true)}
+          >
+            From Onboarding
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Iconify icon="mingcute:add-line" />}
+            onClick={() => router.push(paths.dashboard.hr.employeeVetting.new)}
+          >
+            New Vetting
+          </Button>
+        </Stack>
       </Stack>
+
+      {credits && ['low', 'empty'].includes(credits.state) ? (
+        <Alert
+          severity={credits.state === 'empty' ? 'error' : 'warning'}
+          sx={{ mb: 2 }}
+          action={
+            <Button
+              color="inherit"
+              size="small"
+              onClick={() => router.push(paths.dashboard.integration.root)}
+            >
+              Manage
+            </Button>
+          }
+        >
+          {credits.state === 'empty'
+            ? 'IDfy credits are estimated to be used up — checks may be refused.'
+            : `IDfy credits are running low: about ${credits.estimatedRemaining} left${
+                credits.daysLeft !== null ? ` (~${credits.daysLeft} days at the current rate)` : ''
+              }.`}{' '}
+          Top up at plans.idfy.com and record the new balance under Integrations.
+        </Alert>
+      ) : null}
 
       {/* A failed load and an empty list must not look the same — these records
           are the evidence a check was run, so "none" has to mean "none". */}
@@ -99,7 +149,9 @@ export function VettingListView() {
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by name, nationality, office or status…"
             InputProps={{
-              startAdornment: <Iconify icon="eva:search-fill" sx={{ mr: 1, color: 'text.disabled' }} />,
+              startAdornment: (
+                <Iconify icon="eva:search-fill" sx={{ mr: 1, color: 'text.disabled' }} />
+              ),
             }}
           />
         </Box>
@@ -166,45 +218,52 @@ export function VettingListView() {
                     />
                   </TableCell>
                   <TableCell>
-
                     {'approvalStatus' in row ? (
-
                       <Chip
-
                         size="small"
-
                         variant="soft"
-
-                        label={row.approvalStatus === 'approved' ? 'Approved' : row.approvalStatus === 'rejected' ? 'Rejected' : 'Awaiting'}
-
-                        color={row.approvalStatus === 'approved' ? 'success' : row.approvalStatus === 'rejected' ? 'error' : 'warning'}
-
+                        label={
+                          row.approvalStatus === 'approved'
+                            ? 'Approved'
+                            : row.approvalStatus === 'rejected'
+                              ? 'Rejected'
+                              : 'Awaiting'
+                        }
+                        color={
+                          row.approvalStatus === 'approved'
+                            ? 'success'
+                            : row.approvalStatus === 'rejected'
+                              ? 'error'
+                              : 'warning'
+                        }
                       />
-
                     ) : (
-
                       '—'
-
                     )}
 
                     {row.source === 'onboarding' ? (
-
                       <Typography variant="caption" color="text.secondary" display="block">
-
                         From onboarding
-
                       </Typography>
-
                     ) : null}
-
                   </TableCell>
                   <TableCell>
-                    {row.createdAt ? new Date(row.createdAt).toLocaleDateString('en-GB', {
-                      day: '2-digit', month: 'short', year: 'numeric',
-                    }) : '—'}
+                    {row.createdAt
+                      ? new Date(row.createdAt).toLocaleDateString('en-GB', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })
+                      : '—'}
                   </TableCell>
                   <TableCell align="right">
-                    <IconButton size="small" onClick={(e) => { e.stopPropagation(); mutate(); }}>
+                    <IconButton
+                      size="small"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        mutate();
+                      }}
+                    >
                       <Iconify icon="solar:refresh-bold" width={18} />
                     </IconButton>
                   </TableCell>
@@ -214,6 +273,14 @@ export function VettingListView() {
           </Table>
         </TableContainer>
       </Card>
+      <VettingFromOnboardingDialog
+        open={fromOnboarding}
+        credits={credits}
+        onClose={(started) => {
+          setFromOnboarding(false);
+          if (started) mutate();
+        }}
+      />
     </DashboardContent>
   );
 }

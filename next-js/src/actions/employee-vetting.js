@@ -64,3 +64,22 @@ export async function decideVetting(id, approved, note) {
   const response = await iotaApi.post(`/vetting/${id}/decision`, { approved, note });
   return response.data?.data || null;
 }
+
+/** Onboarding submissions with the vetting each has, for vetting them by hand. */
+export async function listOnboardingSubmissionsForVetting() {
+  const response = await iotaApi.get('/vetting-onboarding/submissions');
+  return response.data?.data || [];
+}
+
+/**
+ * Vet a submission the automatic run missed. Runs the checks now (paid).
+ * `consentConfirmed` is required for submissions made before the consent box.
+ */
+export async function startVettingForSubmission(submissionId, consentConfirmed) {
+  const response = await iotaApi.post(
+    `/vetting-onboarding/${submissionId}/start`,
+    { consentConfirmed: !!consentConfirmed },
+    { timeout: 180000 }
+  );
+  return response.data;
+}
