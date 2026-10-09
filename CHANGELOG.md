@@ -412,6 +412,16 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **HR never received form-submission emails.** Candidate Intake and Employee
+  Onboarding emailed HR at `hr@iotatechnologies.io` — the wrong domain. Both
+  now email the HR and Operations list held in appConfig
+  (`notifications / formSubmissions`, seeded with hr@iotatechnologies.ai and
+  syeda@iotatechnologies.ai; editable without a deploy, per-form override
+  possible). The candidate or employee still receives their thank-you email.
+  The HR email now carries only the name, role, form type, date and a
+  dashboard link — the person's email address was removed, and none of the
+  submitted data is included. *(Backend: `shared/form-notifications.ts`, both
+  services and HR email templates; `supabase/sql/20261012_form_submission_notifications.sql`.)*
 - **Job → Publish to Webflow** showed only "Request failed with status code
   401". The toast now says which side refused: the dashboard's sign-in (with
   the API's reason) or Webflow itself (with Webflow's message, e.g. a rejected
