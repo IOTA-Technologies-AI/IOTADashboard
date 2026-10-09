@@ -104,3 +104,16 @@ src/components/*                  domain-agnostic reusable components
 - **Record every user-visible change in [CHANGELOG.md](CHANGELOG.md) under `## [Unreleased]`, in the same commit.** Version is semver from `next-js/package.json`, bumped with `npm version patch|minor|major`.
 - i18n is `react-i18next` with `en/ar/fr/vi/cn` under `src/locales/langs`; Arabic drives RTL via the MUI stylis RTL plugin. Invoice/document wording has its own helper, `src/utils/invoice-i18n.js`.
 - `.vscode/cme-cache.json` and `cme-debug.log` are local IDE artifacts and are gitignored — don't commit or act on them.
+
+## gstack (recommended)
+
+This project uses [gstack](https://github.com/garrytan/gstack) for AI-assisted workflows.
+Install it for the best experience:
+
+```bash
+git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
+cd ~/.claude/skills/gstack && ./setup --team
+```
+
+Skills like /qa, /ship, /review, /investigate, and /browse become available after install.
+Use /browse for all web browsing (Aside first, the bundled gstack browser as fallback). Use ~/.claude/skills/gstack/... for gstack file paths.
