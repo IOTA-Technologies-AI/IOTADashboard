@@ -3,6 +3,7 @@ import MoneyOffIcon from '@mui/icons-material/MoneyOff';
 import HandshakeIcon from '@mui/icons-material/Handshake';
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import LeaderboardIcon from '@mui/icons-material/Leaderboard';
+import RecentActorsIcon from '@mui/icons-material/RecentActors';
 import RequestQuoteIcon from '@mui/icons-material/RequestQuote';
 import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
 import IntegrationInstructionsIcon from '@mui/icons-material/IntegrationInstructions';
@@ -55,6 +56,7 @@ const ICONS = {
   proformaInvoice: <RequestQuoteIcon style={{ width: 24, height: 24 }} />,
   todo: <FormatListNumberedIcon style={{ width: 24, height: 24 }} />,
   profile: icon('ic-user'),
+  talent: <RecentActorsIcon style={{ width: 24, height: 24 }} />,
 };
 
 // ----------------------------------------------------------------------
@@ -325,6 +327,15 @@ export const navData = [
         path: paths.dashboard.policies.root,
         icon: ICONS.blog,
         children: [{ title: 'All Policies', path: paths.dashboard.policies.root }],
+      },
+      {
+        title: 'Talent',
+        path: paths.dashboard.talent.root,
+        icon: ICONS.talent,
+        children: [
+          { title: 'Requirements', path: paths.dashboard.talent.requirements.root },
+          { title: 'Resume Formatting', path: paths.dashboard.talent.resumes.root },
+        ],
       },
       {
         title: 'Job',

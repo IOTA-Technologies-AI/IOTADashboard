@@ -391,6 +391,19 @@ export const paths = {
       ar: `${ROOTS.DASHBOARD}/vat/ar`,
       ap: `${ROOTS.DASHBOARD}/vat/ap`,
     },
+    // Client requirements → JD → posting, and the anonymised resume library
+    talent: {
+      root: `${ROOTS.DASHBOARD}/talent`,
+      requirements: {
+        root: `${ROOTS.DASHBOARD}/talent/requirements`,
+        new: `${ROOTS.DASHBOARD}/talent/requirements/new`,
+        details: (id) => `${ROOTS.DASHBOARD}/talent/requirements/${id}`,
+      },
+      resumes: {
+        root: `${ROOTS.DASHBOARD}/talent/resumes`,
+        details: (id) => `${ROOTS.DASHBOARD}/talent/resumes/${id}`,
+      },
+    },
     job: {
       root: `${ROOTS.DASHBOARD}/job`,
       new: `${ROOTS.DASHBOARD}/job/new`,

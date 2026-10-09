@@ -25,6 +25,35 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Talent menu** (Management → Talent), with two pages that are granted
+  per member: by default only super-admins see them; grant others in Access
+  Control. The API applies the same rule.
+  - **Requirements.** Log a client requirement — a full JD or a one-liner —
+    with client, location, experience, positions and priority. A one-liner
+    gets a complete job description written straight away, by the same
+    generator as Profile → Job Descriptions; a full JD is kept as sent and can
+    be rewritten in IOTA's format. The JD is editable. **Create job posting**
+    hands it to Job, where the existing approval → careers-site (Webflow) sync
+    publishes it. **Post on LinkedIn** opens LinkedIn's composer with the post
+    written (and copied), and the published post's link is saved against the
+    requirement. LinkedIn has no open API for company job posts, so the post
+    itself is made by a person.
+  - **Resume Formatting.** Upload candidates' own resumes (PDF or Word, up to
+    10 MB, several at once). Each is restructured into IOTA's format —
+    profile, skills, experience, education, certifications, languages — with
+    the **first name only** and **no email, phone, address or profile links**:
+    the AI is told to leave them out, and every saved field is scrubbed again
+    on the server, including the candidate's surname wherever it appears. The
+    recruiter can correct any section before use. **Download PDF** produces
+    the IOTA-branded resume; **Share link** stores a copy in Azure Blob Storage
+    and returns a link that expires after 1–30 days and can be revoked at any
+    time. All resumes stay in a searchable library (skills, roles, employers,
+    certifications, specialization, minimum years), can be tied to a
+    requirement, and keep the original upload privately (opened through a
+    ten-minute link).
+  *(Backend: new `talent` service; migration
+  `supabase/sql/20261009_talent.sql`; new secret
+  `TALENT_STORAGE_CONNECTION_STRING`; new dependency `@azure/storage-blob`.)*
 - **Super-admins can enforce or relax the authenticator (TOTP) per user.**
   Access Control → select a user → **TOTP enforced / TOTP relaxed** switch.
   Relaxed: the user signs in with Microsoft only — no code, no periodic
