@@ -3716,6 +3716,8 @@ export default function NdaDetailsPage({ params }) {
       <NdaReviewEmailDialog
         open={reviewEmailOpen}
         nda={nda}
+        users={msUsers}
+        usersLoading={msUsersLoading}
         onClose={(sent) => {
           setReviewEmailOpen(false);
           if (sent)

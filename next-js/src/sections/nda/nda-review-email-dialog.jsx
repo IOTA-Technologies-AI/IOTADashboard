@@ -44,29 +44,91 @@ const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const message = (err, fallback) => err?.response?.data?.message || err?.message || fallback;
 
-const sameList = (a, b) => [...a].sort().join(',') === [...b].sort().join(',');
+/**
+ * Recipients picked from the Microsoft 365 directory. Addresses saved earlier
+ * that are not in the directory still show (flagged) so they can be removed.
+ */
+function PeopleField({ label, value, onChange, users, loading, helperText }) {
+  const byEmail = new Map(users.map((u) => [String(u.email || '').toLowerCase(), u]));
+  const selected = value.map((e) => byEmail.get(e) || { email: e, name: e, external: true });
+  // Without the directory (Microsoft session expired), typed addresses are
+  // accepted, and committed on blur as well as Enter.
+  const typed = !loading && users.length === 0;
 
-function EmailField({ label, value, onChange, helperText }) {
   return (
     <Autocomplete
       multiple
-      freeSolo
-      options={[]}
-      value={value}
+      freeSolo={typed}
+      autoSelect={typed}
+      loading={loading}
+      options={users}
+      value={selected}
+      filterSelectedOptions
       onChange={(_, next) =>
-        onChange([...new Set(next.map((e) => String(e).trim().toLowerCase()).filter(Boolean))])
+        onChange([
+          ...new Set(
+            next
+              .map((u) =>
+                String(typeof u === 'string' ? u : u.email || '')
+                  .trim()
+                  .toLowerCase()
+              )
+              .filter(Boolean)
+          ),
+        ])
       }
+      isOptionEqualToValue={(a, b) =>
+        String(a.email || '').toLowerCase() === String(b.email || '').toLowerCase()
+      }
+      getOptionLabel={(u) =>
+        typeof u === 'string'
+          ? u
+          : u.name && u.name !== u.email
+            ? `${u.name} <${u.email}>`
+            : u.email
+      }
+      filterOptions={(opts, { inputValue }) => {
+        const q = inputValue.trim().toLowerCase();
+        const hits = q
+          ? opts.filter((u) =>
+              [u.name, u.email, u.role].some((v) =>
+                String(v || '')
+                  .toLowerCase()
+                  .includes(q)
+              )
+            )
+          : opts;
+        return hits.slice(0, 50);
+      }}
+      renderOption={(props, u) => {
+        const { key, ...rest } = props;
+        return (
+          <Box component="li" key={key} {...rest}>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="body2" noWrap>
+                {u.name}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" noWrap display="block">
+                {[u.email, u.role].filter(Boolean).join(' · ')}
+              </Typography>
+            </Box>
+          </Box>
+        );
+      }}
       renderTags={(items, getTagProps) =>
-        items.map((e, i) => {
+        items.map((u, i) => {
           const { key, ...rest } = getTagProps({ index: i });
           return (
             <Chip
               key={key}
               {...rest}
               size="small"
-              label={e}
-              color={EMAIL.test(e) ? 'default' : 'error'}
               variant="soft"
+              label={u.external ? u.email : u.name}
+              title={u.email}
+              color={
+                !EMAIL.test(u.email) ? 'error' : u.external && users.length ? 'warning' : 'default'
+              }
             />
           );
         })
@@ -75,8 +137,15 @@ function EmailField({ label, value, onChange, helperText }) {
         <TextField
           {...params}
           label={label}
-          placeholder={value.length ? '' : 'Type an address and press Enter'}
-          helperText={helperText}
+          placeholder={
+            value.length ? '' : typed ? 'Type an address' : 'Search people by name or email'
+          }
+          helperText={
+            helperText ||
+            (typed
+              ? 'The Microsoft directory could not be loaded; type addresses instead.'
+              : undefined)
+          }
         />
       )}
     />
@@ -91,7 +160,14 @@ function EmailField({ label, value, onChange, helperText }) {
  * `buildAttachment` returns `{ base64, name }` for IOTA-generated NDAs (the PDF
  * is built in the browser); uploaded NDAs attach the stored original server-side.
  */
-export function NdaReviewEmailDialog({ open, onClose, nda, buildAttachment }) {
+export function NdaReviewEmailDialog({
+  open,
+  onClose,
+  nda,
+  buildAttachment,
+  users = [],
+  usersLoading = false,
+}) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [result, setResult] = useState(null);
@@ -142,8 +218,17 @@ export function NdaReviewEmailDialog({ open, onClose, nda, buildAttachment }) {
 
   const findings = result?.findings || [];
   const invalid = [...to, ...cc].filter((e) => !EMAIL.test(e));
-  const recipientsChanged = !sameList(to, defaults.to || []) || !sameList(cc, defaults.cc || []);
   const canSend = !!result && selected.length > 0 && to.length > 0 && invalid.length === 0;
+  // Said out loud next to the button, so a disabled Send explains itself.
+  const sendBlocked = !result
+    ? 'Run the review first.'
+    : !to.length
+      ? 'Add at least one person in To.'
+      : invalid.length
+        ? 'Remove the invalid addresses.'
+        : !selected.length
+          ? 'Choose at least one clause.'
+          : '';
 
   const toggle = (i) =>
     setSelected((cur) =>
@@ -182,7 +267,7 @@ export function NdaReviewEmailDialog({ open, onClose, nda, buildAttachment }) {
           throw new Error('The NDA PDF could not be built for the attachment.');
         }
       }
-      if (saveDefaults && defaults.canEdit && recipientsChanged) {
+      if (saveDefaults && defaults.canEdit) {
         try {
           const saved = await saveNdaReviewRecipients(to, cc);
           setDefaults((d) => ({ ...d, ...saved }));
@@ -260,8 +345,10 @@ export function NdaReviewEmailDialog({ open, onClose, nda, buildAttachment }) {
                 : 'The NDA is attached as a PDF.'}
             </Typography>
 
-            <EmailField
+            <PeopleField
               label="To"
+              users={users}
+              loading={usersLoading}
               value={to}
               onChange={setTo}
               helperText={
@@ -272,14 +359,20 @@ export function NdaReviewEmailDialog({ open, onClose, nda, buildAttachment }) {
                     : ''
               }
             />
-            <EmailField label="Cc" value={cc} onChange={setCc} />
+            <PeopleField
+              label="Cc"
+              value={cc}
+              onChange={setCc}
+              users={users}
+              loading={usersLoading}
+            />
 
             {defaults.canEdit ? (
               <FormControlLabel
                 control={
                   <Checkbox
                     checked={saveDefaults}
-                    disabled={!recipientsChanged || !to.length}
+                    disabled={!to.length}
                     onChange={(e) => setSaveDefaults(e.target.checked)}
                   />
                 }
@@ -384,6 +477,11 @@ export function NdaReviewEmailDialog({ open, onClose, nda, buildAttachment }) {
           </Button>
         )}
         <Box sx={{ flexGrow: 1 }} />
+        {sendBlocked && !loading ? (
+          <Typography variant="caption" color="text.secondary" sx={{ mr: 1 }}>
+            {sendBlocked}
+          </Typography>
+        ) : null}
         {!preview ? (
           <LoadingButton
             variant="outlined"

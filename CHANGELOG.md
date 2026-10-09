@@ -455,6 +455,11 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Email review to IOTA: recipients now come from the Microsoft 365 directory.**
+  To and Cc are picked by searching names or emails; typed addresses are only
+  accepted when the directory can't be loaded. Send stayed disabled because a
+  typed address only counted after Enter, so To looked empty; Send now says
+  what is missing. "Save as default" can now be ticked whenever To has someone.
 - **Publishing jobs to Webflow failed with "Field not described in schema".** The
   careers site was rebuilt and its Careers collection has new fields. Jobs now
   map to Position, Location, Position type, Contract type, Role description,
