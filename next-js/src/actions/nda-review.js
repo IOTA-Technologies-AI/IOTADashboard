@@ -26,6 +26,27 @@ export async function decideNdaException(id, approved, note) {
   return res.data?.review;
 }
 
+/** Default To / Cc for emailing a review (appConfig notifications/ndaReview). */
+export async function getNdaReviewRecipients() {
+  const res = await iotaApi.get('/nda-review-email/recipients');
+  return res.data;
+}
+
+/** Admin / Super Admin only. */
+export async function saveNdaReviewRecipients(to, cc) {
+  const res = await iotaApi.put('/nda-review-email/recipients', { to, cc });
+  return res.data;
+}
+
+/**
+ * Emails the saved review to the IOTA team with the NDA attached. With
+ * `preview: true` it returns the email without sending it.
+ */
+export async function emailNdaReview(id, body) {
+  const res = await iotaApi.post(`/ndas/${id}/review/email`, body, { timeout: 120000 });
+  return res.data;
+}
+
 /** Whether an NDA must be reviewed before signing — mirrors ndaReviewGate.ts. */
 export function ndaNeedsReview(nda) {
   if (!nda) return false;

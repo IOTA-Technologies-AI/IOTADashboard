@@ -59,6 +59,7 @@ import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { NdaPdfDocument, NdaHtmlTemplate, NdaSignatureCanvas } from 'src/components/nda';
 
 import { NdaReviewPanel } from 'src/sections/nda/nda-review-panel';
+import { NdaReviewEmailDialog } from 'src/sections/nda/nda-review-email-dialog';
 
 import { useAuthContext } from 'src/auth/hooks';
 import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
@@ -272,6 +273,7 @@ export default function NdaDetailsPage({ params }) {
   const [fetchedDocBase64, setFetchedDocBase64] = useState(null);
   const [wetSigFile, setWetSigFile] = useState(null); // { name, base64 } for fully-executed upload
   const [wetSigLoading, setWetSigLoading] = useState(false);
+  const [reviewEmailOpen, setReviewEmailOpen] = useState(false);
   const wetSigInputRef = useRef(null);
 
   const userEmail = user?.email || '';
@@ -3552,10 +3554,7 @@ export default function NdaDetailsPage({ params }) {
       </Dialog>
 
       {/* ── Floating Action Panel ── */}
-      {(isDraft ||
-        isFullyExecuted ||
-        isPendingPartner ||
-        nda.documentSource === 'external_upload') && (
+      {nda.status !== 'cancelled' && (
         <Paper
           elevation={4}
           sx={{
@@ -3582,6 +3581,27 @@ export default function NdaDetailsPage({ params }) {
             Actions
           </Typography>
           <Stack spacing={1}>
+            <Tooltip
+              title={
+                nda.reviewResult
+                  ? 'Send the review comments and the NDA to the IOTA team'
+                  : 'Run the IOTA standard review first'
+              }
+            >
+              <span>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  fullWidth
+                  disabled={!nda.reviewResult}
+                  startIcon={<Iconify icon="solar:letter-bold" />}
+                  onClick={() => setReviewEmailOpen(true)}
+                >
+                  Email Review to IOTA
+                </Button>
+              </span>
+            </Tooltip>
+
             {isDraft && (
               <Tooltip title={signingBlockedReason}>
                 <span>
@@ -3659,7 +3679,7 @@ export default function NdaDetailsPage({ params }) {
               </Alert>
             )}
 
-            {nda.documentSource === 'external_upload' && nda.uploadedDocumentBase64 && (
+            {nda.documentSource === 'external_upload' && docBase64 && (
               <>
                 {isUploadedPdf && (
                   <LoadingButton
@@ -3680,7 +3700,7 @@ export default function NdaDetailsPage({ params }) {
                   startIcon={<Iconify icon="solar:document-bold" />}
                   onClick={() => {
                     const a = document.createElement('a');
-                    a.href = `data:application/octet-stream;base64,${nda.uploadedDocumentBase64}`;
+                    a.href = `data:application/octet-stream;base64,${docBase64}`;
                     a.download = nda.uploadedDocumentName;
                     a.click();
                   }}
@@ -3692,6 +3712,25 @@ export default function NdaDetailsPage({ params }) {
           </Stack>
         </Paper>
       )}
+
+      <NdaReviewEmailDialog
+        open={reviewEmailOpen}
+        nda={nda}
+        onClose={(sent) => {
+          setReviewEmailOpen(false);
+          if (sent)
+            getNda(id)
+              .then(setNda)
+              .catch(() => {});
+        }}
+        buildAttachment={async () => {
+          const blob = await pdf(<NdaPdfDocument nda={nda} />).toBlob();
+          return {
+            base64: uint8ToBase64(new Uint8Array(await blob.arrayBuffer())),
+            name: `${nda.ndaNumber || 'NDA'}.pdf`,
+          };
+        }}
+      />
     </DashboardContent>
   );
 }

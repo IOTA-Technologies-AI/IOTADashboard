@@ -25,6 +25,13 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Email an NDA review to the IOTA team.** "Email Review to IOTA" in the NDA's
+  Actions panel sends the saved review as a formatted email. Each chosen clause
+  appears as a review comment showing the highlighted wording, why it matters,
+  what IOTA asks for and the proposed amendment. The NDA itself is attached.
+  Default To / Cc come from appConfig `notifications/ndaReview`; an Admin or
+  Super Admin can change them from the dialog. Every send is recorded in the
+  NDA's audit log.
 - **Onboarding → automatic vetting → Super Admin approval → offer letter.**
   When an employee submits the onboarding form, a vetting record is created and
   the AML (sanctions/PEP/adverse media) and international passport checks are
@@ -435,6 +442,8 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- The NDA Actions panel no longer shows up empty for uploaded NDAs stored in
+  OneDrive; their download buttons now appear.
 - **HR never received form-submission emails.** Candidate Intake and Employee
   Onboarding emailed HR at `hr@iotatechnologies.io` — the wrong domain. Both
   now email the HR and Operations list held in appConfig
