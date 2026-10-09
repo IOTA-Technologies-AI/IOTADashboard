@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 
 import { fDate } from 'src/utils/format-time';
+import { resolveDocumentOffice } from 'src/utils/document-office';
 import { fetchOfficeConfigs, fetchProformaInvoice } from 'src/utils/apiHelper';
 
 import { IOTA_OFFICES } from 'src/sections/invoice/invoice-create-edit-address';
@@ -37,8 +38,7 @@ function formatCurrency(amount, currencyCode = 'SAR') {
 }
 
 function getOffice(currencyCode, officeList) {
-  const list = officeList?.length ? officeList : IOTA_OFFICES;
-  return list.find((o) => o.currency === currencyCode) || list[0];
+  return resolveDocumentOffice(currencyCode, officeList?.length ? officeList : IOTA_OFFICES);
 }
 
 // Escape user-supplied strings before inserting into HTML
@@ -146,7 +146,8 @@ function wrapAddress(address) {
 // Fill every {{PLACEHOLDER}} in the template with real proforma data
 function fillTemplate(templateHtml, proforma, officeList) {
   const currency = proforma.currencyCode || 'SAR';
-  const office = getOffice(currency, officeList);
+  // The stored currency, not the SAR display default, decides the office.
+  const office = getOffice(proforma.currencyCode, officeList);
 
   // Line amount is quantity x unit price, so the column sums to the subtotal.
   // Items saved before quantity was persisted have none — they count as 1.
@@ -325,6 +326,7 @@ export default function ProformaPrintPage() {
   const isPreview = searchParams.get('preview') === 'true';
   const [html, setHtml] = useState(null);
   const [notFound, setNotFound] = useState(false);
+  const [failure, setFailure] = useState('');
   const [proformaNumber, setProformaNumber] = useState('');
   const iframeRef = useRef(null);
   // The iframe document must be written exactly once. Rewriting it after
@@ -349,7 +351,14 @@ export default function ProformaPrintPage() {
 
       setProformaNumber(proforma.proformaNumber || '');
 
-      let finalHtml = fillTemplate(templateHtml, proforma, offices?.length ? offices : null);
+      let finalHtml;
+      try {
+        finalHtml = fillTemplate(templateHtml, proforma, offices?.length ? offices : null);
+      } catch (err) {
+        // The issuing office could not be determined: refuse to print.
+        setFailure(err.message);
+        return;
+      }
       // In preview mode, hide the print toolbar
       if (isPreview) {
         finalHtml = finalHtml.replace(
@@ -423,7 +432,9 @@ export default function ProformaPrintPage() {
           color: '#555',
         }}
       >
-        {notFound ? 'Proforma invoice not found.' : 'Loading proforma invoice…'}
+        {notFound
+          ? 'Proforma invoice not found.'
+          : failure || 'Loading proforma invoice…'}
       </div>
     );
   }

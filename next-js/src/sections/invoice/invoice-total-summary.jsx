@@ -10,6 +10,7 @@ export function InvoiceTotalSummary({
   shipping,
   subtotal,
   discount,
+  taxableAmount,
   totalAmount,
   currencyCode = 'SAR',
 }) {
@@ -24,13 +25,19 @@ export function InvoiceTotalSummary({
           label={`Subtotal (excl. ${vatLabel})`}
           value={fCurrency(subtotal || 0, { currency: currencyCode })}
         />
+        <Row label="Discount" value={`-${fCurrency(discount || 0, { currency: currencyCode })}`} />
+        <Row label="Shipping" value={fCurrency(shipping || 0, { currency: currencyCode })} />
+        {taxableAmount !== undefined ? (
+          <Row
+            label={`Taxable amount`}
+            value={fCurrency(taxableAmount || 0, { currency: currencyCode })}
+          />
+        ) : null}
         <Row
           label={`${vatLabel} (${vatRatePercent}%)`}
           value={fCurrency(vatDetails?.vatAmount || 0, { currency: currencyCode })}
           sx={{ color: (vatDetails?.vatAmount || 0) > 0 ? 'error.main' : 'text.secondary' }}
         />
-        <Row label="Discount" value={fCurrency(discount || 0, { currency: currencyCode })} />
-        <Row label="Shipping" value={fCurrency(shipping || 0, { currency: currencyCode })} />
         <Divider sx={{ borderStyle: 'dashed' }} />
         <Row
           label={`Total (incl. ${vatLabel})`}

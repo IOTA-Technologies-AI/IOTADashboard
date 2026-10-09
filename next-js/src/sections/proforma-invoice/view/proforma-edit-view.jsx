@@ -19,6 +19,7 @@ import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
 import { fCurrency } from 'src/utils/format-number';
+import { computeDocumentTotals } from 'src/utils/vat-calculator';
 import { updateProformaInvoice } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
@@ -99,12 +100,20 @@ export function ProformaEditView({ proforma: initialProforma }) {
       const qty = Number(item.quantity) || 0;
       return sum + qty * price;
     }, 0);
-    const discountValue = Math.abs(toNumberOrNull(discount) ?? 0);
-    const shippingValue = toNumberOrNull(shipping) ?? 0;
-    const rate = toNumberOrNull(vatRate) ?? 0;
-    const net = subtotal - discountValue + shippingValue;
-    const vat = +((net * rate) / 100).toFixed(2);
-    return { subtotal, discountValue, shippingValue, rate, vat, total: +(net + vat).toFixed(2) };
+    const t = computeDocumentTotals({
+      subtotal,
+      discount: toNumberOrNull(discount) ?? 0,
+      shipping: toNumberOrNull(shipping) ?? 0,
+      ratePercent: toNumberOrNull(vatRate) ?? 0,
+    });
+    return {
+      subtotal: t.subtotal,
+      discountValue: t.discount,
+      shippingValue: t.shipping,
+      rate: t.ratePercent,
+      vat: t.vatAmount,
+      total: t.total,
+    };
   }, [items, discount, shipping, vatRate]);
 
   const updateItem = useCallback((index, field, value) => {

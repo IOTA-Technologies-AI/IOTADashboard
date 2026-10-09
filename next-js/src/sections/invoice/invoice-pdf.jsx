@@ -16,6 +16,7 @@ import IconButton from '@mui/material/IconButton';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { fDate } from 'src/utils/format-time';
+import { resolveDocumentOffice } from 'src/utils/document-office';
 import {
   hijriDate,
   vatRateLabel,
@@ -467,7 +468,8 @@ export function InvoicePdfDocument({ invoice, currentStatus, offices, viewQrBase
 
   const styles = useStyles();
   const officeList = offices?.length ? offices : IOTA_OFFICES;
-  const office = officeList.find((o) => o.currency === currencyCode) || officeList[0];
+  // Refuses an unknown or shared currency rather than printing another entity.
+  const office = resolveDocumentOffice(currencyCode, officeList);
   const bank = office.bankDetails || {};
   const vatLabel = vatRateLabel(vatRate);
   // Office config can override the Arabic company name without a deploy

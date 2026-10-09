@@ -20,7 +20,8 @@
     "re:build": "yarn clean && yarn install && yarn build",
     "re:build-npm": "npm run clean && npm install && npm run build",
     "prebuild": "rm -rf .next",
-    "rebuild": "npm run clean && npm run build"
+    "rebuild": "npm run clean && npm run build",
+    "test": "vitest run"
   },
   "engines": {
     "node": ">=20"
@@ -135,6 +136,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-unused-imports": "^4.1.4",
     "globals": "^16.3.0",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "vitest": "^3"
   }
 }

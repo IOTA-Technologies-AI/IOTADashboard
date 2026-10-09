@@ -12,7 +12,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import { inputBaseClasses } from '@mui/material/InputBase';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { calculateVAT } from 'src/utils/vat-calculator';
+import { calculateVAT, computeDocumentTotals } from 'src/utils/vat-calculator';
 import { hasArabicText, hasEnglishText } from 'src/utils/invoice-lines';
 import { getVatConfigs, suggestInvoiceLineTranslations } from 'src/utils/apiHelper';
 
@@ -183,16 +183,23 @@ export function InvoiceCreateEditDetails() {
   // Calculate subtotal
   const subtotal = sumBy(items || [], (item) => (item.quantity || 0) * (item.price || 0));
 
-  // Look up VAT using DB-loaded configs (falls back to hardcoded rates if not loaded yet)
-  const vatDetails = calculateVAT(subtotal || 0, officeCountryCode, vatConfigs);
+  // The office's rate and label, from DB-loaded configs (hardcoded rates until they load)
+  const { vatRatePercent, vatLabel } = calculateVAT(0, officeCountryCode, vatConfigs);
 
-  // Discount comes off the total; shipping is a charge and is added to it
-  const totalAmount = vatDetails.totalWithVAT - discount + shipping;
+  // VAT on the items less the discount plus shipping, rounded; see computeDocumentTotals
+  const totals = computeDocumentTotals({
+    subtotal: subtotal || 0,
+    discount,
+    shipping,
+    ratePercent: vatRatePercent,
+  });
+  const vatDetails = { vatLabel, vatRatePercent, vatAmount: totals.vatAmount };
+  const totalAmount = totals.total;
 
   // Extract primitive values BEFORE useEffect
-  const baseAmountValue = vatDetails?.baseAmount || 0;
-  const vatAmountValue = vatDetails?.vatAmount || 0;
-  const vatRatePercentValue = vatDetails?.vatRatePercent || 0;
+  const baseAmountValue = totals.subtotal;
+  const vatAmountValue = totals.vatAmount;
+  const vatRatePercentValue = vatRatePercent || 0;
 
   useEffect(() => {
     setValue('subtotal', parseFloat(baseAmountValue.toFixed(2)));
@@ -305,12 +312,11 @@ export function InvoiceCreateEditDetails() {
       </Box>
       <br />
       <InvoiceTotalSummary
-        vatDetails={
-          vatDetails || { baseAmount: 0, vatAmount: 0, vatRatePercent: 0, totalWithVAT: 0 }
-        }
-        shipping={shipping || 0}
-        subtotal={vatDetails?.baseAmount || 0}
-        discount={discount || 0}
+        vatDetails={vatDetails}
+        shipping={totals.shipping}
+        subtotal={totals.subtotal}
+        discount={totals.discount}
+        taxableAmount={totals.taxableAmount}
         totalAmount={totalAmount || 0}
         currencyCode={currency}
       />

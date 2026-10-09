@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 
 import { fDate } from 'src/utils/format-time';
+import { resolveDocumentOffice } from 'src/utils/document-office';
 import { fetchInvoice, getCustomers, fetchOfficeConfigs } from 'src/utils/apiHelper';
 import {
   hijriDate,
@@ -47,8 +48,7 @@ function formatCurrency(amount, currencyCode = 'SAR') {
 }
 
 function getOffice(currencyCode, officeList) {
-  const list = officeList?.length ? officeList : IOTA_OFFICES;
-  return list.find((o) => o.currency === currencyCode) || list[0];
+  return resolveDocumentOffice(currencyCode, officeList?.length ? officeList : IOTA_OFFICES);
 }
 
 // Escape user-supplied strings before inserting into HTML
@@ -277,6 +277,7 @@ export default function InvoicePrintPage() {
   const searchParams = useSearchParams();
   const isPreview = searchParams.get('preview') === 'true';
   const [html, setHtml] = useState(null);
+  const [failure, setFailure] = useState('');
   const [invoiceNumber, setInvoiceNumber] = useState('');
   const iframeRef = useRef(null);
   // The iframe document must be written exactly once. Rewriting it after
@@ -406,12 +407,19 @@ export default function InvoicePrintPage() {
         viewQrHtml || zatcaQrHtml
           ? `<div style="display:flex;justify-content:space-between;margin-top:16px;">${viewQrHtml}${zatcaQrHtml}</div>`
           : '';
-      let finalHtml = fillTemplate(
-        templateHtml,
-        invoice,
-        offices?.length ? offices : null,
-        qrCodeBlock
-      );
+      let finalHtml;
+      try {
+        finalHtml = fillTemplate(
+          templateHtml,
+          invoice,
+          offices?.length ? offices : null,
+          qrCodeBlock
+        );
+      } catch (err) {
+        // The issuing office could not be determined: refuse to print.
+        setFailure(err.message);
+        return;
+      }
       // In preview mode, hide the print toolbar
       if (isPreview) {
         finalHtml = finalHtml.replace(
@@ -489,7 +497,7 @@ export default function InvoicePrintPage() {
           color: '#555',
         }}
       >
-        Loading invoice…
+        {failure || 'Loading invoice…'}
       </div>
     );
   }

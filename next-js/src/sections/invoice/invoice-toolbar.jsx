@@ -101,7 +101,9 @@ export function InvoiceToolbar({
       onRefresh?.();
     } catch (err) {
       console.error('[InvoiceToolbar] Issue failed:', err);
-      toast.error(err?.response?.data?.message || 'Failed to issue invoice. Please try again.');
+      toast.error(
+        err?.response?.data?.message || err?.message || 'Failed to issue invoice. Please try again.'
+      );
     } finally {
       setIssuing(false);
     }

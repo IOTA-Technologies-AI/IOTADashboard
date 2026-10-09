@@ -57,6 +57,11 @@ jobs:
         run: yarn fm:check
         continue-on-error: true
 
+      # Blocking. Unit tests for the logic a build cannot check: VAT totals,
+      # which office issues a document, and so on (src/**/*.test.js).
+      - name: Unit tests
+        run: yarn test
+
       # The real gate. A build failure is how we catch undefined references and
       # broken imports in a codebase without type checking.
       - name: Build

@@ -67,6 +67,42 @@ export function calculateVAT(amount, countryCode, vatConfigs = []) {
 
   return { vatRate, vatRatePercent: vatRate * 100, vatLabel, vatAmount, baseAmount, totalWithVAT };
 }
+
+const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+
+/**
+ * Totals for an invoice or proforma — the one place this maths lives.
+ *
+ * VAT is charged on what the customer actually pays for: the items, less the
+ * discount, plus shipping (a charge that is part of the taxable supply). Each
+ * figure is rounded to 2 dp, and total = taxable + VAT exactly, so the saved
+ * numbers and the ZATCA XML always add up.
+ *
+ * @param {object} p
+ * @param {number} p.subtotal - items total, excluding VAT
+ * @param {number} [p.discount] - amount off; the sign is ignored
+ * @param {number} [p.shipping]
+ * @param {number} p.ratePercent - e.g. 15
+ * @returns {{ subtotal, discount, shipping, taxableAmount, ratePercent, vatAmount, total }}
+ */
+export function computeDocumentTotals({ subtotal, discount = 0, shipping = 0, ratePercent = 0 }) {
+  const items = round2(subtotal || 0);
+  const off = round2(Math.abs(Number(discount) || 0));
+  const ship = round2(Number(shipping) || 0);
+  // A discount larger than the bill does not make VAT negative.
+  const taxableAmount = Math.max(0, round2(items - off + ship));
+  const rate = Number(ratePercent) || 0;
+  const vatAmount = round2((taxableAmount * rate) / 100);
+  return {
+    subtotal: items,
+    discount: off,
+    shipping: ship,
+    taxableAmount,
+    ratePercent: rate,
+    vatAmount,
+    total: round2(taxableAmount + vatAmount),
+  };
+}
 // ----------------------------------------------------------------------
 // Quarter Date Utilities
 // ----------------------------------------------------------------------

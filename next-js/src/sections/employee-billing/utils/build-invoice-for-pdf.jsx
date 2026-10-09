@@ -1,3 +1,4 @@
+import { resolveDocumentOffice } from 'src/utils/document-office';
 import { fetchInvoice, getCustomers, fetchOfficeConfigs } from 'src/utils/apiHelper';
 
 /**
@@ -60,8 +61,9 @@ export async function buildInvoiceForPdf(invoiceId) {
     ];
   }
 
-  const office =
-    (offices || []).find((o) => o.currency === (data.currencyCode || 'SAR')) || (offices || [])[0];
+  // Refuses an unknown or shared currency rather than printing another entity.
+  // With no office configs loaded, the PDF falls back to the built-in list.
+  const office = offices?.length ? resolveDocumentOffice(data.currencyCode, offices) : null;
 
   const invoice = {
     id: data.invoiceId,
