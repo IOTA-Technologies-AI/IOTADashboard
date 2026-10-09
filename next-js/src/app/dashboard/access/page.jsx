@@ -1122,6 +1122,17 @@ export default function AccessControlPage() {
                       />
                     </Box>
 
+                    {/* A user with no saved permissions follows their role's defaults.
+                        Saving replaces those defaults with exactly the boxes ticked
+                        here, so ticking one new page alone would remove the rest. */}
+                    {!userPermsLoading && userPermissions.length === 0 ? (
+                      <Alert severity="warning" sx={{ mx: 2, mb: 1 }}>
+                        {selectedUser.name} currently gets their role&apos;s default pages. Saving
+                        here replaces those with only the pages ticked below — pick their role above
+                        first, then add pages such as Talent.
+                      </Alert>
+                    ) : null}
+
                     {/* Permissions List */}
                     {userPermsLoading ? (
                       <Stack alignItems="center" sx={{ py: 5, flex: 1 }}>

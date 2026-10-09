@@ -1,7 +1,6 @@
 'use client';
 
 import { merge } from 'es-toolkit';
-import { useState, useEffect } from 'react';
 import { useBoolean } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
@@ -13,14 +12,6 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { paths } from 'src/routes/paths';
 import { useRouter, usePathname } from 'src/routes/hooks';
 
-import {
-  resolvePageAccess,
-  fetchUserNavPermissions,
-  fetchNavPermissionsForRole,
-  clearUserNavPermissionCache,
-  isVersionCheckDue,
-  markVersionCheckDone,
-} from 'src/utils/pageAccess';
 import { filterNavByPermissions } from 'src/utils/filterNavByPermissions';
 
 import { allLangs } from 'src/locales';
@@ -30,7 +21,6 @@ import { Logo } from 'src/components/logo';
 import { useSettingsContext } from 'src/components/settings';
 
 import { useAuthContext } from 'src/auth/hooks';
-import { signOut } from 'src/auth/context/supabase/action';
 import { PermissionGuard } from 'src/auth/guard';
 
 import { NavMobile } from './nav-mobile';
@@ -58,7 +48,8 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
   const router = useRouter();
   const pathname = usePathname();
 
-  const { user } = useAuthContext();
+  const authPermissions = useAuthContext();
+  const { user } = authPermissions;
 
   const roleIdToName = {
     1: 'regular',
@@ -75,79 +66,14 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
 
   const normalizedRole = normalizeRole(user?.role, user?.roleId);
 
-  // Use email for permission lookups (consistent across Microsoft Graph and login)
-  const userEmailForPerms = user?.email;
-
-  // Track if permissions have been loaded
-  const [permissionsLoaded, setPermissionsLoaded] = useState(false);
-
-  // State for dynamic allowed paths
-  const [allowedPaths, setAllowedPaths] = useState(() =>
-    resolvePageAccess(userEmailForPerms, normalizedRole)
-  );
-
-  // Fetch nav permissions from backend when role/user changes
-  useEffect(() => {
-    if (normalizedRole === 'superAdmin') {
-      setPermissionsLoaded(true);
-      return; // superAdmin has access to all
-    }
-
-    const loadPermissions = async () => {
-      // ── Step 1: Use any valid cached data immediately (no visible flash) ────
-      const cachedPaths = resolvePageAccess(userEmailForPerms, normalizedRole);
-      if (cachedPaths.length > 0) {
-        setAllowedPaths(cachedPaths);
-        setPermissionsLoaded(true);
-
-        // ── Step 2: Background version check every 5 minutes ────────────────
-        // Skip if the version hasn't expired yet — no network call needed.
-        if (userEmailForPerms && !isVersionCheckDue(userEmailForPerms)) return;
-      }
-
-      // ── Step 3: Fetch fresh permissions (first load OR background check) ───
-      if (userEmailForPerms) {
-        const { paths: freshPaths, hasExplicitPermissions } = await fetchUserNavPermissions(
-          userEmailForPerms,
-          true
-        ); // force bypass cache
-
-        if (hasExplicitPermissions) {
-          // If we already had cached paths, compare for changes
-          if (cachedPaths.length > 0) {
-            const sort = (arr) => [...arr].sort().join(',');
-            if (sort(freshPaths) !== sort(cachedPaths)) {
-              // Permissions were changed by an admin — sign the user out so they
-              // re-login and get a clean, up-to-date session.
-              console.log('[Permissions] Change detected — signing out for fresh session');
-              await signOut();
-              return;
-            }
-            // Paths unchanged — stamp the version check and keep existing state
-            markVersionCheckDone(userEmailForPerms);
-            return;
-          }
-
-          // First load with no cache
-          setAllowedPaths(freshPaths);
-          markVersionCheckDone(userEmailForPerms);
-          setPermissionsLoaded(true);
-          return;
-        }
-
-        // No rows in DB — user hasn't been configured. Fall back to role defaults.
-      }
-
-      // ── Step 4: Role-based fallback ──────────────────────────────────────────
-      if (normalizedRole) {
-        const rolePaths = await fetchNavPermissionsForRole(normalizedRole);
-        setAllowedPaths(rolePaths.length > 0 ? rolePaths : []);
-      }
-      setPermissionsLoaded(true);
-    };
-
-    loadPermissions();
-  }, [normalizedRole, userEmailForPerms]);
+  // The menu is filtered with the same permission list the page guard uses,
+  // held in auth context and refreshed there in the background (every few
+  // minutes and when the tab regains focus). It used to keep its own copy in
+  // a browser cache that was only re-checked when this layout first mounted —
+  // which in the App Router is once per session — so a page granted in Access
+  // Control stayed out of the member's menu until they signed in again.
+  const { allowedPaths, permissionsReady, permissionsLoading } = authPermissions;
+  const permissionsLoaded = permissionsReady || !permissionsLoading;
 
   const baseAlwaysAllowed = [
     paths.dashboard.root,

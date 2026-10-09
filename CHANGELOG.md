@@ -387,6 +387,19 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Mirrored IOTA mark.** The mark in `public/logo/logo-full.png` was a mirror
+  image of the real one (rounded edge and slant swapped); only the mark is
+  flipped back, the word is unchanged. Fixes the formatted resumes, the
+  expense PDF, the VAT export and the NDA document, which all use that file.
+- **Pages granted in Access Control did not appear for the member until they
+  signed in again.** The menu kept its own cached copy of the member's
+  permissions, re-checked only when the dashboard first loaded (once per
+  session), and the page guard held a second copy fetched at sign-in. The menu
+  now uses the same list as the page guard, and that list is refreshed in the
+  background every 5 minutes and when the tab regains focus — a grant shows up
+  within minutes, without signing the member out. Access Control also warns
+  that a member with no saved permissions follows their role's defaults, and
+  that saving replaces them with only the boxes ticked.
 - **NDA → Download with Stamp & Signatures failed** with "Failed to process
   document for download". Any signature zone whose signatory had not signed
   yet aborted the whole download, and the message hid the reason. Unsigned

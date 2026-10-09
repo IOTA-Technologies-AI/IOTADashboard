@@ -346,11 +346,37 @@ export function AuthProvider({ children }) {
       permissionsInitialized.current = true;
       setPermissionsLoading(false);
     }
-  }, [state.user, apiAppRoles]);  
+  }, [state.user, apiAppRoles]);
 
   useEffect(() => {
     refreshPermissions();
   }, [refreshPermissions]);
+
+  // Pick up changes made in Access Control while the member is signed in:
+  // re-read every 5 minutes, and whenever the tab comes back into view. Each
+  // refresh after the first is silent (no splash screen), and the menu and the
+  // page guard both read the result.
+  useEffect(() => {
+    if (!state.user) return undefined;
+    const PERMISSION_REFRESH_MS = 5 * 60 * 1000;
+    let last = Date.now();
+    const refresh = () => {
+      last = Date.now();
+      refreshPermissions();
+    };
+    const timer = setInterval(refresh, PERMISSION_REFRESH_MS);
+    const onVisible = () => {
+      // Coming back to the tab: refresh unless it was done in the last minute.
+      if (document.visibilityState === 'visible' && Date.now() - last > 60 * 1000) refresh();
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [state.user, refreshPermissions]);
 
   // ----------------------------------------------------------------------
 
