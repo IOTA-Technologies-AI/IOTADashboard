@@ -31,6 +31,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import {
   apiMessage,
   useTalentResume,
+  attachCandidate,
   revokeResumeShare,
   shareTalentResume,
   updateTalentResume,
@@ -45,7 +46,7 @@ import { EmptyContent } from 'src/components/empty-content';
 import { LoadingScreen } from 'src/components/loading-screen';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
-import { SHARE_DURATIONS } from '../constants';
+import { CANDIDATE_STAGE, SHARE_DURATIONS } from '../constants';
 import { resumeFileName, renderResumePdf } from '../resume-pdf';
 
 // ----------------------------------------------------------------------
@@ -72,7 +73,6 @@ function toDraft(resume) {
     headline: resume?.headline || '',
     specialization: resume?.specialization || '',
     experienceYears: resume?.experienceYears ?? '',
-    requirementId: resume?.requirementId || '',
     skills: resume?.skills || [],
     summary: c.summary || '',
     languages: (c.languages || []).join(', '),
@@ -92,7 +92,6 @@ function fromDraft(d) {
     headline: d.headline,
     specialization: d.specialization,
     experienceYears: Number(d.experienceYears) || 0,
-    requirementId: d.requirementId || null,
     skills: d.skills,
     content: {
       summary: d.summary,
@@ -173,7 +172,7 @@ function EntryList({ title, items, onChange, fields, empty, addLabel }) {
 }
 
 export function ResumeDetailsView({ id }) {
-  const { resume, shares, loading, error, mutate } = useTalentResume(id);
+  const { resume, shares, requirements: links, loading, error, mutate } = useTalentResume(id);
   const { requirements } = useTalentRequirements({});
 
   const [draft, setDraft] = useState(null);
@@ -184,6 +183,7 @@ export function ResumeDetailsView({ id }) {
   const [shareOpen, setShareOpen] = useState(false);
   const [shareDays, setShareDays] = useState(7);
   const [newShare, setNewShare] = useState(null);
+  const [attachTo, setAttachTo] = useState('');
 
   useEffect(() => {
     if (resume && !dirty) setDraft(toDraft(resume));
@@ -304,6 +304,21 @@ export function ResumeDetailsView({ id }) {
     }
   };
 
+  const handleAttach = async () => {
+    if (!attachTo) return;
+    setBusy('attach');
+    try {
+      await attachCandidate(attachTo, resume.id);
+      setAttachTo('');
+      await mutate();
+      toast.success('Added to the requirement as shortlisted.');
+    } catch (err) {
+      toast.error(apiMessage(err, 'Could not attach.'));
+    } finally {
+      setBusy('');
+    }
+  };
+
   const handleArchive = async () => {
     try {
       const saved = await updateTalentResume(resume.id, {
@@ -327,12 +342,12 @@ export function ResumeDetailsView({ id }) {
   return (
     <DashboardContent>
       <CustomBreadcrumbs
-        heading={`${resume.displayName}${resume.specialization ? ` — ${resume.specialization}` : ''}`}
+        heading={`${resume.resumeCode} · ${resume.displayName}${resume.specialization ? ` — ${resume.specialization}` : ''}`}
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
           { name: 'Talent', href: paths.dashboard.talent.root },
           { name: 'Resume Formatting', href: paths.dashboard.talent.resumes.root },
-          { name: resume.displayName },
+          { name: resume.resumeCode },
         ]}
         action={
           <Stack direction="row" spacing={1} flexWrap="wrap">
@@ -518,20 +533,6 @@ export function ResumeDetailsView({ id }) {
                 >
                   {dirty ? 'Save changes' : 'Saved'}
                 </LoadingButton>
-                <TextField
-                  select
-                  size="small"
-                  label="Requirement"
-                  value={draft.requirementId}
-                  onChange={(e) => edit({ requirementId: e.target.value })}
-                >
-                  <MenuItem value="">None</MenuItem>
-                  {requirements.map((r) => (
-                    <MenuItem key={r.id} value={r.id}>
-                      {r.title} — {r.clientName}
-                    </MenuItem>
-                  ))}
-                </TextField>
                 <Divider sx={{ borderStyle: 'dashed' }} />
                 <Typography variant="caption" color="text.secondary">
                   Added {fDateTime(resume.createdAt)} by {resume.createdBy}
@@ -553,6 +554,71 @@ export function ResumeDetailsView({ id }) {
                   <Button size="small" color="inherit" onClick={handleArchive}>
                     {resume.status === 'archived' ? 'Restore' : 'Archive'}
                   </Button>
+                </Stack>
+              </Stack>
+            </Card>
+
+            <Card sx={{ p: 3 }}>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                Requirements
+              </Typography>
+              <Stack spacing={1.5}>
+                {links.length === 0 ? (
+                  <Typography variant="body2" color="text.secondary">
+                    Not attached to any requirement.
+                  </Typography>
+                ) : null}
+                {links.map((l) => (
+                  <Stack key={l.requirementId} direction="row" spacing={1} alignItems="center">
+                    <Box sx={{ minWidth: 0, flexGrow: 1 }}>
+                      <Link
+                        component={RouterLink}
+                        href={paths.dashboard.talent.requirements.details(l.requirementId)}
+                        variant="subtitle2"
+                        noWrap
+                        display="block"
+                      >
+                        {l.requirement?.title || 'Requirement'}
+                      </Link>
+                      <Typography variant="caption" color="text.secondary">
+                        {l.requirement?.clientName}
+                      </Typography>
+                    </Box>
+                    <Label variant="soft" color={CANDIDATE_STAGE[l.stage]?.color || 'default'}>
+                      {CANDIDATE_STAGE[l.stage]?.label || l.stage}
+                    </Label>
+                  </Stack>
+                ))}
+                <Divider sx={{ borderStyle: 'dashed' }} />
+                <Stack direction="row" spacing={1}>
+                  <TextField
+                    select
+                    fullWidth
+                    size="small"
+                    label="Attach to requirement"
+                    value={attachTo}
+                    onChange={(e) => setAttachTo(e.target.value)}
+                  >
+                    {requirements
+                      .filter(
+                        (r) =>
+                          !['filled', 'closed'].includes(r.status) &&
+                          !links.some((l) => l.requirementId === r.id)
+                      )
+                      .map((r) => (
+                        <MenuItem key={r.id} value={r.id}>
+                          {r.title} — {r.clientName}
+                        </MenuItem>
+                      ))}
+                  </TextField>
+                  <LoadingButton
+                    variant="outlined"
+                    loading={busy === 'attach'}
+                    disabled={!attachTo}
+                    onClick={handleAttach}
+                  >
+                    Attach
+                  </LoadingButton>
                 </Stack>
               </Stack>
             </Card>

@@ -42,6 +42,7 @@ import { ConfirmDialog } from 'src/components/custom-dialog';
 import { LoadingScreen } from 'src/components/loading-screen';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
+import { RequirementCandidates } from '../requirement-candidates';
 import { PRIORITY, CAREERS_URL, REQUIREMENT_STATUS } from '../constants';
 
 // ----------------------------------------------------------------------
@@ -346,6 +347,11 @@ export function RequirementDetailsView({ id }) {
                 {r.sourceText}
               </Typography>
             </Card>
+
+            <RequirementCandidates
+              requirement={r}
+              onRequirementChange={(next) => mutate({ requirement: next }, { revalidate: false })}
+            />
           </Stack>
         </Grid>
 
@@ -465,17 +471,6 @@ export function RequirementDetailsView({ id }) {
                     ) : null}
                   </Stack>
                 </Box>
-
-                <Divider sx={{ borderStyle: 'dashed' }} />
-
-                <Button
-                  size="small"
-                  component={RouterLink}
-                  href={paths.dashboard.talent.resumes.root}
-                  startIcon={<Iconify icon="solar:file-text-bold" />}
-                >
-                  Find matching resumes
-                </Button>
               </Stack>
             </Card>
           </Stack>

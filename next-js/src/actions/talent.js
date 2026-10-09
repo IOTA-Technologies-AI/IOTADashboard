@@ -31,6 +31,51 @@ export function useTalentRequirement(id) {
   return { requirement: data?.requirement || null, error, loading: isLoading, mutate };
 }
 
+export function useTalentCustomers() {
+  const { data, error, isLoading } = useSWR('/talent/customers', (url) => fetcher(url), {
+    ...swrOptions,
+    revalidateIfStale: false,
+  });
+  return { customers: data?.customers || [], error, loading: isLoading };
+}
+
+export function useRequirementCandidates(id) {
+  const { data, error, isLoading, mutate } = useSWR(
+    id ? `/talent/requirements/${id}/candidates` : null,
+    (url) => fetcher(url),
+    swrOptions
+  );
+  return { candidates: data?.candidates || [], error, loading: isLoading, mutate };
+}
+
+export async function attachCandidate(requirementId, resumeId, match = {}) {
+  const res = await iotaApi.post(`/talent/requirements/${requirementId}/candidates`, {
+    resumeId,
+    matchScore: match.score,
+    matchReasons: match.reasons,
+  });
+  return res.data?.candidates || [];
+}
+
+export async function updateCandidate(requirementId, resumeId, payload) {
+  const res = await iotaApi.patch(
+    `/talent/requirements/${requirementId}/candidates/${resumeId}`,
+    payload
+  );
+  return res.data?.candidates || [];
+}
+
+export async function detachCandidate(requirementId, resumeId) {
+  const res = await iotaApi.delete(`/talent/requirements/${requirementId}/candidates/${resumeId}`);
+  return res.data?.candidates || [];
+}
+
+/** Ranks the resume library against a requirement (database search, then AI scoring). */
+export async function matchRequirement(id) {
+  const res = await iotaApi.post(`/talent/requirements/${id}/match`, {}, { timeout: 180000 });
+  return res.data;
+}
+
 export async function createRequirement(payload) {
   const res = await iotaApi.post('/talent/requirements', payload);
   return res.data?.requirement;
@@ -62,13 +107,20 @@ export async function recordLinkedinPost(id, postUrl) {
 
 // ─── Resumes ─────────────────────────────────────────────────────────────────
 
+/** `params === null` skips the request (e.g. while a picker is closed). */
 export function useTalentResumes(params = {}) {
   const { data, error, isLoading, mutate } = useSWR(
-    ['/talent/resumes', params],
+    params === null ? null : ['/talent/resumes', params],
     ([url, p]) => fetcher(url, p),
     swrOptions
   );
-  return { resumes: data?.resumes || [], error, loading: isLoading, mutate };
+  return {
+    resumes: data?.resumes || [],
+    total: data?.total ?? 0,
+    error,
+    loading: isLoading,
+    mutate,
+  };
 }
 
 export function useTalentResume(id) {
@@ -80,6 +132,7 @@ export function useTalentResume(id) {
   return {
     resume: data?.resume || null,
     shares: data?.shares || [],
+    requirements: data?.requirements || [],
     error,
     loading: isLoading,
     mutate,

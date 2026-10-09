@@ -25,6 +25,34 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Talent: resume IDs, search, candidates per requirement, and matching.**
+  - Every resume has a permanent **resume ID** (`IOTA-R-00042`), shown in the
+    library and on the resume page, and printed on the formatted PDF so a
+    client can quote it. Existing resumes are numbered in the order they were
+    added.
+  - **Search** is ranked full-text search across skills, roles, employers,
+    education and certifications, with English stemming ("consultants" finds
+    "consultant"). The search box takes `"exact phrase"`, `OR`, `-exclude`
+    (applied to the whole search) and resume IDs. **Filters**: skills (has
+    all / has any), specialization, years from–to, certification, employer,
+    attached requirement, date added, archived; sort by best match, newest
+    or experience; paged results with a total count.
+  - A requirement's **client is chosen from IOTA's customer list**; the name
+    comes from the customer record.
+  - **Candidates per requirement**: attach any number of resumes and track
+    each through shortlisted → submitted to client → interview → selected /
+    rejected / withdrawn. Add them from the library, attach suggested matches,
+    or upload resumes straight into the requirement. A resume's page lists the
+    requirements it is attached to and can attach it to another.
+  - **Matching**: finds resumes in the library that fit a requirement. The
+    database first narrows the library by the JD's skills and the role, then
+    the AI scores the closest 40 from 0–100 with reasons and gaps; the top
+    matches are kept on the requirement. It runs automatically when a
+    requirement is created and on demand (**Match again**). Matches are
+    suggestions — nothing is attached until a recruiter attaches it.
+  *(Backend: `talent/candidates.ts`, search in `talent/resumes.ts`, customers
+  in `talent/requirements.ts`; migration
+  `supabase/sql/20261010_talent_search_and_matching.sql`.)*
 - **Talent menu** (Management → Talent), with two pages that are granted
   per member: by default only super-admins see them; grant others in Access
   Control. The API applies the same rule.

@@ -10,6 +10,7 @@ import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
+import Autocomplete from '@mui/material/Autocomplete';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
@@ -17,7 +18,13 @@ import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { apiMessage, createRequirement, generateRequirementJd } from 'src/actions/talent';
+import {
+  apiMessage,
+  matchRequirement,
+  createRequirement,
+  useTalentCustomers,
+  generateRequirementJd,
+} from 'src/actions/talent';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -28,6 +35,7 @@ import { PRIORITY, EMPLOYMENT_TYPES } from '../constants';
 // ----------------------------------------------------------------------
 
 const EMPTY = {
+  customerId: null,
   clientName: '',
   title: '',
   sourceType: 'one_liner',
@@ -44,10 +52,11 @@ const EMPTY = {
 export function RequirementNewView() {
   const router = useRouter();
   const [form, setForm] = useState(EMPTY);
+  const { customers, loading: customersLoading, error: customersError } = useTalentCustomers();
   const [saving, setSaving] = useState(false);
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
-  const valid = form.clientName.trim() && form.title.trim() && form.sourceText.trim();
+  const valid = form.customerId && form.title.trim() && form.sourceText.trim();
 
   const handleSave = async () => {
     setSaving(true);
@@ -62,13 +71,17 @@ export function RequirementNewView() {
         toast.info('Requirement saved. Writing the job description…');
         try {
           await generateRequirementJd(created.id);
+          // With a JD in place, check the library for profiles that already fit.
+          toast.info('Looking for matching resumes in the library…');
+          await matchRequirement(created.id).catch(() => undefined);
         } catch (err) {
           toast.warning(
             apiMessage(err, 'The JD could not be written now; use Write JD on the next page.')
           );
         }
       } else {
-        toast.success('Requirement saved.');
+        toast.success('Requirement saved. Looking for matching resumes…');
+        await matchRequirement(created.id).catch(() => undefined);
       }
       router.push(paths.dashboard.talent.requirements.details(created.id));
     } catch (err) {
@@ -94,12 +107,29 @@ export function RequirementNewView() {
         <Stack spacing={3}>
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, md: 6 }}>
-              <TextField
-                fullWidth
-                required
-                label="Client"
-                value={form.clientName}
-                onChange={set('clientName')}
+              <Autocomplete
+                options={customers}
+                loading={customersLoading}
+                value={customers.find((c) => c.id === form.customerId) || null}
+                onChange={(_, c) =>
+                  setForm((f) => ({ ...f, customerId: c?.id ?? null, clientName: c?.name || '' }))
+                }
+                getOptionLabel={(c) => c.name}
+                isOptionEqualToValue={(a, b) => a.id === b.id}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    required
+                    label="Client"
+                    placeholder="Choose from IOTA's customers"
+                    helperText={
+                      customersError
+                        ? apiMessage(customersError, 'The customer list could not be loaded.')
+                        : 'Not listed? Add the customer under Customers first.'
+                    }
+                    error={!!customersError}
+                  />
+                )}
               />
             </Grid>
             <Grid size={{ xs: 12, md: 6 }}>

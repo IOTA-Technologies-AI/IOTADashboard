@@ -146,6 +146,7 @@ export function ResumePdfDocument({ resume, logoSrc = '/logo/logo-full.png' }) {
           <View style={styles.headerRight}>
             <Text style={styles.docLabel}>CANDIDATE PROFILE</Text>
             <Text style={styles.docSub}>Presented by IOTA Technologies</Text>
+            {resume?.resumeCode ? <Text style={styles.docSub}>{resume.resumeCode}</Text> : null}
           </View>
         </View>
 
@@ -245,7 +246,10 @@ export function ResumePdfDocument({ resume, logoSrc = '/logo/logo-full.png' }) {
         ) : null}
 
         <View style={styles.footer} fixed>
-          <Text>IOTA Technologies · Confidential candidate profile</Text>
+          <Text>
+            IOTA Technologies · Confidential candidate profile
+            {resume?.resumeCode ? ` · Ref ${resume.resumeCode}` : ''}
+          </Text>
           <Text render={({ pageNumber, totalPages }) => `${pageNumber} / ${totalPages}`} />
         </View>
       </Page>
