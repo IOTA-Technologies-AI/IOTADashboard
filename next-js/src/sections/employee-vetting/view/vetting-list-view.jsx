@@ -113,6 +113,7 @@ export function VettingListView() {
                 <TableCell>Nationality</TableCell>
                 <TableCell align="center">Checks</TableCell>
                 <TableCell>Status</TableCell>
+                <TableCell>Approval</TableCell>
                 <TableCell>Raised</TableCell>
                 <TableCell align="right" />
               </TableRow>
@@ -120,7 +121,7 @@ export function VettingListView() {
             <TableBody>
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                     <CircularProgress size={24} />
                   </TableCell>
                 </TableRow>
@@ -128,7 +129,7 @@ export function VettingListView() {
 
               {!isLoading && !filtered.length && (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={8} align="center" sx={{ py: 6 }}>
                     <Typography variant="body2" color="text.secondary">
                       {error ? 'Could not load vettings.' : 'No vettings raised yet.'}
                     </Typography>
@@ -163,6 +164,39 @@ export function VettingListView() {
                       color={STATUS_COLORS[row.status] || 'default'}
                       sx={{ textTransform: 'capitalize' }}
                     />
+                  </TableCell>
+                  <TableCell>
+
+                    {'approvalStatus' in row ? (
+
+                      <Chip
+
+                        size="small"
+
+                        variant="soft"
+
+                        label={row.approvalStatus === 'approved' ? 'Approved' : row.approvalStatus === 'rejected' ? 'Rejected' : 'Awaiting'}
+
+                        color={row.approvalStatus === 'approved' ? 'success' : row.approvalStatus === 'rejected' ? 'error' : 'warning'}
+
+                      />
+
+                    ) : (
+
+                      '—'
+
+                    )}
+
+                    {row.source === 'onboarding' ? (
+
+                      <Typography variant="caption" color="text.secondary" display="block">
+
+                        From onboarding
+
+                      </Typography>
+
+                    ) : null}
+
                   </TableCell>
                   <TableCell>
                     {row.createdAt ? new Date(row.createdAt).toLocaleDateString('en-GB', {

@@ -28,6 +28,8 @@ import { getVetting, submitVetting, refreshVetting } from 'src/actions/employee-
 
 import { Iconify } from 'src/components/iconify';
 
+import { VettingApprovalCard } from '../vetting-approval-card';
+
 // ----------------------------------------------------------------------
 
 const STATUS_COLORS = {
@@ -245,6 +247,11 @@ export function VettingDetailsView({ id }) {
           {refreshError}
         </Alert>
       )}
+
+      <VettingApprovalCard
+        vetting={vetting}
+        onChange={(updated) => mutate(updated, { revalidate: false })}
+      />
 
       <Card sx={{ p: 3, mb: 3 }}>
         <Box

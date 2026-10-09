@@ -24,6 +24,8 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
 
+import { stampNdaPdf } from 'src/utils/nda-pdf';
+import { stampForOffice, DEFAULT_IOTA_OFFICE } from 'src/utils/iota-offices';
 import {
   getOffer,
   rejectOffer,
@@ -37,6 +39,11 @@ import {
 } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
+import {
+  base64ToBlobUrl,
+  getOfferDocument,
+  setOfferStampPlacements,
+} from 'src/actions/offer-documents';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -44,6 +51,8 @@ import { NdaSignatureCanvas } from 'src/components/nda';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { OfferLetterHtmlTemplate } from 'src/components/offer-letter';
 import { OfferLetterPDF } from 'src/components/offer-letter/offer-letter-pdf';
+
+import { OfferLetterCheck } from 'src/sections/offer/offer-letter-check';
 
 import { useAuthContext } from 'src/auth/hooks';
 
@@ -143,6 +152,9 @@ export default function OfferManagementDetailsPage({ params }) {
 
   // Signature zones
   const [signatureZones, setSignatureZones] = useState([]);
+  // Company stamp placements (uploaded letters), and what a click places.
+  const [stampPlacements, setStampPlacements] = useState([]);
+  const [placeMode, setPlaceMode] = useState('signature'); // 'signature' | 'stamp'
   const [sigZoneSaving, setSigZoneSaving] = useState(false);
   const [sigZonePreviewPage, setSigZonePreviewPage] = useState(1);
   const [draggingSigZone, setDraggingSigZone] = useState(null);
@@ -201,11 +213,27 @@ export default function OfferManagementDetailsPage({ params }) {
     if (offer?.signatureZones) setSignatureZones(offer.signatureZones);
   }, [offer?.signatureZones]);
 
-  // Generate PDF blob for zone preview
+  useEffect(() => {
+    setStampPlacements(Array.isArray(offer?.stampPlacements) ? offer.stampPlacements : []);
+  }, [offer?.stampPlacements]);
+
+  const isUploaded = offer?.documentSource === 'uploaded';
+
+  // Generate PDF blob for zone preview — or, for an uploaded letter, the letter itself
   useEffect(() => {
     if (!offer) return undefined;
     let cancelled = false;
     const generate = async () => {
+      if (offer.documentSource === 'uploaded') {
+        if (!offer.sourceDocumentFileId) return;
+        try {
+          const { base64 } = await getOfferDocument(offer.id);
+          if (!cancelled) setOfferPdfBlobUrl(base64ToBlobUrl(base64));
+        } catch (e) {
+          console.error('Loading the uploaded letter failed:', e);
+        }
+        return;
+      }
       try {
         const offerData = {
           employeeName: offer.candidateName,
@@ -241,7 +269,7 @@ export default function OfferManagementDetailsPage({ params }) {
     return () => {
       cancelled = true;
     };
-  }, [offer?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [offer?.id, offer?.sourceDocumentFileId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Revoke blob URL on unmount
   useEffect(
@@ -300,6 +328,20 @@ export default function OfferManagementDetailsPage({ params }) {
       if (sigZoneDragMovedRef.current) return;
       if (!sigZonePreviewRef.current) return;
       const rect = sigZonePreviewRef.current.getBoundingClientRect();
+      if (placeMode === 'stamp') {
+        // Stamps are positioned by their centre.
+        setStampPlacements((prev) => [
+          ...prev,
+          {
+            id: `stamp-${Date.now()}`,
+            page: sigZonePreviewPage,
+            xPct: Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)),
+            yPct: Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100)),
+            widthPct: 18,
+          },
+        ]);
+        return;
+      }
       const xPct = ((e.clientX - rect.left) / rect.width) * 100 - 7;
       const yPct = ((e.clientY - rect.top) / rect.height) * 100 - 3;
       const newZone = {
@@ -318,7 +360,13 @@ export default function OfferManagementDetailsPage({ params }) {
       };
       setSignatureZones((prev) => [...prev, newZone]);
     },
-    [sigZonePreviewPage, selectedSigZoneSignatory, selectedZoneIsEmployee, offer?.iotaSignatories]
+    [
+      placeMode,
+      sigZonePreviewPage,
+      selectedSigZoneSignatory,
+      selectedZoneIsEmployee,
+      offer?.iotaSignatories,
+    ]
   );
 
   // Sig zone drag
@@ -463,6 +511,7 @@ export default function OfferManagementDetailsPage({ params }) {
     try {
       setSigZoneSaving(true);
       const updated = await setOfferSignatureZones(id, signatureZones);
+      if (isUploaded) await setOfferStampPlacements(id, stampPlacements);
       setOffer(updated);
       toast.success('Signature zones saved.');
     } catch {
@@ -516,59 +565,39 @@ export default function OfferManagementDetailsPage({ params }) {
       noticePeriod: offer.noticePeriod || '',
       currency: offer.currency || 'SAR',
     };
-    const blob = await pdf(<OfferLetterPDF data={offerData} />).toBlob();
-    const arrayBuffer = await blob.arrayBuffer();
-    let fileBase64 = uint8ToBase64(new Uint8Array(arrayBuffer));
+    let fileBase64;
+    if (offer.documentSource === 'uploaded') {
+      fileBase64 = (await getOfferDocument(offer.id)).base64;
+    } else {
+      const blob = await pdf(<OfferLetterPDF data={offerData} />).toBlob();
+      fileBase64 = uint8ToBase64(new Uint8Array(await blob.arrayBuffer()));
+    }
 
+    // Signatures (with each signer's name and date) and stamps, through the
+    // same code the NDAs use. The employee is the "partner" side.
     const allZones = Array.isArray(offer.signatureZones) ? offer.signatureZones : [];
-    if (allZones.length > 0) {
-      const { PDFDocument, rgb } = await import('pdf-lib');
-      const pdfBytes = Uint8Array.from(atob(fileBase64), (c) => c.charCodeAt(0));
-      const pdfDoc = await PDFDocument.load(pdfBytes);
-      const pages = pdfDoc.getPages();
-
-      for (const zone of allZones) {
-        const pageIdx = Math.max(0, (zone.page || 1) - 1);
-        const page = pages[pageIdx];
-        if (!page) continue;
-        const { width: pw, height: ph } = page.getSize();
-        const zX = (zone.xPct / 100) * pw;
-        const zY = ph - (zone.yPct / 100) * ph;
-        const zW = (zone.widthPct / 100) * pw;
-        const zH = (zone.heightPct / 100) * ph;
-
-        let sigData = null;
-        if (zone.isEmployee) {
-          sigData = offer.employeeSignatureData || null;
-        } else {
-          const idx = zone.iotaSignatoryIndex ?? 0;
-          sigData = offer.iotaSignatories?.[idx]?.signatureData || null;
-        }
-
-        if (sigData && sigData.startsWith('data:image')) {
-          try {
-            const b64 = sigData.split(',')[1];
-            const sigBytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
-            const sigImage = sigData.includes('image/png')
-              ? await pdfDoc.embedPng(sigBytes)
-              : await pdfDoc.embedJpg(sigBytes);
-            page.drawImage(sigImage, { x: zX, y: zY - zH, width: zW, height: zH, opacity: 1 });
-          } catch {
-            page.drawRectangle({
-              x: zX,
-              y: zY - zH,
-              width: zW,
-              height: zH,
-              borderColor: rgb(0.2, 0.2, 0.7),
-              borderWidth: 1,
-              opacity: 0.5,
-            });
-          }
-        }
-      }
-
-      const finalBytes = await pdfDoc.save();
-      fileBase64 = uint8ToBase64(finalBytes);
+    const stamps = Array.isArray(offer.stampPlacements) ? offer.stampPlacements : [];
+    if (allZones.length > 0 || stamps.length > 0) {
+      ({ base64: fileBase64 } = await stampNdaPdf({
+        base64: fileBase64,
+        nda: {
+          iotaOffice: offer.iotaOffice || DEFAULT_IOTA_OFFICE,
+          iotaSignatories: offer.iotaSignatories || [],
+          partnerSignatories: [
+            {
+              name: offer.candidateName,
+              email: offer.candidateEmail,
+              signedAt: offer.employeeSignedAt,
+              signatureData: offer.employeeSignatureData,
+            },
+          ],
+        },
+        signatureZones: allZones.filter((z) => !z.isEmployee),
+        partnerSignatureZones: allZones
+          .filter((z) => z.isEmployee)
+          .map((z) => ({ ...z, partnerSignatoryIndex: 0 })),
+        stampPlacements: stamps,
+      }));
     }
     return fileBase64;
   };
@@ -810,26 +839,50 @@ export default function OfferManagementDetailsPage({ params }) {
               </Alert>
             )}
 
+            {isUploaded ? (
+              <OfferLetterCheck offer={offer} onChange={() => getOffer(id).then(setOffer)} />
+            ) : null}
+
             {/* Offer Letter Document Preview */}
-            <Card sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                <Typography variant="subtitle1">Document Preview</Typography>
-                <Tooltip title="Use the Print button above for a clean print">
-                  <Iconify icon="solar:info-circle-bold" color="text.secondary" />
-                </Tooltip>
-              </Box>
-              <Box
-                ref={printRef}
-                sx={{
-                  maxHeight: 900,
-                  overflowY: 'auto',
-                  p: 2,
-                  bgcolor: 'background.default',
-                }}
-              >
-                <OfferLetterHtmlTemplate offer={offer} showSignatures />
-              </Box>
-            </Card>
+            {isUploaded ? (
+              <Card sx={{ p: 3 }}>
+                <Typography variant="subtitle1" sx={{ mb: 1 }}>
+                  Uploaded Letter
+                </Typography>
+                {offerPdfBlobUrl ? (
+                  <Box
+                    component="iframe"
+                    title="Offer letter"
+                    src={offerPdfBlobUrl}
+                    sx={{ width: 1, height: 900, border: 0, bgcolor: 'background.default' }}
+                  />
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    {offer.sourceDocumentFileId ? 'Loading the letter…' : 'No letter uploaded yet.'}
+                  </Typography>
+                )}
+              </Card>
+            ) : (
+              <Card sx={{ p: 3 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                  <Typography variant="subtitle1">Document Preview</Typography>
+                  <Tooltip title="Use the Print button above for a clean print">
+                    <Iconify icon="solar:info-circle-bold" color="text.secondary" />
+                  </Tooltip>
+                </Box>
+                <Box
+                  ref={printRef}
+                  sx={{
+                    maxHeight: 900,
+                    overflowY: 'auto',
+                    p: 2,
+                    bgcolor: 'background.default',
+                  }}
+                >
+                  <OfferLetterHtmlTemplate offer={offer} showSignatures />
+                </Box>
+              </Card>
+            )}
 
             {/* Candidate Information */}
             <Card sx={{ p: 3 }}>
@@ -1032,9 +1085,9 @@ export default function OfferManagementDetailsPage({ params }) {
                       variant="contained"
                       loading={sigZoneSaving}
                       onClick={handleSaveSignatureZones}
-                      disabled={signatureZones.length === 0}
+                      disabled={signatureZones.length === 0 && stampPlacements.length === 0}
                     >
-                      Save Zones
+                      {isUploaded ? 'Save Zones & Stamps' : 'Save Zones'}
                     </LoadingButton>
                   </Stack>
                   <Typography
@@ -1046,8 +1099,35 @@ export default function OfferManagementDetailsPage({ params }) {
                     to reposition.
                   </Typography>
 
+                  {isUploaded ? (
+                    <Stack direction="row" spacing={1} sx={{ mb: 1.5 }}>
+                      <Chip
+                        icon={<Iconify icon="solar:pen-bold" />}
+                        label="Place signatures"
+                        color={placeMode === 'signature' ? 'primary' : 'default'}
+                        variant={placeMode === 'signature' ? 'filled' : 'outlined'}
+                        onClick={() => setPlaceMode('signature')}
+                      />
+                      <Chip
+                        icon={<Iconify icon="solar:verified-check-bold" />}
+                        label="Place company stamp"
+                        color={placeMode === 'stamp' ? 'primary' : 'default'}
+                        variant={placeMode === 'stamp' ? 'filled' : 'outlined'}
+                        onClick={() => setPlaceMode('stamp')}
+                      />
+                    </Stack>
+                  ) : null}
+
                   {/* Signatory / employee selector */}
-                  <Stack direction="row" spacing={1} sx={{ mb: 2 }} flexWrap="wrap">
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{
+                      mb: 2,
+                      ...(placeMode === 'stamp' ? { opacity: 0.4, pointerEvents: 'none' } : {}),
+                    }}
+                    flexWrap="wrap"
+                  >
                     <Chip
                       label="Employee"
                       variant={selectedZoneIsEmployee ? 'filled' : 'outlined'}
@@ -1216,6 +1296,46 @@ export default function OfferManagementDetailsPage({ params }) {
                           </Box>
                         );
                       })}
+                    {stampPlacements
+                      .filter((p) => (p.page || 1) === sigZonePreviewPage)
+                      .map((p) => (
+                        <Box
+                          key={p.id}
+                          sx={{
+                            position: 'absolute',
+                            left: `${p.xPct}%`,
+                            top: `${p.yPct}%`,
+                            width: `${p.widthPct}%`,
+                            transform: 'translate(-50%, -50%)',
+                            opacity: 0.85,
+                          }}
+                        >
+                          <Box
+                            component="img"
+                            src={stampForOffice(offer?.iotaOffice || DEFAULT_IOTA_OFFICE)}
+                            alt="Company stamp"
+                            sx={{ width: '100%', display: 'block' }}
+                          />
+                          <IconButton
+                            size="small"
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              setStampPlacements((prev) => prev.filter((x) => x.id !== p.id));
+                            }}
+                            sx={{
+                              position: 'absolute',
+                              top: -10,
+                              right: -10,
+                              bgcolor: 'background.paper',
+                              boxShadow: 1,
+                              width: 22,
+                              height: 22,
+                            }}
+                          >
+                            <Iconify icon="mingcute:close-line" width={14} />
+                          </IconButton>
+                        </Box>
+                      ))}
                   </Box>
 
                   {signatureZones.length > 0 && (
@@ -1226,6 +1346,16 @@ export default function OfferManagementDetailsPage({ params }) {
                       onClick={() => setSignatureZones([])}
                     >
                       Clear All Zones
+                    </Button>
+                  )}
+                  {stampPlacements.length > 0 && (
+                    <Button
+                      size="small"
+                      color="error"
+                      sx={{ mt: 1, ml: 1 }}
+                      onClick={() => setStampPlacements([])}
+                    >
+                      Clear Stamps
                     </Button>
                   )}
                 </Card>

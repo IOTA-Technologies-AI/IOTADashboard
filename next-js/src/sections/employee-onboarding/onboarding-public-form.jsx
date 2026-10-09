@@ -127,7 +127,10 @@ const REQUIRED_BY_STEP = {
     ['iban', 'IBAN'],
   ],
   6: [],
-  7: [['declarationAccepted', 'Declaration']],
+  7: [
+    ['declarationAccepted', 'Declaration'],
+    ['backgroundCheckConsent', 'Background check consent'],
+  ],
 };
 
 /** Shown on the form from HR's side; never sent back as answers. */
@@ -1016,6 +1019,22 @@ function StepReview({ data, onChange, tokenRecord }) {
             </Typography>
           }
         />
+        <FormControlLabel
+          sx={{ mt: 1 }}
+          control={
+            <Checkbox
+              checked={!!data.backgroundCheckConsent}
+              onChange={(e) => onChange('backgroundCheckConsent', e.target.checked)}
+            />
+          }
+          label={
+            <Typography variant="body2">
+              I authorise IOTA Technologies to verify my identity and carry out a background check —
+              passport verification and sanctions, politically-exposed-person and adverse-media
+              screening — through its verification provider, using the details I have given here. *
+            </Typography>
+          }
+        />
       </Card>
     </Stack>
   );
@@ -1138,7 +1157,7 @@ export function OnboardingPublicForm() {
     const missing = (REQUIRED_BY_STEP[step] || [])
       .filter(([key]) => {
         const v = formData[key];
-        return key === 'declarationAccepted'
+        return key === 'declarationAccepted' || key === 'backgroundCheckConsent'
           ? v !== true
           : v === undefined || v === null || String(v).trim() === '';
       })

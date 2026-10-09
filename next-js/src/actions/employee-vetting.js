@@ -58,3 +58,9 @@ export async function deleteVetting(id) {
   const response = await iotaApi.delete(`/vetting/${id}`);
   return response.data;
 }
+
+/** Super Admin decision; an approved vetting makes the employee eligible for an offer. */
+export async function decideVetting(id, approved, note) {
+  const response = await iotaApi.post(`/vetting/${id}/decision`, { approved, note });
+  return response.data?.data || null;
+}

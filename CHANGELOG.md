@@ -25,6 +25,29 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Onboarding → automatic vetting → Super Admin approval → offer letter.**
+  When an employee submits the onboarding form, a vetting record is created and
+  the AML (sanctions/PEP/adverse media) and international passport checks are
+  started automatically; results that are still pending are collected every 30
+  minutes. The onboarding form now requires a background-check consent
+  checkbox. Auto-run can be switched off in appConfig (`vetting/autoRun`), in
+  which case the checks are drafted for HR to start by hand. Vetting records
+  have an approval status; only a Super Admin can approve or reject one, and not
+  while any check is still draft or pending.
+- **Offers from approved onboarding submissions.** New Offer has a "Start from
+  an onboarded employee" picker listing submissions whose vetting a Super Admin
+  approved and that have no offer yet; picking one fills in the employee's
+  details. The server refuses an offer for a submission that is not approved or
+  already has one.
+- **Uploaded offer letters, checked against the offer.** An offer can use the
+  IOTA template or an uploaded PDF. The uploaded letter is compared by AI with
+  the offer's details (name, role, dates, contract terms, every salary
+  component, leave, notice, passport, nationality) and each difference is
+  highlighted. On the offer page, signature areas for the employee and each IOTA
+  signatory and company-stamp positions are placed directly on the uploaded
+  letter. It cannot be sent until it has been checked and has an employee
+  signature area. The employee signs the uploaded letter itself, after all IOTA
+  signatories have signed.
 - **NDA review against the IOTA standard, with exceptional approval.** Every
   uploaded NDA — and any IOTA-template NDA with added or rewritten clauses — is
   checked by the Azure OpenAI deployment against IOTA's NDA standard

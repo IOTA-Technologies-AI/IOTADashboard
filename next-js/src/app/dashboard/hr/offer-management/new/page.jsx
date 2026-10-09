@@ -1,41 +1,47 @@
 'use client';
 
-import { pdf, PDFViewer, PDFDownloadLink } from '@react-pdf/renderer';
 import { useForm } from 'react-hook-form';
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
+import { PDFViewer, PDFDownloadLink } from '@react-pdf/renderer';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
+import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
+import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
+import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import IconButton from '@mui/material/IconButton';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
+import Autocomplete from '@mui/material/Autocomplete';
+import ToggleButton from '@mui/material/ToggleButton';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
-import Tooltip from '@mui/material/Tooltip';
-import IconButton from '@mui/material/IconButton';
-import Chip from '@mui/material/Chip';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
+import { createOffer } from 'src/utils/apiHelper';
+
 import { DashboardContent } from 'src/layouts/dashboard';
+import {
+  uploadOfferLetter,
+  verifyOfferDocument,
+  listEligibleCandidates,
+} from 'src/actions/offer-documents';
 
 import { toast } from 'src/components/snackbar';
-import { createOffer } from 'src/utils/apiHelper';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
-import {
-  OfferLetterPDF,
-  OfferLetterHTML,
-  OfferLetterHtmlTemplate,
-} from 'src/components/offer-letter';
+import { OfferLetterPDF, OfferLetterHtmlTemplate } from 'src/components/offer-letter';
 
 // ----------------------------------------------------------------------
 
@@ -90,6 +96,16 @@ export default function OfferManagementNewPage() {
   // Additional clauses
   const [clauses, setClauses] = useState([]);
 
+  // Onboarded employee this offer is for (vetting approved by a Super Admin)
+  const [eligible, setEligible] = useState([]);
+  const [eligibleLoading, setEligibleLoading] = useState(true);
+  const [candidate, setCandidate] = useState(null);
+
+  // Letter: generated from the IOTA template, or an uploaded PDF
+  const [letterSource, setLetterSource] = useState('generated');
+  const [letterFile, setLetterFile] = useState(null);
+  const letterInputRef = useRef(null);
+
   // Signature zones
   const [signatureZones, setSignatureZones] = useState([]);
   const [draggingSigZone, setDraggingSigZone] = useState(null);
@@ -104,6 +120,7 @@ export default function OfferManagementNewPage() {
     register,
     handleSubmit,
     watch,
+    setValue,
     getValues,
     formState: { errors },
   } = useForm({
@@ -140,6 +157,38 @@ export default function OfferManagementNewPage() {
 
   const currency = watch('currency') || 'SAR';
 
+  useEffect(() => {
+    listEligibleCandidates()
+      .then(setEligible)
+      .catch((err) => {
+        console.error('Loading onboarded employees failed:', err);
+        setEligible([]);
+      })
+      .finally(() => setEligibleLoading(false));
+  }, []);
+
+  const applyCandidate = (c) => {
+    setCandidate(c);
+    if (!c) return;
+    const opts = { shouldValidate: true, shouldDirty: true };
+    const day = (v) => (v ? String(v).slice(0, 10) : '');
+    setValue('employeeName', c.candidateName || '', opts);
+    setValue('candidateEmail', c.candidateEmail || '', opts);
+    setValue('passportNumber', c.passportNumber || '', opts);
+    setValue('dateOfBirth', day(c.dateOfBirth), opts);
+    setValue('nationality', c.nationality || '', opts);
+    setValue('position', c.position || '', opts);
+    setValue('startDate', day(c.startDate), opts);
+    const dept = DEPARTMENTS.find(
+      (d) =>
+        d.toLowerCase() ===
+        String(c.department || '')
+          .trim()
+          .toLowerCase()
+    );
+    if (dept) setValue('department', dept, opts);
+  };
+
   // Calculate total salary
   const basicSalary = parseFloat(watch('basicSalary')) || 0;
   const housingAllowance = parseFloat(watch('housingAllowance')) || 0;
@@ -148,6 +197,10 @@ export default function OfferManagementNewPage() {
   const totalSalary = basicSalary + housingAllowance + transportationAllowance + otherAllowances;
 
   const onSubmit = handleSubmit(async (data) => {
+    if (letterSource === 'uploaded' && !letterFile) {
+      toast.error('Choose the offer letter PDF to upload, or switch to the IOTA template.');
+      return;
+    }
     try {
       setLoading(true);
 
@@ -173,7 +226,9 @@ export default function OfferManagementNewPage() {
         workingHours: data.workingHours ? Number(data.workingHours) : undefined,
         annualLeaveDays: data.annualLeaveDays ? Number(data.annualLeaveDays) : undefined,
         noticePeriod: data.noticePeriod ? Number(data.noticePeriod) : undefined,
+        documentSource: letterSource,
       };
+      if (candidate) offerPayload.onboardingSubmissionId = candidate.submissionId;
 
       // Attach pre-configured signatories (if any filled)
       const validSignatories = iotaSignatories.filter((s) => s.name.trim() && s.email.trim());
@@ -189,7 +244,8 @@ export default function OfferManagementNewPage() {
           ipAddress: null,
         }));
       }
-      if (signatureZones.length > 0) {
+      // Zones on an uploaded letter are placed on the offer page, over the letter itself.
+      if (letterSource === 'generated' && signatureZones.length > 0) {
         offerPayload.signatureZones = signatureZones;
       }
 
@@ -198,13 +254,41 @@ export default function OfferManagementNewPage() {
         offerPayload.clauses = validClauses;
       }
 
-      await createOffer(offerPayload);
+      const created = await createOffer(offerPayload);
+
+      if (letterSource === 'uploaded') {
+        try {
+          await uploadOfferLetter(created.id, letterFile);
+        } catch (err) {
+          toast.error(
+            `Offer saved, but the letter upload failed: ${err?.response?.data?.message || err.message}. Upload it again from the offer page.`
+          );
+          router.push(paths.dashboard.hr.offerManagement.details(created.id));
+          return;
+        }
+        toast.info('Letter uploaded. Checking it against the offer details…');
+        try {
+          const v = await verifyOfferDocument(created.id);
+          const n = v.items.filter((i) => i.status !== 'match').length;
+          if (n)
+            toast.warning(
+              `${n} discrepanc${n === 1 ? 'y' : 'ies'} found — review them on the offer page.`
+            );
+          else toast.success('Offer created and the letter matches the offer details.');
+        } catch (err) {
+          toast.warning(
+            `Offer created, but the letter check failed: ${err?.response?.data?.message || err.message}. Run it again from the offer page.`
+          );
+        }
+        router.push(paths.dashboard.hr.offerManagement.details(created.id));
+        return;
+      }
 
       toast.success('Offer created! Admins have been notified for approval.');
       router.push(paths.dashboard.hr.offerManagement.root);
     } catch (error) {
       console.error('Error creating offer:', error);
-      toast.error('Failed to create offer');
+      toast.error(error?.response?.data?.message || 'Failed to create offer');
     } finally {
       setLoading(false);
     }
@@ -342,6 +426,110 @@ export default function OfferManagementNewPage() {
         <Grid container spacing={3}>
           <Grid size={{ xs: 12, md: 8 }}>
             <Stack spacing={3}>
+              {/* ── Onboarded employee ──────────────────────────────────── */}
+              <Card sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ mb: 0.5 }}>
+                  Start from an onboarded employee
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Employees whose onboarding submission passed vetting and was approved by a Super
+                  Admin. Picking one fills in their details below.
+                </Typography>
+                <Autocomplete
+                  options={eligible}
+                  loading={eligibleLoading}
+                  value={candidate}
+                  onChange={(_, v) => applyCandidate(v)}
+                  getOptionLabel={(o) => o.candidateName || o.candidateEmail || ''}
+                  isOptionEqualToValue={(o, v) => o.submissionId === v.submissionId}
+                  renderOption={(props, o) => (
+                    <li {...props} key={o.submissionId}>
+                      <Box>
+                        <Typography variant="body2">{o.candidateName}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {[o.position, o.department, o.candidateEmail].filter(Boolean).join(' · ')}
+                        </Typography>
+                      </Box>
+                    </li>
+                  )}
+                  noOptionsText={
+                    eligibleLoading
+                      ? 'Loading…'
+                      : 'No approved onboarding submissions without an offer yet.'
+                  }
+                  renderInput={(params) => (
+                    <TextField {...params} label="Onboarded employee (optional)" />
+                  )}
+                />
+                {candidate ? (
+                  <Alert severity="success" sx={{ mt: 2 }}>
+                    Vetting approved by {candidate.vettingApprovedBy || 'a Super Admin'}
+                    {candidate.vettingApprovedAt
+                      ? ` on ${new Date(candidate.vettingApprovedAt).toLocaleDateString()}`
+                      : ''}
+                    . Salary and contract terms still need to be entered.
+                  </Alert>
+                ) : null}
+              </Card>
+
+              {/* ── Offer letter source ─────────────────────────────────── */}
+              <Card sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ mb: 2 }}>
+                  Offer letter
+                </Typography>
+                <ToggleButtonGroup
+                  exclusive
+                  size="small"
+                  value={letterSource}
+                  onChange={(_, v) => v && setLetterSource(v)}
+                  sx={{ mb: 2 }}
+                >
+                  <ToggleButton value="generated">
+                    <Iconify icon="solar:document-text-bold" sx={{ mr: 1 }} />
+                    Generate from IOTA template
+                  </ToggleButton>
+                  <ToggleButton value="uploaded">
+                    <Iconify icon="eva:cloud-upload-fill" sx={{ mr: 1 }} />
+                    Upload our own PDF
+                  </ToggleButton>
+                </ToggleButtonGroup>
+                {letterSource === 'uploaded' ? (
+                  <Stack spacing={1.5}>
+                    <Typography variant="body2" color="text.secondary">
+                      Fill in the offer details below as well — the uploaded letter is checked
+                      against them and any difference is highlighted. Signature areas and the
+                      company stamp are placed on the offer page once it is saved.
+                    </Typography>
+                    <input
+                      ref={letterInputRef}
+                      hidden
+                      type="file"
+                      accept="application/pdf,.pdf"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f && !/\.pdf$/i.test(f.name)) {
+                          toast.error('Upload the offer letter as a PDF.');
+                          return;
+                        }
+                        setLetterFile(f || null);
+                      }}
+                    />
+                    <Stack direction="row" spacing={1} alignItems="center">
+                      <Button
+                        variant="outlined"
+                        startIcon={<Iconify icon="eva:attach-2-fill" />}
+                        onClick={() => letterInputRef.current?.click()}
+                      >
+                        {letterFile ? 'Change PDF' : 'Choose PDF'}
+                      </Button>
+                      <Typography variant="body2" noWrap>
+                        {letterFile?.name || 'No file chosen'}
+                      </Typography>
+                    </Stack>
+                  </Stack>
+                ) : null}
+              </Card>
+
               {/* Employee Information */}
               <Card sx={{ p: 3 }}>
                 <Typography variant="h6" sx={{ mb: 3 }}>
@@ -413,6 +601,7 @@ export default function OfferManagementNewPage() {
                       fullWidth
                       select
                       label="Department"
+                      value={watch('department') || ''}
                       {...register('department', { required: 'Department is required' })}
                       error={!!errors.department}
                       helperText={errors.department?.message}
@@ -652,188 +841,190 @@ export default function OfferManagementNewPage() {
               </Card>
 
               {/* ── Signature Zone Placement ──────────────────────────── */}
-              <Card sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ mb: 0.5 }}>
-                  Signature Zone Placement
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Optional — click the document to mark where each party&apos;s signature should
-                  appear. First load a PDF preview, then click to place zones. Drag to reposition.
-                </Typography>
+              {letterSource === 'generated' && (
+                <Card sx={{ p: 3 }}>
+                  <Typography variant="h6" sx={{ mb: 0.5 }}>
+                    Signature Zone Placement
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    Optional — click the document to mark where each party&apos;s signature should
+                    appear. First load a PDF preview, then click to place zones. Drag to reposition.
+                  </Typography>
 
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<Iconify icon="solar:refresh-bold" />}
-                  onClick={handleLoadZonePreview}
-                  sx={{ mb: 2 }}
-                >
-                  {showHtmlZonePreview ? 'Refresh Preview' : 'Load Preview'}
-                </Button>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<Iconify icon="solar:refresh-bold" />}
+                    onClick={handleLoadZonePreview}
+                    sx={{ mb: 2 }}
+                  >
+                    {showHtmlZonePreview ? 'Refresh Preview' : 'Load Preview'}
+                  </Button>
 
-                {showHtmlZonePreview && (
-                  <>
-                    {/* Signatory selector */}
-                    <Stack direction="row" spacing={1} sx={{ mb: 1.5 }} flexWrap="wrap">
-                      <Chip
-                        label="Employee"
-                        size="small"
-                        variant={selectedZoneIsEmployee ? 'filled' : 'outlined'}
-                        sx={{
-                          borderColor: EMP_ZONE_COLOR.border,
-                          color: selectedZoneIsEmployee ? 'common.white' : EMP_ZONE_COLOR.border,
-                          bgcolor: selectedZoneIsEmployee ? EMP_ZONE_COLOR.border : undefined,
-                        }}
-                        onClick={() => setSelectedZoneIsEmployee(true)}
-                      />
-                      {iotaSignatories
-                        .filter((s) => s.name.trim() || s.email.trim())
-                        .map((s, i) => (
-                          <Chip
-                            key={i}
-                            size="small"
-                            label={s.name || `Signatory ${i + 1}`}
-                            variant={
-                              !selectedZoneIsEmployee && selectedSigZoneSignatory === i
-                                ? 'filled'
-                                : 'outlined'
-                            }
-                            sx={{
-                              borderColor: SIG_ZONE_COLORS[i % SIG_ZONE_COLORS.length].border,
-                              color:
-                                !selectedZoneIsEmployee && selectedSigZoneSignatory === i
-                                  ? 'common.white'
-                                  : SIG_ZONE_COLORS[i % SIG_ZONE_COLORS.length].border,
-                              bgcolor:
-                                !selectedZoneIsEmployee && selectedSigZoneSignatory === i
-                                  ? SIG_ZONE_COLORS[i % SIG_ZONE_COLORS.length].border
-                                  : undefined,
-                            }}
-                            onClick={() => {
-                              setSelectedZoneIsEmployee(false);
-                              setSelectedSigZoneSignatory(i);
-                            }}
-                          />
-                        ))}
-                    </Stack>
-
-                    {/* Scrollable HTML template preview with zone overlays */}
-                    <Box
-                      sx={{
-                        width: '100%',
-                        maxHeight: 640,
-                        overflow: 'auto',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        borderRadius: 1,
-                        boxShadow: 2,
-                        bgcolor: 'grey.200',
-                        mb: 1,
-                      }}
-                    >
-                      <Box
-                        ref={sigZonePreviewRef}
-                        onClick={handleSigZonePreviewClick}
-                        sx={{ position: 'relative', cursor: 'crosshair' }}
-                      >
-                        <OfferLetterHtmlTemplate
-                          offer={zonePreviewOffer}
-                          showSignatures={false}
-                          showAuditTrail={false}
+                  {showHtmlZonePreview && (
+                    <>
+                      {/* Signatory selector */}
+                      <Stack direction="row" spacing={1} sx={{ mb: 1.5 }} flexWrap="wrap">
+                        <Chip
+                          label="Employee"
+                          size="small"
+                          variant={selectedZoneIsEmployee ? 'filled' : 'outlined'}
+                          sx={{
+                            borderColor: EMP_ZONE_COLOR.border,
+                            color: selectedZoneIsEmployee ? 'common.white' : EMP_ZONE_COLOR.border,
+                            bgcolor: selectedZoneIsEmployee ? EMP_ZONE_COLOR.border : undefined,
+                          }}
+                          onClick={() => setSelectedZoneIsEmployee(true)}
                         />
-                        {signatureZones.map((zone) => {
-                          const isEmp = zone.isEmployee;
-                          const color = isEmp
-                            ? EMP_ZONE_COLOR
-                            : SIG_ZONE_COLORS[
-                                (zone.iotaSignatoryIndex ?? 0) % SIG_ZONE_COLORS.length
-                              ];
-                          return (
-                            <Box
-                              key={zone.id}
-                              onMouseDown={(e) => {
-                                e.stopPropagation();
-                                sigZoneDragMovedRef.current = false;
-                                setDraggingSigZone(zone.id);
-                              }}
-                              onTouchStart={(e) => {
-                                e.stopPropagation();
-                                sigZoneDragMovedRef.current = false;
-                                setDraggingSigZone(zone.id);
-                              }}
+                        {iotaSignatories
+                          .filter((s) => s.name.trim() || s.email.trim())
+                          .map((s, i) => (
+                            <Chip
+                              key={i}
+                              size="small"
+                              label={s.name || `Signatory ${i + 1}`}
+                              variant={
+                                !selectedZoneIsEmployee && selectedSigZoneSignatory === i
+                                  ? 'filled'
+                                  : 'outlined'
+                              }
                               sx={{
-                                position: 'absolute',
-                                left: `${zone.xPct}%`,
-                                top: `${zone.yPct}%`,
-                                width: `${zone.widthPct}%`,
-                                height: `${zone.heightPct}%`,
-                                border: '2px dashed',
-                                borderColor: color.border,
-                                bgcolor: color.bg,
-                                borderRadius: 0.5,
-                                cursor: 'move',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                px: 0.5,
+                                borderColor: SIG_ZONE_COLORS[i % SIG_ZONE_COLORS.length].border,
+                                color:
+                                  !selectedZoneIsEmployee && selectedSigZoneSignatory === i
+                                    ? 'common.white'
+                                    : SIG_ZONE_COLORS[i % SIG_ZONE_COLORS.length].border,
+                                bgcolor:
+                                  !selectedZoneIsEmployee && selectedSigZoneSignatory === i
+                                    ? SIG_ZONE_COLORS[i % SIG_ZONE_COLORS.length].border
+                                    : undefined,
                               }}
-                            >
-                              <Typography
-                                variant="caption"
+                              onClick={() => {
+                                setSelectedZoneIsEmployee(false);
+                                setSelectedSigZoneSignatory(i);
+                              }}
+                            />
+                          ))}
+                      </Stack>
+
+                      {/* Scrollable HTML template preview with zone overlays */}
+                      <Box
+                        sx={{
+                          width: '100%',
+                          maxHeight: 640,
+                          overflow: 'auto',
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          borderRadius: 1,
+                          boxShadow: 2,
+                          bgcolor: 'grey.200',
+                          mb: 1,
+                        }}
+                      >
+                        <Box
+                          ref={sigZonePreviewRef}
+                          onClick={handleSigZonePreviewClick}
+                          sx={{ position: 'relative', cursor: 'crosshair' }}
+                        >
+                          <OfferLetterHtmlTemplate
+                            offer={zonePreviewOffer}
+                            showSignatures={false}
+                            showAuditTrail={false}
+                          />
+                          {signatureZones.map((zone) => {
+                            const isEmp = zone.isEmployee;
+                            const color = isEmp
+                              ? EMP_ZONE_COLOR
+                              : SIG_ZONE_COLORS[
+                                  (zone.iotaSignatoryIndex ?? 0) % SIG_ZONE_COLORS.length
+                                ];
+                            return (
+                              <Box
+                                key={zone.id}
+                                onMouseDown={(e) => {
+                                  e.stopPropagation();
+                                  sigZoneDragMovedRef.current = false;
+                                  setDraggingSigZone(zone.id);
+                                }}
+                                onTouchStart={(e) => {
+                                  e.stopPropagation();
+                                  sigZoneDragMovedRef.current = false;
+                                  setDraggingSigZone(zone.id);
+                                }}
                                 sx={{
-                                  fontSize: '0.55rem',
-                                  fontWeight: 700,
-                                  color: color.border,
-                                  overflow: 'hidden',
-                                  whiteSpace: 'nowrap',
-                                  textOverflow: 'ellipsis',
+                                  position: 'absolute',
+                                  left: `${zone.xPct}%`,
+                                  top: `${zone.yPct}%`,
+                                  width: `${zone.widthPct}%`,
+                                  height: `${zone.heightPct}%`,
+                                  border: '2px dashed',
+                                  borderColor: color.border,
+                                  bgcolor: color.bg,
+                                  borderRadius: 0.5,
+                                  cursor: 'move',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  px: 0.5,
                                 }}
                               >
-                                {zone.label}
-                              </Typography>
-                              <Tooltip title="Remove">
-                                <IconButton
-                                  size="small"
-                                  sx={{ p: 0, minWidth: 0 }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSignatureZones((prev) =>
-                                      prev.filter((z) => z.id !== zone.id)
-                                    );
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    fontSize: '0.55rem',
+                                    fontWeight: 700,
+                                    color: color.border,
+                                    overflow: 'hidden',
+                                    whiteSpace: 'nowrap',
+                                    textOverflow: 'ellipsis',
                                   }}
                                 >
-                                  <Iconify
-                                    icon="eva:close-fill"
-                                    width={12}
-                                    sx={{ color: color.border }}
-                                  />
-                                </IconButton>
-                              </Tooltip>
-                            </Box>
-                          );
-                        })}
+                                  {zone.label}
+                                </Typography>
+                                <Tooltip title="Remove">
+                                  <IconButton
+                                    size="small"
+                                    sx={{ p: 0, minWidth: 0 }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSignatureZones((prev) =>
+                                        prev.filter((z) => z.id !== zone.id)
+                                      );
+                                    }}
+                                  >
+                                    <Iconify
+                                      icon="eva:close-fill"
+                                      width={12}
+                                      sx={{ color: color.border }}
+                                    />
+                                  </IconButton>
+                                </Tooltip>
+                              </Box>
+                            );
+                          })}
+                        </Box>
                       </Box>
-                    </Box>
 
-                    {signatureZones.length > 0 && (
-                      <Stack
-                        direction="row"
-                        alignItems="center"
-                        justifyContent="space-between"
-                        sx={{ mt: 1 }}
-                      >
-                        <Typography variant="caption" color="text.secondary">
-                          {signatureZones.length} zone{signatureZones.length !== 1 ? 's' : ''}{' '}
-                          placed
-                        </Typography>
-                        <Button size="small" color="error" onClick={() => setSignatureZones([])}>
-                          Clear All
-                        </Button>
-                      </Stack>
-                    )}
-                  </>
-                )}
-              </Card>
+                      {signatureZones.length > 0 && (
+                        <Stack
+                          direction="row"
+                          alignItems="center"
+                          justifyContent="space-between"
+                          sx={{ mt: 1 }}
+                        >
+                          <Typography variant="caption" color="text.secondary">
+                            {signatureZones.length} zone{signatureZones.length !== 1 ? 's' : ''}{' '}
+                            placed
+                          </Typography>
+                          <Button size="small" color="error" onClick={() => setSignatureZones([])}>
+                            Clear All
+                          </Button>
+                        </Stack>
+                      )}
+                    </>
+                  )}
+                </Card>
+              )}
 
               {/* ── Additional Clauses ──────────────────────────────────── */}
               <Card sx={{ p: 3 }}>
