@@ -42,6 +42,10 @@ const nextConfig = {
     BUILD_STATIC_EXPORT: JSON.stringify(isStaticExport),
     NEXT_PUBLIC_BUILD_SHA: buildSha,
     NEXT_PUBLIC_BUILD_DATE: buildDate,
+    // Only NEXT_PUBLIC_* reaches the browser. The client used SENTRY_DSN, so
+    // it was undefined there and browser errors were never reported. A DSN is
+    // public by design; either variable name works in Vercel.
+    NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBLIC_SENTRY_DSN || process.env.SENTRY_DSN || '',
   },
   // Allow Vercel builds to proceed even if ESLint finds warnings/errors
   eslint: { ignoreDuringBuilds: true },

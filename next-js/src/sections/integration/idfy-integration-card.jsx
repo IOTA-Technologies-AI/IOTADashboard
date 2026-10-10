@@ -14,6 +14,7 @@ import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Switch from '@mui/material/Switch';
 import Divider from '@mui/material/Divider';
+import MenuItem from '@mui/material/MenuItem';
 import Checkbox from '@mui/material/Checkbox';
 import TableRow from '@mui/material/TableRow';
 import TableBody from '@mui/material/TableBody';
@@ -55,6 +56,7 @@ const STATE = {
 const AUTO_CHECKS = [
   { value: 'aml', label: 'AML screening (sanctions, PEP, adverse media)' },
   { value: 'intl_passport', label: 'Passport (International)' },
+  { value: 'experience_verification', label: 'Employment verification (BGV)' },
 ];
 
 const message = (err, fallback) => err?.response?.data?.message || err?.message || fallback;
@@ -364,10 +366,14 @@ export function IdfyIntegrationCard() {
     }
   };
 
-  const saveAutoRun = async (enabled, checks) => {
+  const saveAutoRun = async (
+    enabled,
+    checks,
+    maxEmployers = status?.autoRun?.maxEmployers ?? 2
+  ) => {
     setAutoSaving(true);
     try {
-      await setIdfyAutoRun(enabled, checks);
+      await setIdfyAutoRun(enabled, checks, maxEmployers);
       await mutate();
     } catch (err) {
       toast.error(message(err, 'Could not save.'));
@@ -564,6 +570,28 @@ export function IdfyIntegrationCard() {
                 />
               ))}
             </Stack>
+            {status.autoRun.checks.includes('experience_verification') ? (
+              <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mt: 1.5 }}>
+                <TextField
+                  select
+                  size="small"
+                  label="Employers to verify"
+                  value={status.autoRun.maxEmployers ?? 2}
+                  disabled={!canEdit || autoSaving || !status.autoRun.enabled}
+                  onChange={(e) => saveAutoRun(true, status.autoRun.checks, Number(e.target.value))}
+                  sx={{ width: 180 }}
+                >
+                  {[1, 2, 3, 4, 5].map((n) => (
+                    <MenuItem key={n} value={n}>
+                      {n === 1 ? 'Most recent only' : `${n} most recent`}
+                    </MenuItem>
+                  ))}
+                </TextField>
+                <Typography variant="caption" color="text.secondary">
+                  Each employer is a separate paid BGV check. Needs the BGV account below.
+                </Typography>
+              </Stack>
+            ) : null}
           </Box>
 
           <Divider sx={{ borderStyle: 'dashed' }} />

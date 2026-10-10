@@ -27,7 +27,7 @@ export async function setIdfyCredits(body) {
   return res.data;
 }
 
-export async function setIdfyAutoRun(enabled, checks) {
-  const res = await iotaApi.put('/idfy/auto-run', { enabled, checks });
+export async function setIdfyAutoRun(enabled, checks, maxEmployers) {
+  const res = await iotaApi.put('/idfy/auto-run', { enabled, checks, maxEmployers });
   return res.data;
 }

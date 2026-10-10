@@ -87,8 +87,9 @@ export function VettingFromOnboardingDialog({ open, onClose, credits }) {
         <Stack spacing={2}>
           <Typography variant="body2" color="text.secondary">
             For submissions made before automatic vetting, or whose automatic run did not go
-            through. The AML screening and international passport check run straight away from the
-            details the employee submitted. These are paid IDfy checks.
+            through. The AML screening, international passport check and verification of the
+            previous employers listed (IDfy BGV) run straight away from the details the employee
+            submitted. These are paid IDfy checks.
           </Typography>
 
           {error ? <Alert severity="error">{error}</Alert> : null}

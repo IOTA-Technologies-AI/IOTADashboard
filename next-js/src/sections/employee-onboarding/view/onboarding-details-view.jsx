@@ -329,11 +329,76 @@ export function OnboardingDetailsView({ id }) {
             <InfoRow label="Notes" value={s.insuranceNotes} />
           </SectionCard>
 
-          {(s.additionalRemarks || s.declarationAcceptedAt) && (
-            <SectionCard title="Declaration & Remarks" icon="eva:edit-2-fill">
+          <SectionCard title="Employment History" icon="eva:briefcase-outline">
+            {s.noPreviousEmployment ? (
+              <InfoRow label="Previous employment" value="None declared" />
+            ) : (Array.isArray(s.employmentHistory) ? s.employmentHistory : []).length ? (
+              s.employmentHistory.map((job, i) => (
+                <Box key={i} sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                    {job.organization || `Employer ${i + 1}`}
+                  </Typography>
+                  <InfoRow label="Designation" value={job.designation} />
+                  <InfoRow label="Employee ID" value={job.employeeId} />
+                  <InfoRow
+                    label="Period"
+                    value={[
+                      job.dateOfJoining,
+                      job.currentlyWorking ? 'present' : job.lastWorkingDate,
+                    ]
+                      .filter(Boolean)
+                      .join(' to ')}
+                  />
+                  <InfoRow
+                    label="Address"
+                    value={[
+                      job.organizationAddress,
+                      job.city,
+                      job.state,
+                      job.country,
+                      job.postalCode,
+                    ]
+                      .filter(Boolean)
+                      .join(', ')}
+                  />
+                  <InfoRow
+                    label="Supervisor"
+                    value={[
+                      job.supervisorName,
+                      job.supervisorDesignation,
+                      job.supervisorEmail,
+                      job.supervisorPhone,
+                    ]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  />
+                </Box>
+              ))
+            ) : (
+              <InfoRow
+                label="Previous employment"
+                value="Not provided (submitted before this was asked)"
+              />
+            )}
+          </SectionCard>
+
+          {(s.additionalRemarks || s.declarationAcceptedAt || s.backgroundCheckConsentAt) && (
+            <SectionCard title="Declaration & Consent" icon="eva:edit-2-fill">
               <InfoRow
                 label="Declaration accepted"
                 value={s.declarationAcceptedAt ? fDateTime(s.declarationAcceptedAt) : ''}
+              />
+              <InfoRow
+                label="Background verification consent"
+                value={
+                  s.backgroundCheckConsentAt
+                    ? `${fDateTime(s.backgroundCheckConsentAt)}${
+                        s.backgroundCheckConsentVersion
+                          ? ` (wording ${s.backgroundCheckConsentVersion})`
+                          : ' (earlier wording: identity and AML only)'
+                      }`
+                    : 'Not recorded (submitted before consent was asked)'
+                }
               />
               <InfoRow label="Remarks" value={s.additionalRemarks} />
             </SectionCard>

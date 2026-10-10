@@ -39,6 +39,7 @@ const STEPS = [
   'Family & Dependants',
   'Bank & GOSI',
   'Insurance',
+  'Employment History',
   'Review & Submit',
 ];
 
@@ -127,11 +128,52 @@ const REQUIRED_BY_STEP = {
     ['iban', 'IBAN'],
   ],
   6: [],
-  7: [
+  7: [],
+  8: [
     ['declarationAccepted', 'Declaration'],
-    ['backgroundCheckConsent', 'Background check consent'],
+    ['backgroundCheckConsent', 'Background verification consent'],
   ],
 };
+
+/**
+ * One previous employer. Every field is required by IDfy Background
+ * Verification, which contacts the organisation and the supervisor named here.
+ * The API checks the same list (EMPLOYMENT_REQUIRED).
+ */
+const EMPLOYMENT_FIELDS = [
+  ['organization', 'Organisation name'],
+  ['employeeId', 'Your employee ID there'],
+  ['designation', 'Designation'],
+  ['dateOfJoining', 'Date of joining'],
+  ['lastWorkingDate', 'Last working date'],
+  ['organizationAddress', 'Organisation address'],
+  ['city', 'City'],
+  ['state', 'State / province'],
+  ['country', 'Country'],
+  ['postalCode', 'Postal code'],
+  ['supervisorName', 'Supervisor name'],
+  ['supervisorDesignation', 'Supervisor designation'],
+  ['supervisorEmail', 'Supervisor email'],
+  ['supervisorPhone', 'Supervisor phone'],
+];
+const MAX_EMPLOYERS = 5;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function missingEmployment(data) {
+  if (data.noPreviousEmployment === true) return [];
+  const jobs = Array.isArray(data.employmentHistory) ? data.employmentHistory : [];
+  if (!jobs.length) return ['At least one previous employer, or tick "no previous employment"'];
+  const missing = [];
+  jobs.forEach((job, i) => {
+    EMPLOYMENT_FIELDS.forEach(([key, label]) => {
+      if (!String(job?.[key] ?? '').trim()) missing.push(`Employer ${i + 1}: ${label}`);
+    });
+    if (job?.supervisorEmail && !EMAIL_RE.test(String(job.supervisorEmail).trim())) {
+      missing.push(`Employer ${i + 1}: a valid supervisor email`);
+    }
+  });
+  return missing;
+}
 
 /** Shown on the form from HR's side; never sent back as answers. */
 const PREFILL_ONLY_KEYS = ['employeeCode', 'designation', 'department', 'joiningDate'];
@@ -156,6 +198,16 @@ function cleanFormData(formData) {
     return clean;
   });
   data.numberOfDependents = data.dependents.length;
+  data.employmentHistory =
+    formData.noPreviousEmployment === true
+      ? []
+      : (Array.isArray(formData.employmentHistory) ? formData.employmentHistory : []).map((job) => {
+          const clean = {};
+          Object.entries(job || {}).forEach(([key, value]) => {
+            if (!isBlank(value)) clean[key] = typeof value === 'string' ? value.trim() : value;
+          });
+          return clean;
+        });
   return data;
 }
 
@@ -892,6 +944,163 @@ function StepInsurance({ data, onChange }) {
 
 // ─── Step 7: review ───────────────────────────────────────────────────────────
 
+// ─── Step 7: employment history ───────────────────────────────────────────────
+
+function StepEmployment({ data, onChange }) {
+  const jobs = Array.isArray(data.employmentHistory) ? data.employmentHistory : [];
+  const none = data.noPreviousEmployment === true;
+
+  const setJob = (idx, key, value) => {
+    const next = [...jobs];
+    next[idx] = { ...(next[idx] || {}), [key]: value };
+    onChange('employmentHistory', next);
+  };
+  const addJob = () => onChange('employmentHistory', [...jobs, { currentlyWorking: false }]);
+  const removeJob = (idx) =>
+    onChange(
+      'employmentHistory',
+      jobs.filter((_, i) => i !== idx)
+    );
+  const jobField = (idx, key, extra = {}) => ({
+    value: jobs[idx]?.[key] ?? '',
+    onChange: (e) => setJob(idx, key, e.target.value),
+    fullWidth: true,
+    ...extra,
+  });
+
+  return (
+    <Stack spacing={3}>
+      <StepHeader
+        title="Employment History"
+        subtitle="Your previous employers, most recent first. They are verified as part of your background verification, so please give a supervisor who can confirm your employment."
+      />
+
+      <FormControlLabel
+        control={
+          <Checkbox
+            checked={none}
+            onChange={(e) => {
+              onChange('noPreviousEmployment', e.target.checked);
+              if (!e.target.checked && !jobs.length) onChange('employmentHistory', [{}]);
+            }}
+          />
+        }
+        label="I have no previous employment (for example, this is my first job)"
+      />
+
+      {!none && (
+        <Stack spacing={2}>
+          {jobs.map((job, idx) => (
+            <Card key={idx} variant="outlined" sx={{ p: 2 }}>
+              <Stack direction="row" alignItems="center" justifyContent="space-between" mb={1.5}>
+                <Typography variant="subtitle1" fontWeight={600}>
+                  Employer {idx + 1}
+                  {idx === 0 ? ' (most recent)' : ''}
+                </Typography>
+                <Button size="small" color="error" onClick={() => removeJob(idx)}>
+                  Remove
+                </Button>
+              </Stack>
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField label="Organisation name *" {...jobField(idx, 'organization')} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField label="Your employee ID there *" {...jobField(idx, 'employeeId')} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField label="Designation *" {...jobField(idx, 'designation')} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox
+                        checked={!!job.currentlyWorking}
+                        onChange={(e) => setJob(idx, 'currentlyWorking', e.target.checked)}
+                      />
+                    }
+                    label="I currently work here"
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    label="Date of joining *"
+                    type="date"
+                    {...jobField(idx, 'dateOfJoining')}
+                    InputLabelProps={{ shrink: true }}
+                    inputProps={{ max: todayStr() }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    label={
+                      job.currentlyWorking ? 'Expected last working date *' : 'Last working date *'
+                    }
+                    type="date"
+                    {...jobField(idx, 'lastWorkingDate')}
+                    InputLabelProps={{ shrink: true }}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <TextField
+                    label="Organisation address *"
+                    {...jobField(idx, 'organizationAddress')}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField label="City *" {...jobField(idx, 'city')} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField label="State / province *" {...jobField(idx, 'state')} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField label="Country *" {...jobField(idx, 'country')} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField label="Postal code *" {...jobField(idx, 'postalCode')} />
+                </Grid>
+                <Grid size={{ xs: 12 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Supervisor or reporting manager who can confirm your employment
+                  </Typography>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField label="Supervisor name *" {...jobField(idx, 'supervisorName')} />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    label="Supervisor designation *"
+                    {...jobField(idx, 'supervisorDesignation')}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    label="Supervisor email *"
+                    type="email"
+                    {...jobField(idx, 'supervisorEmail')}
+                  />
+                </Grid>
+                <Grid size={{ xs: 12, sm: 6 }}>
+                  <TextField
+                    label="Supervisor phone *"
+                    type="tel"
+                    {...jobField(idx, 'supervisorPhone')}
+                  />
+                </Grid>
+              </Grid>
+            </Card>
+          ))}
+          {jobs.length < MAX_EMPLOYERS && (
+            <Button variant="outlined" onClick={addJob} sx={{ alignSelf: 'flex-start' }}>
+              {jobs.length ? 'Add another employer' : 'Add an employer'}
+            </Button>
+          )}
+        </Stack>
+      )}
+    </Stack>
+  );
+}
+
 function StepReview({ data, onChange, tokenRecord }) {
   const Section = ({ title, children }) => (
     <Card variant="outlined" sx={{ mb: 2 }}>
@@ -994,6 +1203,27 @@ function StepReview({ data, onChange, tokenRecord }) {
         <Row label="Current Insurer" value={data.currentInsurer} />
       </Section>
 
+      <Section title="Employment History">
+        {data.noPreviousEmployment ? (
+          <Typography variant="body2">No previous employment.</Typography>
+        ) : (
+          (Array.isArray(data.employmentHistory) ? data.employmentHistory : []).map((job, i) => (
+            <Row
+              key={i}
+              label={job.organization || `Employer ${i + 1}`}
+              value={[
+                job.designation,
+                [job.dateOfJoining, job.currentlyWorking ? 'present' : job.lastWorkingDate]
+                  .filter(Boolean)
+                  .join(' to '),
+              ]
+                .filter(Boolean)
+                .join(', ')}
+            />
+          ))
+        )}
+      </Section>
+
       <TextField
         label="Anything else HR should know?"
         multiline
@@ -1019,19 +1249,48 @@ function StepReview({ data, onChange, tokenRecord }) {
             </Typography>
           }
         />
+      </Card>
+
+      <Card variant="outlined" sx={{ p: 2, borderColor: 'primary.main' }}>
+        <Typography variant="subtitle1" fontWeight={600} gutterBottom>
+          Background verification — your consent
+        </Typography>
+        <Typography variant="body2" sx={{ mb: 1 }}>
+          Before your employment is confirmed, IOTA Technologies carries out a background
+          verification through its verification partner, IDfy (Baldor Technologies Pvt. Ltd.). With
+          your approval, it will check:
+        </Typography>
+        <Box component="ul" sx={{ m: 0, pl: 3, typography: 'body2' }}>
+          <li>your identity and passport against official records;</li>
+          <li>
+            anti-money-laundering (AML) screening: international sanctions lists, politically
+            exposed persons (PEP) and adverse media;
+          </li>
+          <li>
+            your employment records: IDfy will contact the previous employers and supervisors you
+            listed to confirm your dates of employment and designation.
+          </li>
+        </Box>
+        <Typography variant="body2" sx={{ mt: 1 }}>
+          Only the details you give in this form are shared with IDfy, solely for this verification.
+          The results are seen by IOTA&apos;s HR and management and kept with your employment
+          records. You may ask HR about the outcome or to correct inaccurate information.
+        </Typography>
         <FormControlLabel
-          sx={{ mt: 1 }}
+          sx={{ mt: 1.5, alignItems: 'flex-start' }}
           control={
             <Checkbox
+              sx={{ pt: 0.25 }}
               checked={!!data.backgroundCheckConsent}
               onChange={(e) => onChange('backgroundCheckConsent', e.target.checked)}
             />
           }
           label={
-            <Typography variant="body2">
-              I authorise IOTA Technologies to verify my identity and carry out a background check —
-              passport verification and sanctions, politically-exposed-person and adverse-media
-              screening — through its verification provider, using the details I have given here. *
+            <Typography variant="body2" fontWeight={600}>
+              I have read the above and I approve IOTA Technologies and IDfy carrying out this
+              background verification — identity and passport, AML / sanctions / PEP / adverse media
+              screening, and verification of my employment records with my previous employers and
+              supervisors. *
             </Typography>
           }
         />
@@ -1174,6 +1433,7 @@ export function OnboardingPublicForm() {
     if (step === 5 && formData.iban && String(formData.iban).length < 15) {
       missing.push('A valid IBAN');
     }
+    if (step === 7) missing.push(...missingEmployment(formData));
     return missing;
   };
 
@@ -1199,7 +1459,7 @@ export function OnboardingPublicForm() {
   };
 
   const handleSubmit = async () => {
-    const missing = missingForStep(7);
+    const missing = [...missingForStep(7), ...missingForStep(8)];
     if (missing.length) {
       setStepError(`Please complete: ${missing.join(', ')}.`);
       return;
@@ -1310,7 +1570,8 @@ export function OnboardingPublicForm() {
     <StepFamily key={4} data={formData} onChange={handleFieldChange} />,
     <StepBank key={5} data={formData} onChange={handleFieldChange} />,
     <StepInsurance key={6} data={formData} onChange={handleFieldChange} />,
-    <StepReview key={7} data={formData} onChange={handleFieldChange} tokenRecord={tokenRecord} />,
+    <StepEmployment key={7} data={formData} onChange={handleFieldChange} />,
+    <StepReview key={8} data={formData} onChange={handleFieldChange} tokenRecord={tokenRecord} />,
   ];
   const isLastStep = activeStep === STEPS.length - 1;
 

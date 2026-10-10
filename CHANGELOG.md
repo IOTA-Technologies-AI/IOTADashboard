@@ -25,6 +25,23 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Background verification consent and employment checks on the onboarding
+  form.**
+  - A new Employment History step collects up to five previous employers,
+    each with the supervisor IDfy will contact. Someone with no previous job
+    ticks "no previous employment".
+  - The consent card now spells out each check: identity and passport, AML
+    (sanctions, PEP, adverse media) and employment records with previous
+    employers and supervisors, all run by IDfy. The employee must approve it,
+    and the wording version accepted is stored with the submission.
+  - On submission, employment verification for the most recent employers (2 by
+    default, adjustable under Integrations → IDfy) goes to IDfy Background
+    Verification alongside AML and passport.
+  - If the BGV account isn't set up, those checks wait as drafts.
+  - HR sees the history and the consent on the submission page.
+  - Needs `supabase/sql/20261014_onboarding_employment_bgv.sql`.
+- **Unit tests in CI.** The dashboard has a `yarn test` (Vitest) step that
+  blocks CI; the API runs `encore test` and a type check.
 - **Vet existing onboarding submissions, and IDfy on the Integrations page.**
   Employee Vetting → "From Onboarding" lists every onboarding submission and
   runs the AML and passport checks for one the automatic run missed. A
@@ -371,6 +388,11 @@ is running.
 - This changelog.
 
 ### Security
+- `GET /appconfigs` now returns only office details to users who aren't Super
+  Admins, and masks credential fields (API keys, secrets, tokens) for everyone.
+  Previously any signed-in user could read the IDfy and Apollo credentials.
+- Payroll, wallet, commission, sales and report endpoints now check page
+  access, not just sign-in.
 - **The API now requires a signed-in user on every endpoint that is not public
   by design.** 191 endpoints that previously answered anyone who knew the URL —
   payroll, wallet top-ups, offers, NDAs, employee requests, insurance, reports,
@@ -455,6 +477,23 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Invoice VAT is charged after the discount.** It was charged on the
+  pre-discount subtotal, overstating VAT on every discounted invoice. Invoices
+  and proformas now share one calculation: items, less discount, plus
+  shipping, rounded to 2 dp.
+- **ZATCA invoice totals add up.** The discount and shipping go into the XML
+  as a document-level allowance and charge. An invoice whose saved totals
+  don't add up is refused with a message to re-save it.
+- **Invoices and proformas never print under another entity.** An unknown or
+  shared currency is refused instead of falling back to IOTA Saudi. This covers
+  the print pages, the issued PDF and employee-billing PDFs.
+- **Backend permissions match the dashboard.** A user granted a page in Access
+  Control no longer gets 403 from its API because their role's default says no.
+- **Long lists are complete.** Invoices, expenses, NDAs, offers, pipeline deals
+  and commissions are no longer cut off at Supabase's 1,000-row limit.
+- **Browser errors reach Sentry.** The client now reads
+  `NEXT_PUBLIC_SENTRY_DSN`, with `SENTRY_DSN` accepted too. Tracing is sampled
+  at 10% in production.
 - **Email review to IOTA: recipients now come from the Microsoft 365 directory.**
   To and Cc are picked by searching names or emails; typed addresses are only
   accepted when the directory can't be loaded. Send stayed disabled because a
