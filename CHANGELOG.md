@@ -435,10 +435,13 @@ is running.
 
 ### Changed
 - **Removed the template's sample data (`_mock`) and the pages built on it.**
-  - Gone: the E-commerce, Analytics, Banking, Booking, Course, File and Finance
+  - Gone: the E-commerce, Analytics, Booking, Course, File and Finance
     overview dashboards; Tour, Order, Product and Blog; Chat, Mail and Kanban;
-    User cards, profile, billing and socials; the component showcase; and the
-    public template site.
+    User billing and socials; the component showcase; and the public template
+    site.
+  - Kept: Banking (statement upload, transactions, reconciliation) and the
+    User profile (synced from Microsoft 365) and cards, minus their sample
+    widgets.
   - `/` now opens the dashboard. Calendar stays.
   - Removed from the navigation, along with the demo "Details/Edit" items
     that pointed at records that don't exist.

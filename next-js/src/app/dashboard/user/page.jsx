@@ -1,10 +1,9 @@
-import { redirect } from 'next/navigation';
-
-import { paths } from 'src/routes/paths';
+import { UserProfileView } from 'src/sections/user/view';
 
 // ----------------------------------------------------------------------
 
-// The template's sample profile page was removed; users are managed in the list.
+export const metadata = { title: `User profile` };
+
 export default function Page() {
-  redirect(paths.dashboard.user.list);
+  return <UserProfileView />;
 }

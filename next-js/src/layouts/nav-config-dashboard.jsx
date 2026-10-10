@@ -84,6 +84,7 @@ export const navData = [
     subheader: 'Overview',
     items: [
       { title: 'Home', path: paths.dashboard.root, icon: ICONS.dashboard },
+      { title: 'Banking', path: paths.dashboard.general.banking, icon: ICONS.banking },
       {
         title: 'Candidate',
         path: paths.dashboard.profile.root,
@@ -136,6 +137,8 @@ export const navData = [
         path: paths.dashboard.user.root,
         icon: ICONS.user,
         children: [
+          { title: 'Profile', path: paths.dashboard.user.root },
+          { title: 'Cards', path: paths.dashboard.user.cards },
           { title: 'List', path: paths.dashboard.user.list },
           { title: 'Create', path: paths.dashboard.user.new },
           { title: 'Account', path: paths.dashboard.user.account, deepMatch: true },
