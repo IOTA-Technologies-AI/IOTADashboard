@@ -373,8 +373,8 @@ export function NdaReviewPanel({ nda, onChange, onEmail }) {
       {running ? (
         <Box sx={{ mb: 2 }}>
           <Typography variant="body2" color="text.secondary">
-            Reading the NDA and checking every clause against the IOTA standard — this can take up
-            to a minute…
+            Reading the NDA and checking every clause against the IOTA standard. This can take up to
+            a minute, longer for a scanned PDF…
           </Typography>
           <LinearProgress sx={{ mt: 1 }} />
         </Box>
@@ -395,6 +395,9 @@ export function NdaReviewPanel({ nda, onChange, onEmail }) {
               ? ' · only the added or rewritten wording was reviewed'
               : ''}
             {result.truncated ? ' · the document was very long; only the first part was read' : ''}
+            {result.readFrom === 'scan'
+              ? ' · scanned PDF: the pages were transcribed by AI before review, so check quoted wording against the original'
+              : ''}
           </Typography>
 
           {findings.length ? (

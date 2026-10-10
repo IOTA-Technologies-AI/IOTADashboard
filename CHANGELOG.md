@@ -509,6 +509,13 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Authenticator setup no longer rejects a correctly scanned code.** Until
+  setup was finished, every sign-in (and "Resend") created a new secret and
+  emailed a new QR code. Anyone who scanned an earlier one then got "Invalid
+  code". An unfinished setup now keeps its secret and re-sends the same QR.
+- **Scanned NDAs can be reviewed.** A PDF with no text layer used to fail with
+  "No readable text was found". Its page images are now transcribed by AI
+  first, and the review notes that it was read from a scan.
 - New tasks and comments on the Sales and To Do boards are credited to you,
   not to a random sample person.
 - The invoice list's service filter offers the services on your invoices, not
