@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
 import { varAlpha } from 'minimal-shared/utils';
 import { useBoolean, useSetState } from 'minimal-shared/hooks';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
@@ -17,10 +17,9 @@ import IconButton from '@mui/material/IconButton';
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
+import { USER_STATUS_OPTIONS } from 'src/utils/constants/enums';
+
 import { DashboardContent } from 'src/layouts/dashboard';
-import { USER_STATUS_OPTIONS } from 'src/_mock';
-import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
-import { useAuthContext } from 'src/auth/hooks';
 
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
@@ -39,6 +38,9 @@ import {
   TableSelectedAction,
   TablePaginationCustom,
 } from 'src/components/table';
+
+import { useAuthContext } from 'src/auth/hooks';
+import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 
 import { UserTableRow } from '../user-table-row';
 import { UserTableToolbar } from '../user-table-toolbar';

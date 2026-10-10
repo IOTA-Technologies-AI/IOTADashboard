@@ -1,11 +1,6 @@
 import { kebabCase } from 'es-toolkit';
 
-import { _id, _postTitles } from 'src/_mock/assets';
-
 // ----------------------------------------------------------------------
-
-const MOCK_ID = _id[1];
-const MOCK_TITLE = _postTitles[2];
 
 const ROOTS = {
   AUTH: '/auth',
@@ -37,12 +32,10 @@ export const paths = {
     root: `/product`,
     checkout: `/product/checkout`,
     details: (id) => `/product/${id}`,
-    demo: { details: `/product/${MOCK_ID}` },
   },
   post: {
     root: `/post`,
     details: (title) => `/post/${kebabCase(title)}`,
-    demo: { details: `/post/${kebabCase(MOCK_TITLE)}` },
   },
   // AUTH
   auth: {
@@ -311,37 +304,24 @@ export const paths = {
       account: `${ROOTS.DASHBOARD}/user/account`,
       pageAccess: `${ROOTS.DASHBOARD}/user/page-access`,
       edit: (id) => `${ROOTS.DASHBOARD}/user/${id}/edit`,
-      demo: { edit: `${ROOTS.DASHBOARD}/user/${MOCK_ID}/edit` },
     },
     product: {
       root: `${ROOTS.DASHBOARD}/product`,
       new: `${ROOTS.DASHBOARD}/product/new`,
       details: (id) => `${ROOTS.DASHBOARD}/product/${id}`,
       edit: (id) => `${ROOTS.DASHBOARD}/product/${id}/edit`,
-      demo: {
-        details: `${ROOTS.DASHBOARD}/product/${MOCK_ID}`,
-        edit: `${ROOTS.DASHBOARD}/product/${MOCK_ID}/edit`,
-      },
     },
     vendor: {
       root: `${ROOTS.DASHBOARD}/vendor`,
       new: `${ROOTS.DASHBOARD}/vendor/new`,
       details: (id) => `${ROOTS.DASHBOARD}/vendor/${id}`,
       edit: (id) => `${ROOTS.DASHBOARD}/vendor/${id}/edit`,
-      demo: {
-        details: `${ROOTS.DASHBOARD}/vendor/${MOCK_ID}`,
-        edit: `${ROOTS.DASHBOARD}/vendor/${MOCK_ID}/edit`,
-      },
     },
     expense: {
       root: `${ROOTS.DASHBOARD}/expense`,
       new: `${ROOTS.DASHBOARD}/expense/new`,
       details: (id) => `${ROOTS.DASHBOARD}/expense/${id}`,
       edit: (id) => `${ROOTS.DASHBOARD}/expense/${id}/edit`,
-      demo: {
-        details: `${ROOTS.DASHBOARD}/expense/1`,
-        edit: `${ROOTS.DASHBOARD}/expense/1/edit`,
-      },
       wallet: {
         root: `${ROOTS.DASHBOARD}/expense/wallet`,
         employee: (employeeId) => `${ROOTS.DASHBOARD}/expense/wallet/${employeeId}`,
@@ -353,10 +333,6 @@ export const paths = {
       details: (id) => `${ROOTS.DASHBOARD}/invoice/${id}`,
       edit: (id) => `${ROOTS.DASHBOARD}/invoice/${id}/edit`,
       vat: `${ROOTS.DASHBOARD}/invoice/vat`, // ✅ ADD THIS LINE
-      demo: {
-        details: `${ROOTS.DASHBOARD}/invoice/${MOCK_ID}`,
-        edit: `${ROOTS.DASHBOARD}/invoice/${MOCK_ID}/edit`,
-      },
     },
     // Proforma invoices are raised automatically when an invoice is approved,
     // so there is no `new` route — they are only ever listed, opened and edited.
@@ -370,10 +346,6 @@ export const paths = {
       new: `${ROOTS.DASHBOARD}/post/new`,
       details: (title) => `${ROOTS.DASHBOARD}/post/${kebabCase(title)}`,
       edit: (title) => `${ROOTS.DASHBOARD}/post/${kebabCase(title)}/edit`,
-      demo: {
-        details: `${ROOTS.DASHBOARD}/post/${kebabCase(MOCK_TITLE)}`,
-        edit: `${ROOTS.DASHBOARD}/post/${kebabCase(MOCK_TITLE)}/edit`,
-      },
     },
     policies: {
       root: `${ROOTS.DASHBOARD}/policies`,
@@ -384,7 +356,6 @@ export const paths = {
     order: {
       root: `${ROOTS.DASHBOARD}/order`,
       details: (id) => `${ROOTS.DASHBOARD}/order/${id}`,
-      demo: { details: `${ROOTS.DASHBOARD}/order/${MOCK_ID}` },
     },
     vat: {
       root: `${ROOTS.DASHBOARD}/vat`,
@@ -410,20 +381,12 @@ export const paths = {
       careersIntake: `${ROOTS.DASHBOARD}/job/careers-intake`,
       details: (id) => `${ROOTS.DASHBOARD}/job/${id}`,
       edit: (id) => `${ROOTS.DASHBOARD}/job/${id}/edit`,
-      demo: {
-        details: `${ROOTS.DASHBOARD}/job/${MOCK_ID}`,
-        edit: `${ROOTS.DASHBOARD}/job/${MOCK_ID}/edit`,
-      },
     },
     tour: {
       root: `${ROOTS.DASHBOARD}/tour`,
       new: `${ROOTS.DASHBOARD}/tour/new`,
       details: (id) => `${ROOTS.DASHBOARD}/tour/${id}`,
       edit: (id) => `${ROOTS.DASHBOARD}/tour/${id}/edit`,
-      demo: {
-        details: `${ROOTS.DASHBOARD}/tour/${MOCK_ID}`,
-        edit: `${ROOTS.DASHBOARD}/tour/${MOCK_ID}/edit`,
-      },
     },
     integration: {
       root: `${ROOTS.DASHBOARD}/integration`,

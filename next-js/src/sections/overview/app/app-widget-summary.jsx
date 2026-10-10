@@ -9,21 +9,35 @@ import { Chart, useChart } from 'src/components/chart';
 
 // ----------------------------------------------------------------------
 
-export function AppWidgetSummary({ title, percent, total, chart, sx, ...other }) {
+/**
+ * `percent` is optional: without it the trend line is replaced by `caption`.
+ * `caption` labels the comparison (default "last 7 days"); `unit` (e.g. "SAR")
+ * is shown before the total.
+ */
+export function AppWidgetSummary({
+  title,
+  percent,
+  total,
+  chart,
+  caption = 'last 7 days',
+  unit,
+  sx,
+  ...other
+}) {
   const theme = useTheme();
 
-  const chartColors = chart.colors ?? [theme.palette.primary.main];
+  const chartColors = chart?.colors ?? [theme.palette.primary.main];
 
   const chartOptions = useChart({
     chart: { sparkline: { enabled: true } },
     colors: chartColors,
     stroke: { width: 0 },
-    xaxis: { categories: chart.categories },
+    xaxis: { categories: chart?.categories },
     tooltip: {
       y: { formatter: (value) => fNumber(value), title: { formatter: () => '' } },
     },
     plotOptions: { bar: { borderRadius: 1.5, columnWidth: '64%' } },
-    ...chart.options,
+    ...chart?.options,
   });
 
   const renderTrending = () => (
@@ -48,7 +62,7 @@ export function AppWidgetSummary({ title, percent, total, chart, sx, ...other })
       </Box>
 
       <Box component="span" sx={{ typography: 'body2', color: 'text.secondary' }}>
-        last 7 days
+        {caption}
       </Box>
     </Box>
   );
@@ -70,17 +84,33 @@ export function AppWidgetSummary({ title, percent, total, chart, sx, ...other })
       <Box sx={{ flexGrow: 1 }}>
         <Box sx={{ typography: 'subtitle2' }}>{title}</Box>
 
-        <Box sx={{ mt: 1.5, mb: 1, typography: 'h3' }}>{fNumber(total)}</Box>
+        <Box sx={{ mt: 1.5, mb: 1, typography: 'h3' }}>
+          {unit ? (
+            <Box
+              component="span"
+              sx={{ typography: 'subtitle1', color: 'text.secondary', mr: 0.75 }}
+            >
+              {unit}
+            </Box>
+          ) : null}
+          {fNumber(total)}
+        </Box>
 
-        {renderTrending()}
+        {percent === null || percent === undefined || !Number.isFinite(percent) ? (
+          <Box sx={{ typography: 'body2', color: 'text.secondary' }}>{caption}</Box>
+        ) : (
+          renderTrending()
+        )}
       </Box>
 
-      <Chart
-        type="bar"
-        series={[{ data: chart.series }]}
-        options={chartOptions}
-        sx={{ width: 60, height: 40 }}
-      />
+      {chart?.series?.length ? (
+        <Chart
+          type="bar"
+          series={[{ data: chart.series }]}
+          options={chartOptions}
+          sx={{ width: 60, height: 40 }}
+        />
+      ) : null}
     </Card>
   );
 }

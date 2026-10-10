@@ -15,7 +15,6 @@ import {
 } from 'src/utils/pageAccess';
 
 import { allLangs } from 'src/locales';
-import { _notifications } from 'src/_mock';
 
 import { Logo } from 'src/components/logo';
 import { useSettingsContext } from 'src/components/settings';
@@ -135,7 +134,7 @@ export function MinimalLayout({ children, slotProps }) {
       rightArea: (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0, sm: 0.75 } }}>
           <LanguagePopover data={allLangs} />
-          <NotificationsDrawer data={_notifications} />
+          <NotificationsDrawer />
           <SettingsButton />
           <AccountDrawer data={_account} />
         </Box>

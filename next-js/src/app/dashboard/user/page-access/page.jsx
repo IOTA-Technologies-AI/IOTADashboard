@@ -26,7 +26,6 @@ import {
   clearUserNavPermissionCache,
 } from 'src/utils/pageAccess';
 
-import { _userList } from 'src/_mock';
 import { supabase } from 'src/lib/supabase';
 import { navData as dashboardNavData } from 'src/layouts/nav-config-dashboard';
 
@@ -109,16 +108,6 @@ const flattenRoutes = (node, trail = []) => {
 
   return out;
 };
-
-const buildMockRows = (pages) =>
-  _userList.map((user) => {
-    const role = normalizeRole(user.role, user.roleId);
-    const storedPaths = getPageAccessForUser(user.id);
-    const userPaths = storedPaths?.length
-      ? storedPaths
-      : user.paths || computeRoleDefaults(role, pages);
-    return { ...user, role, paths: userPaths };
-  });
 
 export default function UserPageAccess() {
   const [rows, setRows] = useState([]);
@@ -217,16 +206,13 @@ export default function UserPageAccess() {
           })
         );
 
-        if (!mapped.length) {
-          setRows(buildMockRows(allPages));
-          setError('No users found in Supabase. Showing mock data.');
-        } else {
-          setRows(mapped);
-        }
+        setRows(mapped);
+        if (!mapped.length) setError('No users found.');
       } catch (err) {
-        console.error('Failed to load users from Supabase', err);
-        setError('Unable to load users from Supabase. Showing mock data.');
-        setRows(buildMockRows(allPages));
+        // Never show sample users: page access set here applies to real people.
+        console.error('Failed to load users', err);
+        setError(`Unable to load users: ${err?.response?.data?.message || err?.message || err}`);
+        setRows([]);
       } finally {
         setLoading(false);
       }

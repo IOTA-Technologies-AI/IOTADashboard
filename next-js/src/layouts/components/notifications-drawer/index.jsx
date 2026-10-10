@@ -1,122 +1,37 @@
 'use client';
 
 import { m } from 'framer-motion';
-import { useState, useCallback } from 'react';
 import { useBoolean } from 'minimal-shared/hooks';
 
-import Tab from '@mui/material/Tab';
 import Box from '@mui/material/Box';
-import Tabs from '@mui/material/Tabs';
 import Badge from '@mui/material/Badge';
+import Stack from '@mui/material/Stack';
 import Drawer from '@mui/material/Drawer';
-import Button from '@mui/material/Button';
-import Tooltip from '@mui/material/Tooltip';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
 
-import { Label } from 'src/components/label';
+import { RouterLink } from 'src/routes/components';
+
+import { fToNow } from 'src/utils/format-time';
+
+import { useMyActions } from 'src/actions/dashboard';
+
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { varTap, varHover, transitionTap } from 'src/components/animate';
 
-import { NotificationItem } from './notification-item';
+import { ACTION_ICON } from 'src/sections/overview/app/dashboard-actions';
 
 // ----------------------------------------------------------------------
 
-const TABS = [
-  { value: 'all', label: 'All', count: 22 },
-  { value: 'unread', label: 'Unread', count: 12 },
-  { value: 'archived', label: 'Archived', count: 10 },
-];
-
-// ----------------------------------------------------------------------
-
-export function NotificationsDrawer({ data = [], sx, ...other }) {
+/**
+ * The bell: what is waiting for the signed-in user — NDAs and offers to sign,
+ * offers to approve, NDA exceptions and vetting decisions. An item disappears
+ * once it has been dealt with, so there is nothing to mark as read.
+ */
+export function NotificationsDrawer({ sx, ...other }) {
   const { value: open, onFalse: onClose, onTrue: onOpen } = useBoolean();
-
-  const [currentTab, setCurrentTab] = useState('all');
-
-  const handleChangeTab = useCallback((event, newValue) => {
-    setCurrentTab(newValue);
-  }, []);
-
-  const [notifications, setNotifications] = useState(data);
-
-  const totalUnRead = notifications.filter((item) => item.isUnRead === true).length;
-
-  const handleMarkAllAsRead = () => {
-    setNotifications(notifications.map((notification) => ({ ...notification, isUnRead: false })));
-  };
-
-  const renderHead = () => (
-    <Box
-      sx={{
-        py: 2,
-        pr: 1,
-        pl: 2.5,
-        minHeight: 68,
-        display: 'flex',
-        alignItems: 'center',
-      }}
-    >
-      <Typography variant="h6" sx={{ flexGrow: 1 }}>
-        Notifications
-      </Typography>
-
-      {!!totalUnRead && (
-        <Tooltip title="Mark all as read">
-          <IconButton color="primary" onClick={handleMarkAllAsRead}>
-            <Iconify icon="eva:done-all-fill" />
-          </IconButton>
-        </Tooltip>
-      )}
-
-      <IconButton onClick={onClose} sx={{ display: { xs: 'inline-flex', sm: 'none' } }}>
-        <Iconify icon="mingcute:close-line" />
-      </IconButton>
-
-      <IconButton>
-        <Iconify icon="solar:settings-bold-duotone" />
-      </IconButton>
-    </Box>
-  );
-
-  const renderTabs = () => (
-    <Tabs variant="fullWidth" value={currentTab} onChange={handleChangeTab} indicatorColor="custom">
-      {TABS.map((tab) => (
-        <Tab
-          key={tab.value}
-          iconPosition="end"
-          value={tab.value}
-          label={tab.label}
-          icon={
-            <Label
-              variant={((tab.value === 'all' || tab.value === currentTab) && 'filled') || 'soft'}
-              color={
-                (tab.value === 'unread' && 'info') ||
-                (tab.value === 'archived' && 'success') ||
-                'default'
-              }
-            >
-              {tab.count}
-            </Label>
-          }
-        />
-      ))}
-    </Tabs>
-  );
-
-  const renderList = () => (
-    <Scrollbar>
-      <Box component="ul">
-        {notifications?.map((notification) => (
-          <Box component="li" key={notification.id} sx={{ display: 'flex' }}>
-            <NotificationItem notification={notification} />
-          </Box>
-        ))}
-      </Box>
-    </Scrollbar>
-  );
+  const { actions, loading, refresh } = useMyActions();
 
   return (
     <>
@@ -125,12 +40,15 @@ export function NotificationsDrawer({ data = [], sx, ...other }) {
         whileTap={varTap(0.96)}
         whileHover={varHover(1.04)}
         transition={transitionTap()}
-        aria-label="Notifications button"
-        onClick={onOpen}
+        aria-label="Waiting for you"
+        onClick={() => {
+          refresh();
+          onOpen();
+        }}
         sx={sx}
         {...other}
       >
-        <Badge badgeContent={totalUnRead} color="error">
+        <Badge badgeContent={actions.length} color="error">
           <Iconify width={24} icon="solar:bell-bing-bold-duotone" />
         </Badge>
       </IconButton>
@@ -144,15 +62,60 @@ export function NotificationsDrawer({ data = [], sx, ...other }) {
           paper: { sx: { width: 1, maxWidth: 420 } },
         }}
       >
-        {renderHead()}
-        {renderTabs()}
-        {renderList()}
+        <Stack direction="row" alignItems="center" sx={{ py: 2, pl: 2.5, pr: 1, minHeight: 68 }}>
+          <Typography variant="h6" sx={{ flexGrow: 1 }}>
+            Waiting for you
+          </Typography>
+          <IconButton onClick={onClose}>
+            <Iconify icon="mingcute:close-line" />
+          </IconButton>
+        </Stack>
 
-        <Box sx={{ p: 1 }}>
-          <Button fullWidth size="large">
-            View all
-          </Button>
-        </Box>
+        <Scrollbar>
+          {!loading && !actions.length ? (
+            <Typography variant="body2" color="text.secondary" sx={{ px: 2.5, py: 3 }}>
+              Nothing needs your signature or decision right now.
+            </Typography>
+          ) : null}
+          <Box component="ul" sx={{ p: 0, m: 0 }}>
+            {actions.map((a) => (
+              <Box component="li" key={`${a.kind}-${a.href}`} sx={{ listStyle: 'none' }}>
+                <Stack
+                  component={RouterLink}
+                  href={a.href}
+                  onClick={onClose}
+                  direction="row"
+                  spacing={2}
+                  sx={{
+                    px: 2.5,
+                    py: 1.75,
+                    color: 'inherit',
+                    textDecoration: 'none',
+                    borderBottom: 1,
+                    borderColor: 'divider',
+                    '&:hover': { bgcolor: 'action.hover' },
+                  }}
+                >
+                  <Iconify
+                    icon={ACTION_ICON[a.kind] || 'solar:bell-bing-bold'}
+                    sx={{ color: 'primary.main', mt: 0.25 }}
+                  />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="subtitle2">{a.title}</Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      {a.detail}
+                    </Typography>
+                    {a.since ? (
+                      <Typography variant="caption" color="text.disabled">
+                        {fToNow(a.since)}
+                      </Typography>
+                    ) : null}
+                  </Box>
+                </Stack>
+              </Box>
+            ))}
+          </Box>
+        </Scrollbar>
       </Drawer>
     </>
   );

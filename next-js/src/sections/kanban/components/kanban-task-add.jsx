@@ -9,12 +9,13 @@ import InputBase, { inputBaseClasses } from '@mui/material/InputBase';
 
 import { fAdd, today } from 'src/utils/format-time';
 
-import { _mock } from 'src/_mock';
+import { useAuthContext } from 'src/auth/hooks';
 
 // ----------------------------------------------------------------------
 
 export function KanbanTaskAdd({ status, openAddTask, onAddTask, onCloseAddTask }) {
   const [taskName, setTaskName] = useState('');
+  const { user } = useAuthContext();
 
   const defaultTask = useMemo(
     () => ({
@@ -31,9 +32,14 @@ export function KanbanTaskAdd({ status, openAddTask, onAddTask, onCloseAddTask }
       comments: [],
       assignee: [],
       due: [today(), fAdd({ days: 7 })],
-      reporter: { id: _mock.id(16), name: _mock.fullName(16), avatarUrl: _mock.image.avatar(16) },
+      // The person adding the task (it used to be a random sample person).
+      reporter: {
+        id: user?.id || user?.email || '',
+        name: user?.displayName || user?.email || '',
+        avatarUrl: user?.photoURL || '',
+      },
     }),
-    [status, taskName]
+    [status, taskName, user]
   );
 
   const handleChangeName = useCallback((event) => {

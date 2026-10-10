@@ -1,7 +1,7 @@
 import dayjs from 'dayjs';
 import { useMemo } from 'react';
 
-import { CALENDAR_COLOR_OPTIONS } from 'src/_mock/_calendar';
+import { CALENDAR_COLOR_OPTIONS } from '../calendar-colors';
 
 // ----------------------------------------------------------------------
 

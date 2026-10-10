@@ -1,13 +1,11 @@
-// /Users/jaffar/Desktop/Desktop - Jaffar's MacBook Pro 14/IOTA Git/IOTA Dashboard/next-js/src/app/dashboard/finance/page.jsx
+import { redirect } from 'next/navigation';
 
-import { CONFIG } from 'src/global-config';
-
-import { OverviewFinanceView } from 'src/sections/overview/finance/view/overview-finance-view';
+import { paths } from 'src/routes/paths';
 
 // ----------------------------------------------------------------------
 
-export const metadata = { title: `Finance` };
-
+// The template's finance overview (sample figures) was removed; the home
+// dashboard shows IOTA's real finance figures. This opens Payments.
 export default function Page() {
-  return <OverviewFinanceView />;
+  redirect(paths.dashboard.finance.payments.root);
 }

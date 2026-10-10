@@ -7,12 +7,12 @@ import IconButton from '@mui/material/IconButton';
 
 import { Iconify } from 'src/components/iconify';
 
-import { useMockedUser } from 'src/auth/hooks';
+import { useAuthContext } from 'src/auth/hooks';
 
 // ----------------------------------------------------------------------
 
 export function KanbanDetailsCommentInput() {
-  const { user } = useMockedUser();
+  const { user } = useAuthContext();
 
   return (
     <Box

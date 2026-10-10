@@ -94,3 +94,11 @@ export const DEFAULT_EXPENSE_STATUS = 'pending';
 // Otherwise, define EXPENSE_CURRENCIES directly:
 export const EXPENSE_CURRENCIES = ['INR', 'AED', 'USD', 'EUR', 'GBP', 'SAR', 'KWD', 'OMR', 'QAR'];
 export const DEFAULT_EXPENSE_CURRENCY = 'SAR';
+
+/** Account status of a dashboard user (User list filters and quick edit). */
+export const USER_STATUS_OPTIONS = [
+  { value: 'active', label: 'Active' },
+  { value: 'pending', label: 'Pending' },
+  { value: 'banned', label: 'Banned' },
+  { value: 'rejected', label: 'Rejected' },
+];

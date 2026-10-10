@@ -49,7 +49,7 @@ Microsoft Entra ID (provider: 'azure')   ← the real identity provider
   → TOTP second factor, recorded server-side per session
 ```
 
-- `CONFIG.auth.method` in [src/global-config.js](next-js/src/global-config.js) is `'supabase'`. The Minimal template's other providers (jwt, amplify, firebase, auth0) are all still present under [src/auth/context/](next-js/src/auth/context/) but are dead code — don't take a change there as effective.
+- `CONFIG.auth.method` in [src/global-config.js](next-js/src/global-config.js) is `'supabase'`, the only provider. The Minimal template's other providers (jwt, amplify, firebase, auth0) and their packages were removed.
 - **Always resolve the bearer token via `getLiveAccessToken()`** (`src/utils/jwt-auth.js`). Several past bugs came from reading a `localStorage`/`sessionStorage` snapshot or pinning a token on `axios.defaults` at page load — both go stale. Both [src/lib/axios.js](next-js/src/lib/axios.js) and [src/utils/apiHelper.js](next-js/src/utils/apiHelper.js) install request interceptors that replace any caller-set `Authorization` header with the live token, and *delete* a stale one when there's no session (so the API says "missing token", not "invalid token").
 - The Encore gateway auth handler ([../IOTAApiServer/iotaapiserver/auth/auth.ts](../IOTAApiServer/iotaapiserver/auth/auth.ts)) applies four gates in order: signature/issuer/audience → `app_metadata.provider` is an approved SSO provider (blocks self-signup) → subject exists in the IOTA `user` directory → TOTP satisfied for this session. **Role and permissions are always read from the database keyed on the verified subject, never from a token claim or request parameter.**
 
@@ -67,7 +67,9 @@ The root markdown files (`PERMISSION_SYSTEM_IMPLEMENTATION.md`, `BACKEND_PERMISS
 
 ## Architecture
 
-Built on the **Minimal (minimals.cc) MUI template** — hence a large amount of unused template scaffolding (`src/sections/_examples`, `src/_mock`, `app/auth-demo`, the demo `paths.*` entries). Distinguish IOTA code from template leftovers before assuming something is live.
+Built on the **Minimal (minimals.cc) MUI template**. Its sample data (`src/_mock`), component showcase (`sections/_examples`), demo pages and demo `paths.*` entries were removed; don't reintroduce sample data — pages show real data or an empty state. Some template components remain in `src/components` and `src/layouts` (e.g. `app/auth-demo`); distinguish IOTA code from template leftovers before assuming something is live.
+
+The home page (`/dashboard`, `sections/overview/app`) is fed by one API call, `GET /dashboard/overview` (`dashboard/` service in the API): finance, sales and HR sections appear only for users with access to those modules, money is converted to SAR, and the notifications bell lists the user's pending signatures and decisions (`GET /dashboard/my-actions`).
 
 **Layering — the convention to follow:**
 

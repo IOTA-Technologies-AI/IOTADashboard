@@ -15,7 +15,6 @@ import { useRouter, usePathname } from 'src/routes/hooks';
 import { filterNavByPermissions } from 'src/utils/filterNavByPermissions';
 
 import { allLangs } from 'src/locales';
-import { _contacts, _notifications } from 'src/_mock';
 
 import { Logo } from 'src/components/logo';
 import { useSettingsContext } from 'src/components/settings';
@@ -34,7 +33,6 @@ import { MenuButton } from '../components/menu-button';
 import { AccountDrawer } from '../components/account-drawer';
 import { SettingsButton } from '../components/settings-button';
 import { LanguagePopover } from '../components/language-popover';
-import { ContactsPopover } from '../components/contacts-popover';
 import { WorkspacesPopover } from '../components/workspaces-popover';
 import { navData as dashboardNavData } from '../nav-config-dashboard';
 import { dashboardLayoutVars, dashboardNavColorVars } from './css-vars';
@@ -246,10 +244,9 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
           <LanguagePopover data={allLangs} />
 
           {/** @slot Notifications popover */}
-          <NotificationsDrawer data={_notifications} />
+          <NotificationsDrawer />
 
           {/** @slot Contacts popover */}
-          <ContactsPopover data={_contacts} />
 
           {/** @slot Settings button */}
           <SettingsButton />

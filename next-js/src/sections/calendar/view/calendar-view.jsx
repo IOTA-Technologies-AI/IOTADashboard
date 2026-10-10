@@ -19,7 +19,6 @@ import DialogTitle from '@mui/material/DialogTitle';
 import { fIsAfter, fIsBetween } from 'src/utils/format-time';
 
 import { DashboardContent } from 'src/layouts/dashboard';
-import { CALENDAR_COLOR_OPTIONS } from 'src/_mock/_calendar';
 import { updateEvent, useGetEvents } from 'src/actions/calendar';
 
 import { Iconify } from 'src/components/iconify';
@@ -30,6 +29,7 @@ import { CalendarForm } from '../calendar-form';
 import { useCalendar } from '../hooks/use-calendar';
 import { CalendarToolbar } from '../calendar-toolbar';
 import { CalendarFilters } from '../calendar-filters';
+import { CALENDAR_COLOR_OPTIONS } from '../calendar-colors';
 import { CalendarFiltersResult } from '../calendar-filters-result';
 
 // ----------------------------------------------------------------------

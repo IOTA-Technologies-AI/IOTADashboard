@@ -2,8 +2,8 @@
 
 import { sumBy } from 'es-toolkit';
 import { varAlpha } from 'minimal-shared/utils';
-import { useState, useEffect, useCallback } from 'react';
 import { useBoolean, useSetState } from 'minimal-shared/hooks';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
@@ -26,7 +26,6 @@ import { parseInvoiceLines } from 'src/utils/invoice-lines';
 import { getExchangeRate } from 'src/utils/currency-converter';
 import { fetchInvoices, deleteInvoice } from 'src/utils/apiHelper';
 
-import { INVOICE_SERVICE_OPTIONS } from 'src/_mock';
 import { DashboardContent } from 'src/layouts/dashboard';
 import { useEditMode } from 'src/actions/admin-edit-mode';
 
@@ -142,6 +141,17 @@ export function InvoiceListView() {
   const table = useTable({ defaultOrderBy: 'createDate', defaultRowsPerPage: 25 });
   const confirmDialog = useBoolean();
   const [tableData, setTableData] = useState([]);
+  // The services actually on the invoices, for the filter (it offered the
+  // template's sample service names).
+  const serviceOptions = useMemo(
+    () =>
+      [
+        ...new Set(
+          tableData.flatMap((inv) => (inv.items || []).map((item) => item.service).filter(Boolean))
+        ),
+      ].sort(),
+    [tableData]
+  );
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -466,7 +476,7 @@ export function InvoiceListView() {
             filters={filters}
             dateError={dateError}
             onResetPage={table.onResetPage}
-            options={{ services: INVOICE_SERVICE_OPTIONS.map((option) => option.name) }}
+            options={{ services: serviceOptions }}
           />
 
           {canReset && (

@@ -83,10 +83,7 @@ export const navData = [
   {
     subheader: 'Overview',
     items: [
-      { title: 'App', path: paths.dashboard.root, icon: ICONS.dashboard },
-      { title: 'Ecommerce', path: paths.dashboard.general.ecommerce, icon: ICONS.ecommerce },
-      { title: 'Analytics', path: paths.dashboard.general.analytics, icon: ICONS.analytics },
-      { title: 'Banking', path: paths.dashboard.general.banking, icon: ICONS.banking },
+      { title: 'Home', path: paths.dashboard.root, icon: ICONS.dashboard },
       {
         title: 'Candidate',
         path: paths.dashboard.profile.root,
@@ -139,8 +136,6 @@ export const navData = [
         path: paths.dashboard.user.root,
         icon: ICONS.user,
         children: [
-          { title: 'Profile', path: paths.dashboard.user.root },
-          { title: 'Cards', path: paths.dashboard.user.cards },
           { title: 'List', path: paths.dashboard.user.list },
           { title: 'Create', path: paths.dashboard.user.new },
           { title: 'Account', path: paths.dashboard.user.account, deepMatch: true },
@@ -252,17 +247,6 @@ export const navData = [
         ],
       },
       {
-        title: 'Product',
-        path: paths.dashboard.product.root,
-        icon: ICONS.product,
-        children: [
-          { title: 'List', path: paths.dashboard.product.root },
-          { title: 'Details', path: paths.dashboard.product.demo.details },
-          { title: 'Create', path: paths.dashboard.product.new },
-          { title: 'Edit', path: paths.dashboard.product.demo.edit },
-        ],
-      },
-      {
         title: 'VAT',
         path: paths.dashboard.vat.root,
         icon: ICONS.vat,
@@ -278,9 +262,7 @@ export const navData = [
         icon: ICONS.invoice,
         children: [
           { title: 'List', path: paths.dashboard.invoice.root },
-          { title: 'Details', path: paths.dashboard.invoice.demo.details },
           { title: 'Create', path: paths.dashboard.invoice.new },
-          { title: 'Edit', path: paths.dashboard.invoice.demo.edit },
         ],
       },
       {
@@ -295,9 +277,7 @@ export const navData = [
         icon: ICONS.vendor,
         children: [
           { title: 'List', path: paths.dashboard.vendor.root },
-          { title: 'Details', path: paths.dashboard.vendor.demo.details },
           { title: 'Create', path: paths.dashboard.vendor.new },
-          { title: 'Edit', path: paths.dashboard.vendor.demo.edit },
         ],
       },
       {
@@ -306,9 +286,7 @@ export const navData = [
         icon: ICONS.expense,
         children: [
           { title: 'List', path: paths.dashboard.expense.root },
-          { title: 'Details', path: paths.dashboard.expense.demo.details },
           { title: 'Create', path: paths.dashboard.expense.new },
-          { title: 'Edit', path: paths.dashboard.expense.demo.edit },
           { title: 'Wallet Management', path: paths.dashboard.expense.wallet.root },
         ],
       },
@@ -343,9 +321,7 @@ export const navData = [
         icon: ICONS.job,
         children: [
           { title: 'List', path: paths.dashboard.job.root },
-          { title: 'Details', path: paths.dashboard.job.demo.details },
           { title: 'Create', path: paths.dashboard.job.new },
-          { title: 'Edit', path: paths.dashboard.job.demo.edit },
           { title: 'Careers Intake', path: paths.dashboard.job.careersIntake },
         ],
       },
@@ -362,19 +338,6 @@ export const navData = [
           { title: 'Encore Logs', path: paths.dashboard.webhookLogs.encore },
         ],
       },
-      // File manager commented out - using OneDrive file page instead
-      // { title: 'File manager', path: paths.dashboard.fileManager, icon: ICONS.folder },
-      {
-        title: 'Mail',
-        path: paths.dashboard.mail,
-        icon: ICONS.mail,
-        info: (
-          <Label color="error" variant="inverted">
-            +32
-          </Label>
-        ),
-      },
-      { title: 'Chat', path: paths.dashboard.chat, icon: ICONS.chat },
       { title: 'Calendar', path: paths.dashboard.calendar, icon: ICONS.calendar },
     ],
   },

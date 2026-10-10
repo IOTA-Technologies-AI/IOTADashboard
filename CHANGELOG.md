@@ -25,6 +25,20 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **A home dashboard built on real data.** Every section shows only to users
+  with access to that module, and all money is in SAR:
+  - **Finance:** billed and collected this year (compared with the same point
+    last year), outstanding receivables and payables, expenses, a monthly
+    billing chart against last year, recent invoices and top customers.
+  - **Sales:** open and probability-weighted pipeline, deals by stage, and the
+    top BDMs by gross profit.
+  - **HR & compliance:** headcount, iqama, passport, visa and Emirates ID
+    documents expiring within 60 days, and onboarding and vetting queues.
+  - **Waiting for you:** NDAs and offers to sign, offers to approve, NDA
+    exceptions and vetting decisions.
+  It replaces the template's typed-in figures and sample lists.
+- **The notifications bell shows your pending signatures and decisions**,
+  replacing the template's sample notifications.
 - **Background verification consent and employment checks on the onboarding
   form.**
   - A new Employment History step collects up to five previous employers,
@@ -420,6 +434,15 @@ is running.
   to the API; they previously called it anonymously.
 
 ### Changed
+- **Removed the template's sample data (`_mock`) and the pages built on it.**
+  - Gone: the E-commerce, Analytics, Banking, Booking, Course, File and Finance
+    overview dashboards; Tour, Order, Product and Blog; Chat, Mail and Kanban;
+    User cards, profile, billing and socials; the component showcase; and the
+    public template site.
+  - `/` now opens the dashboard. Calendar stays.
+  - Removed from the navigation, along with the demo "Details/Edit" items
+    that pointed at records that don't exist.
+- The header contacts popover (sample people) was removed.
 - **One API host for the whole dashboard.** About 70 hardcoded copies of the
   staging host now read `NEXT_PUBLIC_SERVER_URL` through `src/utils/api-host.js`,
   falling back to the same host as before.
@@ -483,6 +506,12 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- New tasks and comments on the Sales and To Do boards are credited to you,
+  not to a random sample person.
+- The invoice list's service filter offers the services on your invoices, not
+  sample service names.
+- Page access no longer shows sample users when the user list fails to load.
+- Opening an invoice to edit can no longer pick up a sample invoice.
 - **VAT sync no longer drops a vendor's bill.** A bill counted as "already
   posted" when another document had the same number, so two vendors both
   billing "1001" lost one bill's input VAT. It now has to match the number,
