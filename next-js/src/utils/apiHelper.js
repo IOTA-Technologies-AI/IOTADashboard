@@ -2,6 +2,7 @@ const axios = require('axios');
 
 import { API_HOST } from 'src/utils/api-host';
 
+import { trackAxios } from './diagnostics-recorder';
 import { decodeJWT, resolveBearerToken, extractJWTFromSession } from './jwt-auth';
 
 const API_BASE_URL = `${API_HOST}/`;
@@ -101,6 +102,9 @@ const isIotaApiRequest = (config) => {
  * instead of "invalid or expired token", which sends everyone looking at the
  * signing secret.
  */
+// Record calls made with the shared axios instance, for "Report an issue".
+if (typeof window !== 'undefined') trackAxios(axios);
+
 axios.interceptors.request.use(async (config) => {
   if (!isIotaApiRequest(config)) return config;
 

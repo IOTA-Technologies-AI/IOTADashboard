@@ -19,6 +19,8 @@ import { allLangs } from 'src/locales';
 import { Logo } from 'src/components/logo';
 import { useSettingsContext } from 'src/components/settings';
 
+import { ReportIssueButton } from 'src/sections/issues/report-issue-dialog';
+
 import { useAuthContext } from 'src/auth/hooks';
 import { PermissionGuard } from 'src/auth/guard';
 
@@ -347,6 +349,7 @@ export function DashboardLayout({ sx, cssVars, children, slotProps, layoutQuery 
       ]}
     >
       {renderMain()}
+      <ReportIssueButton />
     </LayoutSection>
   );
 }

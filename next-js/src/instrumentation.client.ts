@@ -1,5 +1,10 @@
 import * as Sentry from '@sentry/nextjs';
 
+import { recordSentryEvent, installDiagnosticsRecorder } from 'src/utils/diagnostics-recorder';
+
+// Console, API calls and page changes, kept in memory for "Report an issue".
+installDiagnosticsRecorder();
+
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   environment: process.env.NEXT_PUBLIC_APP_ENV || process.env.NODE_ENV,
@@ -8,6 +13,11 @@ Sentry.init({
   replaysSessionSampleRate: 0.0,
   replaysOnErrorSampleRate: 1.0,
   debug: process.env.SENTRY_DEBUG === 'true',
+  beforeSend(event) {
+    // Lets an issue report point at the exact Sentry events this tab sent.
+    recordSentryEvent(event.event_id);
+    return event;
+  },
 });
 
 // Auto-reload on ChunkLoadError caused by stale asset URLs after a new deployment.

@@ -95,6 +95,10 @@ src/components/*                  domain-agnostic reusable components
 
 **Build/deploy.** Vercel. [next.config.mjs](next-js/next.config.mjs) stamps `NEXT_PUBLIC_BUILD_SHA`/`BUILD_DATE` at build time (git isn't available at runtime), surfaced as `CONFIG.buildLabel` in the settings drawer — quote it in bug reports. Sentry source-map upload and the Sentry webpack plugins are disabled on Vercel, and `config.parallelism = 1` with `NODE_OPTIONS=--max-old-space-size=6144` ([vercel.json](next-js/vercel.json)): the build OOMs on 8 GB machines otherwise. `eslint.ignoreDuringBuilds` is on. Don't "tidy up" these settings.
 
+## Diagnostics and issue reports
+
+Every Encore service has the `errorCapture` middleware (`shared/error-capture.ts` in the API) in its `encore.service.ts`; it records thrown errors with the Encore trace id in `apiErrorEvents`. Add it to any new service. In the dashboard, `src/utils/diagnostics-recorder.js` keeps console, API-call and navigation buffers in memory; new axios instances must be passed to `trackAxios()`. Users file tickets with "Report an issue" (`sections/issues`); the "Copy for developer" brief on a ticket is the starting point for production bugs.
+
 ## Conventions
 
 - **JS/JSX only, no TypeScript** in `next-js/src` (two `.ts` exceptions: `middleware.ts`, `instrumentation.client.ts`). The backend is TypeScript.

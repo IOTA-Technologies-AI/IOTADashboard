@@ -25,6 +25,20 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Report an issue.** A button on every dashboard page files a ticket with:
+  - the user's description, steps and severity;
+  - a screenshot of the page (more can be pasted or uploaded);
+  - the browser console, recent API calls with their Encore trace ids, and
+    pages visited;
+  - the backend errors behind the failed calls and the matching Sentry events.
+
+  Passwords, tokens and codes are removed. The new Issues page lists tickets
+  (users see their own, admins see all) with triage, links to each trace in
+  Encore Cloud, and "Copy for developer", a complete Markdown brief.
+  - Every API service now records the errors it throws (`apiErrorEvents`,
+    kept 30 days).
+  - Needs `supabase/sql/20261016_issue_reports.sql`. The Sentry lookup needs
+    the `SENTRY_AUTH_TOKEN` secret.
 - **A home dashboard built on real data.** Every section shows only to users
   with access to that module, and all money is in SAR:
   - **Finance:** billed and collected this year (compared with the same point

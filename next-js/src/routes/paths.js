@@ -388,6 +388,10 @@ export const paths = {
       details: (id) => `${ROOTS.DASHBOARD}/tour/${id}`,
       edit: (id) => `${ROOTS.DASHBOARD}/tour/${id}/edit`,
     },
+    issues: {
+      root: `${ROOTS.DASHBOARD}/issues`,
+      details: (id) => `${ROOTS.DASHBOARD}/issues/${id}`,
+    },
     integration: {
       root: `${ROOTS.DASHBOARD}/integration`,
       new: `${ROOTS.DASHBOARD}/integration/new`,

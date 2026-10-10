@@ -13,6 +13,7 @@ import { paths } from 'src/routes/paths';
 import { CONFIG } from 'src/global-config';
 
 import { Label } from 'src/components/label';
+import { Iconify } from 'src/components/iconify';
 import { SvgColor } from 'src/components/svg-color';
 
 // ----------------------------------------------------------------------
@@ -340,6 +341,11 @@ export const navData = [
           { title: 'Vercel Logs', path: paths.dashboard.webhookLogs.vercel },
           { title: 'Encore Logs', path: paths.dashboard.webhookLogs.encore },
         ],
+      },
+      {
+        title: 'Issues',
+        path: paths.dashboard.issues.root,
+        icon: <Iconify icon="solar:danger-triangle-bold" width={24} />,
       },
       { title: 'Calendar', path: paths.dashboard.calendar, icon: ICONS.calendar },
     ],

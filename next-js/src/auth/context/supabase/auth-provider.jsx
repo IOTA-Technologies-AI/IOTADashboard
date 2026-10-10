@@ -1,5 +1,6 @@
 'use client';
 
+import * as Sentry from '@sentry/nextjs';
 import { useSetState } from 'minimal-shared/hooks';
 import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 
@@ -224,6 +225,13 @@ export function AuthProvider({ children }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Tag Sentry events with who hit them, so an issue report can find the
+  // reporter's recent errors in Sentry.
+  useEffect(() => {
+    const email = state.user?.email || state.user?.user_metadata?.email;
+    Sentry.setUser(email ? { email, id: state.user?.id } : null);
+  }, [state.user]);
 
   // Seed OneDrive tokens from the authenticated session (provider tokens), so we don't force
   // users to re-login to Microsoft for OneDrive actions.
