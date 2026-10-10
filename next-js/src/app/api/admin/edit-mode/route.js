@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
 
+import { normalizeApiHost } from 'src/utils/api-host';
+
 import { CONFIG } from 'src/global-config';
 
 // Proxies the Record Edit Mode switch (appConfig namespace=adminSettings,
 // configKey=recordEditMode). Same-origin so the browser avoids CORS; the
 // backend re-checks that the caller is a super-admin before writing.
 
-const normalizeHost = (url) =>
-  (url || 'https://staging-iotaapiserver-s572.encr.app')
-    .replace(/\/supabaseservices\/?$/, '')
-    .replace(/\/$/, '');
+const normalizeHost = normalizeApiHost;
 
 const BASE_URL = normalizeHost(CONFIG.serverUrl);
 const buildHeaders = (request) => ({

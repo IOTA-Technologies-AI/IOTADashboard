@@ -286,17 +286,25 @@ export default function OfferManagementDetailsPage({ params }) {
       return undefined;
     }
     let cancelled = false;
+    let task = null;
     import('pdfjs-dist').then(async (pdfjsLib) => {
+      if (cancelled) return;
       pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+      task = pdfjsLib.getDocument(offerPdfBlobUrl);
       try {
-        const doc = await pdfjsLib.getDocument(offerPdfBlobUrl).promise;
+        const doc = await task.promise;
         if (!cancelled) setPdfJsDoc(doc);
       } catch (e) {
-        console.error('pdfjs load error', e);
+        if (!cancelled) console.error('pdfjs load error', e);
       }
     });
     return () => {
       cancelled = true;
+      // Free this copy of the document; a new one is loaded for each change.
+      if (task) {
+        setPdfJsDoc(null);
+        task.destroy();
+      }
     };
   }, [offerPdfBlobUrl]);
 

@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server';
 
+import { normalizeApiHost } from 'src/utils/api-host';
+
 import { CONFIG } from 'src/global-config';
 
 // Read-only proxy over the adminEditAuditLog table. The log is append-only and
 // is written server-side inside the invoice/expense PATCH endpoints, so there
 // is deliberately no write route here.
 
-const normalizeHost = (url) =>
-  (url || 'https://staging-iotaapiserver-s572.encr.app')
-    .replace(/\/supabaseservices\/?$/, '')
-    .replace(/\/$/, '');
+const normalizeHost = normalizeApiHost;
 
 const BASE_URL = normalizeHost(CONFIG.serverUrl);
 const buildHeaders = (request) => ({

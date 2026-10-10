@@ -1,8 +1,10 @@
 const axios = require('axios');
 
+import { API_HOST } from 'src/utils/api-host';
+
 import { decodeJWT, resolveBearerToken, extractJWTFromSession } from './jwt-auth';
 
-const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app/';
+const API_BASE_URL = `${API_HOST}/`;
 
 /**
  * Host for the modules that read NEXT_PUBLIC_SERVER_URL (sales, profile, Azure
@@ -307,10 +309,25 @@ async function fetchTotalIotaBilling() {
   try {
     const response = await axios.get(`${API_BASE_URL}expenses`);
     const expenses = response.data?.expenses || [];
-    return expenses.reduce(
-      (sum, expense) => sum + Number(expense.expenseAmount ?? expense.amount ?? 0),
-      0
-    );
+    // In SAR. The API stores every expense's `expenseAmount` converted to SAR
+    // (the original currency is kept in originalExpense*). An expense without
+    // it is counted only when its original currency is SAR, never adding an
+    // amount in another currency as if it were riyals.
+    let skipped = 0;
+    const total = expenses.reduce((sum, expense) => {
+      const sar = Number(expense.expenseAmount);
+      if (Number.isFinite(sar) && expense.expenseAmount !== null && expense.expenseAmount !== '') {
+        return sum + sar;
+      }
+      const currency = String(expense.originalExpenseCurrency || 'SAR').toUpperCase();
+      const original = Number(expense.originalExpenseAmount);
+      if (currency === 'SAR' && Number.isFinite(original)) return sum + original;
+      skipped += 1;
+      return sum;
+    }, 0);
+    if (skipped)
+      console.warn(`[fetchTotalIotaBilling] ${skipped} expense(s) without a SAR amount left out`);
+    return Math.round(total * 100) / 100;
   } catch (error) {
     console.error('Failed to fetch total IOTA billing:', error);
     throw error; // Re-throw the error for the caller to handle
@@ -359,20 +376,22 @@ export async function fetchZohoInvoices() {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: 'https://staging-iotaapiserver-s572.encr.app/invoices',
+      url: `${API_HOST}/invoices`,
       headers: {},
     };
 
+    // Always an array: callers `.map` the result, and the error path used to
+    // return `{ invoices: [] }`, which made them throw instead of showing none.
     return axios
       .request(config)
-      .then((response) => response.data.invoices || [])
+      .then((response) => (Array.isArray(response.data?.invoices) ? response.data.invoices : []))
       .catch((error) => {
         console.warn('Invoices API error (non-critical):', error.response?.data || error.message);
-        return { invoices: [] }; // Return empty structure instead of error
+        return [];
       });
   } catch (error) {
     console.warn('Failed to fetch Zoho invoices (non-critical):', error);
-    return { invoices: [] }; // Return empty structure
+    return [];
   }
 }
 
@@ -389,7 +408,7 @@ export async function fetchCustomerPayments() {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: 'https://staging-iotaapiserver-s572.encr.app/customerpayments',
+      url: `${API_HOST}/customerpayments`,
       headers: {},
     };
 
@@ -418,7 +437,7 @@ export async function getCustomers() {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: 'https://staging-iotaapiserver-s572.encr.app/customers',
+      url: `${API_HOST}/customers`,
       headers: {},
     };
 
@@ -450,7 +469,7 @@ export async function createCustomer(data) {
     const config = {
       method: 'post',
       maxBodyLength: Infinity,
-      url: 'https://staging-iotaapiserver-s572.encr.app/customers',
+      url: `${API_HOST}/customers`,
       headers: { 'Content-Type': 'application/json' },
       data,
     };
@@ -476,7 +495,7 @@ export async function getVendors() {
     let config = {
       method: 'get',
       maxBodyLength: Infinity,
-      url: 'https://staging-iotaapiserver-s572.encr.app/vendors',
+      url: `${API_HOST}/vendors`,
       headers: {},
     };
 
@@ -775,7 +794,7 @@ export async function updateVendor(id, vendorData) {
     let config = {
       method: 'patch',
       maxBodyLength: Infinity,
-      url: `https://staging-iotaapiserver-s572.encr.app/vendors/${id}`,
+      url: `${API_HOST}/vendors/${id}`,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -829,7 +848,7 @@ export async function createVendor(vendorData) {
     let config = {
       method: 'post',
       maxBodyLength: Infinity,
-      url: 'https://staging-iotaapiserver-s572.encr.app/vendors',
+      url: `${API_HOST}/vendors`,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -1119,7 +1138,7 @@ export async function uploadExpenseAttachment({ folderPath, fileName, fileConten
 // Wallet Management APIs
 // ============================================================================
 
-const WALLET_API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
+const WALLET_API_BASE_URL = API_HOST;
 
 /**
  * @summary Returns all employee wallets (admin-level overview).
@@ -2191,7 +2210,7 @@ export async function generateLetterDocument(letterId) {
 
 // Accounts Receivable APIs
 // Change this constant at the top of the file
-const ENCORE_API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
+const ENCORE_API_BASE_URL = API_HOST;
 
 /**
  * @summary `fetch` for the Encore API, with the live bearer token attached.
@@ -2639,7 +2658,7 @@ export async function createInvoice(invoiceData) {
     let config = {
       method: 'post',
       maxBodyLength: Infinity,
-      url: 'https://staging-iotaapiserver-s572.encr.app/invoices',
+      url: `${API_HOST}/invoices`,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -2673,7 +2692,7 @@ export async function createInvoice(invoiceData) {
 // ✅ NEW: Fetch invoices from your Supabase database
 export async function fetchInvoices() {
   try {
-    const response = await axios.get('https://staging-iotaapiserver-s572.encr.app/invoices', {
+    const response = await axios.get(`${API_HOST}/invoices`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -2699,14 +2718,11 @@ export async function fetchInvoices() {
 // Fetch single invoice by ID
 export async function fetchInvoice(invoiceId) {
   try {
-    const response = await axios.get(
-      `https://staging-iotaapiserver-s572.encr.app/invoices/${invoiceId}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const response = await axios.get(`${API_HOST}/invoices/${invoiceId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
     console.log('✅ Fetched invoice:', response.data);
     return response.data.invoice;
@@ -2727,14 +2743,11 @@ export async function fetchInvoice(invoiceId) {
  */
 export async function deleteInvoice(invoiceId) {
   try {
-    const response = await axios.delete(
-      `https://staging-iotaapiserver-s572.encr.app/invoices/${invoiceId}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      }
-    );
+    const response = await axios.delete(`${API_HOST}/invoices/${invoiceId}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
 
     console.log('✅ Invoice deleted:', invoiceId);
     return response.data;

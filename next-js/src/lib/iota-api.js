@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+import { normalizeApiHost } from 'src/utils/api-host';
 import { resolveBearerToken } from 'src/utils/jwt-auth';
 
 import { CONFIG } from 'src/global-config';
@@ -27,10 +28,7 @@ import { CONFIG } from 'src/global-config';
  * the API does not serve, and the variable is unset on any target where nobody
  * filled it in.
  */
-const normalizeHost = (url) =>
-  (url || 'https://staging-iotaapiserver-s572.encr.app')
-    .replace(/\/supabaseservices\/?$/, '')
-    .replace(/\/$/, '');
+const normalizeHost = normalizeApiHost;
 
 export const IOTA_API_HOST = normalizeHost(CONFIG.serverUrl);
 

@@ -18,6 +18,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 
 import { paths } from 'src/routes/paths';
 
+import { API_HOST } from 'src/utils/api-host';
 import {
   getPageAccessForUser,
   savePageAccessForUser,
@@ -32,8 +33,7 @@ import { navData as dashboardNavData } from 'src/layouts/nav-config-dashboard';
 import { RoleGuard } from 'src/auth/guard';
 import { useAuthContext } from 'src/auth/hooks';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://staging-iotaapiserver-s572.encr.app/';
+const API_BASE_URL = `${API_HOST}/`;
 
 const baseFromPath = (pathname) => {
   const parts = (pathname || '').split('/').filter(Boolean);

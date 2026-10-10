@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 
+import { API_HOST } from 'src/utils/api-host';
 import { SUPPORTED_BANKS, getCurrencyByRegion } from 'src/utils/constants/banking';
 
-const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
+const API_BASE_URL = API_HOST;
 const PDF_PARSER_URL = process.env.PDF_PARSER_URL || 'https://iota-pdf-parser.onrender.com';
 
 export async function POST(request) {

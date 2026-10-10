@@ -1,8 +1,9 @@
 import axios from 'axios';
 import { useState, useEffect, useCallback } from 'react';
 
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL || 'https://staging-iotaapiserver-s572.encr.app';
+import { API_HOST } from 'src/utils/api-host';
+
+const API_BASE_URL = API_HOST;
 
 // Poll every 2 minutes for new deployments
 const POLL_INTERVAL = 120000; // 2 minutes

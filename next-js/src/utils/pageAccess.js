@@ -1,10 +1,11 @@
 import axios from 'axios';
 
+import { API_HOST } from 'src/utils/api-host';
+
 import { resolveBearerToken } from './jwt-auth';
 
 // Use same API base URL as apiHelper.js for consistency
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'https://staging-iotaapiserver-s572.encr.app/';
+const API_BASE_URL = `${API_HOST}/`;
 
 const STORAGE_KEY = 'pageAccessByUser';
 const ROLE_STORAGE_KEY = 'pageAccessByRole';

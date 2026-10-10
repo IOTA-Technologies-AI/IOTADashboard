@@ -48,6 +48,54 @@ function fitText(font, text, maxWidth, maxSize) {
   return { text: out, size };
 }
 
+/**
+ * Map a point given on the page AS DISPLAYED (origin top-left, y downwards,
+ * the way the placement preview shows a rotated page) to PDF user space
+ * (origin bottom-left of the unrotated page), for a page with /Rotate
+ * `rotation` and unrotated size `w` x `h`.
+ */
+export function displayToPdf(rotation, w, h, dx, dy) {
+  switch (((rotation % 360) + 360) % 360) {
+    case 90:
+      return { x: dy, y: dx };
+    case 180:
+      return { x: w - dx, y: dy };
+    case 270:
+      return { x: w - dy, y: h - dx };
+    default:
+      return { x: dx, y: h - dy };
+  }
+}
+
+/** Size of a page as displayed: width and height swap at 90 and 270 degrees. */
+export function displaySize(rotation, w, h) {
+  const r = ((rotation % 360) + 360) % 360;
+  return r === 90 || r === 270 ? { width: h, height: w } : { width: w, height: h };
+}
+
+/** Drawing helpers for one page, working in displayed coordinates. */
+function pageCanvas(page, degrees) {
+  const rotation = page.getRotation().angle || 0;
+  const { width: w, height: h } = page.getSize();
+  const shown = displaySize(rotation, w, h);
+  // Drawn rotated by the page's own rotation, so it reads upright when shown.
+  const rotate = degrees(((rotation % 360) + 360) % 360);
+  return {
+    width: shown.width,
+    height: shown.height,
+    /** Draws an image whose bottom-left corner is at displayed (left, bottom). */
+    image(img, left, bottom, width, height, extra = {}) {
+      const p = displayToPdf(rotation, w, h, left, bottom);
+      page.drawImage(img, { x: p.x, y: p.y, width, height, rotate, ...extra });
+    },
+    /** Draws text whose baseline starts at displayed (left, baseline). */
+    text(str, left, baseline, opts) {
+      const p = displayToPdf(rotation, w, h, left, baseline);
+      page.drawText(str, { x: p.x, y: p.y, rotate, ...opts });
+    },
+  };
+}
+
 async function embedSignature(pdfDoc, dataUrl) {
   if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image')) return null;
   const bytes = base64ToUint8(dataUrl.split(',')[1] || '');
@@ -65,7 +113,8 @@ async function embedSignature(pdfDoc, dataUrl) {
  * @param {Array}  params.stampPlacements
  * @param {boolean} [params.requireAllSigned] true for Finalize: an unsigned
  *        zone is an error. Otherwise it is left blank and reported in `pending`.
- * @returns {Promise<{ base64: string, pending: string[] }>}
+ * @returns {Promise<{ base64: string, pending: string[], warnings: string[] }>}
+ *        `warnings`: placements on pages the document does not have (skipped).
  */
 export async function stampNdaPdf({
   base64,
@@ -75,7 +124,7 @@ export async function stampNdaPdf({
   stampPlacements = [],
   requireAllSigned = false,
 }) {
-  const { PDFDocument, StandardFonts, rgb } = await import('pdf-lib');
+  const { PDFDocument, StandardFonts, rgb, degrees } = await import('pdf-lib');
 
   let pdfDoc;
   try {
@@ -88,14 +137,21 @@ export async function stampNdaPdf({
   const pages = pdfDoc.getPages();
   const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const pending = [];
+  const warnings = [];
 
   const placeZones = async (zones, signatories, indexKey, side) => {
     for (const zone of zones) {
-      const page = pages[Math.max(0, (zone.page || 1) - 1)];
-      if (!page) continue;
       const signatory = signatories[zone[indexKey] ?? 0];
       const who =
         signatory?.name || signatory?.email || `${side} signatory ${(zone[indexKey] ?? 0) + 1}`;
+      const page = pages[Math.max(0, (zone.page || 1) - 1)];
+      if (!page) {
+        // The document was replaced with a shorter one after zones were placed.
+        const msg = `${who}'s signature area is on page ${zone.page}, but the document has ${pages.length} page${pages.length === 1 ? '' : 's'}. Place it again.`;
+        if (requireAllSigned) throw new Error(msg);
+        if (!warnings.includes(msg)) warnings.push(msg);
+        continue;
+      }
 
       if (!signatory?.signedAt || !signatory?.signatureData) {
         if (requireAllSigned) throw new Error(`${who} (${side}) has not signed yet.`);
@@ -103,9 +159,13 @@ export async function stampNdaPdf({
         continue;
       }
 
-      const { width: pw, height: ph } = page.getSize();
+      // Zones are placed on the page as displayed, so a rotated or scanned
+      // page is handled in its displayed orientation.
+      const canvas = pageCanvas(page, degrees);
+      const pw = canvas.width;
+      const ph = canvas.height;
       const x = (zone.xPct / 100) * pw;
-      const top = ph - (zone.yPct / 100) * ph;
+      const top = (zone.yPct / 100) * ph; // from the top of the displayed page
       const w = (zone.widthPct / 100) * pw;
       const h = (zone.heightPct / 100) * ph;
 
@@ -125,13 +185,11 @@ export async function stampNdaPdf({
         const scale = Math.min(w / image.width, imageH / image.height);
         const iw = image.width * scale;
         const ih = image.height * scale;
-        page.drawImage(image, { x: x + (w - iw) / 2, y: top - ih, width: iw, height: ih });
+        canvas.image(image, x + (w - iw) / 2, top + ih, iw, ih);
       } else {
         // No usable image — the typed name stands in for it.
         const fitted = fitText(font, signatory.name || signatory.email, w, Math.min(16, imageH));
-        page.drawText(fitted.text, {
-          x,
-          y: top - imageH / 2 - fitted.size / 2,
+        canvas.text(fitted.text, x, top + imageH / 2 + fitted.size / 2, {
           size: fitted.size,
           font,
           color: rgb(0.05, 0.1, 0.3),
@@ -139,9 +197,7 @@ export async function stampNdaPdf({
       }
 
       const caption = fitText(font, signatureCaption(signatory), w, captionSize);
-      page.drawText(caption.text, {
-        x,
-        y: top - h + 1,
+      canvas.text(caption.text, x, top + h - 1, {
         size: caption.size,
         font,
         color: rgb(0.2, 0.2, 0.2),
@@ -175,19 +231,22 @@ export async function stampNdaPdf({
     const stampImage = await pdfDoc.embedPng(new Uint8Array(await res.arrayBuffer()));
     for (const placement of stampPlacements) {
       const page = pages[Math.max(0, (placement.page || 1) - 1)];
-      if (!page) continue;
-      const { width: pw, height: ph } = page.getSize();
-      const stampW = (placement.widthPct / 100) * pw;
+      if (!page) {
+        const msg = `A company stamp is on page ${placement.page}, but the document has ${pages.length} page${pages.length === 1 ? '' : 's'}. Place it again.`;
+        if (requireAllSigned) throw new Error(msg);
+        if (!warnings.includes(msg)) warnings.push(msg);
+        continue;
+      }
+      const canvas = pageCanvas(page, degrees);
+      const stampW = (placement.widthPct / 100) * canvas.width;
       const stampH = stampW * (stampImage.height / stampImage.width);
-      page.drawImage(stampImage, {
-        x: (placement.xPct / 100) * pw - stampW / 2,
-        y: ph - (placement.yPct / 100) * ph - stampH / 2,
-        width: stampW,
-        height: stampH,
+      const cx = (placement.xPct / 100) * canvas.width;
+      const cy = (placement.yPct / 100) * canvas.height;
+      canvas.image(stampImage, cx - stampW / 2, cy + stampH / 2, stampW, stampH, {
         opacity: 0.85,
       });
     }
   }
 
-  return { base64: uint8ToBase64(await pdfDoc.save()), pending };
+  return { base64: uint8ToBase64(await pdfDoc.save()), pending, warnings };
 }

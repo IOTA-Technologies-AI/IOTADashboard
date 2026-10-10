@@ -387,21 +387,30 @@ export default function NdaDetailsPage({ params }) {
   // Load pdfjs document whenever the blob URL changes
   useEffect(() => {
     let cancelled = false;
+    let task = null;
     if (!docBlobUrl) {
       setPdfJsDoc(null);
     } else {
       import('pdfjs-dist').then(async (pdfjsLib) => {
+        if (cancelled) return;
         pdfjsLib.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs';
+        task = pdfjsLib.getDocument(docBlobUrl);
         try {
-          const doc = await pdfjsLib.getDocument(docBlobUrl).promise;
+          const doc = await task.promise;
           if (!cancelled) setPdfJsDoc(doc);
         } catch (e) {
-          console.error('pdfjs load error', e);
+          if (!cancelled) console.error('pdfjs load error', e);
         }
       });
     }
     return () => {
       cancelled = true;
+      // Free this copy of the document (worker, pages, canvases). Every save
+      // rebuilds the blob, and the old copies used to stay in memory.
+      if (task) {
+        setPdfJsDoc(null);
+        task.destroy();
+      }
     };
   }, [docBlobUrl]);
 
@@ -785,7 +794,11 @@ export default function NdaDetailsPage({ params }) {
       // For external PDFs: embed current stamps + sig zones inline, open in new tab and print
       try {
         const printBase64 = docBase64 || (await fetchNdaDocumentContent(id).then((r) => r.base64));
-        const { base64: processed, pending } = await stampNdaPdf({
+        const {
+          base64: processed,
+          pending,
+          warnings,
+        } = await stampNdaPdf({
           base64: printBase64,
           nda,
           signatureZones,
@@ -793,6 +806,7 @@ export default function NdaDetailsPage({ params }) {
           stampPlacements,
         });
         if (pending.length) toast.info(`Not signed yet: ${pending.join(', ')}.`);
+        warnings.forEach((w) => toast.warning(w));
         const bytes = Uint8Array.from(atob(processed), (c) => c.charCodeAt(0));
         const blob = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
         // Open the processed PDF in a new tab — the browser PDF viewer has its own
@@ -1153,7 +1167,11 @@ export default function NdaDetailsPage({ params }) {
       setDownloadProcessing(true);
       // Signatures that exist are embedded; zones whose signatory has not
       // signed yet are left blank rather than failing the whole download.
-      const { base64: processed, pending } = await stampNdaPdf({
+      const {
+        base64: processed,
+        pending,
+        warnings,
+      } = await stampNdaPdf({
         base64: downloadBase64,
         nda,
         signatureZones,
@@ -1162,6 +1180,9 @@ export default function NdaDetailsPage({ params }) {
       });
       if (pending.length) {
         toast.info(`Downloaded. Not signed yet, left blank: ${pending.join(', ')}.`);
+      }
+      if (warnings.length) {
+        warnings.forEach((w) => toast.warning(w));
       }
       const a = document.createElement('a');
       a.href = `data:application/pdf;base64,${processed}`;

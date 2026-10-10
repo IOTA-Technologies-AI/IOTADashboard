@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 
+import { normalizeApiHost } from 'src/utils/api-host';
+
 import { CONFIG } from 'src/global-config';
 
-const normalizeHost = (url) =>
-  (url || 'https://staging-iotaapiserver-s572.encr.app')
-    .replace(/\/supabaseservices\/?$/, '')
-    .replace(/\/$/, '');
+const normalizeHost = normalizeApiHost;
 
 const BASE_URL = normalizeHost(CONFIG.serverUrl);
 

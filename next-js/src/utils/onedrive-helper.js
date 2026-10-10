@@ -1,10 +1,12 @@
 import axios from 'axios';
 
+import { API_HOST } from 'src/utils/api-host';
+
 // Use proxy routes on client to avoid CORS, direct API on server
 const hasWindow = typeof window !== 'undefined';
 const API_BASE_URL = hasWindow
   ? '/api' // Use Next.js API proxy routes on client
-  : process.env.NEXT_PUBLIC_API_BASE_URL || 'https://staging-iotaapiserver-s572.encr.app';
+  : API_HOST;
 
 // Token management
 const persistTokens = (accessToken, refreshToken) => {

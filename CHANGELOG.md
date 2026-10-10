@@ -420,6 +420,12 @@ is running.
   to the API; they previously called it anonymously.
 
 ### Changed
+- **One API host for the whole dashboard.** About 70 hardcoded copies of the
+  staging host now read `NEXT_PUBLIC_SERVER_URL` through `src/utils/api-host.js`,
+  falling back to the same host as before.
+- **Removed the template's unused sign-in providers** (JWT, Auth0, Amplify,
+  Firebase), their pages and their packages. Sign-in is Supabase with
+  Microsoft Entra ID only.
 - **Payslip.** The year-to-date column is gone; the payslip shows the period
   only. The employee details panel is one typeface throughout (the Employee
   ID, IBAN, days paid and joining date were in a different, monospaced face).
@@ -477,6 +483,29 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **VAT sync no longer drops a vendor's bill.** A bill counted as "already
+  posted" when another document had the same number, so two vendors both
+  billing "1001" lost one bill's input VAT. It now has to match the number,
+  input or output, and the vendor or customer. The check is also one query
+  instead of one request per record.
+- **Simultaneous NDA and offer actions no longer overwrite each other.**
+  - Signing, submitting, finalising, cancelling, reminders, review decisions
+    and letter uploads now apply in one database transaction, and only if the
+    record is still in the state the action expects.
+  - Audit entries are appended by the database instead of rewritten.
+  - A second signer or a double click gets "this changed while you were
+    working on it, reload" rather than erasing the first signature.
+  - NDA numbers come from a database sequence and are unique.
+  - Needs `supabase/sql/20261015_guarded_updates.sql`; until it is run, state
+    changes are still guarded by conditional updates.
+- **Signatures and stamps land correctly on rotated or scanned PDFs.**
+  Placements are mapped from the page as displayed. A placement on a page the
+  document no longer has is reported, and Finalize stops on it instead of
+  skipping it.
+- **The NDA and offer pages no longer leak memory.** Each document preview
+  copy is freed when it's replaced.
+- The accounts invoice list no longer breaks when the invoice API fails.
+- The IOTA billing total counts only amounts in SAR.
 - **Invoice VAT is charged after the discount.** It was charged on the
   pre-discount subtotal, overstating VAT on every discounted invoice. Invoices
   and proformas now share one calculation: items, less discount, plus

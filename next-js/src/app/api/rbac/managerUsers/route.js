@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 
-const API_BASE_URL = 'https://staging-iotaapiserver-s572.encr.app';
+import { API_HOST } from 'src/utils/api-host';
+
+const API_BASE_URL = API_HOST;
 const API_KEY = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY;
 const AUTH_TOKEN = process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
   ? `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY}`

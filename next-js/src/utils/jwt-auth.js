@@ -23,6 +23,8 @@
 
 import axios from 'axios';
 
+import { API_HOST } from 'src/utils/api-host';
+
 import { supabase } from 'src/lib/supabase';
 
 /**
@@ -57,7 +59,10 @@ export const extractJWTFromSession = () => {
     // only the v2 shape is what silently returned null on every call and left
     // every request unauthenticated.
     return (
-      parsed?.access_token ?? parsed?.session?.access_token ?? parsed?.currentSession?.access_token ?? null
+      parsed?.access_token ??
+      parsed?.session?.access_token ??
+      parsed?.currentSession?.access_token ??
+      null
     );
   } catch (error) {
     console.error('[JWT] Failed to extract JWT:', error.message);
@@ -101,10 +106,7 @@ export const getLiveAccessToken = async () => {
   if (typeof window === 'undefined' || !supabase?.auth) return null;
 
   try {
-    const {
-      data: { session } = {},
-      error,
-    } = await supabase.auth.getSession();
+    const { data: { session } = {}, error } = await supabase.auth.getSession();
 
     if (error || !session?.access_token) return null;
 
@@ -215,8 +217,7 @@ export const getLiveSessionId = async () => {
  * Backend validates JWT and uses embedded user info instead of relying on email parameter
  */
 export const fetchUserPermissionsWithJWT = async (forceRefresh = false) => {
-  const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || 'https://staging-iotaapiserver-s572.encr.app/';
+  const API_BASE_URL = `${API_HOST}/`;
 
   try {
     const token = extractJWTFromSession();

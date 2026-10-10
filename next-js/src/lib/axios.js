@@ -1,5 +1,6 @@
 import axios from 'axios';
 
+import { normalizeApiHost } from 'src/utils/api-host';
 import { resolveBearerToken } from 'src/utils/jwt-auth';
 
 import { CONFIG } from 'src/global-config';
@@ -7,10 +8,7 @@ import { CONFIG } from 'src/global-config';
 // ----------------------------------------------------------------------
 
 // Prefer same-origin for client calls so Next.js API proxies avoid CORS; fall back to configured host on server.
-const normalizeHost = (url) =>
-  (url || 'https://staging-iotaapiserver-s572.encr.app')
-    .replace(/\/supabaseservices\/?$/, '')
-    .replace(/\/$/, '');
+const normalizeHost = normalizeApiHost;
 
 const apiHost = normalizeHost(CONFIG.serverUrl);
 

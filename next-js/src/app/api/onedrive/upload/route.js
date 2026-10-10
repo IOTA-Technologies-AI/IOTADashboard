@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 
+import { normalizeApiHost } from 'src/utils/api-host';
+
 import { CONFIG } from 'src/global-config';
 
 // Increase body size limit for file uploads (default is 1MB in App Router)
@@ -15,10 +17,7 @@ export const config = {
 // For App Router, also export this to increase body size
 export const maxDuration = 60; // 60 seconds timeout
 
-const normalizeHost = (url) =>
-  (url || 'https://staging-iotaapiserver-s572.encr.app')
-    .replace(/\/supabaseservices\/?$/, '')
-    .replace(/\/$/, '');
+const normalizeHost = normalizeApiHost;
 
 const BASE_URL = normalizeHost(CONFIG.serverUrl);
 const buildHeaders = (request) => ({
