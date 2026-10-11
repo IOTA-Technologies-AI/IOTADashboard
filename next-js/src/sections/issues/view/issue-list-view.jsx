@@ -29,7 +29,7 @@ import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 import { STATUS, SEVERITY } from '../issue-labels';
-import { ReportIssueDialog } from '../report-issue-dialog';
+import { openReportIssue } from '../report-issue-dialog';
 
 // ----------------------------------------------------------------------
 
@@ -43,8 +43,7 @@ const OPEN = ['new', 'triaged', 'in_progress'];
 
 export function IssueListView() {
   const [tab, setTab] = useState('open');
-  const [reporting, setReporting] = useState(false);
-  const { issues, canManage, error, loading, refresh } = useIssues(
+  const { issues, canManage, error, loading } = useIssues(
     tab === 'open' || tab === 'all' ? 'all' : tab
   );
   const rows = tab === 'open' ? issues.filter((i) => OPEN.includes(i.status)) : issues;
@@ -59,7 +58,7 @@ export function IssueListView() {
             variant="contained"
             color="error"
             startIcon={<Iconify icon="solar:danger-triangle-bold" />}
-            onClick={() => setReporting(true)}
+            onClick={openReportIssue}
           >
             Report an issue
           </Button>
@@ -152,14 +151,6 @@ export function IssueListView() {
           </Table>
         </TableContainer>
       </Card>
-
-      <ReportIssueDialog
-        open={reporting}
-        onClose={() => {
-          setReporting(false);
-          refresh();
-        }}
-      />
     </DashboardContent>
   );
 }

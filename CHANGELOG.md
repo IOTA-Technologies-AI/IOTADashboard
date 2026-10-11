@@ -33,7 +33,10 @@ is running.
   changed, in appConfig `integrations/sentry`.
 - **Report an issue.** A button on every dashboard page files a ticket with:
   - the user's description, steps and severity;
-  - a screenshot of the page (more can be pasted or uploaded);
+  - screenshots taken on request: "Capture screen" sets the form aside so the
+    user can go to the screen with the problem, reproduce it and capture it
+    (up to three, each retakeable), keeping the draft across pages; images can
+    also be pasted or uploaded;
   - the browser console, recent API calls with their Encore trace ids, and
     pages visited;
   - the backend errors behind the failed calls and the matching Sentry events.

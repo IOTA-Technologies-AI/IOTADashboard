@@ -1,13 +1,16 @@
 'use client';
 
+import { mutate } from 'swr';
 import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
+import Paper from '@mui/material/Paper';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import Tooltip from '@mui/material/Tooltip';
 import Checkbox from '@mui/material/Checkbox';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
@@ -42,6 +45,16 @@ const SEVERITIES = [
 ];
 
 const MAX_IMAGES = 3;
+
+const OPEN_EVENT = 'iota:report-issue:open';
+
+/**
+ * Opens the one "Report an issue" reporter mounted in the dashboard layout.
+ * It lives there so a draft — and screen capture mode — survives navigation.
+ */
+export function openReportIssue() {
+  window.dispatchEvent(new Event(OPEN_EVENT));
+}
 
 /** A JPEG data URL of the current page, scaled down to keep the upload small. */
 async function capturePage() {
@@ -111,7 +124,11 @@ export function ReportIssueDialog({ open, onClose }) {
   const [expected, setExpected] = useState('');
   const [severity, setSeverity] = useState('medium');
   const [images, setImages] = useState([]); // data URLs
-  const [capturing, setCapturing] = useState(false);
+  // Screen capture mode: the dialog steps aside so the user can go to the
+  // screen with the problem, reproduce it, and capture it. `replace` is the
+  // index of the image being retaken, or null to add a new one.
+  const [capture, setCapture] = useState(null);
+  const [shooting, setShooting] = useState(false);
   const [snapshot, setSnapshot] = useState(null);
   const [include, setInclude] = useState({ console: true, network: true, navigation: true });
   const [sending, setSending] = useState(false);
@@ -125,17 +142,34 @@ export function ReportIssueDialog({ open, onClose }) {
     setImages([]);
   };
 
-  // Freeze what the tab recorded at the moment the dialog opened, and take a
-  // screenshot of the page behind it.
+  // What the tab recorded, frozen when the form is shown — and again on the way
+  // back from capture mode, so errors reproduced there are included.
   useEffect(() => {
-    if (!open) return;
-    setSnapshot(diagnosticsSnapshot());
-    setCapturing(true);
-    capturePage()
-      .then((dataUrl) => setImages((cur) => (cur.length ? cur : [dataUrl])))
-      .catch((err) => console.warn('Screenshot failed:', err?.message || err))
-      .finally(() => setCapturing(false));
-  }, [open]);
+    if (open && !capture) setSnapshot(diagnosticsSnapshot());
+  }, [open, capture]);
+
+  const takeCapture = async () => {
+    const replace = capture?.replace ?? null;
+    setShooting(true);
+    try {
+      const dataUrl = await capturePage();
+      setImages((cur) => {
+        if (replace !== null && replace < cur.length) {
+          return cur.map((src, k) => (k === replace ? dataUrl : src));
+        }
+        return [...cur, dataUrl].slice(0, MAX_IMAGES);
+      });
+      // A retake, or the last free slot, goes straight back to the form.
+      if (replace !== null || images.length + 1 >= MAX_IMAGES) setCapture(null);
+    } catch (err) {
+      console.warn('Screenshot failed:', err?.message || err);
+      toast.error(
+        'This screen could not be captured. Take a screenshot with your computer and paste it into the report instead.'
+      );
+    } finally {
+      setShooting(false);
+    }
+  };
 
   const addFiles = useCallback(async (files) => {
     const list = [...files].filter((f) => f.type.startsWith('image/')).slice(0, MAX_IMAGES);
@@ -181,6 +215,8 @@ export function ReportIssueDialog({ open, onClose }) {
       toast.success(`Reported as ${res.ticketNumber}. Thank you — the team has been notified.`);
       reset();
       onClose();
+      // Any open Issues list picks up the new ticket.
+      mutate((key) => typeof key === 'string' && key.startsWith('/issues'));
       if (!pathname.startsWith(paths.dashboard.issues.root)) {
         router.push(paths.dashboard.issues.details(res.id));
       }
@@ -190,6 +226,18 @@ export function ReportIssueDialog({ open, onClose }) {
       setSending(false);
     }
   };
+
+  if (open && capture) {
+    return (
+      <CaptureBar
+        count={images.length}
+        retake={capture.replace !== null}
+        shooting={shooting}
+        onCapture={takeCapture}
+        onDone={() => setCapture(null)}
+      />
+    );
+  }
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth data-report-issue>
@@ -260,28 +308,34 @@ export function ReportIssueDialog({ open, onClose }) {
               <Typography variant="subtitle2">
                 Screenshots ({images.length}/{MAX_IMAGES})
               </Typography>
-              <Button
-                size="small"
-                component="label"
-                disabled={images.length >= MAX_IMAGES}
-                startIcon={<Iconify icon="eva:cloud-upload-fill" />}
-              >
-                Add image
-                <input
-                  hidden
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={(e) => addFiles(e.target.files)}
-                />
-              </Button>
+              <Stack direction="row" spacing={1}>
+                <Button
+                  size="small"
+                  variant="soft"
+                  disabled={images.length >= MAX_IMAGES}
+                  startIcon={<Iconify icon="solar:camera-add-bold" />}
+                  onClick={() => setCapture({ replace: null })}
+                >
+                  Capture screen
+                </Button>
+                <Button
+                  size="small"
+                  component="label"
+                  disabled={images.length >= MAX_IMAGES}
+                  startIcon={<Iconify icon="eva:cloud-upload-fill" />}
+                >
+                  Upload
+                  <input
+                    hidden
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={(e) => addFiles(e.target.files)}
+                  />
+                </Button>
+              </Stack>
             </Stack>
             <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
-              {capturing ? (
-                <Typography variant="body2" color="text.secondary">
-                  Taking a screenshot of the page…
-                </Typography>
-              ) : null}
               {images.map((src, i) => (
                 <Box
                   key={i}
@@ -300,19 +354,41 @@ export function ReportIssueDialog({ open, onClose }) {
                     alt={`Screenshot ${i + 1}`}
                     sx={{ width: 1, display: 'block' }}
                   />
-                  <IconButton
-                    size="small"
-                    onClick={() => setImages((cur) => cur.filter((_, k) => k !== i))}
-                    sx={{ position: 'absolute', top: 4, right: 4, bgcolor: 'background.paper' }}
+                  <Stack
+                    direction="row"
+                    spacing={0.5}
+                    sx={{ position: 'absolute', top: 4, right: 4 }}
                   >
-                    <Iconify icon="mingcute:close-line" width={16} />
-                  </IconButton>
+                    <Tooltip title="Retake">
+                      <IconButton
+                        size="small"
+                        onClick={() => setCapture({ replace: i })}
+                        sx={{ bgcolor: 'background.paper' }}
+                      >
+                        <Iconify icon="solar:restart-bold" width={16} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Remove">
+                      <IconButton
+                        size="small"
+                        onClick={() => setImages((cur) => cur.filter((_, k) => k !== i))}
+                        sx={{ bgcolor: 'background.paper' }}
+                      >
+                        <Iconify icon="mingcute:close-line" width={16} />
+                      </IconButton>
+                    </Tooltip>
+                  </Stack>
                 </Box>
               ))}
             </Stack>
-            <Typography variant="caption" color="text.secondary">
-              The page behind this window is captured automatically. You can also paste (Ctrl/⌘+V)
-              or upload images. Remove anything sensitive before sending.
+            <Typography
+              variant="caption"
+              color="text.secondary"
+              sx={{ display: 'block', mt: images.length ? 1 : 0 }}
+            >
+              Use <strong>Capture screen</strong> to go to the screen with the problem, reproduce
+              it, and capture it — this form keeps what you typed. You can also paste (Ctrl/⌘+V) or
+              upload images. Remove anything sensitive before sending.
             </Typography>
           </Box>
 
@@ -394,9 +470,88 @@ export function ReportIssueDialog({ open, onClose }) {
   );
 }
 
-/** The floating "Report an issue" button, on every dashboard page. */
+/**
+ * Shown instead of the dialog in capture mode. It is marked data-report-issue,
+ * so capturePage() leaves it out of the screenshot; error toasts and dialogs
+ * on the page are kept, since they are usually what the report is about.
+ */
+function CaptureBar({ count, retake, shooting, onCapture, onDone }) {
+  return (
+    <Paper
+      data-report-issue
+      elevation={8}
+      sx={{
+        position: 'fixed',
+        left: '50%',
+        bottom: 16,
+        transform: 'translateX(-50%)',
+        zIndex: (theme) => theme.zIndex.modal + 10,
+        width: 'calc(100% - 32px)',
+        maxWidth: 720,
+        p: 1.5,
+        borderRadius: 2,
+        border: 1,
+        borderColor: 'error.main',
+      }}
+    >
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1.5}
+        alignItems={{ xs: 'stretch', sm: 'center' }}
+      >
+        <Stack direction="row" spacing={1.5} alignItems="center" sx={{ flexGrow: 1, minWidth: 0 }}>
+          <Iconify
+            icon="solar:camera-add-bold"
+            width={28}
+            sx={{ color: 'error.main', flexShrink: 0 }}
+          />
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="subtitle2">
+              {retake ? 'Retake screenshot' : 'Screen capture'}
+              {!retake ? ` · ${count} of ${MAX_IMAGES} captured` : ''}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Go to the screen with the problem and reproduce it, then capture.
+            </Typography>
+          </Box>
+        </Stack>
+        <Stack direction="row" spacing={1} justifyContent="flex-end">
+          <Button
+            color="inherit"
+            onClick={onDone}
+            disabled={shooting}
+            startIcon={<Iconify icon="eva:arrow-ios-back-fill" />}
+          >
+            Back to report
+          </Button>
+          <LoadingButton
+            variant="contained"
+            color="error"
+            loading={shooting}
+            onClick={onCapture}
+            startIcon={<Iconify icon="solar:camera-add-bold" />}
+          >
+            Capture
+          </LoadingButton>
+        </Stack>
+      </Stack>
+    </Paper>
+  );
+}
+
+/**
+ * The floating "Report an issue" button, on every dashboard page, and the one
+ * reporter instance — other pages open it with openReportIssue().
+ */
 export function ReportIssueButton() {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const onOpen = () => setOpen(true);
+    window.addEventListener(OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_EVENT, onOpen);
+  }, []);
+
   return (
     <>
       <Button
@@ -407,6 +562,8 @@ export function ReportIssueButton() {
         onClick={() => setOpen(true)}
         startIcon={<Iconify icon="solar:danger-triangle-bold" />}
         sx={{
+          // The capture bar takes its place while a report is in progress.
+          display: open ? 'none' : undefined,
           position: 'fixed',
           left: 16,
           bottom: 16,
