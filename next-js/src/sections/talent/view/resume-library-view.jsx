@@ -20,6 +20,7 @@ import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import Autocomplete from '@mui/material/Autocomplete';
@@ -28,6 +29,7 @@ import InputAdornment from '@mui/material/InputAdornment';
 import TableContainer from '@mui/material/TableContainer';
 import LinearProgress from '@mui/material/LinearProgress';
 import TablePagination from '@mui/material/TablePagination';
+import CircularProgress from '@mui/material/CircularProgress';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
@@ -295,15 +297,30 @@ export function ResumeLibraryView() {
               accept={ACCEPT}
               onChange={(e) => handleFiles(e.target.files)}
             />
-            <LoadingButton
-              variant="contained"
-              size="large"
-              loading={!!uploading}
-              startIcon={<Iconify icon="eva:cloud-upload-fill" />}
-              onClick={() => inputRef.current?.click()}
-            >
-              Upload resumes
-            </LoadingButton>
+            <Tooltip title={uploading ? 'Uploading…' : 'Upload resumes'}>
+              <span style={{ alignSelf: 'center' }}>
+                <IconButton
+                  aria-label="Upload resumes"
+                  disabled={!!uploading}
+                  onClick={() => inputRef.current?.click()}
+                  sx={{
+                    width: 48,
+                    height: 48,
+                    borderRadius: 1.5,
+                    bgcolor: 'text.primary',
+                    color: 'background.paper',
+                    '&:hover': { bgcolor: 'grey.700' },
+                    '&.Mui-disabled': { bgcolor: 'action.disabledBackground' },
+                  }}
+                >
+                  {uploading ? (
+                    <CircularProgress size={22} color="inherit" />
+                  ) : (
+                    <Iconify icon="eva:cloud-upload-fill" width={24} />
+                  )}
+                </IconButton>
+              </span>
+            </Tooltip>
           </Stack>
 
           {uploading ? (
