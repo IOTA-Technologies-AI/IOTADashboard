@@ -42,6 +42,7 @@ import {
   useTalentResumes,
   uploadTalentResume,
   useTalentRequirements,
+  backfillResumeContacts,
 } from 'src/actions/talent';
 
 import { toast } from 'src/components/snackbar';
@@ -49,6 +50,10 @@ import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 import { EmptyContent } from 'src/components/empty-content';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+
+import { useAuthContext } from 'src/auth/hooks';
+
+import { CandidateIdentity } from '../candidate-identity';
 
 // ----------------------------------------------------------------------
 
@@ -128,6 +133,9 @@ export function ResumeLibraryView() {
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [requirementId, setRequirementId] = useState('');
   const [uploading, setUploading] = useState(null); // { done, total, current }
+  const { user } = useAuthContext();
+  const isSuperAdmin = Number(user?.roleId) === 4;
+  const [backfilling, setBackfilling] = useState(false);
   const [failures, setFailures] = useState([]);
 
   const setFilter = (key) => (value) => {
@@ -200,6 +208,30 @@ export function ResumeLibraryView() {
     }
   };
 
+  // Resumes uploaded before the email was recorded get it from their original
+  // file, 25 per call, until none are left (or a pass changes nothing).
+  const handleBackfill = async () => {
+    setBackfilling(true);
+    let updated = 0;
+    let failed = 0;
+    try {
+      for (;;) {
+        const res = await backfillResumeContacts();
+        updated += res.updated;
+        failed += res.failed;
+        if (!res.more || !res.updated) break;
+      }
+      await mutate();
+      toast.success(
+        `Candidate emails filled in for ${updated} resume${updated === 1 ? '' : 's'}${failed ? ` — ${failed} could not be read` : ''}.`
+      );
+    } catch (err) {
+      toast.error(apiMessage(err, 'The emails could not be filled in.'));
+    } finally {
+      setBackfilling(false);
+    }
+  };
+
   return (
     <DashboardContent>
       <CustomBreadcrumbs
@@ -209,6 +241,22 @@ export function ResumeLibraryView() {
           { name: 'Talent', href: paths.dashboard.talent.root },
           { name: 'Resume Formatting' },
         ]}
+        action={
+          isSuperAdmin ? (
+            <Tooltip title="Reads the candidate's email from the original file of resumes uploaded before emails were recorded">
+              <span>
+                <LoadingButton
+                  variant="outlined"
+                  loading={backfilling}
+                  startIcon={<Iconify icon="solar:letter-bold" />}
+                  onClick={handleBackfill}
+                >
+                  Fill in candidate emails
+                </LoadingButton>
+              </span>
+            </Tooltip>
+          ) : null
+        }
         sx={{ mb: { xs: 3, md: 5 } }}
       />
 
@@ -220,7 +268,8 @@ export function ResumeLibraryView() {
               <Typography variant="body2" color="text.secondary">
                 Upload the candidate&apos;s own resume (PDF or Word, up to {MAX_MB} MB, several at
                 once). It is rewritten in the IOTA format with the first name only — email, phone,
-                address and profile links are removed.
+                address and profile links are removed. The full name and email are kept for IOTA
+                only, so you can tell candidates apart here; they are never printed or shared.
               </Typography>
             </Box>
             <TextField
@@ -285,7 +334,7 @@ export function ResumeLibraryView() {
                 fullWidth
                 value={filters.q}
                 onChange={(e) => setFilter('q')(e.target.value)}
-                placeholder='Search resumes — e.g. "SAP FICO" S/4HANA Aramco -junior, or IOTA-R-00042'
+                placeholder='Search resumes — e.g. "SAP FICO" S/4HANA Aramco -junior, IOTA-R-00042, a name or an email'
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -504,7 +553,7 @@ export function ResumeLibraryView() {
                         </Typography>
                       </TableCell>
                       <TableCell>
-                        <Typography variant="subtitle2">{r.displayName}</Typography>
+                        <CandidateIdentity resume={r} />
                         <Typography variant="caption" color="text.secondary">
                           {r.headline}
                         </Typography>

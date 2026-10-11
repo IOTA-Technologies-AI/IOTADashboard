@@ -44,6 +44,7 @@ import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 
+import { CandidateIdentity } from './candidate-identity';
 import { scoreColor, CANDIDATE_STAGE } from './constants';
 
 // ----------------------------------------------------------------------
@@ -67,12 +68,13 @@ function ResumeLine({ resume, secondary }) {
           sx={{
             color: 'text.primary',
             textDecoration: 'none',
+            minWidth: 0,
             '&:hover': { textDecoration: 'underline' },
           }}
         >
-          {resume.displayName}
+          <CandidateIdentity resume={resume} />
         </Typography>
-        <Typography variant="caption" color="text.disabled">
+        <Typography variant="caption" color="text.disabled" sx={{ alignSelf: 'flex-start' }}>
           {resume.resumeCode}
         </Typography>
       </Stack>
@@ -189,10 +191,9 @@ export function RequirementCandidates({ requirement, onRequirementChange }) {
     for (let i = 0; i < files.length; i += 1) {
       setUploading({ n: i + 1, total: files.length, name: files[i].name });
       try {
-         
         await uploadTalentResume({
           fileName: files[i].name,
-           
+
           fileBase64: await toBase64(files[i]),
           requirementId: requirement.id,
         });

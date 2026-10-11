@@ -155,6 +155,12 @@ export async function updateTalentResume(id, payload) {
   return res.data?.resume;
 }
 
+/** Super Admin: reads the email back out of up to 25 older resumes per call. */
+export async function backfillResumeContacts() {
+  const res = await iotaApi.post('/talent/resume-contacts/backfill', {}, { timeout: 180000 });
+  return res.data;
+}
+
 export async function getOriginalResumeLink(id) {
   const res = await iotaApi.get(`/talent/resumes/${id}/original`);
   return res.data;

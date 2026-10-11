@@ -457,6 +457,13 @@ is running.
   to the API; they previously called it anonymously.
 
 ### Changed
+- **Resume Formatting shows who each candidate is.** The library and a
+  requirement's candidate list show the candidate's full name and email from
+  the original resume, so two candidates who share a first name can be told
+  apart; search matches them too. Internal only: the printed resume and client
+  share links still carry the first name alone. Super Admins can fill in the
+  email for resumes uploaded earlier ("Fill in candidate emails").
+  - Needs `supabase/sql/20261012_talent_candidate_contacts.sql` (API repo).
 - **An expired session signs the user out instead of failing request by
   request.** When the API reports a missing or expired token, or a second
   factor it never recorded for this session, the dashboard signs out and opens

@@ -537,9 +537,11 @@ export function ResumeDetailsView({ id }) {
                 <Typography variant="caption" color="text.secondary">
                   Added {fDateTime(resume.createdAt)} by {resume.createdBy}
                 </Typography>
-                {resume.candidateFullName ? (
+                {resume.candidateFullName || resume.candidateEmail ? (
                   <Typography variant="caption" color="text.secondary">
-                    Internal: {resume.candidateFullName} (never printed)
+                    Internal:{' '}
+                    {[resume.candidateFullName, resume.candidateEmail].filter(Boolean).join(' · ')}{' '}
+                    (never printed)
                   </Typography>
                 ) : null}
                 <Stack direction="row" spacing={1}>
