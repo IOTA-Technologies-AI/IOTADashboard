@@ -111,6 +111,10 @@ Every Encore service has the `errorCapture` middleware (`shared/error-capture.ts
 - i18n is `react-i18next` with `en/ar/fr/vi/cn` under `src/locales/langs`; Arabic drives RTL via the MUI stylis RTL plugin. Invoice/document wording has its own helper, `src/utils/invoice-i18n.js`.
 - `.vscode/cme-cache.json` and `cme-debug.log` are local IDE artifacts and are gitignored — don't commit or act on them.
 
+## Mobbin (UI reference)
+
+[.mcp.json](.mcp.json) registers the official Mobbin MCP server (`https://api.mobbin.com/mcp`, licensed). It searches real shipped-app screens, flows and web sections. Before designing a new screen or reworking a flow (e.g. invoice create, approvals, onboarding), search Mobbin for comparable patterns. Then build the result from the existing MUI/Minimal components and theme, never copying a screen's visual identity. Auth is per-user OAuth: run `/mcp` → mobbin → authenticate once. No API key lives in the repo.
+
 ## gstack (recommended)
 
 This project uses [gstack](https://github.com/garrytan/gstack) for AI-assisted workflows.
