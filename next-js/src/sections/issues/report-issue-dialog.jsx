@@ -1,7 +1,7 @@
 'use client';
 
 import { mutate } from 'swr';
-import { useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
@@ -56,18 +56,96 @@ export function openReportIssue() {
   window.dispatchEvent(new Event(OPEN_EVENT));
 }
 
-/** A JPEG data URL of the current page, scaled down to keep the upload small. */
-async function capturePage() {
-  const { domToJpeg } = await import('modern-screenshot');
-  return domToJpeg(document.body, {
-    quality: 0.7,
-    scale: Math.min(1, 1600 / window.innerWidth),
+const MAX_WIDTH = 1600;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * True when a canvas is (almost) one flat colour — a black or blank frame,
+ * which is what a failed capture produces. Samples a grid, not every pixel.
+ */
+function looksBlank(canvas) {
+  const ctx = canvas.getContext('2d');
+  const { width, height } = canvas;
+  if (!width || !height) return true;
+  const { data } = ctx.getImageData(0, 0, width, height);
+  const step = Math.max(1, Math.floor((width * height) / 400));
+  let min = 255;
+  let max = 0;
+  for (let p = 0; p < width * height; p += step) {
+    const i = p * 4;
+    const lum = (data[i] + data[i + 1] + data[i + 2]) / 3;
+    min = Math.min(min, lum);
+    max = Math.max(max, lum);
+  }
+  return max - min < 8;
+}
+
+/** The canvas as a JPEG data URL, or an error when it came out blank. */
+function canvasToJpeg(canvas) {
+  if (looksBlank(canvas)) throw new Error('the capture came out blank');
+  return canvas.toDataURL('image/jpeg', 0.8);
+}
+
+/**
+ * Asks the browser to share this tab. A real capture of the pixels on screen —
+ * error toasts, dialogs, PDFs and all — unlike re-drawing the page from its
+ * HTML. One permission prompt covers a whole capture session.
+ */
+async function startTabCapture() {
+  if (!navigator.mediaDevices?.getDisplayMedia) return null;
+  const stream = await navigator.mediaDevices.getDisplayMedia({
+    video: { displaySurface: 'browser', frameRate: 5 },
+    audio: false,
+    preferCurrentTab: true, // Chrome/Edge: offer this tab first
+    selfBrowserSurface: 'include',
+    surfaceSwitching: 'exclude',
+  });
+  const video = document.createElement('video');
+  video.muted = true;
+  video.playsInline = true;
+  video.srcObject = stream;
+  await video.play();
+  return { stream, video };
+}
+
+function stopTabCapture(session) {
+  session?.stream.getTracks().forEach((t) => t.stop());
+}
+
+/** One frame of the shared tab as a JPEG data URL. */
+async function grabFrame({ video }) {
+  // Frames can lag a moment behind the screen; retry once on a blank one.
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const scale = Math.min(1, MAX_WIDTH / (video.videoWidth || MAX_WIDTH));
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(video.videoWidth * scale);
+    canvas.height = Math.round(video.videoHeight * scale);
+    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+    if (!looksBlank(canvas) || attempt === 1) return canvasToJpeg(canvas);
+    await sleep(300);
+  }
+  return null;
+}
+
+/**
+ * Fallback when the browser cannot (or the user will not) share the tab: the
+ * page re-drawn from its HTML. JPEG has no transparency, so the page colour is
+ * painted underneath — without it, transparent areas came out black.
+ */
+async function renderPage() {
+  const { domToCanvas } = await import('modern-screenshot');
+  const bodyColor = getComputedStyle(document.body).backgroundColor;
+  const transparent = !bodyColor || bodyColor === 'transparent' || bodyColor.endsWith(', 0)');
+  const canvas = await domToCanvas(document.documentElement, {
+    scale: Math.min(1, MAX_WIDTH / window.innerWidth),
     width: window.innerWidth,
     height: window.innerHeight,
+    backgroundColor: transparent ? '#ffffff' : bodyColor,
     style: { transform: `translateY(-${window.scrollY}px)` },
     // The report dialog itself is not part of the problem.
     filter: (node) => !(node instanceof Element && node.closest?.('[data-report-issue]')),
   });
+  return canvasToJpeg(canvas);
 }
 
 const fileToDataUrl = (file) =>
@@ -129,6 +207,10 @@ export function ReportIssueDialog({ open, onClose }) {
   // index of the image being retaken, or null to add a new one.
   const [capture, setCapture] = useState(null);
   const [shooting, setShooting] = useState(false);
+  // The shared-tab stream for this capture session (see startTabCapture), and
+  // whether the capture bar is stepping out of the frame being taken.
+  const sessionRef = useRef(null);
+  const [hideBar, setHideBar] = useState(false);
   const [snapshot, setSnapshot] = useState(null);
   const [include, setInclude] = useState({ console: true, network: true, navigation: true });
   const [sending, setSending] = useState(false);
@@ -147,6 +229,48 @@ export function ReportIssueDialog({ open, onClose }) {
   useEffect(() => {
     if (open && !capture) setSnapshot(diagnosticsSnapshot());
   }, [open, capture]);
+
+  // Capture mode ends → stop sharing the tab (the browser's "sharing" bar goes).
+  useEffect(() => {
+    if (open && capture) return undefined;
+    stopTabCapture(sessionRef.current);
+    sessionRef.current = null;
+    return undefined;
+  }, [open, capture]);
+  useEffect(() => () => stopTabCapture(sessionRef.current), []);
+
+  // Runs from the click, which the browser requires before it will ask to share.
+  const startCapture = async (replace) => {
+    if (!sessionRef.current) {
+      try {
+        const session = await startTabCapture();
+        if (session) {
+          // The user can stop sharing from the browser's own bar at any time.
+          session.stream.getVideoTracks()[0]?.addEventListener('ended', () => {
+            if (sessionRef.current === session) sessionRef.current = null;
+          });
+          sessionRef.current = session;
+        }
+      } catch (err) {
+        console.warn('Tab sharing declined:', err?.message || err);
+        toast.info(
+          'Screen sharing was not allowed, so captures will be re-drawn from the page. For an exact picture, allow sharing this tab next time.'
+        );
+      }
+    }
+    setCapture({ replace });
+  };
+
+  const capturePage = async () => {
+    if (!sessionRef.current) return renderPage();
+    setHideBar(true);
+    try {
+      await sleep(400); // let the bar leave the screen and a fresh frame arrive
+      return await grabFrame(sessionRef.current);
+    } finally {
+      setHideBar(false);
+    }
+  };
 
   const takeCapture = async () => {
     const replace = capture?.replace ?? null;
@@ -233,6 +357,7 @@ export function ReportIssueDialog({ open, onClose }) {
         count={images.length}
         retake={capture.replace !== null}
         shooting={shooting}
+        hidden={hideBar}
         onCapture={takeCapture}
         onDone={() => setCapture(null)}
       />
@@ -314,7 +439,7 @@ export function ReportIssueDialog({ open, onClose }) {
                   variant="soft"
                   disabled={images.length >= MAX_IMAGES}
                   startIcon={<Iconify icon="solar:camera-add-bold" />}
-                  onClick={() => setCapture({ replace: null })}
+                  onClick={() => startCapture(null)}
                 >
                   Capture screen
                 </Button>
@@ -362,7 +487,7 @@ export function ReportIssueDialog({ open, onClose }) {
                     <Tooltip title="Retake">
                       <IconButton
                         size="small"
-                        onClick={() => setCapture({ replace: i })}
+                        onClick={() => startCapture(i)}
                         sx={{ bgcolor: 'background.paper' }}
                       >
                         <Iconify icon="solar:restart-bold" width={16} />
@@ -387,8 +512,9 @@ export function ReportIssueDialog({ open, onClose }) {
               sx={{ display: 'block', mt: images.length ? 1 : 0 }}
             >
               Use <strong>Capture screen</strong> to go to the screen with the problem, reproduce
-              it, and capture it — this form keeps what you typed. You can also paste (Ctrl/⌘+V) or
-              upload images. Remove anything sensitive before sending.
+              it, and capture it — this form keeps what you typed. Your browser asks once to share
+              this tab; choose this tab. You can also paste (Ctrl/⌘+V) or upload images. Remove
+              anything sensitive before sending.
             </Typography>
           </Box>
 
@@ -471,16 +597,19 @@ export function ReportIssueDialog({ open, onClose }) {
 }
 
 /**
- * Shown instead of the dialog in capture mode. It is marked data-report-issue,
- * so capturePage() leaves it out of the screenshot; error toasts and dialogs
- * on the page are kept, since they are usually what the report is about.
+ * Shown instead of the dialog in capture mode. It steps out of the frame
+ * (`hidden`) while a shared-tab capture is taken, and is marked
+ * data-report-issue so the re-drawn fallback leaves it out too. Error toasts
+ * and dialogs on the page are kept — they are usually what the report is about.
  */
-function CaptureBar({ count, retake, shooting, onCapture, onDone }) {
+function CaptureBar({ count, retake, shooting, hidden, onCapture, onDone }) {
   return (
     <Paper
       data-report-issue
       elevation={8}
       sx={{
+        // Out of the picture while a real (shared-tab) frame is taken.
+        visibility: hidden ? 'hidden' : 'visible',
         position: 'fixed',
         left: '50%',
         bottom: 16,

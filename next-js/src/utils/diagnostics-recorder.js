@@ -5,7 +5,7 @@
  * to Sentry. Everything stays in memory, in small rolling buffers, and only
  * leaves the browser when the user files a report.
  *
- * Installed once from instrumentation.client.ts. Credentials are scrubbed as
+ * Installed once from instrumentation-client.ts (Next.js loads it by that exact name). Credentials are scrubbed as
  * entries are recorded (and again on the server).
  */
 

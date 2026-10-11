@@ -12,3 +12,7 @@ export function register() {
     debug: process.env.SENTRY_DEBUG === 'true',
   });
 }
+
+// Errors thrown while rendering on the server (server components, route
+// handlers, middleware), reported to Sentry with the request they came from.
+export const onRequestError = Sentry.captureRequestError;

@@ -550,6 +550,16 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Issue reports carry their console log, page history and Sentry events,
+  and browser errors reach Sentry.** The browser start-up file was named
+  `instrumentation.client.ts`; Next.js only loads `instrumentation-client.ts`,
+  so the recorder behind "Report an issue" and the browser's Sentry setup had
+  never run. Renamed, with Sentry's navigation and server request-error hooks.
+- **"Capture screen" captures what is actually on screen.** It shares the tab
+  through the browser (one prompt per capture session) instead of re-drawing
+  the page from its HTML, which came out black. If sharing is declined, the
+  re-drawn capture is used with the page colour behind it, and a blank image
+  is refused rather than attached.
 - **Authenticator setup no longer rejects a correctly scanned code.** Until
   setup was finished, every sign-in (and "Resend") created a new secret and
   emailed a new QR code. Anyone who scanned an earlier one then got "Invalid

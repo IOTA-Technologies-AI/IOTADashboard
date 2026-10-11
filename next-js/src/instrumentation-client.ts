@@ -20,6 +20,9 @@ Sentry.init({
   },
 });
 
+// Page navigations, as Sentry transactions.
+export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
+
 // Auto-reload on ChunkLoadError caused by stale asset URLs after a new deployment.
 // This handles errors outside React's render cycle (e.g. dynamic imports in event handlers).
 if (typeof window !== 'undefined') {

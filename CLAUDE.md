@@ -101,7 +101,7 @@ Every Encore service has the `errorCapture` middleware (`shared/error-capture.ts
 
 ## Conventions
 
-- **JS/JSX only, no TypeScript** in `next-js/src` (two `.ts` exceptions: `middleware.ts`, `instrumentation.client.ts`). The backend is TypeScript.
+- **JS/JSX only, no TypeScript** in `next-js/src` (two `.ts` exceptions: `middleware.ts`, `instrumentation-client.ts` — the hyphen matters: Next.js ignores any other spelling). The backend is TypeScript.
 - Imports use the `src/...` alias (resolved via `jsconfig.json` baseUrl + the eslint alias resolver) and are sorted by `eslint-plugin-perfectionist` into a fixed group order — external → `@mui/*` → `src/routes` → `src/hooks` → `src/utils` → internal → `src/components` → `src/sections` → `src/auth` → relative — each group sorted by **line length ascending**. `yarn lint:fix` does this for you; hand-ordering imports wastes time.
 - Prettier: single quotes, semicolons, 100 cols, es5 trailing commas.
 - Route strings live in [src/routes/paths.js](next-js/src/routes/paths.js) — add new routes there rather than hardcoding, since the permission system and nav config key off these paths.
