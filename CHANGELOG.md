@@ -457,6 +457,17 @@ is running.
   to the API; they previously called it anonymously.
 
 ### Changed
+- **An expired session signs the user out instead of failing request by
+  request.** When the API reports a missing or expired token, or a second
+  factor it never recorded for this session, the dashboard signs out and opens
+  sign-in ("Your session has expired…"), returning to the same page afterwards.
+  A Microsoft token that can no longer be refreshed (e.g. an expense receipt
+  upload) does the same, since signing in issues a new one. Anything unsaved on
+  the page is lost.
+- **Issue emails carry the evidence.** The email for a new ticket attaches its
+  screenshots and lists the failed API calls, backend errors, console errors,
+  steps to reproduce and expected result; it previously had only the
+  description and a link.
 - **Removed the template's sample data (`_mock`) and the pages built on it.**
   - Gone: the E-commerce, Analytics, Booking, Course, File and Finance
     overview dashboards; Tour, Order, Product and Blog; Chat, Mail and Kanban;

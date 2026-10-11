@@ -3,6 +3,7 @@ import axios from 'axios';
 import { normalizeApiHost } from 'src/utils/api-host';
 import { resolveBearerToken } from 'src/utils/jwt-auth';
 import { trackAxios } from 'src/utils/diagnostics-recorder';
+import { watchSessionExpiry } from 'src/utils/session-expiry';
 
 import { CONFIG } from 'src/global-config';
 
@@ -54,5 +55,6 @@ iotaApi.interceptors.request.use(async (config) => {
 });
 
 trackAxios(iotaApi);
+watchSessionExpiry(iotaApi);
 
 export default iotaApi;

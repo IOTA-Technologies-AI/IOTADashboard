@@ -3,6 +3,7 @@ const axios = require('axios');
 import { API_HOST } from 'src/utils/api-host';
 
 import { trackAxios } from './diagnostics-recorder';
+import { watchSessionExpiry } from './session-expiry';
 import { decodeJWT, resolveBearerToken, extractJWTFromSession } from './jwt-auth';
 
 const API_BASE_URL = `${API_HOST}/`;
@@ -120,36 +121,16 @@ axios.interceptors.request.use(async (config) => {
 });
 
 /**
- * @summary Makes a "second factor required" rejection visible instead of silent.
- * @description The client and the server track the second factor separately and
- * with different keys: the browser keeps a `totp_verified_at_<email>` stamp in
- * sessionStorage (8h, keyed by EMAIL), while the gateway requires a
- * totpVerifiedSession row (12h, keyed by the Supabase SESSION_ID). They can
- * therefore disagree — and when they do, TotpGuard reads its own stamp, decides
- * the user is verified, renders the dashboard without an OTP prompt, and every
- * query fails with 401 behind a screen that looks perfectly normal.
- *
- * This logs the disagreement rather than acting on it. Recovering automatically
- * means dropping the stamp AND forcing a remount (TotpGuard only re-evaluates in
- * its mount effect), i.e. a page reload — and a reload fired from any background
- * request would discard whatever the user was in the middle of typing. Signing
- * out and back in clears the desync; the log says that is what happened.
+ * @summary Signs the user out when the gateway says the session is over.
+ * @description An expired or missing token, or a second factor the gateway never
+ * recorded for this session, all end the same way: sign out and sign in again.
+ * The last case is the client/server TOTP desync — the browser's
+ * `totp_verified_at_<email>` stamp (8h, keyed by EMAIL) says verified while the
+ * gateway's totpVerifiedSession row (12h, keyed by SESSION_ID) does not, so the
+ * dashboard rendered normally while every call failed with 401. Signing out
+ * clears the stamp, which is what re-syncs them. See src/utils/session-expiry.js.
  */
-axios.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    const status = error?.response?.status;
-    const message = String(error?.response?.data?.message || '');
-    if (status === 401 && message.toLowerCase().includes('second factor')) {
-      console.error(
-        '[apiHelper] The server reports MFA was never cleared for this session, but this tab ' +
-          'believes it was verified. Sign out and back in to re-sync. Server said:',
-        message
-      );
-    }
-    return Promise.reject(error);
-  }
-);
+watchSessionExpiry(axios);
 
 /**
  * @summary Retrieves the current user's context (email, role, roleId) for API permission checks.

@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 import { API_HOST } from 'src/utils/api-host';
+import { endExpiredSession } from 'src/utils/session-expiry';
 
 // Use proxy routes on client to avoid CORS, direct API on server
 const hasWindow = typeof window !== 'undefined';
@@ -85,8 +86,20 @@ export async function exchangeCodeForToken(code, redirectUri) {
 export async function refreshAccessToken(refreshToken, redirectUri) {
   const payload = { refreshToken };
   if (redirectUri) payload.redirectUri = redirectUri;
-  const response = await axios.post(`${API_BASE_URL}/onedrive/refresh`, payload);
-  return response.data;
+  try {
+    const response = await axios.post(`${API_BASE_URL}/onedrive/refresh`, payload);
+    return response.data;
+  } catch (error) {
+    // Microsoft rejected the refresh token. Signing in again issues a fresh
+    // Microsoft token (auth-provider seeds it), so send the user there rather
+    // than surfacing an error they cannot act on.
+    const message = String(error?.response?.data?.message || '').toLowerCase();
+    if (message.includes('microsoft sign-in expired')) {
+      clearOneDriveToken();
+      endExpiredSession();
+    }
+    throw error;
+  }
 }
 
 // Helper to get stored redirect URI

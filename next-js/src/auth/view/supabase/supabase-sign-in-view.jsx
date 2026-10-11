@@ -15,6 +15,8 @@ import Typography from '@mui/material/Typography';
 import { paths } from 'src/routes/paths';
 import { RouterLink } from 'src/routes/components';
 
+import { SESSION_EXPIRED_REASON } from 'src/utils/session-expiry';
+
 import { CONFIG } from 'src/global-config';
 import { supabase } from 'src/lib/supabase';
 
@@ -28,6 +30,7 @@ import { FormHead } from '../../components/form-head';
 export function SupabaseSignInView() {
   const searchParams = useSearchParams();
   const returnTo = searchParams.get('returnTo');
+  const sessionExpired = searchParams.get('reason') === SESSION_EXPIRED_REASON;
 
   const [errorMessage, setErrorMessage] = useState(null);
   const [oauthLoading, setOauthLoading] = useState(false);
@@ -167,6 +170,11 @@ export function SupabaseSignInView() {
             />
           </Stack>
 
+          {!errorMessage && sessionExpired && (
+            <Alert severity="info">
+              Your session has expired. Sign in again to pick up where you left off.
+            </Alert>
+          )}
           {!!errorMessage && <Alert severity="error">{errorMessage}</Alert>}
 
           <Button

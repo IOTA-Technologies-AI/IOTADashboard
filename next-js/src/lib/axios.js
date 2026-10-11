@@ -3,6 +3,7 @@ import axios from 'axios';
 import { normalizeApiHost } from 'src/utils/api-host';
 import { resolveBearerToken } from 'src/utils/jwt-auth';
 import { trackAxios } from 'src/utils/diagnostics-recorder';
+import { watchSessionExpiry } from 'src/utils/session-expiry';
 
 import { CONFIG } from 'src/global-config';
 
@@ -46,6 +47,10 @@ axiosInstance.interceptors.request.use(
   },
   (error) => Promise.reject(error)
 );
+
+// Before the interceptor below, which replaces the axios error with a plain
+// Error and so drops the status this needs.
+watchSessionExpiry(axiosInstance);
 
 axiosInstance.interceptors.response.use(
   (response) => response,
