@@ -25,6 +25,12 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Sentry opens Issues tickets automatically.** A new Sentry issue at error or
+  fatal level opens a ticket, with the latest event's stack trace, and emails
+  the team (once per Sentry issue). Resolving it in Sentry marks the ticket
+  fixed. The webhook is `POST /webhook/sentry`, signature-checked with the
+  `SENTRY_CLIENT_SECRET` secret. It can be switched off, or its levels
+  changed, in appConfig `integrations/sentry`.
 - **Report an issue.** A button on every dashboard page files a ticket with:
   - the user's description, steps and severity;
   - a screenshot of the page (more can be pasted or uploaded);
