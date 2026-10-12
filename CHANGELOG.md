@@ -36,6 +36,13 @@ is running.
   instead of being dropped. Admins register the webhook, map the forms and set
   the notice version under Leads → Settings.
   - Needs `sql/20261012_leads.sql` (API repo) and the new `leads` API service.
+- **Reply to website enquiries from the home page.** Leads nobody has picked
+  up yet appear at the top of the dashboard and in the notifications bell;
+  "Reply" opens the standard reply for that kind of form (enquiry, application
+  or newsletter), filled in with the person's name and the sender's, to edit
+  and send. It goes from IOTA's email address with the enquiry quoted; replies
+  come back to the sender, who gets a copy, and the lead moves to Contacted.
+  Admins edit the templates under Leads → Settings.
 - **Sentry opens Issues tickets automatically.** A new Sentry issue at error or
   fatal level opens a ticket, with the latest event's stack trace, and emails
   the team (once per Sentry issue). Resolving it in Sentry marks the ticket

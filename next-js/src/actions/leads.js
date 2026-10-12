@@ -7,7 +7,13 @@ import iotaApi from 'src/lib/iota-api';
 const fetcher = ([url, params]) => iotaApi.get(url, { params }).then((res) => res.data);
 const options = { revalidateOnFocus: false, keepPreviousData: true };
 
-const refreshAll = () => mutate((key) => Array.isArray(key) && String(key[0]).startsWith('/leads'));
+// The leads lists, and the home page and bell, which count leads awaiting a reply.
+const refreshAll = () =>
+  Promise.all([
+    mutate((key) => Array.isArray(key) && String(key[0]).startsWith('/leads')),
+    mutate('/dashboard/overview'),
+    mutate('/dashboard/my-actions'),
+  ]);
 
 export function useLeads(params) {
   const { data, error, isLoading } = useSWR(['/leads/inbox', params], fetcher, options);
@@ -75,6 +81,33 @@ export async function registerLeadWebhook(publicApiUrl) {
   const res = await iotaApi.post('/leads/webflow/register', { publicApiUrl }, { timeout: 60000 });
   await refreshAll();
   return res.data;
+}
+
+/** The standard reply for this lead, filled in for the signed-in sender. */
+export async function getLeadReplyDraft(id) {
+  const res = await iotaApi.get(`/leads/inbox/${id}/reply-draft`);
+  return res.data;
+}
+
+export async function sendLeadReply(id, { subject, body }) {
+  const res = await iotaApi.post(`/leads/inbox/${id}/reply`, { subject, body }, { timeout: 60000 });
+  await refreshAll();
+  return res.data;
+}
+
+export function useLeadTemplates(enabled) {
+  const { data, error, isLoading } = useSWR(
+    enabled ? ['/leads/templates', {}] : null,
+    fetcher,
+    options
+  );
+  return { templates: data?.templates ?? null, error, loading: isLoading };
+}
+
+export async function saveLeadTemplates(templates) {
+  const res = await iotaApi.put('/leads/templates', { templates });
+  await refreshAll();
+  return res.data.templates;
 }
 
 /** The API's message for a failed call, or `fallback`. */

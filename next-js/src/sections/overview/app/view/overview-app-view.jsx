@@ -21,6 +21,7 @@ import { useAuthContext } from 'src/auth/hooks';
 import { AppWelcome } from '../app-welcome';
 import { DashboardHr } from '../dashboard-hr';
 import { AppQuranVerse } from '../app-quran-verse';
+import { DashboardLeads } from '../dashboard-leads';
 import { AppAzureBilling } from '../app-azure-billing';
 import { DashboardActions } from '../dashboard-actions';
 import { AppAreaInstalled } from '../app-area-installed';
@@ -58,6 +59,7 @@ export function OverviewAppView() {
   const finance = overview?.finance;
   const sales = overview?.sales;
   const hr = overview?.hr;
+  const leads = overview?.leads;
   const actions = overview?.actions ?? [];
   const year = new Date().getFullYear();
 
@@ -91,8 +93,8 @@ export function OverviewAppView() {
 
   const firstName = (user?.displayName || '').split(' ')[0];
   const welcomeText = actions.length
-    ? `${actions.length} item${actions.length === 1 ? ' is' : 's are'} waiting for your signature or decision.`
-    : 'Nothing is waiting for your signature or decision.';
+    ? `${actions.length} item${actions.length === 1 ? ' needs' : 's need'} your attention.`
+    : 'Nothing is waiting for your signature, decision or reply.';
 
   return (
     <DashboardContent maxWidth="xl">
@@ -120,6 +122,13 @@ export function OverviewAppView() {
         <Grid size={{ xs: 12, md: 4 }}>
           <AppQuranVerse />
         </Grid>
+
+        {/* Website enquiries nobody has replied to — first, to be seen. */}
+        {leads?.awaitingReply ? (
+          <Grid size={12}>
+            <DashboardLeads leads={leads} />
+          </Grid>
+        ) : null}
 
         {loading ? (
           <Grid size={12}>

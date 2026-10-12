@@ -18,6 +18,7 @@ export const ACTION_ICON = {
   approve_offer: 'solar:check-circle-bold',
   decide_nda_exception: 'solar:shield-check-bold',
   decide_vetting: 'solar:user-id-bold',
+  reply_leads: 'solar:letter-bold',
 };
 
 /** What is waiting for the signed-in user — signatures and decisions. */

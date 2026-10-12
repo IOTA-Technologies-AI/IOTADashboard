@@ -34,6 +34,7 @@ import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 
+import { LeadReplyDialog } from './lead-reply-dialog';
 import { LEAD_SOURCE, LEAD_STATUS, CONSENT_BASIS } from './lead-labels';
 
 // ----------------------------------------------------------------------
@@ -43,6 +44,7 @@ const EVENT_LABEL = {
   status_changed: 'Status changed',
   assigned: 'Assigned',
   note: 'Note',
+  replied: 'Emailed',
   converted: 'Added to the sales ledger',
 };
 
@@ -52,6 +54,7 @@ function eventText(e) {
     return `${LEAD_STATUS[d.from]?.label || d.from} → ${LEAD_STATUS[d.to]?.label || d.to}`;
   if (e.type === 'assigned') return d.to ? `to ${d.to}` : 'unassigned';
   if (e.type === 'note') return d.text;
+  if (e.type === 'replied') return d.subject ? `“${d.subject}”` : '';
   if (e.type === 'received') return d.form ? `form “${d.form}”` : '';
   return '';
 }
@@ -75,6 +78,7 @@ export function LeadDetailsDrawer({ id, onClose }) {
   const [note, setNote] = useState('');
   const [showRaw, setShowRaw] = useState(false);
   const [converting, setConverting] = useState(null); // { company, prospectName }
+  const [replying, setReplying] = useState(false);
 
   const run = async (what, fn, success) => {
     setBusy(what);
@@ -193,6 +197,15 @@ export function LeadDetailsDrawer({ id, onClose }) {
 
             <Stack spacing={1.5}>
               <Typography variant="subtitle2">Follow-up</Typography>
+              <Button
+                fullWidth
+                variant={lead.status === 'new' ? 'contained' : 'outlined'}
+                color={lead.status === 'new' ? 'warning' : 'inherit'}
+                startIcon={<Iconify icon="solar:letter-bold" />}
+                onClick={() => setReplying(true)}
+              >
+                {lead.status === 'new' ? 'Reply by email' : 'Email again'}
+              </Button>
               <TextField
                 select
                 size="small"
@@ -370,6 +383,8 @@ export function LeadDetailsDrawer({ id, onClose }) {
           </LoadingButton>
         </DialogActions>
       </Dialog>
+
+      <LeadReplyDialog leadId={replying ? lead?.id : null} onClose={() => setReplying(false)} />
     </Drawer>
   );
 }

@@ -36,6 +36,8 @@ import {
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
 
+import { LeadTemplatesEditor } from './lead-templates-editor';
+
 // ----------------------------------------------------------------------
 
 const KINDS = [
@@ -271,6 +273,10 @@ export function LeadSettingsDialog({ open, onClose }) {
                 fullWidth
               />
             </Box>
+
+            <Divider />
+
+            <LeadTemplatesEditor enabled={open} />
           </Stack>
         ) : null}
       </DialogContent>
