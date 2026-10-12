@@ -568,6 +568,11 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Resume Formatting reads image-only PDFs.** A CV designed in a layout tool
+  and exported as a picture (or a scan) has no text layer, so formatting it
+  failed with "No readable text was found". Its page images are now read by
+  the AI vision model, as scanned NDAs already are; the error remains only when
+  the images are in a format that cannot be read.
 - **Issue reports carry their console log, page history and Sentry events,
   and browser errors reach Sentry.** The browser start-up file was named
   `instrumentation.client.ts`; Next.js only loads `instrumentation-client.ts`,
