@@ -99,6 +99,7 @@ export const paths = {
       contacts: `${ROOTS.DASHBOARD}/sales/contacts`,
       reports: `${ROOTS.DASHBOARD}/sales/reports`,
       activityLedger: `${ROOTS.DASHBOARD}/sales/activity-ledger`,
+      leads: `${ROOTS.DASHBOARD}/sales/leads`,
     },
     todo: `${ROOTS.DASHBOARD}/todo`,
     calendar: `${ROOTS.DASHBOARD}/calendar`,

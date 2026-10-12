@@ -107,6 +107,7 @@ export const navData = [
         icon: ICONS.sales,
         children: [
           { title: 'Overview', path: paths.dashboard.sales.root },
+          { title: 'Leads', path: paths.dashboard.sales.leads },
           { title: 'Pipeline', path: paths.dashboard.sales.pipeline },
           { title: 'Deals', path: paths.dashboard.sales.deals.root },
           { title: 'New Deal', path: paths.dashboard.sales.deals.new },

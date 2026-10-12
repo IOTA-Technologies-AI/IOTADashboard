@@ -25,6 +25,17 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Sales → Leads: website enquiries, newsletter sign-ups and job applications
+  in one inbox.** Webflow form submissions arrive through one signed webhook
+  and are routed by form element (the same on every domain — not by name, which
+  the contact and careers forms share). Each lead keeps its PDPL consent basis
+  (enquiry, marketing consent or application), the privacy notice version, the
+  raw submission and a history. An enquiry converts into the Sales Activity
+  Ledger; careers leads stay with HR (they still reach job applications as
+  before). Submissions that cannot become a lead wait under "Needs attention"
+  instead of being dropped. Admins register the webhook, map the forms and set
+  the notice version under Leads → Settings.
+  - Needs `sql/20261012_leads.sql` (API repo) and the new `leads` API service.
 - **Sentry opens Issues tickets automatically.** A new Sentry issue at error or
   fatal level opens a ticket, with the latest event's stack trace, and emails
   the team (once per Sentry issue). Resolving it in Sentry marks the ticket
