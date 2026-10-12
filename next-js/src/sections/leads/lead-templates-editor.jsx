@@ -26,7 +26,8 @@ const PLACEHOLDERS = [
   ['{{greeting}}', '“Dear Sara,” — or “Hello,” when there is no name'],
   ['{{firstName}} / {{fullName}}', 'the person’s name'],
   ['{{company}}', 'their company, when the form asked'],
-  ['{{senderName}} / {{senderEmail}}', 'whoever sends the reply'],
+  ['{{signature}}', 'the signature set in appConfig (leads › replySender)'],
+  ['{{senderName}} / {{senderEmail}}', 'whoever presses Send'],
   ['{{receivedDate}}', 'when the form was submitted'],
 ];
 

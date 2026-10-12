@@ -73,6 +73,7 @@ export function LeadReplyDialog({ leadId, onClose, onSent }) {
         {error ? <Alert severity="error">{error}</Alert> : null}
         {draft ? (
           <Stack spacing={2}>
+            <TextField size="small" label="From" value={draft.from} disabled />
             <TextField size="small" label="To" value={draft.to} disabled />
             <TextField
               size="small"
@@ -88,9 +89,9 @@ export function LeadReplyDialog({ leadId, onClose, onSent }) {
               onChange={(e) => setBody(e.target.value)}
             />
             <Typography variant="caption" color="text.secondary">
-              Sent from IOTA&apos;s email address with the IOTA header.
-              {draft.quotesMessage ? ' Their original message is quoted underneath.' : ''} Replies
-              come back to you, and you get a copy. A new lead moves to Contacted.
+              Sent with the IOTA header.
+              {draft.quotesMessage ? ' Their original message is quoted underneath.' : ''} Their
+              answer goes to {draft.replyTo}. A new lead moves to Contacted.
             </Typography>
           </Stack>
         ) : null}

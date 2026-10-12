@@ -40,9 +40,11 @@ is running.
   up yet appear at the top of the dashboard and in the notifications bell;
   "Reply" opens the standard reply for that kind of form (enquiry, application
   or newsletter), filled in with the person's name and the sender's, to edit
-  and send. It goes from IOTA's email address with the enquiry quoted; replies
-  come back to the sender, who gets a copy, and the lead moves to Contacted.
-  Admins edit the templates under Leads → Settings.
+  and send. It goes from engagements@iotatechnologies.ai, signed by the
+  Engagement Manager, with the enquiry quoted; answers go back to that mailbox,
+  the sender gets a copy, and the lead moves to Contacted. The From address,
+  reply-to and signature are in appConfig (leads › replySender); admins edit
+  the templates under Leads → Settings.
 - **Sentry opens Issues tickets automatically.** A new Sentry issue at error or
   fatal level opens a ticket, with the latest event's stack trace, and emails
   the team (once per Sentry issue). Resolving it in Sentry marks the ticket
