@@ -568,6 +568,15 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **A resume's printed name keeps what the recruiter typed.** Saving a name
+  that is one of the candidate's own name parts ("Azeem" for "M.A. Azeem")
+  scrubbed it away and reset it to "Candidate". The typed word is now kept;
+  only the other name parts are hidden. Initials are no longer taken as the
+  first name on upload ("M.A. Azeem" prints as "Azeem", not "M.a.").
+- **Resume Formatting reads PDFs with a damaged internal index.** A PDF
+  re-saved by a mail client or phone app can carry a wrong cross-reference
+  entry; reading it failed with "bad XRef entry", or silently dropped whole
+  pages. The text is now read from a rebuilt copy of the file.
 - **Resume Formatting reads image-only PDFs.** A CV designed in a layout tool
   and exported as a picture (or a scan) has no text layer, so formatting it
   failed with "No readable text was found". Its page images are now read by
