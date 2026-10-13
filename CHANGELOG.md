@@ -570,6 +570,11 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Replying to a lead no longer fails with "domain is not verified".** The
+  reply was sent *from* engagements@iotatechnologies.ai, a domain Resend has
+  not verified. It now goes out from the verified IOTA sender address, like
+  every other email, still named "IOTA Technologies". Answers still go to
+  engagements@iotatechnologies.ai through Reply-To.
 - **A resume's printed name keeps what the recruiter typed.** Saving a name
   that is one of the candidate's own name parts ("Azeem" for "M.A. Azeem")
   scrubbed it away and reset it to "Candidate". The typed word is now kept;
