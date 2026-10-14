@@ -17,6 +17,7 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import FormControlLabel from '@mui/material/FormControlLabel';
 
+import { useConsentTexts } from 'src/actions/consents';
 import { submitJobApplication } from 'src/actions/jobs';
 
 import { toast } from 'src/components/snackbar';
@@ -41,6 +42,9 @@ export function JobApplyDialog({ open, onClose, job }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Applying for someone: confirm they agreed (PDPL), recorded with the application.
   const [consentAttested, setConsentAttested] = useState(false);
+  const { wording } = useConsentTexts(!!open);
+  const attestation = wording?.texts.find((t) => t.key === 'application.staff_attestation')
+    ?.versions[0]?.text;
 
   const defaultValues = {
     candidateName: '',
@@ -257,14 +261,14 @@ export function JobApplyDialog({ open, onClose, job }) {
             <FormControlLabel
               control={
                 <Checkbox
+                  disabled={!attestation}
                   checked={consentAttested}
                   onChange={(e) => setConsentAttested(e.target.checked)}
                 />
               }
               label={
                 <Typography variant="body2">
-                  The candidate agreed to IOTA processing this application and their résumé under
-                  IOTA&apos;s privacy notice. Your name is recorded with this confirmation.
+                  {attestation || 'Loading the consent wording…'}
                 </Typography>
               }
             />
@@ -279,7 +283,7 @@ export function JobApplyDialog({ open, onClose, job }) {
             type="submit"
             variant="contained"
             loading={isSubmitting}
-            disabled={!consentAttested}
+            disabled={!consentAttested || !attestation}
             startIcon={<Iconify icon="solar:send-bold" />}
           >
             Submit Application

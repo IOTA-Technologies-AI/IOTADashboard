@@ -12,7 +12,9 @@ import { DashboardContent } from 'src/layouts/dashboard';
 
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
+import { RetentionTab } from '../retention-tab';
 import { ConsentRecordsTab } from '../consent-records-tab';
+import { ConsentWordingTab } from '../consent-wording-tab';
 import { WebsiteConsentsTab } from '../website-consents-tab';
 
 // ----------------------------------------------------------------------
@@ -23,6 +25,8 @@ const TABS = [
   { value: 'applicants', label: 'Job applicants' },
   { value: 'candidates', label: 'Candidates' },
   { value: 'newHires', label: 'New hires' },
+  { value: 'wording', label: 'Wording' },
+  { value: 'retention', label: 'Retention' },
 ];
 
 /**
@@ -46,14 +50,25 @@ export function ConsentsView() {
       />
 
       <Card sx={{ mb: 3 }}>
-        <Tabs value={tab} onChange={(e, v) => setTab(v)} sx={{ px: 2.5 }}>
+        <Tabs
+          value={tab}
+          onChange={(e, v) => setTab(v)}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{ px: 2.5 }}
+        >
           {TABS.map((t) => (
             <Tab key={t.value} value={t.value} label={t.label} />
           ))}
         </Tabs>
       </Card>
 
-      {tab === 'website' ? <WebsiteConsentsTab /> : <ConsentRecordsTab key={tab} kind={tab} />}
+      {tab === 'website' ? <WebsiteConsentsTab /> : null}
+      {tab === 'wording' ? <ConsentWordingTab /> : null}
+      {tab === 'retention' ? <RetentionTab /> : null}
+      {!['website', 'wording', 'retention'].includes(tab) ? (
+        <ConsentRecordsTab key={tab} kind={tab} />
+      ) : null}
     </DashboardContent>
   );
 }

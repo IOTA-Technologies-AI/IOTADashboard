@@ -35,7 +35,8 @@ import { Iconify } from 'src/components/iconify';
 import { Scrollbar } from 'src/components/scrollbar';
 
 import { LeadReplyDialog } from './lead-reply-dialog';
-import { LEAD_SOURCE, LEAD_STATUS, CONSENT_BASIS } from './lead-labels';
+import { ConsentPanel } from '../consents/consent-panel';
+import { LEAD_SOURCE, LEAD_STATUS } from './lead-labels';
 
 // ----------------------------------------------------------------------
 
@@ -94,8 +95,6 @@ export function LeadDetailsDrawer({ id, onClose }) {
     }
   };
 
-  const consent = lead?.consent;
-  const basis = consent ? CONSENT_BASIS[consent.basis] : null;
   const isCareers = lead?.source === 'webflow_careers';
 
   return (
@@ -170,30 +169,7 @@ export function LeadDetailsDrawer({ id, onClose }) {
               </Box>
             ) : null}
 
-            <Box>
-              <Typography variant="subtitle2" sx={{ mb: 1 }}>
-                Consent (PDPL)
-              </Typography>
-              {consent ? (
-                <Alert
-                  severity={consent.withdrawnAt ? 'warning' : 'info'}
-                  icon={<Iconify icon="solar:shield-check-bold" />}
-                >
-                  <Typography variant="subtitle2">
-                    {basis?.label || consent.basis}
-                    {consent.withdrawnAt ? ` — withdrawn ${fDateTime(consent.withdrawnAt)}` : ''}
-                  </Typography>
-                  <Typography variant="body2">{basis?.hint}</Typography>
-                  <Typography variant="caption" component="div" sx={{ mt: 0.5 }}>
-                    Given {fDateTime(consent.capturedAt)} · privacy notice {consent.noticeVersion}
-                  </Typography>
-                </Alert>
-              ) : (
-                <Typography variant="body2" color="text.secondary">
-                  No consent record.
-                </Typography>
-              )}
-            </Box>
+            <ConsentPanel kind="leads" subjectId={lead.id} card={false} />
 
             <Stack spacing={1.5}>
               <Typography variant="subtitle2">Follow-up</Typography>

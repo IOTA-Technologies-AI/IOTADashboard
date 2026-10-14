@@ -37,6 +37,8 @@ import { Iconify } from 'src/components/iconify';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
+import { ConsentPanel } from 'src/sections/consents/consent-panel';
+
 import { OnboardingActivity } from '../onboarding-activity';
 
 // ----------------------------------------------------------------------
@@ -406,6 +408,7 @@ export function OnboardingDetailsView({ id }) {
         </Grid>
 
         <Grid size={{ xs: 12, md: 4 }}>
+          {s?.id ? <ConsentPanel kind="newHires" subjectId={s.id} sx={{ mb: 3 }} /> : null}
           <Card sx={{ p: 3, mb: 3 }}>
             <Typography variant="subtitle1" fontWeight={700} mb={2}>
               Onboarding Link

@@ -25,7 +25,13 @@ import TablePagination from '@mui/material/TablePagination';
 
 import { fDate, fDateTime } from 'src/utils/format-time';
 
-import { apiMessage, withdrawConsent, useConsentRecords } from 'src/actions/consents';
+import {
+  apiMessage,
+  textOfVersion,
+  withdrawConsent,
+  useConsentTexts,
+  useConsentRecords,
+} from 'src/actions/consents';
 
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
@@ -35,7 +41,13 @@ import { ConfirmDialog } from 'src/components/custom-dialog';
 
 import { useAuthContext } from 'src/auth/hooks';
 
-import { LEAD_SOURCE, CONSENT_BASIS } from '../leads/lead-labels';
+import { LEAD_SOURCE } from '../leads/lead-labels';
+import {
+  APPLICATION_SOURCE,
+  CONSENT_METHOD as METHOD,
+  CONSENT_STATUS as STATUS,
+  CONSENT_PURPOSE as PURPOSE,
+} from './consent-labels';
 
 // ----------------------------------------------------------------------
 
@@ -48,37 +60,6 @@ const INTRO = {
     'The consent each candidate gives on the candidate intake form, including that they may share their spouse’s and dependants’ details.',
   newHires:
     'The declaration and background-check consent each new hire gives on the onboarding form.',
-};
-
-const PURPOSE = {
-  ...CONSENT_BASIS,
-  candidate_intake: {
-    label: 'Employment preparation',
-    hint: 'Personal, residency, family, insurance and salary details to prepare the hire.',
-  },
-  onboarding: {
-    label: 'Employment records',
-    hint: 'Employment records, payroll, GOSI, insurance and government registrations.',
-  },
-};
-
-const METHOD = {
-  form: 'Website form',
-  applicant: 'Ticked by the person',
-  webflow_form: 'Website careers form (no checkbox)',
-  recruiter_attested: 'Confirmed by staff',
-};
-
-const APPLICATION_SOURCE = {
-  website_form: 'Website',
-  api: 'Careers API',
-  dashboard: 'Dashboard',
-};
-
-const STATUS = {
-  active: { label: 'Active', color: 'success' },
-  withdrawn: { label: 'Withdrawn', color: 'error' },
-  missing: { label: 'Not recorded', color: 'warning' },
 };
 
 function SourceCell({ record }) {
@@ -127,6 +108,7 @@ export function ConsentRecordsTab({ kind }) {
     limit: rowsPerPage,
   });
 
+  const { wording } = useConsentTexts(kind !== 'leads');
   const [withdrawing, setWithdrawing] = useState(null);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
@@ -212,7 +194,7 @@ export function ConsentRecordsTab({ kind }) {
                   <TableCell>Purpose</TableCell>
                   <TableCell>How</TableCell>
                   <TableCell>Source</TableCell>
-                  <TableCell>Notice version</TableCell>
+                  <TableCell>Notice / wording</TableCell>
                   <TableCell>Status</TableCell>
                   {isAdmin ? <TableCell align="right" /> : null}
                 </TableRow>
@@ -251,7 +233,22 @@ export function ConsentRecordsTab({ kind }) {
                       <TableCell sx={{ maxWidth: 220 }}>
                         <SourceCell record={r} />
                       </TableCell>
-                      <TableCell>{r.noticeVersion || '—'}</TableCell>
+                      <TableCell>
+                        <Typography variant="body2">{r.noticeVersion || '—'}</Typography>
+                        {r.textVersion ? (
+                          <Tooltip
+                            title={textOfVersion(wording, r.textVersion)?.text || r.textVersion}
+                          >
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{ textDecoration: 'underline dotted', cursor: 'help' }}
+                            >
+                              {r.textVersion}
+                            </Typography>
+                          </Tooltip>
+                        ) : null}
+                      </TableCell>
                       <TableCell>
                         <Label color={st?.color}>
                           {r.status === 'withdrawn' && r.withdrawnAt

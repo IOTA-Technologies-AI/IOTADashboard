@@ -844,11 +844,18 @@ const sharesOthers = (formData) =>
   );
 
 /**
- * PDPL consent, asked on the last step and recorded by the API with the
- * privacy notice version. Wording to be confirmed by legal.
+ * PDPL consent, asked on the last step. The wording comes from the API
+ * (shared/consent-texts.ts), which records the version the candidate saw.
  */
-function ConsentBlock({ notice, consent, onChange, othersShared }) {
+function ConsentBlock({ notice, texts, consent, onChange, othersShared }) {
   const noticeUrl = notice?.url || 'https://www.iotatechnologies.ai/legal/privacy-policy';
+  if (!texts?.privacy) {
+    return (
+      <Alert severity="error" sx={{ mt: 3 }}>
+        The consent wording could not be loaded. Please reload the page before submitting.
+      </Alert>
+    );
+  }
   return (
     <Card variant="outlined" sx={{ p: 2, mt: 3 }}>
       <Typography variant="subtitle2" sx={{ mb: 1 }}>
@@ -856,40 +863,36 @@ function ConsentBlock({ notice, consent, onChange, othersShared }) {
       </Typography>
       <Stack spacing={1}>
         <FormControlLabel
+          sx={{ alignItems: 'flex-start' }}
           control={
             <Checkbox
+              sx={{ pt: 0.25 }}
               checked={consent.privacy}
               onChange={(e) => onChange({ ...consent, privacy: e.target.checked })}
             />
           }
-          label={
-            <Typography variant="body2">
-              I have read IOTA&apos;s{' '}
-              <a href={noticeUrl} target="_blank" rel="noopener noreferrer">
-                privacy notice
-              </a>{' '}
-              and agree to IOTA using the information in this form to prepare my employment,
-              including sharing it with insurers, government bodies and service providers where that
-              is needed.
-            </Typography>
-          }
+          label={<Typography variant="body2">{texts.privacy.text}</Typography>}
         />
-        {othersShared ? (
+        {othersShared && texts.dependants ? (
           <FormControlLabel
+            sx={{ alignItems: 'flex-start' }}
             control={
               <Checkbox
+                sx={{ pt: 0.25 }}
                 checked={consent.dependants}
                 onChange={(e) => onChange({ ...consent, dependants: e.target.checked })}
               />
             }
-            label={
-              <Typography variant="body2">
-                The details I have given about my spouse and dependants are shared with their
-                knowledge, and I am allowed to provide them for this purpose.
-              </Typography>
-            }
+            label={<Typography variant="body2">{texts.dependants.text}</Typography>}
           />
         ) : null}
+        <Typography variant="caption" color="text.secondary">
+          Read the{' '}
+          <a href={noticeUrl} target="_blank" rel="noopener noreferrer">
+            IOTA Technologies Privacy Notice
+          </a>
+          , including how long your information is kept.
+        </Typography>
       </Stack>
     </Card>
   );
@@ -913,6 +916,7 @@ export default function CandidateIntakePage() {
   const [submitted, setSubmitted] = useState(false);
 
   const [privacyNotice, setPrivacyNotice] = useState(null);
+  const [consentTexts, setConsentTexts] = useState(null);
   const [consent, setConsent] = useState({ privacy: false, dependants: false });
 
   const [formData, setFormData] = useState({
@@ -929,6 +933,7 @@ export default function CandidateIntakePage() {
       .then((res) => {
         setTokenRecord(res.token);
         setPrivacyNotice(res.privacyNotice ?? null);
+        setConsentTexts(res.consentTexts ?? null);
         if (res.alreadySubmitted) setAlreadySubmitted(true);
       })
       .catch((e) => {
@@ -1114,7 +1119,8 @@ export default function CandidateIntakePage() {
 
   const isLastStep = activeStep === STEPS.length - 1;
   const othersShared = sharesOthers(formData);
-  const consentGiven = consent.privacy && (!othersShared || consent.dependants);
+  const consentGiven =
+    !!consentTexts?.privacy && consent.privacy && (!othersShared || consent.dependants);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f4f4f5', py: { xs: 2, sm: 4 } }}>
@@ -1167,6 +1173,7 @@ export default function CandidateIntakePage() {
           {isLastStep ? (
             <ConsentBlock
               notice={privacyNotice}
+              texts={consentTexts}
               consent={consent}
               onChange={setConsent}
               othersShared={othersShared}

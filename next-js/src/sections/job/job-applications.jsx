@@ -13,8 +13,9 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { fDateTime } from 'src/utils/format-time';
+import { fDate, fDateTime } from 'src/utils/format-time';
 
+import { apiMessage, withdrawConsent } from 'src/actions/consents';
 import {
   getJobApplications,
   getApplicationResumeLink,
@@ -24,8 +25,11 @@ import {
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { ConfirmDialog } from 'src/components/custom-dialog';
 
 import { useAuthContext } from 'src/auth/hooks';
+
+import { CONSENT_METHOD } from '../consents/consent-labels';
 
 // ----------------------------------------------------------------------
 
@@ -90,6 +94,23 @@ function scanMeta(application) {
 export function JobApplications({ jobId }) {
   const { user } = useAuthContext();
   const [busy, setBusy] = useState(null);
+  const [withdrawing, setWithdrawing] = useState(null);
+  const isAdmin = Number(user?.roleId) >= 3;
+
+  const confirmWithdraw = async () => {
+    setBusy(withdrawing.id);
+    try {
+      await withdrawConsent('applicants', withdrawing.id);
+      toast.success(
+        'Consent withdrawn. The application will be deleted under the retention rules.'
+      );
+      setWithdrawing(null);
+    } catch (e) {
+      toast.error(apiMessage(e, 'The consent could not be withdrawn.'));
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const { data, isLoading, error, mutate } = useSWR(
     jobId ? ['job-applications', jobId] : null,
@@ -183,6 +204,26 @@ export function JobApplications({ jobId }) {
               </Label>
             </Stack>
 
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }} flexWrap="wrap">
+              <Iconify icon="solar:shield-check-bold" width={16} sx={{ color: 'text.disabled' }} />
+              {a.consentWithdrawnAt ? (
+                <Label color="error">Consent withdrawn {fDate(a.consentWithdrawnAt)}</Label>
+              ) : a.consentAt ? (
+                <Typography variant="caption" color="text.secondary">
+                  Consent: {CONSENT_METHOD[a.consentMethod] || a.consentMethod} ·{' '}
+                  {fDate(a.consentAt)}
+                  {a.consentRecordedBy ? ` · by ${a.consentRecordedBy}` : ''}
+                </Typography>
+              ) : (
+                <Label color="warning">No consent recorded</Label>
+              )}
+              {isAdmin && !a.consentWithdrawnAt ? (
+                <Button size="small" color="error" onClick={() => setWithdrawing(a)}>
+                  Withdraw consent
+                </Button>
+              ) : null}
+            </Stack>
+
             {(a.candidateLinkedIn || a.candidatePortfolio) && (
               <Stack direction="row" spacing={2} sx={{ mt: 1.5 }} flexWrap="wrap">
                 {a.candidateLinkedIn && (
@@ -266,6 +307,18 @@ export function JobApplications({ jobId }) {
           </Card>
         );
       })}
+
+      <ConfirmDialog
+        open={!!withdrawing}
+        onClose={() => (busy ? null : setWithdrawing(null))}
+        title="Mark consent as withdrawn?"
+        content={`Record that ${withdrawing?.candidateEmail} withdrew their consent. Their application and résumé are then deleted under the retention rules.`}
+        action={
+          <Button variant="contained" color="error" disabled={!!busy} onClick={confirmWithdraw}>
+            Withdraw
+          </Button>
+        }
+      />
     </Box>
   );
 }

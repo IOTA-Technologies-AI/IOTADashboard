@@ -25,6 +25,25 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Consent wording, data retention, and consent on each person's page.**
+  - Every consent is worded once (API `shared/consent-texts.ts`), shown
+    word for word by the candidate intake form and the Apply dialog, and
+    recorded with the version the person saw. Integrations → Consents →
+    **Wording** shows each consent and its versions.
+  - **Retention** (Integrations → Consents → Retention): enquiries 24 months
+    after last contact, applicants not hired 12 months after the decision,
+    candidate intake 6 months if they did not join, 30 days after consent is
+    withdrawn, website non-leads 90 days. It shows what is due now and within
+    30 days and who would be deleted, and logs every deletion without
+    personal data. A proof of each consent (email hashed) is kept 5 years.
+    **Off until a Super Admin turns it on**; Super Admins can change the
+    periods. Converted leads and hired applicants are never deleted by it.
+  - A lead, a job application, a candidate intake and an onboarding form
+    each show the person's consent, with the exact wording, and admins can
+    withdraw it there.
+  - Needs `sql/20261014_privacy_retention.sql` (API repo) after
+    `20261014_consent_capture.sql`, and the API deploy (applies
+    `webflow/migrations/7_application_consent_text.up.sql`).
 - **Consent captured everywhere IOTA takes in personal data.**
   - The candidate intake form asks for consent to the privacy notice before
     it can be submitted, and, when spouse or dependant details are given, a

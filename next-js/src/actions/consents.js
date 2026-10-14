@@ -25,7 +25,77 @@ export async function withdrawConsent(kind, id, note) {
   const res = await iotaApi.post(`/consents/${kind}/${id}/withdraw`, { note });
   await mutate(
     (key) =>
-      Array.isArray(key) && (key[0] === '/consents/records' || String(key[0]).startsWith('/leads'))
+      (Array.isArray(key) &&
+        (String(key[0]).startsWith('/consents') ||
+          String(key[0]).startsWith('/leads') ||
+          key[0] === 'job-applications')) ||
+      (typeof key === 'string' && key.startsWith('/consents'))
   );
+  return res.data;
+}
+
+const refreshConsents = () =>
+  mutate(
+    (key) =>
+      (Array.isArray(key) && String(key[0]).startsWith('/consents')) ||
+      (typeof key === 'string' && (key.startsWith('/consents') || key.startsWith('/privacy')))
+  );
+
+/** One person's consent, for their own page. kind as in useConsentRecords. */
+export function useConsentRecord(kind, id) {
+  const { data, error, isLoading } = useSWR(
+    kind && id ? `/consents/person/${kind}/${id}` : null,
+    (url) => iotaApi.get(url).then((res) => res.data),
+    options
+  );
+  return { record: data?.record ?? null, error, loading: isLoading };
+}
+
+/** Every consent's wording, current and past versions. */
+export function useConsentTexts(enabled = true) {
+  const { data, error, isLoading } = useSWR(
+    enabled ? '/consents/texts' : null,
+    (url) => iotaApi.get(url).then((res) => res.data),
+    { ...options, dedupingInterval: 10 * 60 * 1000 }
+  );
+  return { wording: data ?? null, error, loading: isLoading };
+}
+
+/** The wording of one version, from the catalogue. */
+export const textOfVersion = (wording, version) => {
+  for (const t of wording?.texts ?? []) {
+    const v = t.versions.find((x) => x.version === version);
+    if (v) return { ...v, title: t.title };
+  }
+  return null;
+};
+
+export function useRetention() {
+  const { data, error, isLoading } = useSWR(
+    '/privacy/retention',
+    (url) => iotaApi.get(url).then((res) => res.data),
+    options
+  );
+  return { retention: data ?? null, error, loading: isLoading };
+}
+
+export function useRetentionDue(rule) {
+  const { data, error, isLoading } = useSWR(
+    rule ? ['/privacy/retention/due', { rule }] : null,
+    fetcher,
+    options
+  );
+  return { items: data?.items ?? [], error, loading: isLoading };
+}
+
+export async function saveRetention(config) {
+  const res = await iotaApi.put('/privacy/retention', config);
+  await mutate('/privacy/retention', res.data, false);
+  return res.data;
+}
+
+export async function runRetention() {
+  const res = await iotaApi.post('/privacy/retention/run');
+  await refreshConsents();
   return res.data;
 }

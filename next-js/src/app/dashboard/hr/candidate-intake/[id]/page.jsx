@@ -9,15 +9,15 @@ import Chip from '@mui/material/Chip';
 import Grid from '@mui/material/Grid';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
+import Timeline from '@mui/lab/Timeline';
 import Button from '@mui/material/Button';
 import Divider from '@mui/material/Divider';
-import Timeline from '@mui/lab/Timeline';
+import TimelineDot from '@mui/lab/TimelineDot';
 import TimelineItem from '@mui/lab/TimelineItem';
+import Typography from '@mui/material/Typography';
+import TimelineContent from '@mui/lab/TimelineContent';
 import TimelineSeparator from '@mui/lab/TimelineSeparator';
 import TimelineConnector from '@mui/lab/TimelineConnector';
-import TimelineContent from '@mui/lab/TimelineContent';
-import TimelineDot from '@mui/lab/TimelineDot';
-import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
@@ -25,9 +25,12 @@ import { paths } from 'src/routes/paths';
 import { getCandidateIntakeSubmission } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
+
+import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
-import { toast } from 'src/components/snackbar';
+
+import { ConsentPanel } from 'src/sections/consents/consent-panel';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -295,6 +298,8 @@ export default function CandidateSubmissionDetailPage() {
 
         {/* Right column */}
         <Grid size={{ xs: 12, md: 4 }}>
+          <ConsentPanel kind="candidates" subjectId={id} sx={{ mb: 3 }} />
+
           {/* Token info */}
           <SectionCard title="Intake Link" icon="eva:link-fill">
             <InfoRow label="Candidate Email" value={t?.candidateEmail} />
