@@ -21,11 +21,14 @@ const TABS = [
   { value: 'website', label: 'Website visitors' },
   { value: 'leads', label: 'Leads (PDPL)' },
   { value: 'applicants', label: 'Job applicants' },
+  { value: 'candidates', label: 'Candidates' },
+  { value: 'newHires', label: 'New hires' },
 ];
 
 /**
  * Integrations → Consents: the cookie-banner choices on iotatechnologies.ai and
- * .io, and the PDPL consents recorded with each lead and job application.
+ * .io, and the PDPL consent of every lead, job applicant, candidate (intake
+ * form) and new hire (onboarding form).
  */
 export function ConsentsView() {
   const [tab, setTab] = useState('website');

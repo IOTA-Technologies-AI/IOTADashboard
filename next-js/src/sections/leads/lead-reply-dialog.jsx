@@ -71,6 +71,13 @@ export function LeadReplyDialog({ leadId, onClose, onSent }) {
       {!draft && !error ? <LinearProgress /> : null}
       <DialogContent dividers>
         {error ? <Alert severity="error">{error}</Alert> : null}
+        {draft?.consentWithdrawnAt ? (
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            This person withdrew their consent on{' '}
+            {new Date(draft.consentWithdrawnAt).toLocaleDateString('en-GB')}, so IOTA can&apos;t
+            email them.
+          </Alert>
+        ) : null}
         {draft ? (
           <Stack spacing={2}>
             <TextField size="small" label="From" value={draft.from} disabled />
@@ -89,7 +96,7 @@ export function LeadReplyDialog({ leadId, onClose, onSent }) {
               onChange={(e) => setBody(e.target.value)}
             />
             <Typography variant="caption" color="text.secondary">
-              Sent with the IOTA header.
+              Sent with the IOTA header, a &quot;Stop emails&quot; link and the privacy notice.
               {draft.quotesMessage ? ' Their original message is quoted underneath.' : ''} Their
               answer goes to {draft.replyTo}. A new lead moves to Contacted.
             </Typography>
@@ -103,7 +110,12 @@ export function LeadReplyDialog({ leadId, onClose, onSent }) {
         <LoadingButton
           variant="contained"
           loading={sending}
-          disabled={!draft || subject.trim().length < 3 || body.trim().length < 10}
+          disabled={
+            !draft ||
+            !!draft.consentWithdrawnAt ||
+            subject.trim().length < 3 ||
+            body.trim().length < 10
+          }
           startIcon={<Iconify icon="solar:letter-bold" />}
           onClick={send}
         >

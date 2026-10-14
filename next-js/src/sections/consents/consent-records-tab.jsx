@@ -41,12 +41,74 @@ import { LEAD_SOURCE, CONSENT_BASIS } from '../leads/lead-labels';
 
 const INTRO = {
   leads:
-    'What each website enquirer and newsletter subscriber agreed to, under which privacy notice. Mark a consent withdrawn when the person asks to be removed.',
+    'What each website enquirer and newsletter subscriber agreed to, under which privacy notice. People can also withdraw with the "Stop emails" link in our replies.',
   applicants:
-    'The consent recorded with each job application from the careers form, under which privacy notice. Mark it withdrawn when the candidate asks for their data to be removed.',
+    'The consent recorded with every job application, whether from the website, the careers API or added here by staff. "Not recorded" applications arrived before consent was captured.',
+  candidates:
+    'The consent each candidate gives on the candidate intake form, including that they may share their spouse’s and dependants’ details.',
+  newHires:
+    'The declaration and background-check consent each new hire gives on the onboarding form.',
 };
 
-/** The PDPL consents of leads or job applicants (kind: 'leads' | 'applicants'). */
+const PURPOSE = {
+  ...CONSENT_BASIS,
+  candidate_intake: {
+    label: 'Employment preparation',
+    hint: 'Personal, residency, family, insurance and salary details to prepare the hire.',
+  },
+  onboarding: {
+    label: 'Employment records',
+    hint: 'Employment records, payroll, GOSI, insurance and government registrations.',
+  },
+};
+
+const METHOD = {
+  form: 'Website form',
+  applicant: 'Ticked by the person',
+  webflow_form: 'Website careers form (no checkbox)',
+  recruiter_attested: 'Confirmed by staff',
+};
+
+const APPLICATION_SOURCE = {
+  website_form: 'Website',
+  api: 'Careers API',
+  dashboard: 'Dashboard',
+};
+
+const STATUS = {
+  active: { label: 'Active', color: 'success' },
+  withdrawn: { label: 'Withdrawn', color: 'error' },
+  missing: { label: 'Not recorded', color: 'warning' },
+};
+
+function SourceCell({ record }) {
+  if (record.kind === 'leads') {
+    const source = LEAD_SOURCE[record.source];
+    return (
+      <>
+        {source ? <Label color={source.color}>{source.short}</Label> : null}
+        {record.sourceUrl ? (
+          <Link
+            href={record.sourceUrl}
+            target="_blank"
+            rel="noopener"
+            variant="caption"
+            color="text.secondary"
+            noWrap
+            sx={{ display: 'block' }}
+          >
+            {record.sourceUrl}
+          </Link>
+        ) : null}
+      </>
+    );
+  }
+  if (record.kind === 'applicants')
+    return APPLICATION_SOURCE[record.source] || record.source || '—';
+  return record.source || '—';
+}
+
+/** One register of people's consents: leads, applicants, candidates or newHires. */
 export function ConsentRecordsTab({ kind }) {
   const { user } = useAuthContext();
   const isAdmin = Number(user?.roleId) >= 3;
@@ -72,7 +134,7 @@ export function ConsentRecordsTab({ kind }) {
   const confirmWithdraw = async () => {
     setSaving(true);
     try {
-      await withdrawConsent(withdrawing.id, note);
+      await withdrawConsent(kind, withdrawing.id, note);
       toast.success('Consent marked as withdrawn.');
       setWithdrawing(null);
       setNote('');
@@ -123,6 +185,7 @@ export function ConsentRecordsTab({ kind }) {
             <MenuItem value="all">All</MenuItem>
             <MenuItem value="active">Active</MenuItem>
             <MenuItem value="withdrawn">Withdrawn</MenuItem>
+            {kind !== 'leads' ? <MenuItem value="missing">Not recorded</MenuItem> : null}
           </TextField>
         </Stack>
       </Stack>
@@ -141,12 +204,13 @@ export function ConsentRecordsTab({ kind }) {
       {records.length > 0 ? (
         <>
           <TableContainer>
-            <Table size="small" sx={{ minWidth: 900 }}>
+            <Table size="small" sx={{ minWidth: 1000 }}>
               <TableHead>
                 <TableRow>
                   <TableCell>Given</TableCell>
                   <TableCell>Person</TableCell>
-                  <TableCell>Basis</TableCell>
+                  <TableCell>Purpose</TableCell>
+                  <TableCell>How</TableCell>
                   <TableCell>Source</TableCell>
                   <TableCell>Notice version</TableCell>
                   <TableCell>Status</TableCell>
@@ -155,48 +219,49 @@ export function ConsentRecordsTab({ kind }) {
               </TableHead>
               <TableBody>
                 {records.map((r) => {
-                  const source = LEAD_SOURCE[r.lead?.source];
+                  const purpose = PURPOSE[r.purpose];
+                  const st = STATUS[r.status];
                   return (
-                    <TableRow key={r.id} hover>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{fDateTime(r.capturedAt)}</TableCell>
+                    <TableRow key={r.id} hover sx={{ verticalAlign: 'top' }}>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        {r.capturedAt ? fDateTime(r.capturedAt) : '—'}
+                      </TableCell>
                       <TableCell>
-                        <Typography variant="body2">{r.lead?.fullName || '—'}</Typography>
+                        <Typography variant="body2">{r.name || '—'}</Typography>
                         <Typography variant="caption" color="text.secondary">
-                          {r.lead?.email}
+                          {r.email}
                         </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Tooltip title={CONSENT_BASIS[r.basis]?.hint || ''}>
-                          <span>{CONSENT_BASIS[r.basis]?.label || r.basis}</span>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell sx={{ maxWidth: 220 }}>
-                        {source ? <Label color={source.color}>{source.short}</Label> : null}
-                        {r.sourceUrl ? (
-                          <Link
-                            href={r.sourceUrl}
-                            target="_blank"
-                            rel="noopener"
+                        {r.notes.map((n) => (
+                          <Typography
+                            key={n}
                             variant="caption"
-                            color="text.secondary"
-                            noWrap
+                            color="text.disabled"
                             sx={{ display: 'block' }}
                           >
-                            {r.sourceUrl}
-                          </Link>
-                        ) : null}
+                            {n}
+                          </Typography>
+                        ))}
                       </TableCell>
-                      <TableCell>{r.noticeVersion}</TableCell>
                       <TableCell>
-                        {r.withdrawnAt ? (
-                          <Label color="error">Withdrawn {fDate(r.withdrawnAt)}</Label>
-                        ) : (
-                          <Label color="success">Active</Label>
-                        )}
+                        <Tooltip title={purpose?.hint || ''}>
+                          <span>{purpose?.label || r.purpose}</span>
+                        </Tooltip>
+                      </TableCell>
+                      <TableCell>{r.method ? METHOD[r.method] || r.method : '—'}</TableCell>
+                      <TableCell sx={{ maxWidth: 220 }}>
+                        <SourceCell record={r} />
+                      </TableCell>
+                      <TableCell>{r.noticeVersion || '—'}</TableCell>
+                      <TableCell>
+                        <Label color={st?.color}>
+                          {r.status === 'withdrawn' && r.withdrawnAt
+                            ? `Withdrawn ${fDate(r.withdrawnAt)}`
+                            : st?.label}
+                        </Label>
                       </TableCell>
                       {isAdmin ? (
                         <TableCell align="right">
-                          {r.withdrawnAt ? null : (
+                          {r.status === 'withdrawn' ? null : (
                             <Button size="small" color="error" onClick={() => setWithdrawing(r)}>
                               Withdraw
                             </Button>
@@ -231,8 +296,8 @@ export function ConsentRecordsTab({ kind }) {
         content={
           <Stack spacing={2}>
             <Typography variant="body2">
-              Record that <strong>{withdrawing?.lead?.email}</strong> withdrew their consent. This
-              is kept in the lead&apos;s history and cannot be undone here.
+              Record that <strong>{withdrawing?.email}</strong> withdrew their consent. This is kept
+              with the record and cannot be undone here.
             </Typography>
             <TextField
               size="small"

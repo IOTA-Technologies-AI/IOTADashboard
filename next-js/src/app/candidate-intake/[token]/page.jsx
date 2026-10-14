@@ -12,12 +12,14 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Stepper from '@mui/material/Stepper';
 import MenuItem from '@mui/material/MenuItem';
+import Checkbox from '@mui/material/Checkbox';
 import StepLabel from '@mui/material/StepLabel';
 import TextField from '@mui/material/TextField';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import InputAdornment from '@mui/material/InputAdornment';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import {
@@ -833,6 +835,66 @@ function StepReview({ formData, tokenRecord }) {
   );
 }
 
+/** Whether the form carries other people's details (spouse, dependants). */
+const sharesOthers = (formData) =>
+  !!(
+    formData.spouseName?.trim() ||
+    formData.spouseNationalId?.trim() ||
+    (Array.isArray(formData.dependents) && formData.dependents.length > 0)
+  );
+
+/**
+ * PDPL consent, asked on the last step and recorded by the API with the
+ * privacy notice version. Wording to be confirmed by legal.
+ */
+function ConsentBlock({ notice, consent, onChange, othersShared }) {
+  const noticeUrl = notice?.url || 'https://www.iotatechnologies.ai/legal/privacy-policy';
+  return (
+    <Card variant="outlined" sx={{ p: 2, mt: 3 }}>
+      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+        Your consent
+      </Typography>
+      <Stack spacing={1}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={consent.privacy}
+              onChange={(e) => onChange({ ...consent, privacy: e.target.checked })}
+            />
+          }
+          label={
+            <Typography variant="body2">
+              I have read IOTA&apos;s{' '}
+              <a href={noticeUrl} target="_blank" rel="noopener noreferrer">
+                privacy notice
+              </a>{' '}
+              and agree to IOTA using the information in this form to prepare my employment,
+              including sharing it with insurers, government bodies and service providers where that
+              is needed.
+            </Typography>
+          }
+        />
+        {othersShared ? (
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={consent.dependants}
+                onChange={(e) => onChange({ ...consent, dependants: e.target.checked })}
+              />
+            }
+            label={
+              <Typography variant="body2">
+                The details I have given about my spouse and dependants are shared with their
+                knowledge, and I am allowed to provide them for this purpose.
+              </Typography>
+            }
+          />
+        ) : null}
+      </Stack>
+    </Card>
+  );
+}
+
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function CandidateIntakePage() {
@@ -850,6 +912,9 @@ export default function CandidateIntakePage() {
   const [submitError, setSubmitError] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
+  const [privacyNotice, setPrivacyNotice] = useState(null);
+  const [consent, setConsent] = useState({ privacy: false, dependants: false });
+
   const [formData, setFormData] = useState({
     currencyCode: 'SAR',
     numberOfDependents: 0,
@@ -863,6 +928,7 @@ export default function CandidateIntakePage() {
     getCandidateIntakeToken(token)
       .then((res) => {
         setTokenRecord(res.token);
+        setPrivacyNotice(res.privacyNotice ?? null);
         if (res.alreadySubmitted) setAlreadySubmitted(true);
       })
       .catch((e) => {
@@ -910,6 +976,9 @@ export default function CandidateIntakePage() {
           if (data[key] === undefined) delete data[key];
         }
       });
+
+      data.privacyConsent = consent.privacy;
+      if (sharesOthers(formData)) data.dependantsAuthority = consent.dependants;
 
       await submitCandidateIntakeForm(token, sessionToken, data);
       setSubmitted(true);
@@ -1044,6 +1113,8 @@ export default function CandidateIntakePage() {
   ];
 
   const isLastStep = activeStep === STEPS.length - 1;
+  const othersShared = sharesOthers(formData);
+  const consentGiven = consent.privacy && (!othersShared || consent.dependants);
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: '#f4f4f5', py: { xs: 2, sm: 4 } }}>
@@ -1093,6 +1164,15 @@ export default function CandidateIntakePage() {
         <Card sx={{ p: { xs: 2, sm: 4 }, mb: 3 }}>
           {stepContent[activeStep]}
 
+          {isLastStep ? (
+            <ConsentBlock
+              notice={privacyNotice}
+              consent={consent}
+              onChange={setConsent}
+              othersShared={othersShared}
+            />
+          ) : null}
+
           {submitError && (
             <Alert severity="error" sx={{ mt: 2 }}>
               {submitError}
@@ -1118,6 +1198,7 @@ export default function CandidateIntakePage() {
                 color="success"
                 size="large"
                 loading={submitting}
+                disabled={!consentGiven}
                 onClick={handleSubmit}
                 sx={{ minWidth: 180 }}
               >

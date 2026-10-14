@@ -25,6 +25,23 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Consent captured everywhere IOTA takes in personal data.**
+  - The candidate intake form asks for consent to the privacy notice before
+    it can be submitted, and, when spouse or dependant details are given, a
+    confirmation that the candidate may share them. Both are recorded with
+    the notice version.
+  - Every job application records its consent: ticked by the applicant, from
+    the website careers form, or confirmed by the staff member who adds it in
+    the dashboard (the Apply dialog now asks for that confirmation).
+  - Replies to leads carry a "Stop emails from IOTA" link (with one-click
+    unsubscribe headers) and the privacy notice link. Unsubscribing withdraws
+    the consent, and the Leads inbox won't send to anyone who has withdrawn.
+  - Integrations → Consents gains **Candidates** and **New hires** tabs; Job
+    applicants now covers every application, flagging those with no consent
+    recorded. Admins can mark any of them withdrawn.
+  - Needs `sql/20261014_consent_capture.sql` (API repo), the API deploy (it
+    applies `webflow/migrations/6_application_consent.up.sql`), and the
+    Encore secret `UNSUBSCRIBE_SECRET`.
 - **Integrations → Consents: every consent IOTA holds, on one page.**
   *Website visitors* shows the cookie-banner choices from iotatechnologies.ai
   and .io, as logged by the iota-consent Azure Function App: a month at a time,

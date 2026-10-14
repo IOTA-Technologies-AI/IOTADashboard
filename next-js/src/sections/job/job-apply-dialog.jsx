@@ -9,11 +9,13 @@ import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
+import Checkbox from '@mui/material/Checkbox';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
+import FormControlLabel from '@mui/material/FormControlLabel';
 
 import { submitJobApplication } from 'src/actions/jobs';
 
@@ -37,6 +39,8 @@ const JobApplicationSchema = z.object({
 export function JobApplyDialog({ open, onClose, job }) {
   const [resumeFile, setResumeFile] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Applying for someone: confirm they agreed (PDPL), recorded with the application.
+  const [consentAttested, setConsentAttested] = useState(false);
 
   const defaultValues = {
     candidateName: '',
@@ -103,6 +107,7 @@ export function JobApplyDialog({ open, onClose, job }) {
         ...data,
         resumeBase64,
         resumeFileName,
+        consentAttested,
       };
 
       const result = await submitJobApplication(job.id, applicationData);
@@ -113,13 +118,16 @@ export function JobApplyDialog({ open, onClose, job }) {
         );
         reset();
         setResumeFile(null);
+        setConsentAttested(false);
         onClose();
       } else {
         toast.error(result.message || 'Failed to submit application');
       }
     } catch (error) {
       console.error('Error submitting application:', error);
-      toast.error('Failed to submit application. Please try again.');
+      toast.error(
+        error?.response?.data?.message || 'Failed to submit application. Please try again.'
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -128,6 +136,7 @@ export function JobApplyDialog({ open, onClose, job }) {
   const handleClose = () => {
     reset();
     setResumeFile(null);
+    setConsentAttested(false);
     onClose();
   };
 
@@ -244,6 +253,21 @@ export function JobApplyDialog({ open, onClose, job }) {
               multiline
               rows={4}
             />
+
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={consentAttested}
+                  onChange={(e) => setConsentAttested(e.target.checked)}
+                />
+              }
+              label={
+                <Typography variant="body2">
+                  The candidate agreed to IOTA processing this application and their résumé under
+                  IOTA&apos;s privacy notice. Your name is recorded with this confirmation.
+                </Typography>
+              }
+            />
           </Stack>
         </DialogContent>
 
@@ -255,6 +279,7 @@ export function JobApplyDialog({ open, onClose, job }) {
             type="submit"
             variant="contained"
             loading={isSubmitting}
+            disabled={!consentAttested}
             startIcon={<Iconify icon="solar:send-bold" />}
           >
             Submit Application

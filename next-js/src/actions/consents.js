@@ -15,14 +15,14 @@ export function useWebsiteConsents(month) {
   return { data: data ?? null, error, loading: isLoading };
 }
 
-/** kind: 'leads' | 'applicants' */
+/** kind: 'leads' | 'applicants' | 'candidates' | 'newHires' */
 export function useConsentRecords(params) {
   const { data, error, isLoading } = useSWR(['/consents/records', params], fetcher, options);
   return { records: data?.records ?? [], total: data?.total ?? 0, error, loading: isLoading };
 }
 
-export async function withdrawConsent(id, note) {
-  const res = await iotaApi.post(`/consents/records/${id}/withdraw`, { note });
+export async function withdrawConsent(kind, id, note) {
+  const res = await iotaApi.post(`/consents/${kind}/${id}/withdraw`, { note });
   await mutate(
     (key) =>
       Array.isArray(key) && (key[0] === '/consents/records' || String(key[0]).startsWith('/leads'))
