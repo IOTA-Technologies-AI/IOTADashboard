@@ -628,6 +628,10 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Replies to leads now open with the IOTA banner.** The blue logo on a
+  dark green header was nearly invisible; the header is now the "Innovate.
+  Integrate. Elevate" banner with the white IOTA wordmark
+  (`next-js/public/email/lead-reply-banner.jpg`, served from the dashboard).
 - **Replying to a lead no longer fails with "domain is not verified".** The
   reply was sent *from* engagements@iotatechnologies.ai, a domain Resend has
   not verified. It now goes out from the verified IOTA sender address, like
