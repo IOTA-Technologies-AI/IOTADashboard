@@ -397,6 +397,8 @@ export const paths = {
       root: `${ROOTS.DASHBOARD}/integration`,
       new: `${ROOTS.DASHBOARD}/integration/new`,
       details: (name, type) => `${ROOTS.DASHBOARD}/integration/${name}/${type}`,
+      linkedin: `${ROOTS.DASHBOARD}/integration/linkedin`,
+      linkedinCallback: `${ROOTS.DASHBOARD}/integration/linkedin/callback`,
     },
     webhookLogs: {
       root: `${ROOTS.DASHBOARD}/integration/webhook-logs`,

@@ -62,7 +62,7 @@ export const AVAILABLE_INTEGRATIONS = [
     name: 'linkedin',
     displayName: 'LinkedIn',
     type: 'social',
-    description: 'Post jobs and content to LinkedIn',
+    description: 'Company page followers and post analytics — set up under Integrations → LinkedIn',
     icon: 'mdi:linkedin',
     color: '#0A66C2',
     requiredFields: ['accessToken', 'refreshToken'],

@@ -25,6 +25,16 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Integrations → LinkedIn: the IOTA company page's activity in the dashboard.**
+  An admin connects the page once by signing in with a LinkedIn account that
+  administers it (read-only access). Every night the API copies the follower
+  count and 30-day gain, the page's daily impressions, clicks, reactions,
+  comments and shares, and the recent posts with their own figures; "Sync
+  now" does it on demand. The page lists the steps needed on LinkedIn's side
+  (a developer app with the Community Management API, the redirect URL, the
+  two secrets) until the app is set up.
+  - Needs `sql/20261014_linkedin.sql`, the new `linkedin` API service, and the
+    Encore secrets `LINKEDIN_CLIENT_ID` and `LINKEDIN_CLIENT_SECRET`.
 - **Sales → Leads: website enquiries, newsletter sign-ups and job applications
   in one inbox.** Webflow form submissions arrive through one signed webhook
   and are routed by form element (the same on every domain — not by name, which
