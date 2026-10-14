@@ -25,6 +25,18 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Integrations → Consents: every consent IOTA holds, on one page.**
+  *Website visitors* shows the cookie-banner choices from iotatechnologies.ai
+  and .io, as logged by the iota-consent Azure Function App: a month at a time,
+  by site and day, with the latest choices. It is anonymous: no IP or
+  identity. *Leads (PDPL)* and *Job applicants* list the consent recorded with
+  each enquiry, newsletter sign-up and careers application (basis, privacy
+  notice version, where it was given), searchable by name or email. Admins
+  can mark a consent withdrawn when someone asks; it is kept in the lead's
+  history.
+  - Needs the new `consents` API service and the Encore secret
+    `CONSENT_TABLE_SAS_URL` (a read-only SAS URL for the `consents` table in
+    the iotalogostorage account).
 - **Integrations → LinkedIn: the IOTA company page's activity in the dashboard.**
   An admin connects the page once by signing in with a LinkedIn account that
   administers it (read-only access). Every night the API copies the follower

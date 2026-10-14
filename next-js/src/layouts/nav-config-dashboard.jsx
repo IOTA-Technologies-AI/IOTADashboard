@@ -338,6 +338,7 @@ export const navData = [
           { title: 'All Integrations', path: paths.dashboard.integration.root },
           { title: 'Add New', path: paths.dashboard.integration.new },
           { title: 'LinkedIn', path: paths.dashboard.integration.linkedin },
+          { title: 'Consents', path: paths.dashboard.integration.consents },
           { title: 'Webhook Logs', path: paths.dashboard.webhookLogs.root },
           { title: 'Resend Logs', path: paths.dashboard.webhookLogs.resend },
           { title: 'Vercel Logs', path: paths.dashboard.webhookLogs.vercel },
