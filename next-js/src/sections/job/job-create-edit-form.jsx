@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { useState } from 'react';
 import { useBoolean } from 'minimal-shared/hooks';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, Controller } from 'react-hook-form';
@@ -14,6 +15,7 @@ import ButtonBase from '@mui/material/ButtonBase';
 import CardHeader from '@mui/material/CardHeader';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
+import LoadingButton from '@mui/lab/LoadingButton';
 
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
@@ -23,6 +25,7 @@ import {
   updateJob,
   JOB_TYPE_OPTIONS,
   DEPARTMENT_OPTIONS,
+  draftJobDescription,
   REMOTE_TYPE_OPTIONS,
   TECHNOLOGY_AREA_OPTIONS,
   EXPERIENCE_LEVEL_OPTIONS,
@@ -92,16 +95,24 @@ const SALARY_CURRENCY_OPTIONS = [
   { label: 'INR - Indian Rupee', value: 'INR' },
 ];
 
+/** IOTA's requisition reference, shown on the posting and on every application. */
+const JOB_CODE_RE = /^IOTA-[A-Z]{2,6}-\d{3,4}$/i;
+
+export const DEFAULT_JOB_LOCATION = 'Riyadh, Saudi Arabia';
+
 export const JobCreateSchema = z.object({
   title: z.string().min(1, { error: 'Title is required!' }),
-  content: schemaUtils.editor().min(100, { error: 'Content must be at least 100 characters' }),
+  jobCode: z.string().trim().regex(JOB_CODE_RE, { error: 'Enter the Job ID, e.g. IOTA-ENG-006' }),
+  // Optional: left empty, the API drafts it with AI in the website's house format.
+  content: z.string().optional(),
+  qualifications: z.string().optional(),
+  location: z.string().trim().min(1, { error: 'Location is required!' }),
   employmentTypes: z.string().array().min(1, { error: 'Choose at least one option!' }),
   role: schemaUtils.nullableInput(z.string().min(1, { error: 'Role is required!' }), {
     error: 'Role is required!',
   }),
   skills: z.string().array().min(1, { error: 'Choose at least one option!' }),
   workingSchedule: z.string().array().min(1, { error: 'Choose at least one option!' }),
-  locations: z.string().array().min(1, { error: 'Choose at least one option!' }),
   expiredDate: schemaUtils.date({ error: { required: 'Expired date is required!' } }),
   salary: z.object({
     price: schemaUtils.nullableInput(z.coerce.number().min(1, { error: 'Price is required!' }), {
@@ -128,15 +139,21 @@ export function JobCreateEditForm({ currentJob }) {
   const openDetails = useBoolean(true);
   const openProperties = useBoolean(true);
 
+  const [drafting, setDrafting] = useState(false);
+  // Bumped after an AI draft so the editors remount with the new text.
+  const [draftRev, setDraftRev] = useState(0);
+
   const defaultValues = {
     title: '',
+    jobCode: '',
     content: '',
+    qualifications: '',
+    location: DEFAULT_JOB_LOCATION,
     employmentTypes: [],
     experience: EXPERIENCE_LEVEL_OPTIONS[0]?.label || '1 year exp',
     role: DEPARTMENT_OPTIONS[0]?.label || 'Engineering',
     skills: [],
     workingSchedule: [],
-    locations: [],
     expiredDate: null,
     salary: { type: 'Yearly', currency: 'SAR', price: null, negotiable: false },
     benefits: [],
@@ -149,13 +166,15 @@ export function JobCreateEditForm({ currentJob }) {
     if (!currentJob) return defaultValues;
     return {
       title: currentJob.title || '',
+      jobCode: currentJob.jobCode || '',
       content: currentJob.roleDescription || currentJob.content || '',
+      qualifications: currentJob.qualifications || '',
+      location: currentJob.location || DEFAULT_JOB_LOCATION,
       employmentTypes: currentJob.jobType ? [currentJob.jobType] : [],
       experience: currentJob.experienceLevel || defaultValues.experience,
       role: currentJob.department || defaultValues.role,
       skills: currentJob.skills || [],
       workingSchedule: currentJob.workingSchedule || [],
-      locations: currentJob.location ? [currentJob.location] : [],
       expiredDate: currentJob.expiryDate ? new Date(currentJob.expiryDate) : null,
       salary: {
         type: currentJob.salaryPeriod || 'Yearly',
@@ -188,11 +207,13 @@ export function JobCreateEditForm({ currentJob }) {
       // Transform form data to API format
       const jobData = {
         title: data.title,
-        roleDescription: data.content,
+        jobCode: data.jobCode.trim().toUpperCase(),
+        roleDescription: data.content || '',
+        qualifications: data.qualifications || '',
         department: data.role,
         jobType: data.employmentTypes[0] || 'full-time',
         experienceLevel: data.experience,
-        location: data.locations[0] || '',
+        location: data.location,
         remoteType: data.remoteType || 'onsite',
         salaryMin: Number(data.salary.price) || 0,
         salaryMax: Number(data.salary.price) || 0,
@@ -227,7 +248,7 @@ export function JobCreateEditForm({ currentJob }) {
       router.push(paths.dashboard.job.root);
     } catch (error) {
       console.error(error);
-      toast.error(error.message || 'Failed to save job');
+      toast.error(error?.response?.data?.message || error.message || 'Failed to save job');
     }
   });
 
@@ -240,11 +261,13 @@ export function JobCreateEditForm({ currentJob }) {
       // Transform form data to API format
       const jobData = {
         title: data.title,
-        roleDescription: data.content,
+        jobCode: data.jobCode.trim().toUpperCase(),
+        roleDescription: data.content || '',
+        qualifications: data.qualifications || '',
         department: data.role,
         jobType: data.employmentTypes[0] || 'full-time',
         experienceLevel: data.experience,
-        location: data.locations[0] || '',
+        location: data.location,
         remoteType: data.remoteType || 'onsite',
         salaryMin: Number(data.salary.price) || 0,
         salaryMax: Number(data.salary.price) || 0,
@@ -282,7 +305,52 @@ export function JobCreateEditForm({ currentJob }) {
       router.push(paths.dashboard.job.root);
     } catch (error) {
       console.error(error);
-      toast.error(error.message || 'Failed to publish job');
+      toast.error(error?.response?.data?.message || error.message || 'Failed to publish job');
+    }
+  };
+
+  const plainText = (html) =>
+    String(html || '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  const handleDraft = async () => {
+    const v = methods.getValues();
+    if (!v.title?.trim()) {
+      toast.error('Enter the job title first.');
+      return;
+    }
+    const written = plainText(v.content) || plainText(v.qualifications);
+    if (
+      written &&
+      !window.confirm('Replace the description and qualifications with an AI draft?')
+    ) {
+      return;
+    }
+    setDrafting(true);
+    try {
+      const d = await draftJobDescription({
+        title: v.title,
+        jobType: v.employmentTypes?.[0],
+        location: v.location,
+        remoteType: v.remoteType,
+        department: v.role,
+        experienceLevel: v.experience,
+        skills: v.skills,
+        notes: written || undefined,
+      });
+      methods.setValue('content', d.roleDescriptionHtml, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      methods.setValue('qualifications', d.qualificationsHtml, { shouldDirty: true });
+      setDraftRev((n) => n + 1);
+      toast.success('Drafted. Read it through and edit before saving.');
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'The description could not be drafted.');
+    } finally {
+      setDrafting(false);
     }
   };
 
@@ -305,14 +373,52 @@ export function JobCreateEditForm({ currentJob }) {
         <Divider />
 
         <Stack spacing={3} sx={{ p: 3 }}>
+          <Box sx={{ display: 'grid', gap: 3, gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr' } }}>
+            <Stack spacing={1.5}>
+              <Typography variant="subtitle2">Title</Typography>
+              <Field.Text name="title" placeholder="Ex: Software engineer..." />
+            </Stack>
+            <Stack spacing={1.5}>
+              <Typography variant="subtitle2">Job ID</Typography>
+              <Field.Text
+                name="jobCode"
+                placeholder="IOTA-ENG-006"
+                helperText="Shown on the posting and on every application"
+              />
+            </Stack>
+          </Box>
+
           <Stack spacing={1.5}>
-            <Typography variant="subtitle2">Title</Typography>
-            <Field.Text name="title" placeholder="Ex: Software engineer..." />
+            <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
+              <Typography variant="subtitle2">Role description</Typography>
+              <LoadingButton
+                size="small"
+                variant="soft"
+                color="primary"
+                loading={drafting}
+                startIcon={<Iconify icon="solar:magic-stick-3-bold" />}
+                onClick={handleDraft}
+              >
+                Draft with AI
+              </LoadingButton>
+            </Stack>
+            <Typography variant="caption" color="text.secondary">
+              Intro, what you&apos;ll do and what we offer. Left empty, it is drafted with AI in the
+              careers site&apos;s format when you save — review it before approving.
+            </Typography>
+            <Field.Editor key={`content-${draftRev}`} name="content" sx={{ maxHeight: 480 }} />
           </Stack>
 
           <Stack spacing={1.5}>
-            <Typography variant="subtitle2">Content</Typography>
-            <Field.Editor name="content" sx={{ maxHeight: 480 }} />
+            <Typography variant="subtitle2">Qualifications</Typography>
+            <Typography variant="caption" color="text.secondary">
+              What we&apos;re looking for, nice to have, and how you work.
+            </Typography>
+            <Field.Editor
+              key={`qualifications-${draftRev}`}
+              name="qualifications"
+              sx={{ maxHeight: 400 }}
+            />
           </Stack>
         </Stack>
       </Collapse>
@@ -414,14 +520,11 @@ export function JobCreateEditForm({ currentJob }) {
           </Stack>
 
           <Stack spacing={1.5}>
-            <Typography variant="subtitle2">Locations</Typography>
-            <Field.CountrySelect
-              multiple
-              name="locations"
-              placeholder="+ Locations"
-              slotProps={{
-                chip: { color: 'info' },
-              }}
+            <Typography variant="subtitle2">Location</Typography>
+            <Field.Text
+              name="location"
+              placeholder={DEFAULT_JOB_LOCATION}
+              helperText="City and country as the careers site shows it, e.g. Riyadh, Saudi Arabia — or Remote"
             />
           </Stack>
 

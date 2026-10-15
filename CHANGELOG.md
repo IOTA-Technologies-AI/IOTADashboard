@@ -25,6 +25,18 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Jobs post to the website in the careers house format.**
+  - **Job ID** (e.g. IOTA-ENG-006) is required in the job form, unique, and
+    sent to the posting's Job ID; a job without one is not published.
+  - **Location** is a text field defaulting to "Riyadh, Saudi Arabia" (it was
+    a country picker that could only send "Saudi Arabia").
+  - **Draft with AI** writes the description and qualifications in the
+    site's format (intro, What you'll do, What we offer / What we're looking
+    for, Nice to have) with IOTA's Azure OpenAI deployment. Left empty, the
+    description is drafted on save; approval still comes first.
+  - A new **Qualifications** editor; the posting now carries responsibilities,
+    benefits and qualities in their own sections.
+  - Needs the API deploy (applies `webflow/migrations/8_job_code_nice_to_have.up.sql`).
 - **Consent wording, data retention, and consent on each person's page.**
   - Every consent is worded once (API `shared/consent-texts.ts`), shown
     word for word by the candidate intake form and the Apply dialog, and
@@ -628,6 +640,10 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Publishing a job now updates iotatechnologies.ai.** The site was
+  published to the webflow.io subdomain only; it now publishes once to every
+  custom domain (iotatechnologies.ai, www, careers). Saving an edit with
+  "sync" also publishes, so edits go live.
 - **Replies to leads now open with the IOTA banner.** The blue logo on a
   dark green header was nearly invisible; the header is now the "Innovate.
   Integrate. Elevate" banner with the white IOTA wordmark

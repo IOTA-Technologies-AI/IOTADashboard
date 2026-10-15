@@ -38,6 +38,9 @@ export async function getJob(id) {
 export async function createJob(jobData) {
   try {
     const response = await iotaApi.post(`jobs`, jobData);
+    // The API answers { success: false, message } for a refused job (e.g. a Job ID already used).
+    if (response.data?.success === false)
+      throw new Error(response.data.message || 'The job was not saved.');
     return response.data?.job || response.data;
   } catch (error) {
     console.error('Error creating job:', error);
@@ -48,11 +51,23 @@ export async function createJob(jobData) {
 export async function updateJob(id, jobData) {
   try {
     const response = await iotaApi.patch(`jobs/${id}`, { id, ...jobData });
+    if (response.data?.success === false)
+      throw new Error(response.data.message || 'The job was not saved.');
     return response.data?.job || response.data;
   } catch (error) {
     console.error(`Error updating job ${id}:`, error);
     throw error;
   }
+}
+
+/**
+ * Draft a posting in the website's house format with AI (Azure OpenAI), from
+ * the title and properties. Returns HTML for the description and qualifications
+ * editors; nothing is saved.
+ */
+export async function draftJobDescription(brief) {
+  const response = await iotaApi.post('jobs/draft-description', brief);
+  return response.data;
 }
 
 export async function deleteJob(id) {
