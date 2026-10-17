@@ -25,6 +25,16 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Offer letters get an IOTA document ID instead of a typed contract number.**
+  A 12-character, reversible ID (shown as 9XDE-9BFB-3K7L) is issued when the
+  offer is saved. It encodes the company, country, document type (Employee
+  Offer Letter), the client, the candidate and the minute it was issued. The
+  offer form asks for the **Client** (an ERP customer, or Internal — IOTA
+  office) instead of a contract number. **Look up a document ID** on Offer
+  Management reads any ID back as text and opens its offer. Existing offers
+  keep their numbers.
+  - Needs `sql/20261017_document_ids.sql` (API repo) **before** the API deploy —
+    creating an offer calls the new registry functions.
 - **Nightly retention and LinkedIn sync run in production only.** Staging
   shares the database and settings, so both used to run them. "Run now" and
   "Sync now" still work in every environment.

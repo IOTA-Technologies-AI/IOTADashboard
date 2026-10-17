@@ -31,6 +31,7 @@ import { useRouter } from 'src/routes/hooks';
 
 import { createOffer } from 'src/utils/apiHelper';
 
+import { listCustomers } from 'src/actions/documents';
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
   uploadOfferLetter,
@@ -101,6 +102,12 @@ export default function OfferManagementNewPage() {
   const [eligibleLoading, setEligibleLoading] = useState(true);
   const [candidate, setCandidate] = useState(null);
 
+  // The client the employee is offered for: an ERP customer, or IOTA's own office.
+  // It goes into the offer's document ID (shared/doc-id.ts in the API).
+  const [customers, setCustomers] = useState([]);
+  const [client, setClient] = useState(null);
+  const [clientError, setClientError] = useState('');
+
   // Letter: generated from the IOTA template, or an uploaded PDF
   const [letterSource, setLetterSource] = useState('generated');
   const [letterFile, setLetterFile] = useState(null);
@@ -136,7 +143,6 @@ export default function OfferManagementNewPage() {
       department: '',
 
       // Contract Details
-      contractNumber: '',
       contractType: 'Limited',
       startDate: '',
       contractDuration: '',
@@ -157,6 +163,17 @@ export default function OfferManagementNewPage() {
   });
 
   const currency = watch('currency') || 'SAR';
+
+  useEffect(() => {
+    listCustomers()
+      .then((list) =>
+        setCustomers([{ id: null, name: 'Internal (IOTA office)', internal: true }, ...list])
+      )
+      .catch((err) => {
+        console.error('Loading customers failed:', err);
+        setCustomers([{ id: null, name: 'Internal (IOTA office)', internal: true }]);
+      });
+  }, []);
 
   useEffect(() => {
     listEligibleCandidates()
@@ -207,6 +224,11 @@ export default function OfferManagementNewPage() {
   const totalSalary = basicSalary + housingAllowance + transportationAllowance + otherAllowances;
 
   const onSubmit = handleSubmit(async (data) => {
+    if (!client) {
+      setClientError('Choose the client, or Internal (IOTA office).');
+      toast.error('Choose the client the employee is offered for.');
+      return;
+    }
     if (letterSource === 'uploaded' && !letterFile) {
       toast.error('Choose the offer letter PDF to upload, or switch to the IOTA template.');
       return;
@@ -222,7 +244,9 @@ export default function OfferManagementNewPage() {
         nationality: data.nationality,
         position: data.position,
         department: data.department,
-        contractNumber: data.contractNumber,
+        // The document ID is issued by the API when the offer is saved.
+        clientCustomerId: client?.internal ? null : (client?.id ?? null),
+        clientInternal: !!client?.internal,
         contractType: data.contractType,
         startDate: data.startDate,
         contractDuration: data.contractDuration ? Number(data.contractDuration) : undefined,
@@ -369,7 +393,7 @@ export default function OfferManagementNewPage() {
       (parseFloat(data.transportationAllowance) || 0) +
       (parseFloat(data.otherAllowances) || 0);
     setZonePreviewOffer({
-      contractNumber: data.contractNumber || '—',
+      contractNumber: 'Issued on save',
       candidateName: data.employeeName || '',
       passportNumber: data.passportNumber || null,
       position: data.position || '',
@@ -638,12 +662,28 @@ export default function OfferManagementNewPage() {
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid size={{ xs: 12, md: 6 }}>
-                    <TextField
-                      fullWidth
-                      label="Contract Number"
-                      {...register('contractNumber', { required: 'Contract number is required' })}
-                      error={!!errors.contractNumber}
-                      helperText={errors.contractNumber?.message}
+                    <Autocomplete
+                      options={customers}
+                      value={client}
+                      onChange={(e, v) => {
+                        setClient(v);
+                        setClientError('');
+                      }}
+                      getOptionLabel={(o) => o.name}
+                      isOptionEqualToValue={(a, b) =>
+                        a.id === b.id && !!a.internal === !!b.internal
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Client"
+                          error={!!clientError}
+                          helperText={
+                            clientError ||
+                            'Who the employee is offered for. The document ID is issued from this when you save.'
+                          }
+                        />
+                      )}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, md: 6 }}>
@@ -1219,7 +1259,7 @@ export default function OfferManagementNewPage() {
             {formData && (
               <PDFDownloadLink
                 document={<OfferLetterPDF data={formData} />}
-                fileName={`Offer_Letter_${formData.employeeName?.replace(/\s+/g, '_')}_${formData.contractNumber}.pdf`}
+                fileName={`Offer_Letter_${formData.employeeName?.replace(/\s+/g, '_')}_draft.pdf`}
                 style={{ textDecoration: 'none' }}
               >
                 {({ loading: pdfLoading }) => (
@@ -1268,7 +1308,7 @@ export default function OfferManagementNewPage() {
             <Box sx={{ maxHeight: '70vh', overflow: 'auto' }}>
               <OfferLetterHtmlTemplate
                 offer={{
-                  contractNumber: formData.contractNumber || '—',
+                  contractNumber: 'Issued on save',
                   candidateName: formData.employeeName || '',
                   candidateEmail: formData.candidateEmail || '',
                   passportNumber: formData.passportNumber || null,

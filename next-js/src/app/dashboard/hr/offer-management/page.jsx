@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Chip from '@mui/material/Chip';
+import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 
@@ -17,6 +18,8 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+
+import { DocumentIdLookup } from 'src/sections/offer/document-id-lookup';
 
 // ── Status colour map ──────────────────────────────────────────────────────
 
@@ -33,6 +36,7 @@ export default function OfferManagementPage() {
   const router = useRouter();
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [lookupOpen, setLookupOpen] = useState(false);
 
   // Fetch offers on mount
   useEffect(() => {
@@ -62,6 +66,17 @@ export default function OfferManagementPage() {
   // moves through approval and signing on its details page.
 
   const columns = [
+    {
+      // The IOTA document ID (9XDE-9BFB-3K7L); older offers show their typed contract number.
+      field: 'contractNumber',
+      headerName: 'Document ID',
+      width: 160,
+      renderCell: ({ value }) => (
+        <Box component="span" sx={{ fontFamily: 'monospace' }}>
+          {value || '—'}
+        </Box>
+      ),
+    },
     {
       field: 'candidateName',
       headerName: 'Candidate Name',
@@ -135,13 +150,23 @@ export default function OfferManagementPage() {
           { name: 'Offer Management' },
         ]}
         action={
-          <Button
-            variant="contained"
-            startIcon={<Iconify icon="mingcute:add-line" />}
-            onClick={() => router.push(paths.dashboard.hr.offerManagement.new)}
-          >
-            New Offer
-          </Button>
+          <Stack direction="row" spacing={1}>
+            <Button
+              variant="outlined"
+              color="inherit"
+              startIcon={<Iconify icon="solar:magnifer-bold" />}
+              onClick={() => setLookupOpen(true)}
+            >
+              Look up a document ID
+            </Button>
+            <Button
+              variant="contained"
+              startIcon={<Iconify icon="mingcute:add-line" />}
+              onClick={() => router.push(paths.dashboard.hr.offerManagement.new)}
+            >
+              New Offer
+            </Button>
+          </Stack>
         }
         sx={{ mb: { xs: 3, md: 5 } }}
       />
@@ -161,6 +186,7 @@ export default function OfferManagementPage() {
           }}
         />
       </Box>
+      <DocumentIdLookup open={lookupOpen} onClose={() => setLookupOpen(false)} />
     </DashboardContent>
   );
 }
