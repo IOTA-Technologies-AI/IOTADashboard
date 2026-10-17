@@ -20,7 +20,6 @@ import { base64ToBlobUrl, getOfferDocumentByToken } from 'src/actions/offer-docu
 import { Iconify } from 'src/components/iconify';
 import { NdaSignatureCanvas } from 'src/components/nda';
 import { OfferLetterPDF } from 'src/components/offer-letter/offer-letter-pdf';
-import { OfferLetterHTML } from 'src/components/offer-letter/offer-letter-html';
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -74,29 +73,7 @@ export default function SignOfferPage({ params }) {
         return;
       }
       try {
-        const offerFields = {
-          employeeName: offer.candidateName,
-          passportNumber: offer.passportNumber || '',
-          dateOfBirth: offer.dateOfBirth || '',
-          nationality: offer.nationality || '',
-          position: offer.position,
-          department: offer.department,
-          contractNumber: offer.contractNumber,
-          contractType: offer.contractType,
-          startDate: offer.startDate,
-          contractDuration: offer.contractDuration || '',
-          probationPeriod: offer.probationPeriod || '',
-          basicSalary: offer.basicSalary,
-          housingAllowance: offer.housingAllowance,
-          transportationAllowance: offer.transportationAllowance,
-          otherAllowances: offer.otherAllowances,
-          totalSalary: offer.totalSalary,
-          workingHours: offer.workingHours || '',
-          annualLeaveDays: offer.annualLeaveDays || '',
-          noticePeriod: offer.noticePeriod || '',
-          currency: offer.currency || 'SAR',
-        };
-        const blob = await pdf(<OfferLetterPDF data={offerFields} />).toBlob();
+        const blob = await pdf(<OfferLetterPDF offer={offer} />).toBlob();
         if (cancelled) return;
         const url = URL.createObjectURL(blob);
         setOfferPdfBlobUrl(url);
@@ -333,47 +310,18 @@ export default function SignOfferPage({ params }) {
             Your Offer Letter
           </Typography>
           <Divider sx={{ mb: 2 }} />
-          {offer?.documentSource === 'uploaded' ? (
-            offerPdfBlobUrl ? (
-              <Box
-                component="iframe"
-                title="Offer letter"
-                src={offerPdfBlobUrl}
-                sx={{ width: 1, height: 800, border: 0 }}
-              />
-            ) : (
-              <Stack alignItems="center" sx={{ py: 4 }}>
-                <CircularProgress size={28} />
-              </Stack>
-            )
-          ) : (
-            <OfferLetterHTML
-              data={{
-                employeeName: offer?.candidateName,
-                passportNumber: offer?.passportNumber,
-                dateOfBirth: offer?.dateOfBirth,
-                nationality: offer?.nationality,
-                position: offer?.position,
-                department: offer?.department,
-                contractNumber: offer?.contractNumber,
-                contractType: offer?.contractType,
-                startDate: offer?.startDate,
-                contractDuration: offer?.contractDuration,
-                probationPeriod: offer?.probationPeriod,
-                basicSalary: offer?.basicSalary,
-                housingAllowance: offer?.housingAllowance,
-                transportationAllowance: offer?.transportationAllowance,
-                otherAllowances: offer?.otherAllowances,
-                totalSalary: offer?.totalSalary,
-                workingHours: offer?.workingHours,
-                annualLeaveDays: offer?.annualLeaveDays,
-                noticePeriod: offer?.noticePeriod,
-                currency: offer?.currency || 'SAR',
-              }}
-              showSignatures
-              iotaSignatories={iotaSignatories}
-              employeeSignatureData={null}
+          {/* The letter exactly as it will be signed — IOTA's template or the uploaded letter. */}
+          {offerPdfBlobUrl ? (
+            <Box
+              component="iframe"
+              title="Offer letter"
+              src={offerPdfBlobUrl}
+              sx={{ width: 1, height: 800, border: 0 }}
             />
+          ) : (
+            <Stack alignItems="center" sx={{ py: 4 }}>
+              <CircularProgress size={28} />
+            </Stack>
           )}
         </Card>
 

@@ -49,7 +49,6 @@ import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { NdaSignatureCanvas } from 'src/components/nda';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
-import { OfferLetterHtmlTemplate } from 'src/components/offer-letter';
 import { OfferLetterPDF } from 'src/components/offer-letter/offer-letter-pdf';
 
 import { OfferLetterCheck } from 'src/sections/offer/offer-letter-check';
@@ -168,8 +167,6 @@ export default function OfferManagementDetailsPage({ params }) {
   const [offerPdfBlobUrl, setOfferPdfBlobUrl] = useState(null);
   const [pdfJsDoc, setPdfJsDoc] = useState(null);
 
-  const printRef = useRef(null);
-
   // Download / finalize
   const [downloadProcessing, setDownloadProcessing] = useState(false);
   const [remindLoading, setRemindLoading] = useState(false);
@@ -235,29 +232,7 @@ export default function OfferManagementDetailsPage({ params }) {
         return;
       }
       try {
-        const offerData = {
-          employeeName: offer.candidateName,
-          passportNumber: offer.passportNumber || '',
-          dateOfBirth: offer.dateOfBirth || '',
-          nationality: offer.nationality || '',
-          position: offer.position,
-          department: offer.department,
-          contractNumber: offer.contractNumber,
-          contractType: offer.contractType,
-          startDate: offer.startDate,
-          contractDuration: offer.contractDuration || '',
-          probationPeriod: offer.probationPeriod || '',
-          basicSalary: offer.basicSalary,
-          housingAllowance: offer.housingAllowance,
-          transportationAllowance: offer.transportationAllowance,
-          otherAllowances: offer.otherAllowances,
-          totalSalary: offer.totalSalary,
-          workingHours: offer.workingHours || '',
-          annualLeaveDays: offer.annualLeaveDays || '',
-          noticePeriod: offer.noticePeriod || '',
-          currency: offer.currency || 'SAR',
-        };
-        const blob = await pdf(<OfferLetterPDF data={offerData} />).toBlob();
+        const blob = await pdf(<OfferLetterPDF offer={offer} />).toBlob();
         if (cancelled) return;
         const url = URL.createObjectURL(blob);
         setOfferPdfBlobUrl(url);
@@ -551,33 +526,11 @@ export default function OfferManagementDetailsPage({ params }) {
   };
 
   const buildProcessedPdf = async () => {
-    const offerData = {
-      employeeName: offer.candidateName,
-      passportNumber: offer.passportNumber || '',
-      dateOfBirth: offer.dateOfBirth || '',
-      nationality: offer.nationality || '',
-      position: offer.position,
-      department: offer.department,
-      contractNumber: offer.contractNumber,
-      contractType: offer.contractType,
-      startDate: offer.startDate,
-      contractDuration: offer.contractDuration || '',
-      probationPeriod: offer.probationPeriod || '',
-      basicSalary: offer.basicSalary,
-      housingAllowance: offer.housingAllowance,
-      transportationAllowance: offer.transportationAllowance,
-      otherAllowances: offer.otherAllowances,
-      totalSalary: offer.totalSalary,
-      workingHours: offer.workingHours || '',
-      annualLeaveDays: offer.annualLeaveDays || '',
-      noticePeriod: offer.noticePeriod || '',
-      currency: offer.currency || 'SAR',
-    };
     let fileBase64;
     if (offer.documentSource === 'uploaded') {
       fileBase64 = (await getOfferDocument(offer.id)).base64;
     } else {
-      const blob = await pdf(<OfferLetterPDF data={offerData} />).toBlob();
+      const blob = await pdf(<OfferLetterPDF offer={offer} />).toBlob();
       fileBase64 = uint8ToBase64(new Uint8Array(await blob.arrayBuffer()));
     }
 
@@ -645,17 +598,15 @@ export default function OfferManagementDetailsPage({ params }) {
     }
   };
 
+  // Opens this offer's letter (the PDF that is signed) on its own, to print from the PDF viewer.
   const handlePrint = () => {
-    const templateUrl = '/assets/template/IOTA%20Offer%20Letter%20Template.html';
-    const printWindow = window.open(templateUrl, '_blank', 'width=900,height=700');
-    if (!printWindow) {
-      toast.error('Popup blocked — please allow popups for this site and try again.');
+    if (!offerPdfBlobUrl) {
+      toast.info('The letter is still being prepared — try again in a moment.');
       return;
     }
-    printWindow.onload = () => {
-      printWindow.print();
-      printWindow.addEventListener('afterprint', () => printWindow.close());
-    };
+    const printWindow = window.open(offerPdfBlobUrl, '_blank');
+    if (!printWindow)
+      toast.error('Popup blocked — please allow popups for this site and try again.');
   };
 
   // ── Loading / not-found states ─────────────────────────────────────────────
@@ -874,21 +825,22 @@ export default function OfferManagementDetailsPage({ params }) {
               <Card sx={{ p: 3 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
                   <Typography variant="subtitle1">Document Preview</Typography>
-                  <Tooltip title="Use the Print button above for a clean print">
+                  <Tooltip title="The letter exactly as it will be signed. Print opens it on its own.">
                     <Iconify icon="solar:info-circle-bold" color="text.secondary" />
                   </Tooltip>
                 </Box>
-                <Box
-                  ref={printRef}
-                  sx={{
-                    maxHeight: 900,
-                    overflowY: 'auto',
-                    p: 2,
-                    bgcolor: 'background.default',
-                  }}
-                >
-                  <OfferLetterHtmlTemplate offer={offer} showSignatures />
-                </Box>
+                {offerPdfBlobUrl ? (
+                  <Box
+                    component="iframe"
+                    title="Offer letter"
+                    src={offerPdfBlobUrl}
+                    sx={{ width: 1, height: 900, border: 0, borderRadius: 1 }}
+                  />
+                ) : (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                    <CircularProgress size={28} />
+                  </Box>
+                )}
               </Card>
             )}
 

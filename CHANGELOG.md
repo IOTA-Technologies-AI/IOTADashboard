@@ -25,6 +25,18 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **One offer letter for every employee: the IOTA Employee Offer Letter
+  (October 2026), in IBM Plex Sans Condensed.** The letter that is previewed,
+  shown to the employee, signed and filed is now the same PDF — cover letter,
+  sections 1–7, acceptance page and back cover, as in the approved template.
+  The offer form has an **Offer Letter Terms** section for what differs per
+  employee (title, grade, duties, reporting line, insurance class, dependants,
+  air ticket cap, training cost recovery, validity date, government ID, and
+  whether the client is SAMA-regulated); customer-only clauses appear only when
+  the offer has a client. Probation is entered in days. Print on the offer page
+  now prints this offer's letter (it printed a blank template). Signature zones
+  are placed on the offer page after approval, on the letter's real pages.
+  - Needs `sql/20261017_offer_letter_terms.sql` (API repo).
 - **Offer letters get an IOTA document ID instead of a typed contract number.**
   A 12-character, reversible ID (shown as 9XDE-9BFB-3K7L) is issued when the
   offer is saved. It encodes the company, country, document type (Employee

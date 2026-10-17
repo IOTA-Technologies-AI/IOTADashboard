@@ -7,7 +7,6 @@ import { PDFViewer, PDFDownloadLink } from '@react-pdf/renderer';
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
-import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
@@ -15,6 +14,7 @@ import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
+import Checkbox from '@mui/material/Checkbox';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import IconButton from '@mui/material/IconButton';
@@ -24,6 +24,7 @@ import Autocomplete from '@mui/material/Autocomplete';
 import ToggleButton from '@mui/material/ToggleButton';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { paths } from 'src/routes/paths';
@@ -41,8 +42,8 @@ import {
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { OfferLetterPDF } from 'src/components/offer-letter';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
-import { OfferLetterPDF, OfferLetterHtmlTemplate } from 'src/components/offer-letter';
 
 // ----------------------------------------------------------------------
 
@@ -59,16 +60,6 @@ const DEPARTMENTS = [
 
 const CONTRACT_TYPES = ['Limited', 'Unlimited'];
 
-const SIG_ZONE_COLORS = [
-  { border: '#1565c0', bg: 'rgba(21,101,192,0.12)' },
-  { border: '#2e7d32', bg: 'rgba(46,125,50,0.12)' },
-  { border: '#6a1b9a', bg: 'rgba(106,27,154,0.12)' },
-  { border: '#e65100', bg: 'rgba(230,81,0,0.12)' },
-  { border: '#00838f', bg: 'rgba(0,131,143,0.12)' },
-  { border: '#558b2f', bg: 'rgba(85,139,47,0.12)' },
-];
-const EMP_ZONE_COLOR = { border: '#f57c00', bg: 'rgba(245,124,0,0.13)' };
-
 const CURRENCIES = [
   { code: 'SAR', label: 'SAR – Saudi Riyal' },
   { code: 'AED', label: 'AED – UAE Dirham' },
@@ -84,11 +75,35 @@ const CURRENCIES = [
   { code: 'OMR', label: 'OMR – Omani Rial' },
 ];
 
+/** The form's letter terms as stored on the offer (offers.letterTerms). */
+function letterTermsFrom(data) {
+  const t = data.terms || {};
+  const num = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v));
+  return {
+    title: t.title || 'Mr.',
+    grade: (t.grade || '').trim(),
+    division: (data.department || '').trim(),
+    reportsTo: (t.reportsTo || '').trim(),
+    duties: (t.duties || '').trim(),
+    probationDays: num(data.probationPeriod) ?? 90,
+    insuranceClass: (t.insuranceClass || '').trim(),
+    dependantsCovered: num(t.dependantsCovered) ?? 0,
+    airTicketCap: num(t.airTicketCap) ?? 0,
+    eosIncludesAllowances: !!t.eosIncludesAllowances,
+    dependantsIqamaCovered: !!t.dependantsIqamaCovered,
+    regulatedFinancialCustomer: !!t.regulatedFinancialCustomer,
+    trainingCostRecovery: num(t.trainingCostRecovery) ?? 0,
+    offerValidUntil: t.offerValidUntil || '',
+    governmentId: (t.governmentId || '').trim(),
+  };
+}
+
+const TITLES = ['Mr.', 'Ms.', 'Mrs.', 'Dr.', 'Eng.'];
+
 export default function OfferManagementNewPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
-  const [htmlPreviewOpen, setHtmlPreviewOpen] = useState(false);
   const [formData, setFormData] = useState(null);
 
   // IOTA Signatories
@@ -113,16 +128,6 @@ export default function OfferManagementNewPage() {
   const [letterFile, setLetterFile] = useState(null);
   const letterInputRef = useRef(null);
 
-  // Signature zones
-  const [signatureZones, setSignatureZones] = useState([]);
-  const [draggingSigZone, setDraggingSigZone] = useState(null);
-  const [selectedSigZoneSignatory, setSelectedSigZoneSignatory] = useState(0);
-  const [selectedZoneIsEmployee, setSelectedZoneIsEmployee] = useState(false);
-  const [showHtmlZonePreview, setShowHtmlZonePreview] = useState(false);
-  const [zonePreviewOffer, setZonePreviewOffer] = useState(null);
-  const sigZonePreviewRef = useRef(null);
-  const sigZoneDragMovedRef = useRef(false);
-
   const {
     register,
     handleSubmit,
@@ -146,7 +151,24 @@ export default function OfferManagementNewPage() {
       contractType: 'Limited',
       startDate: '',
       contractDuration: '',
-      probationPeriod: '6',
+      probationPeriod: '90', // days
+
+      // Offer letter terms (offers.letterTerms) — the template's standard terms
+      terms: {
+        title: 'Mr.',
+        grade: '',
+        reportsTo: '',
+        duties: '',
+        insuranceClass: '',
+        dependantsCovered: '2',
+        airTicketCap: '2000',
+        eosIncludesAllowances: false,
+        dependantsIqamaCovered: false,
+        regulatedFinancialCustomer: false,
+        trainingCostRecovery: '0',
+        offerValidUntil: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+        governmentId: '',
+      },
 
       // Salary Information
       currency: 'SAR',
@@ -250,7 +272,11 @@ export default function OfferManagementNewPage() {
         contractType: data.contractType,
         startDate: data.startDate,
         contractDuration: data.contractDuration ? Number(data.contractDuration) : undefined,
-        probationPeriod: data.probationPeriod ? Number(data.probationPeriod) : undefined,
+        // Days, as the letter states them; the column keeps months for older screens.
+        probationPeriod: data.probationPeriod
+          ? Math.round(Number(data.probationPeriod) / 30)
+          : undefined,
+        letterTerms: letterTermsFrom(data),
         currency: data.currency || 'SAR',
         basicSalary: Number(data.basicSalary) || 0,
         housingAllowance: Number(data.housingAllowance) || 0,
@@ -279,9 +305,6 @@ export default function OfferManagementNewPage() {
         }));
       }
       // Zones on an uploaded letter are placed on the offer page, over the letter itself.
-      if (letterSource === 'generated' && signatureZones.length > 0) {
-        offerPayload.signatureZones = signatureZones;
-      }
 
       const validClauses = clauses.filter((c) => c.title.trim() || c.content.trim());
       if (validClauses.length > 0) {
@@ -328,120 +351,45 @@ export default function OfferManagementNewPage() {
     }
   });
 
+  // The form as an offer record, so the preview uses the same template as signing.
+  const toLetterOffer = useCallback(
+    (data) => ({
+      contractNumber: 'Issued on save',
+      documentIssuedAt: new Date().toISOString(),
+      candidateName: data.employeeName || '',
+      passportNumber: data.passportNumber || '',
+      nationality: data.nationality || '',
+      position: data.position || '',
+      department: data.department || '',
+      clientCustomerId: client && !client.internal ? client.id : null,
+      clientName: client?.name || null,
+      contractType: data.contractType,
+      contractDuration: data.contractDuration,
+      startDate: data.startDate,
+      workingHours: data.workingHours,
+      annualLeaveDays: data.annualLeaveDays,
+      noticePeriod: data.noticePeriod,
+      currency: data.currency || 'SAR',
+      basicSalary: data.basicSalary,
+      housingAllowance: data.housingAllowance,
+      transportationAllowance: data.transportationAllowance,
+      otherAllowances: data.otherAllowances,
+      totalSalary,
+      iotaSignatories: iotaSignatories.filter((x) => x.name.trim()),
+      clauses: clauses.filter((c) => c.title.trim() || c.content.trim()),
+      letterTerms: letterTermsFrom(data),
+    }),
+    [client, totalSalary, iotaSignatories, clauses]
+  );
+
   const handlePreviewPDF = useCallback(() => {
-    const data = getValues();
-    setFormData({ ...data, totalSalary });
+    setFormData(toLetterOffer(getValues()));
     setPreviewOpen(true);
-  }, [getValues, totalSalary]);
+  }, [getValues, toLetterOffer]);
 
   const handleClosePreview = useCallback(() => {
     setPreviewOpen(false);
   }, []);
-
-  const handlePreviewHTML = useCallback(() => {
-    const data = getValues();
-    setFormData({ ...data, totalSalary });
-    setHtmlPreviewOpen(true);
-  }, [getValues, totalSalary]);
-
-  const handleCloseHTMLPreview = useCallback(() => {
-    setHtmlPreviewOpen(false);
-  }, []);
-
-  // Drag zone
-  useEffect(() => {
-    if (!draggingSigZone) return;
-    const onMove = (e) => {
-      sigZoneDragMovedRef.current = true;
-      if (!sigZonePreviewRef.current) return;
-      const rect = sigZonePreviewRef.current.getBoundingClientRect();
-      const x = e.touches ? e.touches[0].clientX : e.clientX;
-      const y = e.touches ? e.touches[0].clientY : e.clientY;
-      const xPct = ((x - rect.left) / rect.width) * 100 - 7;
-      const yPct = ((y - rect.top) / rect.height) * 100 - 3;
-      setSignatureZones((prev) =>
-        prev.map((z) =>
-          z.id === draggingSigZone
-            ? { ...z, xPct: Math.max(0, Math.min(86, xPct)), yPct: Math.max(0, Math.min(94, yPct)) }
-            : z
-        )
-      );
-    };
-    const onUp = () => {
-      setDraggingSigZone(null);
-      setTimeout(() => {
-        sigZoneDragMovedRef.current = false;
-      }, 0);
-    };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('touchmove', onMove);
-    window.addEventListener('mouseup', onUp);
-    window.addEventListener('touchend', onUp);
-    return () => {
-      window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('touchmove', onMove);
-      window.removeEventListener('mouseup', onUp);
-      window.removeEventListener('touchend', onUp);
-    };
-  }, [draggingSigZone]);
-
-  const handleLoadZonePreview = useCallback(() => {
-    const data = getValues();
-    const cal =
-      (parseFloat(data.basicSalary) || 0) +
-      (parseFloat(data.housingAllowance) || 0) +
-      (parseFloat(data.transportationAllowance) || 0) +
-      (parseFloat(data.otherAllowances) || 0);
-    setZonePreviewOffer({
-      contractNumber: 'Issued on save',
-      candidateName: data.employeeName || '',
-      passportNumber: data.passportNumber || null,
-      position: data.position || '',
-      department: data.department || '',
-      startDate: data.startDate || null,
-      probationPeriod: data.probationPeriod ? Number(data.probationPeriod) : null,
-      currency: data.currency || 'SAR',
-      basicSalary: parseFloat(data.basicSalary) || 0,
-      housingAllowance: parseFloat(data.housingAllowance) || 0,
-      transportationAllowance: parseFloat(data.transportationAllowance) || 0,
-      otherAllowances: parseFloat(data.otherAllowances) || 0,
-      totalSalary: cal,
-      workingHours: data.workingHours ? Number(data.workingHours) : null,
-      annualLeaveDays: data.annualLeaveDays ? Number(data.annualLeaveDays) : null,
-      noticePeriod: data.noticePeriod ? Number(data.noticePeriod) : null,
-      iotaSignatories: iotaSignatories.filter((s) => s.name.trim() && s.email.trim()),
-      clauses: clauses.filter((c) => c.title.trim() || c.content.trim()),
-      auditLog: [],
-    });
-    setShowHtmlZonePreview(true);
-  }, [getValues, iotaSignatories, clauses]);
-
-  const handleSigZonePreviewClick = useCallback(
-    (e) => {
-      if (sigZoneDragMovedRef.current) return;
-      if (!sigZonePreviewRef.current) return;
-      const rect = sigZonePreviewRef.current.getBoundingClientRect();
-      const xPct = ((e.clientX - rect.left) / rect.width) * 100 - 7;
-      const yPct = ((e.clientY - rect.top) / rect.height) * 100 - 3;
-      const validSignatories = iotaSignatories.filter((s) => s.name.trim() || s.email.trim());
-      const newZone = {
-        id: `zone-${Date.now()}`,
-        page: 1,
-        xPct: Math.max(0, Math.min(86, xPct)),
-        yPct: Math.max(0, Math.min(94, yPct)),
-        widthPct: 14,
-        heightPct: 6,
-        iotaSignatoryIndex: selectedZoneIsEmployee ? null : selectedSigZoneSignatory,
-        isEmployee: selectedZoneIsEmployee,
-        label: selectedZoneIsEmployee
-          ? 'Employee'
-          : validSignatories[selectedSigZoneSignatory]?.name ||
-            `Signatory ${selectedSigZoneSignatory + 1}`,
-      };
-      setSignatureZones((prev) => [...prev, newZone]);
-    },
-    [selectedSigZoneSignatory, selectedZoneIsEmployee, iotaSignatories]
-  );
 
   return (
     <DashboardContent>
@@ -722,11 +670,130 @@ export default function OfferManagementNewPage() {
                     <TextField
                       fullWidth
                       type="number"
-                      label="Probation Period (months)"
+                      label="Probation Period (days)"
                       {...register('probationPeriod')}
                       error={!!errors.probationPeriod}
                       helperText={errors.probationPeriod?.message}
                     />
+                  </Grid>
+                </Grid>
+              </Card>
+
+              {/* Offer letter terms */}
+              <Card sx={{ p: 3 }}>
+                <Typography variant="h6" sx={{ mb: 0.5 }}>
+                  Offer Letter Terms
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  The parts of the IOTA offer letter that differ per employee. Leave a field empty
+                  to leave it out of the letter.
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid size={{ xs: 12, md: 3 }}>
+                    <TextField
+                      fullWidth
+                      select
+                      label="Title"
+                      value={watch('terms.title') || 'Mr.'}
+                      {...register('terms.title')}
+                    >
+                      {TITLES.map((t) => (
+                        <MenuItem key={t} value={t}>
+                          {t}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 3 }}>
+                    <TextField fullWidth label="Grade" {...register('terms.grade')} />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Government ID (Iqama / National ID)"
+                      {...register('terms.governmentId')}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      fullWidth
+                      label="Reports to"
+                      placeholder="Default: the IOTA Delivery Manager responsible for the client's account"
+                      InputLabelProps={{ shrink: true }}
+                      {...register('terms.reportsTo')}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      fullWidth
+                      type="date"
+                      label="Offer valid until"
+                      InputLabelProps={{ shrink: true }}
+                      {...register('terms.offerValidUntil')}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12 }}>
+                    <TextField
+                      fullWidth
+                      multiline
+                      minRows={2}
+                      label="Duties (clause 1.5)"
+                      placeholder="e.g. L2/L3 support of the Customer's IBM software and infrastructure estate (as specified in the assignment statement of work)"
+                      InputLabelProps={{ shrink: true }}
+                      {...register('terms.duties')}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <TextField
+                      fullWidth
+                      label="Medical insurance class"
+                      {...register('terms.insuranceClass')}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label="Dependants covered"
+                      helperText="Insurance and air tickets; 0 for the employee only"
+                      {...register('terms.dependantsCovered')}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label={`Air ticket cap per person (${currency})`}
+                      helperText="0 leaves the air ticket clause out"
+                      {...register('terms.airTicketCap')}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label={`Training cost recovery (${currency})`}
+                      helperText="Repayable if they leave within 12 months; 0 leaves the clause out"
+                      {...register('terms.trainingCostRecovery')}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, md: 6 }}>
+                    <Stack>
+                      <FormControlLabel
+                        control={<Checkbox {...register('terms.eosIncludesAllowances')} />}
+                        label="End-of-service on basic + housing + transportation"
+                      />
+                      <FormControlLabel
+                        control={<Checkbox {...register('terms.dependantsIqamaCovered')} />}
+                        label="Company pays dependants' Iqama"
+                      />
+                      {client && !client.internal ? (
+                        <FormControlLabel
+                          control={<Checkbox {...register('terms.regulatedFinancialCustomer')} />}
+                          label="Client is a SAMA-regulated financial institution"
+                        />
+                      ) : null}
+                    </Stack>
                   </Grid>
                 </Grid>
               </Card>
@@ -895,190 +962,11 @@ export default function OfferManagementNewPage() {
                 </Stack>
               </Card>
 
-              {/* ── Signature Zone Placement ──────────────────────────── */}
               {letterSource === 'generated' && (
-                <Card sx={{ p: 3 }}>
-                  <Typography variant="h6" sx={{ mb: 0.5 }}>
-                    Signature Zone Placement
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Optional — click the document to mark where each party&apos;s signature should
-                    appear. First load a PDF preview, then click to place zones. Drag to reposition.
-                  </Typography>
-
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    startIcon={<Iconify icon="solar:refresh-bold" />}
-                    onClick={handleLoadZonePreview}
-                    sx={{ mb: 2 }}
-                  >
-                    {showHtmlZonePreview ? 'Refresh Preview' : 'Load Preview'}
-                  </Button>
-
-                  {showHtmlZonePreview && (
-                    <>
-                      {/* Signatory selector */}
-                      <Stack direction="row" spacing={1} sx={{ mb: 1.5 }} flexWrap="wrap">
-                        <Chip
-                          label="Employee"
-                          size="small"
-                          variant={selectedZoneIsEmployee ? 'filled' : 'outlined'}
-                          sx={{
-                            borderColor: EMP_ZONE_COLOR.border,
-                            color: selectedZoneIsEmployee ? 'common.white' : EMP_ZONE_COLOR.border,
-                            bgcolor: selectedZoneIsEmployee ? EMP_ZONE_COLOR.border : undefined,
-                          }}
-                          onClick={() => setSelectedZoneIsEmployee(true)}
-                        />
-                        {iotaSignatories
-                          .filter((s) => s.name.trim() || s.email.trim())
-                          .map((s, i) => (
-                            <Chip
-                              key={i}
-                              size="small"
-                              label={s.name || `Signatory ${i + 1}`}
-                              variant={
-                                !selectedZoneIsEmployee && selectedSigZoneSignatory === i
-                                  ? 'filled'
-                                  : 'outlined'
-                              }
-                              sx={{
-                                borderColor: SIG_ZONE_COLORS[i % SIG_ZONE_COLORS.length].border,
-                                color:
-                                  !selectedZoneIsEmployee && selectedSigZoneSignatory === i
-                                    ? 'common.white'
-                                    : SIG_ZONE_COLORS[i % SIG_ZONE_COLORS.length].border,
-                                bgcolor:
-                                  !selectedZoneIsEmployee && selectedSigZoneSignatory === i
-                                    ? SIG_ZONE_COLORS[i % SIG_ZONE_COLORS.length].border
-                                    : undefined,
-                              }}
-                              onClick={() => {
-                                setSelectedZoneIsEmployee(false);
-                                setSelectedSigZoneSignatory(i);
-                              }}
-                            />
-                          ))}
-                      </Stack>
-
-                      {/* Scrollable HTML template preview with zone overlays */}
-                      <Box
-                        sx={{
-                          width: '100%',
-                          maxHeight: 640,
-                          overflow: 'auto',
-                          border: '1px solid',
-                          borderColor: 'divider',
-                          borderRadius: 1,
-                          boxShadow: 2,
-                          bgcolor: 'grey.200',
-                          mb: 1,
-                        }}
-                      >
-                        <Box
-                          ref={sigZonePreviewRef}
-                          onClick={handleSigZonePreviewClick}
-                          sx={{ position: 'relative', cursor: 'crosshair' }}
-                        >
-                          <OfferLetterHtmlTemplate
-                            offer={zonePreviewOffer}
-                            showSignatures={false}
-                            showAuditTrail={false}
-                          />
-                          {signatureZones.map((zone) => {
-                            const isEmp = zone.isEmployee;
-                            const color = isEmp
-                              ? EMP_ZONE_COLOR
-                              : SIG_ZONE_COLORS[
-                                  (zone.iotaSignatoryIndex ?? 0) % SIG_ZONE_COLORS.length
-                                ];
-                            return (
-                              <Box
-                                key={zone.id}
-                                onMouseDown={(e) => {
-                                  e.stopPropagation();
-                                  sigZoneDragMovedRef.current = false;
-                                  setDraggingSigZone(zone.id);
-                                }}
-                                onTouchStart={(e) => {
-                                  e.stopPropagation();
-                                  sigZoneDragMovedRef.current = false;
-                                  setDraggingSigZone(zone.id);
-                                }}
-                                sx={{
-                                  position: 'absolute',
-                                  left: `${zone.xPct}%`,
-                                  top: `${zone.yPct}%`,
-                                  width: `${zone.widthPct}%`,
-                                  height: `${zone.heightPct}%`,
-                                  border: '2px dashed',
-                                  borderColor: color.border,
-                                  bgcolor: color.bg,
-                                  borderRadius: 0.5,
-                                  cursor: 'move',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  px: 0.5,
-                                }}
-                              >
-                                <Typography
-                                  variant="caption"
-                                  sx={{
-                                    fontSize: '0.55rem',
-                                    fontWeight: 700,
-                                    color: color.border,
-                                    overflow: 'hidden',
-                                    whiteSpace: 'nowrap',
-                                    textOverflow: 'ellipsis',
-                                  }}
-                                >
-                                  {zone.label}
-                                </Typography>
-                                <Tooltip title="Remove">
-                                  <IconButton
-                                    size="small"
-                                    sx={{ p: 0, minWidth: 0 }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSignatureZones((prev) =>
-                                        prev.filter((z) => z.id !== zone.id)
-                                      );
-                                    }}
-                                  >
-                                    <Iconify
-                                      icon="eva:close-fill"
-                                      width={12}
-                                      sx={{ color: color.border }}
-                                    />
-                                  </IconButton>
-                                </Tooltip>
-                              </Box>
-                            );
-                          })}
-                        </Box>
-                      </Box>
-
-                      {signatureZones.length > 0 && (
-                        <Stack
-                          direction="row"
-                          alignItems="center"
-                          justifyContent="space-between"
-                          sx={{ mt: 1 }}
-                        >
-                          <Typography variant="caption" color="text.secondary">
-                            {signatureZones.length} zone{signatureZones.length !== 1 ? 's' : ''}{' '}
-                            placed
-                          </Typography>
-                          <Button size="small" color="error" onClick={() => setSignatureZones([])}>
-                            Clear All
-                          </Button>
-                        </Stack>
-                      )}
-                    </>
-                  )}
-                </Card>
+                <Alert severity="info" icon={<Iconify icon="solar:pen-new-square-bold" />}>
+                  Signature zones are placed after approval, on the offer&apos;s page — on the
+                  actual pages of the letter that will be signed.
+                </Alert>
               )}
 
               {/* ── Additional Clauses ──────────────────────────────────── */}
@@ -1216,15 +1104,6 @@ export default function OfferManagementNewPage() {
                   >
                     Preview PDF
                   </Button>
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    color="secondary"
-                    startIcon={<Iconify icon="eva:monitor-fill" />}
-                    onClick={handlePreviewHTML}
-                  >
-                    View in Browser
-                  </Button>
                 </Stack>
 
                 <Stack direction="row" spacing={2}>
@@ -1258,8 +1137,8 @@ export default function OfferManagementNewPage() {
             <Typography variant="h6">Offer Letter Preview</Typography>
             {formData && (
               <PDFDownloadLink
-                document={<OfferLetterPDF data={formData} />}
-                fileName={`Offer_Letter_${formData.employeeName?.replace(/\s+/g, '_')}_draft.pdf`}
+                document={<OfferLetterPDF offer={formData} />}
+                fileName={`Offer_Letter_${formData.candidateName?.replace(/\s+/g, '_')}_draft.pdf`}
                 style={{ textDecoration: 'none' }}
               >
                 {({ loading: pdfLoading }) => (
@@ -1279,74 +1158,13 @@ export default function OfferManagementNewPage() {
           {formData && (
             <Box sx={{ height: '70vh', width: '100%' }}>
               <PDFViewer width="100%" height="100%">
-                <OfferLetterPDF data={formData} />
+                <OfferLetterPDF offer={formData} />
               </PDFViewer>
             </Box>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={handleClosePreview}>Close</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* HTML Preview Dialog */}
-      <Dialog open={htmlPreviewOpen} onClose={handleCloseHTMLPreview} maxWidth="lg" fullWidth>
-        <DialogTitle>
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography variant="h6">Offer Letter - Browser View</Typography>
-            <Button
-              variant="text"
-              startIcon={<Iconify icon="eva:printer-fill" />}
-              onClick={() => window.print()}
-            >
-              Print
-            </Button>
-          </Box>
-        </DialogTitle>
-        <DialogContent>
-          {formData && (
-            <Box sx={{ maxHeight: '70vh', overflow: 'auto' }}>
-              <OfferLetterHtmlTemplate
-                offer={{
-                  contractNumber: 'Issued on save',
-                  candidateName: formData.employeeName || '',
-                  candidateEmail: formData.candidateEmail || '',
-                  passportNumber: formData.passportNumber || null,
-                  dateOfBirth: formData.dateOfBirth || null,
-                  nationality: formData.nationality || null,
-                  position: formData.position || '',
-                  department: formData.department || '',
-                  contractType: formData.contractType || 'Limited',
-                  startDate: formData.startDate || null,
-                  contractDuration: formData.contractDuration
-                    ? Number(formData.contractDuration)
-                    : null,
-                  probationPeriod: formData.probationPeriod
-                    ? Number(formData.probationPeriod)
-                    : null,
-                  currency: formData.currency || 'SAR',
-                  basicSalary: Number(formData.basicSalary) || 0,
-                  housingAllowance: Number(formData.housingAllowance) || 0,
-                  transportationAllowance: Number(formData.transportationAllowance) || 0,
-                  otherAllowances: Number(formData.otherAllowances) || 0,
-                  totalSalary: formData.totalSalary || 0,
-                  workingHours: formData.workingHours ? Number(formData.workingHours) : null,
-                  annualLeaveDays: formData.annualLeaveDays
-                    ? Number(formData.annualLeaveDays)
-                    : null,
-                  noticePeriod: formData.noticePeriod ? Number(formData.noticePeriod) : null,
-                  iotaSignatories: iotaSignatories.filter((s) => s.name.trim() && s.email.trim()),
-                  clauses: clauses.filter((c) => c.title.trim() || c.content.trim()),
-                  auditLog: [],
-                }}
-                showSignatures={false}
-                showAuditTrail={false}
-              />
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseHTMLPreview}>Close</Button>
         </DialogActions>
       </Dialog>
     </DashboardContent>
