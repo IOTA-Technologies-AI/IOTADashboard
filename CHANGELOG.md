@@ -25,6 +25,13 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Consent registers: date range, filter chips and expandable rows.** Filter
+  by when consent was given (last 7 / 30 days, 3 months, this year, or a
+  custom range); narrow leads by purpose and applicants by how consent was
+  given (ticked, careers form, confirmed by staff, not recorded). Open a row
+  to see the exact words agreed to, the privacy notice, where it was given,
+  and who withdrew it and why. Export CSV follows the same filters and now
+  includes who withdrew and the withdrawal note.
 - **Retention never deletes on the spot: a review queue and an undo window.**
   - Each rule has an action: **Only list**, **Flag for review** (HR keeps or
     deletes each record) or **Delete**. Defaults: withdrawals and records with
@@ -664,6 +671,9 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **The "Stop emails from IOTA" link no longer shows an error.** It
+  recorded the withdrawal but then failed writing the lead's history (the
+  history requires an actor), so the person saw "Something went wrong".
 - **Publishing a job now updates iotatechnologies.ai.** The site was
   published to the webflow.io subdomain only; it now publishes once to every
   custom domain (iotatechnologies.ai, www, careers). Saving an edit with

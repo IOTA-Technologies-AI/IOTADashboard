@@ -102,11 +102,11 @@ export async function runRetention() {
 }
 
 /** Every record matching the filters (up to 10,000), for export. */
-export async function fetchAllConsentRecords({ kind, status, search }) {
+export async function fetchAllConsentRecords(filters) {
   const all = [];
   for (let page = 0; page < 100; page += 1) {
     const res = await iotaApi.get('/consents/records', {
-      params: { kind, status, search, page, limit: 100 },
+      params: { ...filters, page, limit: 100 },
     });
     const { records = [], total = 0 } = res.data ?? {};
     all.push(...records);

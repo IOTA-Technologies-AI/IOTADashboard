@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { useDebounce } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
@@ -11,12 +11,14 @@ import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
+import Collapse from '@mui/material/Collapse';
 import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
 import TableHead from '@mui/material/TableHead';
 import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import InputAdornment from '@mui/material/InputAdornment';
@@ -44,6 +46,8 @@ import { ConfirmDialog } from 'src/components/custom-dialog';
 import { useAuthContext } from 'src/auth/hooks';
 
 import { LEAD_SOURCE } from '../leads/lead-labels';
+import { ConsentRecordDetail } from './consent-record-detail';
+import { CHIPS, rangeParams, ConsentRegisterFilters } from './consent-register-filters';
 import {
   APPLICATION_SOURCE,
   CONSENT_METHOD as METHOD,
@@ -101,11 +105,20 @@ export function ConsentRecordsTab({ kind }) {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const debounced = useDebounce(search, 400);
+  const [filters, setFilters] = useState({ range: 'all', from: '', to: '', chip: '' });
+  const [openId, setOpenId] = useState(null);
 
-  const { records, total, error, loading } = useConsentRecords({
+  // The same filters drive the list and the export.
+  const query = {
     kind,
     status,
     search: debounced || undefined,
+    ...rangeParams(filters.range, filters),
+    ...(filters.chip && CHIPS[kind] ? { [CHIPS[kind].param]: filters.chip } : {}),
+  };
+
+  const { records, total, error, loading } = useConsentRecords({
+    ...query,
     page,
     limit: rowsPerPage,
   });
@@ -117,7 +130,7 @@ export function ConsentRecordsTab({ kind }) {
   const exportCsv = async () => {
     setExporting(true);
     try {
-      const rows = await fetchAllConsentRecords({ kind, status, search: debounced || undefined });
+      const rows = await fetchAllConsentRecords(query);
       const header = [
         'Given',
         'Name',
@@ -130,6 +143,8 @@ export function ConsentRecordsTab({ kind }) {
         'Wording',
         'Status',
         'Withdrawn',
+        'Withdrawn by',
+        'Withdrawal note',
         'Notes',
       ];
       const cell = (v) => {
@@ -149,6 +164,8 @@ export function ConsentRecordsTab({ kind }) {
           r.textVersion ? textOfVersion(wording, r.textVersion)?.text || '' : '',
           STATUS[r.status]?.label || r.status,
           r.withdrawnAt || '',
+          r.withdrawnBy || '',
+          r.withdrawalNote || '',
           (r.notes || []).join('; '),
         ]
           .map(cell)
@@ -243,6 +260,14 @@ export function ConsentRecordsTab({ kind }) {
             Export CSV
           </LoadingButton>
         </Stack>
+        <ConsentRegisterFilters
+          kind={kind}
+          value={filters}
+          onChange={(v) => {
+            setFilters(v);
+            setPage(0);
+          }}
+        />
       </Stack>
 
       {loading ? <LinearProgress /> : null}
@@ -262,6 +287,7 @@ export function ConsentRecordsTab({ kind }) {
             <Table size="small" sx={{ minWidth: 1000 }}>
               <TableHead>
                 <TableRow>
+                  <TableCell padding="checkbox" />
                   <TableCell>Given</TableCell>
                   <TableCell>Person</TableCell>
                   <TableCell>Purpose</TableCell>
@@ -276,69 +302,82 @@ export function ConsentRecordsTab({ kind }) {
                 {records.map((r) => {
                   const purpose = PURPOSE[r.purpose];
                   const st = STATUS[r.status];
+                  const open = openId === r.id;
                   return (
-                    <TableRow key={r.id} hover sx={{ verticalAlign: 'top' }}>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                        {r.capturedAt ? fDateTime(r.capturedAt) : '—'}
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">{r.name || '—'}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {r.email}
-                        </Typography>
-                        {r.notes.map((n) => (
-                          <Typography
-                            key={n}
-                            variant="caption"
-                            color="text.disabled"
-                            sx={{ display: 'block' }}
+                    <Fragment key={r.id}>
+                      <TableRow
+                        hover
+                        onClick={() => setOpenId(open ? null : r.id)}
+                        sx={{
+                          verticalAlign: 'top',
+                          cursor: 'pointer',
+                          '& > td': { borderBottom: open ? 'none' : undefined },
+                        }}
+                      >
+                        <TableCell padding="checkbox">
+                          <IconButton
+                            size="small"
+                            aria-label={open ? 'Hide consent details' : 'Show consent details'}
+                            aria-expanded={open}
                           >
-                            {n}
+                            <Iconify
+                              icon={
+                                open ? 'eva:arrow-ios-downward-fill' : 'eva:arrow-ios-forward-fill'
+                              }
+                            />
+                          </IconButton>
+                        </TableCell>
+                        <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                          {r.capturedAt ? fDateTime(r.capturedAt) : '—'}
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">{r.name || '—'}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {r.email}
                           </Typography>
-                        ))}
-                      </TableCell>
-                      <TableCell>
-                        <Tooltip title={purpose?.hint || ''}>
-                          <span>{purpose?.label || r.purpose}</span>
-                        </Tooltip>
-                      </TableCell>
-                      <TableCell>{r.method ? METHOD[r.method] || r.method : '—'}</TableCell>
-                      <TableCell sx={{ maxWidth: 220 }}>
-                        <SourceCell record={r} />
-                      </TableCell>
-                      <TableCell>
-                        <Typography variant="body2">{r.noticeVersion || '—'}</Typography>
-                        {r.textVersion ? (
-                          <Tooltip
-                            title={textOfVersion(wording, r.textVersion)?.text || r.textVersion}
-                          >
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                              sx={{ textDecoration: 'underline dotted', cursor: 'help' }}
-                            >
+                        </TableCell>
+                        <TableCell>
+                          <Tooltip title={purpose?.hint || ''}>
+                            <span>{purpose?.label || r.purpose}</span>
+                          </Tooltip>
+                        </TableCell>
+                        <TableCell>{r.method ? METHOD[r.method] || r.method : '—'}</TableCell>
+                        <TableCell sx={{ maxWidth: 220 }}>
+                          <SourceCell record={r} />
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2">{r.noticeVersion || '—'}</Typography>
+                          {r.textVersion ? (
+                            <Typography variant="caption" color="text.secondary">
                               {r.textVersion}
                             </Typography>
-                          </Tooltip>
-                        ) : null}
-                      </TableCell>
-                      <TableCell>
-                        <Label color={st?.color}>
-                          {r.status === 'withdrawn' && r.withdrawnAt
-                            ? `Withdrawn ${fDate(r.withdrawnAt)}`
-                            : st?.label}
-                        </Label>
-                      </TableCell>
-                      {isAdmin ? (
-                        <TableCell align="right">
-                          {r.status === 'withdrawn' ? null : (
-                            <Button size="small" color="error" onClick={() => setWithdrawing(r)}>
-                              Withdraw
-                            </Button>
-                          )}
+                          ) : null}
                         </TableCell>
-                      ) : null}
-                    </TableRow>
+                        <TableCell>
+                          <Label color={st?.color}>
+                            {r.status === 'withdrawn' && r.withdrawnAt
+                              ? `Withdrawn ${fDate(r.withdrawnAt)}`
+                              : st?.label}
+                          </Label>
+                        </TableCell>
+                        {isAdmin ? (
+                          <TableCell align="right" onClick={(e) => e.stopPropagation()}>
+                            {r.status === 'withdrawn' ? null : (
+                              <Button size="small" color="error" onClick={() => setWithdrawing(r)}>
+                                Withdraw
+                              </Button>
+                            )}
+                          </TableCell>
+                        ) : null}
+                      </TableRow>
+                      <TableRow>
+                        <TableCell colSpan={isAdmin ? 9 : 8} sx={{ p: 0 }}>
+                          <Collapse in={open} unmountOnExit>
+                            <ConsentRecordDetail record={r} wording={wording} />
+                          </Collapse>
+                        </TableCell>
+                      </TableRow>
+                    </Fragment>
                   );
                 })}
               </TableBody>

@@ -152,6 +152,14 @@ export function ConsentPanel({ kind, subjectId, card = true, sx }) {
             </Typography>
           ))}
 
+          {record.withdrawnAt && (record.withdrawnBy || record.withdrawalNote) ? (
+            <Typography variant="caption" color="error.main">
+              Withdrawn {fDateTime(record.withdrawnAt)}
+              {record.withdrawnBy ? ` by ${record.withdrawnBy}` : ''}
+              {record.withdrawalNote ? ` — ${record.withdrawalNote}` : ''}
+            </Typography>
+          ) : null}
+
           <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
             <Link
               href={paths.dashboard.integration.consents}
