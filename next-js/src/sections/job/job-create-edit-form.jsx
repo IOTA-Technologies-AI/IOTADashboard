@@ -33,6 +33,7 @@ import {
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { celebrate } from 'src/components/success-moment';
 import { Form, Field, schemaUtils } from 'src/components/hook-form';
 
 import { useAuthContext } from 'src/auth/hooks';
@@ -299,7 +300,12 @@ export function JobCreateEditForm({ currentJob }) {
       }
 
       // Job is now pending approval - admins will be notified via email
-      toast.success('Job submitted for approval! Admins have been notified.');
+      celebrate({
+        kind: 'submitted',
+        chip: 'Sent for approval',
+        title: 'Job submitted for approval',
+        description: 'Admins have been notified.',
+      });
 
       reset();
       router.push(paths.dashboard.job.root);

@@ -29,6 +29,8 @@ import {
   submitCandidateIntakeForm,
 } from 'src/utils/apiHelper';
 
+import { celebrate } from 'src/components/success-moment';
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STEPS = [
@@ -987,6 +989,11 @@ export default function CandidateIntakePage() {
 
       await submitCandidateIntakeForm(token, sessionToken, data);
       setSubmitted(true);
+      celebrate({
+        kind: 'submitted',
+        title: 'Your details are submitted',
+        description: 'Thank you. IOTA HR will review them and be in touch.',
+      });
     } catch (e) {
       setSubmitError(
         e?.response?.data?.message || e?.message || 'Submission failed. Please try again.'

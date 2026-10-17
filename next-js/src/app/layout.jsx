@@ -13,6 +13,7 @@ import { Snackbar } from 'src/components/snackbar';
 import { ProgressBar } from 'src/components/progress-bar';
 import { MotionLazy } from 'src/components/animate/motion-lazy';
 import { detectSettings } from 'src/components/settings/server';
+import { SuccessMomentHost } from 'src/components/success-moment';
 import { DeploymentNotification } from 'src/components/deployment-notification';
 import { SettingsDrawer, defaultSettings, SettingsProvider } from 'src/components/settings';
 
@@ -94,6 +95,7 @@ export default async function RootLayout({ children }) {
                     <MotionLazy>
                       <CheckoutProvider>
                         <Snackbar />
+                        <SuccessMomentHost />
                         <ProgressBar />
                         <SettingsDrawer defaultSettings={defaultSettings} />
                         <DeploymentNotification />

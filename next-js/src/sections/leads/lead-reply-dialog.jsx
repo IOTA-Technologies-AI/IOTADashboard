@@ -18,6 +18,7 @@ import { apiMessage, sendLeadReply, getLeadReplyDraft } from 'src/actions/leads'
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { celebrate } from 'src/components/success-moment';
 
 // ----------------------------------------------------------------------
 
@@ -55,7 +56,12 @@ export function LeadReplyDialog({ leadId, onClose, onSent }) {
     setSending(true);
     try {
       const res = await sendLeadReply(leadId, { subject, body });
-      toast.success(`Reply sent to ${draft.to}.`);
+      celebrate({
+        kind: 'sent',
+        chip: 'Reply sent',
+        title: `Reply sent to ${draft.to}`,
+        description: `Their answer comes back to ${draft.replyTo}.`,
+      });
       onSent?.(res);
       onClose();
     } catch (err) {

@@ -1,25 +1,24 @@
 'use client';
 
-import { use, useState, useEffect, useMemo, useRef } from 'react';
+import { use, useRef, useMemo, useState, useEffect } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
-import Chip from '@mui/material/Chip';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Divider from '@mui/material/Divider';
 import Checkbox from '@mui/material/Checkbox';
-import IconButton from '@mui/material/IconButton';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { getNdaByToken, partnerSignNda, requestNdaOtp, verifyNdaOtp } from 'src/utils/apiHelper';
+import { verifyNdaOtp, getNdaByToken, requestNdaOtp, partnerSignNda } from 'src/utils/apiHelper';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { celebrate } from 'src/components/success-moment';
 import { NdaHtmlTemplate, NdaSignatureCanvas } from 'src/components/nda';
 
 function getDocumentExtension(fileName = '') {
@@ -88,11 +87,12 @@ export default function PartnerNdaSignPage({ params }) {
   }, [nda?.documentSource, nda?.uploadedDocumentBase64, nda?.uploadedDocumentName, isUploadedPdf]);
 
   // Revoke blob URL on unmount / change
-  useEffect(() => {
-    return () => {
+  useEffect(
+    () => () => {
       if (uploadedDocBlobUrl) URL.revokeObjectURL(uploadedDocBlobUrl);
-    };
-  }, [uploadedDocBlobUrl]);
+    },
+    [uploadedDocBlobUrl]
+  );
 
   // Find this signatory's index in partnerSignatories
   const signatoryIndex = useMemo(() => {
@@ -134,7 +134,7 @@ export default function PartnerNdaSignPage({ params }) {
     return () => {
       cancelled = true;
     };
-  }, [uploadedDocBlobUrl, myZones.length]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [uploadedDocBlobUrl, myZones.length]);
 
   // Render zone preview canvas
   useEffect(() => {
@@ -194,7 +194,7 @@ export default function PartnerNdaSignPage({ params }) {
       }
     };
     fetchData();
-  }, [token]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [token]);
 
   const handleSign = async () => {
     if (!signatureData) {
@@ -219,6 +219,13 @@ export default function PartnerNdaSignPage({ params }) {
       const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
       await partnerSignNda(token, signatureData, ipAddress, sessionToken || null, ua);
       setDone(true);
+      celebrate({
+        kind: 'signed',
+        chip: 'Signed',
+        documentId: nda?.ndaNumber,
+        title: 'The NDA is signed',
+        description: 'Thank you. You will receive the countersigned copy by email.',
+      });
     } catch (err) {
       console.error(err);
       const msg = err?.response?.data?.message || 'Failed to submit signature. Please try again.';

@@ -15,6 +15,7 @@ import { publishToWebflow } from 'src/actions/webflow';
 import { deleteJob, rejectJob, approveJob } from 'src/actions/jobs';
 
 import { toast } from 'src/components/snackbar';
+import { celebrate } from 'src/components/success-moment';
 import { ConfirmDialog } from 'src/components/custom-dialog';
 
 import { useAuthContext } from 'src/auth/hooks';
@@ -73,7 +74,12 @@ export function JobList({ jobs: initialJobs }) {
       setJobs((prev) =>
         prev.map((job) => (job.id === approveId ? { ...job, status: 'published' } : job))
       );
-      toast.success('Job approved and published to Webflow!');
+      celebrate({
+        kind: 'sent',
+        chip: 'Published',
+        title: 'Job approved and published',
+        description: 'It is live on the careers page.',
+      });
     } catch (error) {
       console.error('Failed to approve job:', error);
       toast.error('Failed to approve job');

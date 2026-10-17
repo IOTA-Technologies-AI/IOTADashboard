@@ -19,6 +19,7 @@ import { getEmployees, createReimbursementRequest } from 'src/utils/apiHelper';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
+import { celebrate } from 'src/components/success-moment';
 
 const REIMBURSEMENT_CATEGORIES = [
   'Travel',
@@ -69,7 +70,11 @@ export function ReimbursementRequestForm() {
   const onSubmit = handleSubmit(async (data) => {
     try {
       await createReimbursementRequest(data);
-      toast.success('Reimbursement request submitted!');
+      celebrate({
+        kind: 'submitted',
+        title: 'Reimbursement request submitted',
+        description: 'HR will review it and let you know.',
+      });
       router.push(paths.dashboard.hr.employeeRequests.reimbursement.root);
     } catch {
       toast.error('Something went wrong.');

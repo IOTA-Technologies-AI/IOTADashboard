@@ -31,6 +31,7 @@ import {
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { celebrate } from 'src/components/success-moment';
 
 // ----------------------------------------------------------------------
 
@@ -281,7 +282,11 @@ export function NdaReviewEmailDialog({
           attachment ? { attachmentBase64: attachment.base64, attachmentName: attachment.name } : {}
         )
       );
-      toast.success(`Review emailed to ${to.length + cc.length} recipient(s).`);
+      celebrate({
+        kind: 'sent',
+        chip: 'Review sent',
+        title: `Review emailed to ${to.length + cc.length} recipient${to.length + cc.length === 1 ? '' : 's'}`,
+      });
       onClose(true);
     } catch (err) {
       toast.error(message(err, 'The email could not be sent.'));

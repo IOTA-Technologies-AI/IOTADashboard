@@ -41,6 +41,7 @@ import {
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { celebrate } from 'src/components/success-moment';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 import { OnboardingActivity } from '../onboarding-activity';
@@ -131,7 +132,12 @@ function SendLinkDialog({ open, onClose, onSent, employees }) {
           }
         : { employeeId: employee.id, email: email.trim() };
       await generateOnboardingLink({ ...payload, expiresInHours, notes });
-      toast.success(`Onboarding link sent to ${email.trim()}`);
+      celebrate({
+        kind: 'sent',
+        chip: 'Link sent',
+        title: `Onboarding link sent to ${email.trim()}`,
+        description: 'They verify their email with a code, then fill in the form.',
+      });
       onSent();
       handleClose();
     } catch (e) {

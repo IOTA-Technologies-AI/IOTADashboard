@@ -1,12 +1,11 @@
 'use client';
 
 import { z } from 'zod';
-import { useState, useEffect, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { useRouter } from 'next/navigation';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useState, useEffect, useCallback } from 'react';
 
-import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Chip from '@mui/material/Chip';
@@ -18,10 +17,9 @@ import Dialog from '@mui/material/Dialog';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import Snackbar from '@mui/material/Snackbar';
-import IconButton from '@mui/material/IconButton';
-import DialogTitle from '@mui/material/DialogTitle';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
+import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
@@ -30,16 +28,18 @@ import { paths } from 'src/routes/paths';
 
 import {
   listCandidateIntakeTokens,
+  revokeCandidateIntakeToken,
   generateCandidateIntakeToken,
   listCandidateIntakeSubmissions,
-  revokeCandidateIntakeToken,
 } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
+
+import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { Form, Field } from 'src/components/hook-form';
+import { celebrate } from 'src/components/success-moment';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
-import { toast } from 'src/components/snackbar';
 
 // ─── Schema ───────────────────────────────────────────────────────────────────
 
@@ -105,7 +105,12 @@ function GenerateLinkDialog({ open, onClose, onGenerated, createdBy }) {
   const onSubmit = async (values) => {
     try {
       const res = await generateCandidateIntakeToken({ ...values, createdBy });
-      toast.success(`Link generated and sent to ${values.candidateEmail}`);
+      celebrate({
+        kind: 'sent',
+        chip: 'Link sent',
+        title: `Intake link sent to ${values.candidateEmail}`,
+        description: 'They verify their email with a code, then fill in the form.',
+      });
       onGenerated(res);
       handleClose();
     } catch (e) {

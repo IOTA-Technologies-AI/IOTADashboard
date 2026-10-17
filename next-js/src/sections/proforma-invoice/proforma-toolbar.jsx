@@ -19,6 +19,7 @@ import { dispatchProformaInvoice } from 'src/utils/apiHelper';
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { celebrate } from 'src/components/success-moment';
 
 // ----------------------------------------------------------------------
 
@@ -75,7 +76,11 @@ export function ProformaToolbar({
         binary += String.fromCharCode(bytes[i]);
       }
       const result = await dispatchProformaInvoice(proforma.proformaId, btoa(binary));
-      toast.success(`Proforma dispatched to ${result.sentTo}.`);
+      celebrate({
+        kind: 'sent',
+        chip: 'Proforma sent',
+        title: `Proforma sent to ${result.sentTo}`,
+      });
       onRefresh?.();
     } catch (err) {
       console.error('[ProformaToolbar] Dispatch failed:', err);

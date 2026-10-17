@@ -20,6 +20,7 @@ import { useCanEditLockedRecord } from 'src/actions/admin-edit-mode';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { celebrate } from 'src/components/success-moment';
 
 import { useAuthContext } from 'src/auth/hooks';
 
@@ -97,7 +98,11 @@ export function InvoiceToolbar({
       }
       const pdfBase64 = btoa(binary);
       await issueInvoice(invoice?.invoiceId || invoice?.id, pdfBase64);
-      toast.success('Invoice issued and emailed to customer.');
+      celebrate({
+        kind: 'sent',
+        chip: 'Invoice issued',
+        title: 'Invoice issued and emailed to the customer',
+      });
       onRefresh?.();
     } catch (err) {
       console.error('[InvoiceToolbar] Issue failed:', err);

@@ -25,6 +25,20 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **A "sent" / "signed" moment wherever something leaves IOTA or is completed.**
+  Adapted from Docusign's "Sending an envelope" flow on Mobbin and rebuilt in
+  IOTA's style: the letter prepares, paper planes take off along drawn trails
+  (or a signature draws itself), and a clear "Sent" / "Signed" state lands with
+  what happens next. It replaces the plain toast at: offers (sent for IOTA
+  signatures, fully approved, sent to the employee, filed), NDAs (sent for
+  signatures, sent to the partner, finalized, review emailed), lead replies,
+  invoices (issued and emailed, employee-billing invoices sent), proformas,
+  payslips, job publishing and job approval requests, candidate intake and
+  onboarding links, HR self-service requests and salary increments, and the
+  public pages where an employee signs an offer, a partner signs an NDA, or a
+  candidate or new hire submits a form. People with reduced motion turned on
+  see the final state only. One component, `celebrate()`, mounted once in the
+  root layout.
 - **One offer letter for every employee: the IOTA Employee Offer Letter
   (October 2026), in IBM Plex Sans Condensed.** The letter that is previewed,
   shown to the employee, signed and filed is now the same PDF — cover letter,

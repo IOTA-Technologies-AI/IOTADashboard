@@ -19,6 +19,7 @@ import { base64ToBlobUrl, getOfferDocumentByToken } from 'src/actions/offer-docu
 
 import { Iconify } from 'src/components/iconify';
 import { NdaSignatureCanvas } from 'src/components/nda';
+import { celebrate } from 'src/components/success-moment';
 import { OfferLetterPDF } from 'src/components/offer-letter/offer-letter-pdf';
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -154,6 +155,13 @@ export default function SignOfferPage({ params }) {
       }
       await employeeSignOffer(token, signatureData, ipAddress);
       setSigned(true);
+      celebrate({
+        kind: 'signed',
+        chip: 'Signed',
+        documentId: offerData?.offer?.contractNumber,
+        title: 'Your offer letter is signed',
+        description: 'Thank you. IOTA Technologies will be in touch about your next steps.',
+      });
     } catch (err) {
       setError(
         err?.response?.data?.message ||
@@ -162,7 +170,7 @@ export default function SignOfferPage({ params }) {
     } finally {
       setSubmitting(false);
     }
-  }, [token, signatureData]);
+  }, [token, signatureData, offerData?.offer?.contractNumber]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 

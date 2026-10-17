@@ -17,6 +17,7 @@ import { updateJob, syncJobToWebflow, getJobApplications } from 'src/actions/job
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { celebrate } from 'src/components/success-moment';
 
 import { JobApplyDialog } from '../job-apply-dialog';
 import { JobApplications } from '../job-applications';
@@ -79,7 +80,16 @@ export function JobDetailsView({ job: apiJob }) {
       if (apiJob?.id) {
         try {
           await updateJob(apiJob.id, { status: newValue });
-          toast.success(`Job ${newValue === 'published' ? 'published' : 'saved as draft'}`);
+          if (newValue === 'published') {
+            celebrate({
+              kind: 'sent',
+              chip: 'Published',
+              title: 'Job published to the website',
+              description: 'It is live on the careers page.',
+            });
+          } else {
+            toast.success('Job saved as draft');
+          }
         } catch (error) {
           console.error('Failed to update job status:', error);
           toast.error('Failed to update job status');

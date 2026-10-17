@@ -29,6 +29,8 @@ import {
   submitOnboardingForm,
 } from 'src/actions/employee-onboarding';
 
+import { celebrate } from 'src/components/success-moment';
+
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const STEPS = [
@@ -1469,6 +1471,11 @@ export function OnboardingPublicForm() {
     try {
       await submitOnboardingForm(token, sessionToken, cleanFormData(formData), clientInfo());
       setSubmitted(true);
+      celebrate({
+        kind: 'submitted',
+        title: 'Your onboarding form is submitted',
+        description: 'Thank you. IOTA HR will review it and be in touch.',
+      });
     } catch (e) {
       if (e?.response?.status === 401) {
         resumeStepRef.current = STEPS.length - 1;

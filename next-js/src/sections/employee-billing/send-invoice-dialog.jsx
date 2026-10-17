@@ -16,6 +16,7 @@ import { fCurrency } from 'src/utils/format-number';
 import { sendBillingInvoice } from 'src/actions/employee-billing';
 
 import { toast } from 'src/components/snackbar';
+import { celebrate } from 'src/components/success-moment';
 
 import { periodLabel } from './utils/stages';
 import { blobToBase64, renderInvoicePdfBlob } from './utils/build-invoice-for-pdf';
@@ -72,7 +73,12 @@ export function SendInvoiceDialog({ open, onClose, invoice, onDone }) {
         ...(cc.trim() ? { cc: cc.trim() } : {}),
         ...(message.trim() ? { message: message.trim() } : {}),
       });
-      toast.success(`${invoice.invoiceNumber} sent to ${to.trim()}`);
+      celebrate({
+        kind: 'sent',
+        chip: 'Invoice sent',
+        documentId: invoice.invoiceNumber,
+        title: `${invoice.invoiceNumber} sent to ${to.trim()}`,
+      });
       onDone?.(updated);
       onClose();
     } catch (e) {

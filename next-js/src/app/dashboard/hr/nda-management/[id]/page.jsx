@@ -55,6 +55,7 @@ import { ndaSigningBlockedReason } from 'src/actions/nda-review';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { celebrate } from 'src/components/success-moment';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { NdaPdfDocument, NdaHtmlTemplate, NdaSignatureCanvas } from 'src/components/nda';
 
@@ -490,7 +491,13 @@ export default function NdaDetailsPage({ params }) {
       setActionLoading(true);
       const updated = await submitNdaForIotaSigning(id, userEmail);
       setNda(updated);
-      toast.success('NDA submitted for IOTA signatures. Signatories have been emailed.');
+      celebrate({
+        kind: 'sent',
+        chip: 'Sent for signing',
+        documentId: nda?.ndaNumber,
+        title: 'NDA sent for IOTA signatures',
+        description: 'Signatories have been emailed.',
+      });
     } catch (err) {
       console.error(err);
       toast.error(err?.response?.data?.message || 'Failed to submit for signing');
@@ -578,7 +585,13 @@ export default function NdaDetailsPage({ params }) {
       setNda(updated);
       setSignatureData('');
       if (updated.status === 'pending_partner_signatures') {
-        toast.success('All IOTA signatures collected. Partner signatories have been emailed.');
+        celebrate({
+          kind: 'sent',
+          chip: 'Sent to partner',
+          documentId: nda?.ndaNumber,
+          title: `NDA sent to ${nda?.partnerCompanyName || 'the partner'}`,
+          description: 'All IOTA signatures are in. Partner signatories have been emailed.',
+        });
       } else {
         toast.success('Your signature has been recorded.');
       }
@@ -677,7 +690,13 @@ export default function NdaDetailsPage({ params }) {
 
       const updated = await finalizeNda(id, fileBase64);
       setNda(updated);
-      toast.success('NDA finalized and uploaded to OneDrive.');
+      celebrate({
+        kind: 'signed',
+        chip: 'Signed by all parties',
+        documentId: nda?.ndaNumber,
+        title: 'NDA finalized',
+        description: 'The signed copy is filed to OneDrive.',
+      });
     } catch (err) {
       console.error(err);
       toast.error(

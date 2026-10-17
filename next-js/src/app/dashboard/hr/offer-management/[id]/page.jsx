@@ -48,6 +48,7 @@ import {
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { NdaSignatureCanvas } from 'src/components/nda';
+import { celebrate } from 'src/components/success-moment';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { OfferLetterPDF } from 'src/components/offer-letter/offer-letter-pdf';
 
@@ -399,7 +400,13 @@ export default function OfferManagementDetailsPage({ params }) {
       setApproveOpen(false);
       setApproveComment('');
       if (offer?.currentApprovalStage === 'superAdmin') {
-        toast.success('Offer fully approved! Offer letter has been sent to the candidate.');
+        celebrate({
+          kind: 'sent',
+          chip: 'Approved',
+          documentId: offer?.contractNumber,
+          title: 'Offer fully approved',
+          description: 'The offer letter has been sent to the candidate.',
+        });
       } else {
         toast.success('Approved and forwarded to next reviewer.');
       }
@@ -408,7 +415,7 @@ export default function OfferManagementDetailsPage({ params }) {
     } finally {
       setActionLoading(false);
     }
-  }, [id, user, approveComment, offer?.currentApprovalStage]);
+  }, [id, user, approveComment, offer?.currentApprovalStage, offer?.contractNumber]);
 
   const handleReject = useCallback(async () => {
     if (!rejectReason.trim()) {
@@ -460,7 +467,13 @@ export default function OfferManagementDetailsPage({ params }) {
       setOffer(updated);
       setSendForSigningOpen(false);
       setNewIotaSignatories([{ name: '', email: '', title: '' }]);
-      toast.success('Offer sent for IOTA signatures. First signatory has been emailed.');
+      celebrate({
+        kind: 'sent',
+        chip: 'Sent for signing',
+        documentId: offer?.contractNumber,
+        title: 'Offer sent for IOTA signatures',
+        description: 'The first signatory has been emailed.',
+      });
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to send for signing');
     } finally {
@@ -479,7 +492,13 @@ export default function OfferManagementDetailsPage({ params }) {
       setOffer(updated);
       setSignatureData('');
       if (updated.status === 'pending_employee_signature') {
-        toast.success('All IOTA signatures collected. Employee has been emailed.');
+        celebrate({
+          kind: 'sent',
+          chip: 'Sent for signature',
+          documentId: offer?.contractNumber,
+          title: `Offer sent to ${offer?.candidateName || 'the employee'}`,
+          description: "Signing link emailed. You'll be notified when they sign.",
+        });
       } else {
         toast.success('Your signature has been recorded.');
       }
@@ -589,7 +608,13 @@ export default function OfferManagementDetailsPage({ params }) {
       const fileBase64 = await buildProcessedPdf();
       const updated = await finalizeOffer(id, fileBase64);
       setOffer(updated);
-      toast.success('Offer letter uploaded to OneDrive successfully.');
+      celebrate({
+        kind: 'signed',
+        chip: 'Signed by all parties',
+        documentId: offer?.contractNumber,
+        title: 'Offer letter filed',
+        description: 'The signed letter is in OneDrive.',
+      });
     } catch (err) {
       console.error(err);
       toast.error(err?.response?.data?.message || 'Failed to finalize offer');

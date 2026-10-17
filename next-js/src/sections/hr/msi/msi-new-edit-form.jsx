@@ -25,6 +25,7 @@ import { getEmployees, createMsiRequest, updateMsiRequest } from 'src/utils/apiH
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
+import { celebrate } from 'src/components/success-moment';
 
 // ----------------------------------------------------------------------
 
@@ -183,7 +184,11 @@ export function MsiNewEditForm({ currentMsi }) {
           ...payload,
           employeeId: Number(data.employeeId),
         });
-        toast.success('Increment submitted for approval');
+        celebrate({
+          kind: 'submitted',
+          chip: 'Sent for approval',
+          title: 'Increment submitted for approval',
+        });
         router.push(paths.dashboard.hr.employee.finance.msi.details(created.id));
       }
     } catch (error) {

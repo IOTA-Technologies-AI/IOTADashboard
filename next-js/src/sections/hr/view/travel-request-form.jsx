@@ -22,6 +22,7 @@ import { getEmployees, uploadDocument, createTravelRequest } from 'src/utils/api
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { Form, Field } from 'src/components/hook-form';
+import { celebrate } from 'src/components/success-moment';
 
 const TRAVEL_REQUEST_TYPES = ['Annual Travel Ticket', 'Family Travel Ticket'];
 
@@ -84,7 +85,11 @@ export function TravelRequestForm() {
         setUploading(false);
       }
       await createTravelRequest({ ...data, attachmentUrl });
-      toast.success('Travel ticket request submitted!');
+      celebrate({
+        kind: 'submitted',
+        title: 'Travel ticket request submitted',
+        description: 'HR will review it and let you know.',
+      });
       router.push(paths.dashboard.hr.employeeRequests.travel.root);
     } catch {
       setUploading(false);

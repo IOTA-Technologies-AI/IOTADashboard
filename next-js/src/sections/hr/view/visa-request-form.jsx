@@ -19,6 +19,7 @@ import { getEmployees, createVisaRequest } from 'src/utils/apiHelper';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
+import { celebrate } from 'src/components/success-moment';
 
 const VISA_REQUEST_TYPES = [
   'New Iqama',
@@ -60,7 +61,11 @@ export function VisaRequestForm() {
   const onSubmit = handleSubmit(async (data) => {
     try {
       await createVisaRequest(data);
-      toast.success('Visa request submitted!');
+      celebrate({
+        kind: 'submitted',
+        title: 'Visa request submitted',
+        description: 'HR will review it and let you know.',
+      });
       router.push(paths.dashboard.hr.employeeRequests.visa.root);
     } catch {
       toast.error('Something went wrong.');

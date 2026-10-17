@@ -19,6 +19,7 @@ import { getEmployees, createServiceRequest } from 'src/utils/apiHelper';
 
 import { toast } from 'src/components/snackbar';
 import { Form, Field } from 'src/components/hook-form';
+import { celebrate } from 'src/components/success-moment';
 
 const SERVICE_REQUEST_TYPES = [
   'Salary Advance',
@@ -70,7 +71,11 @@ export function ServiceRequestForm() {
   const onSubmit = handleSubmit(async (data) => {
     try {
       await createServiceRequest(data);
-      toast.success('Service request submitted!');
+      celebrate({
+        kind: 'submitted',
+        title: 'Service request submitted',
+        description: 'HR will review it and let you know.',
+      });
       router.push(paths.dashboard.hr.employeeRequests.service.root);
     } catch {
       toast.error('Something went wrong.');

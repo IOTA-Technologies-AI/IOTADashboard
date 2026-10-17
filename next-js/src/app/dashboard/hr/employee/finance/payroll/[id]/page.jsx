@@ -49,6 +49,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { Label } from 'src/components/label';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { celebrate } from 'src/components/success-moment';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 import { manualDeductionRows } from 'src/sections/hr/payroll/payslip-document';
@@ -496,7 +497,12 @@ export default function PayrollDetailPage({ params }) {
       if (summary.failed || summary.skipped) {
         toast.warning(`Payslips: ${message}`);
       } else {
-        toast.success(`Payslips emailed — ${message}`);
+        celebrate({
+          kind: 'sent',
+          chip: 'Payslips sent',
+          title: 'Payslips emailed',
+          description: message,
+        });
       }
     } catch (error) {
       console.error('Failed to email payslips', error);
