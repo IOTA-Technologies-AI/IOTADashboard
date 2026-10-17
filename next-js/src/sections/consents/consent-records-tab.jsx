@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useDebounce } from 'minimal-shared/hooks';
 
+import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Link from '@mui/material/Link';
 import Alert from '@mui/material/Alert';
@@ -31,6 +32,7 @@ import {
   withdrawConsent,
   useConsentTexts,
   useConsentRecords,
+  fetchAllConsentRecords,
 } from 'src/actions/consents';
 
 import { Label } from 'src/components/label';
@@ -109,6 +111,66 @@ export function ConsentRecordsTab({ kind }) {
   });
 
   const { wording } = useConsentTexts(kind !== 'leads');
+  const [exporting, setExporting] = useState(false);
+
+  // The register as a CSV — for an access request or an auditor.
+  const exportCsv = async () => {
+    setExporting(true);
+    try {
+      const rows = await fetchAllConsentRecords({ kind, status, search: debounced || undefined });
+      const header = [
+        'Given',
+        'Name',
+        'Email',
+        'Purpose',
+        'How',
+        'Source',
+        'Notice version',
+        'Wording version',
+        'Wording',
+        'Status',
+        'Withdrawn',
+        'Notes',
+      ];
+      const cell = (v) => {
+        const t = String(v ?? '');
+        return /[",\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
+      };
+      const lines = rows.map((r) =>
+        [
+          r.capturedAt || '',
+          r.name || '',
+          r.email,
+          PURPOSE[r.purpose]?.label || r.purpose,
+          r.method ? METHOD[r.method] || r.method : '',
+          r.kind === 'applicants' ? APPLICATION_SOURCE[r.source] || r.source : r.source || '',
+          r.noticeVersion || '',
+          r.textVersion || '',
+          r.textVersion ? textOfVersion(wording, r.textVersion)?.text || '' : '',
+          STATUS[r.status]?.label || r.status,
+          r.withdrawnAt || '',
+          (r.notes || []).join('; '),
+        ]
+          .map(cell)
+          .join(',')
+      );
+      // BOM so Excel reads the Arabic and accented names correctly.
+      const blob = new Blob([`\ufeff${[header.join(','), ...lines].join('\r\n')}`], {
+        type: 'text/csv;charset=utf-8',
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `consents-${kind}-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${rows.length} record${rows.length === 1 ? '' : 's'}.`);
+    } catch (err) {
+      toast.error(apiMessage(err, 'The export failed.'));
+    } finally {
+      setExporting(false);
+    }
+  };
   const [withdrawing, setWithdrawing] = useState(null);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
@@ -169,6 +231,17 @@ export function ConsentRecordsTab({ kind }) {
             <MenuItem value="withdrawn">Withdrawn</MenuItem>
             {kind !== 'leads' ? <MenuItem value="missing">Not recorded</MenuItem> : null}
           </TextField>
+          <Box sx={{ flexGrow: 1 }} />
+          <LoadingButton
+            variant="outlined"
+            color="inherit"
+            loading={exporting}
+            disabled={!total}
+            startIcon={<Iconify icon="solar:download-minimalistic-bold" />}
+            onClick={exportCsv}
+          >
+            Export CSV
+          </LoadingButton>
         </Stack>
       </Stack>
 

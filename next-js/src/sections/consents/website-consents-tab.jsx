@@ -26,6 +26,8 @@ import { apiMessage, useWebsiteConsents } from 'src/actions/consents';
 import { Label } from 'src/components/label';
 import { EmptyContent } from 'src/components/empty-content';
 
+import { ConsentDailyChart } from './consent-daily-chart';
+
 // ----------------------------------------------------------------------
 
 const CHOICE = {
@@ -143,6 +145,8 @@ export function WebsiteConsentsTab() {
               caption="Accepted all ÷ choices"
             />
           </Box>
+
+          <ConsentDailyChart month={data.month} byDay={s.byDay} />
 
           <Card>
             <CardHeader title="By site" />

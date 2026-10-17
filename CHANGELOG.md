@@ -25,6 +25,30 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Retention never deletes on the spot: a review queue and an undo window.**
+  - Each rule has an action: **Only list**, **Flag for review** (HR keeps or
+    deletes each record) or **Delete**. Defaults: withdrawals and records with
+    no personal decision are deleted; a person's enquiry, application or
+    intake form is flagged.
+  - Everything due is **queued** first. A deletion waits out an **undo
+    window** (7 days by default, 1–30) and anyone can **Keep** it in that
+    time; a record that stops being due meanwhile (a lead converts, an
+    applicant is hired) is dropped from the queue, not deleted.
+  - Integrations → Consents → Retention shows the queue — Needs review,
+    Waiting for deletion (with the date), Kept (with Release).
+  - Needs `sql/20261017_retention_queue.sql` (API repo) after
+    `20261014_privacy_retention.sql`.
+- **Consents and Retention, reworked after comparing shipped products on Mobbin.**
+  - Website visitors: a **choices-per-day chart** (accepted vs essential), with
+    a table view of the same numbers.
+  - Every consent register: **Export CSV** of all records matching the
+    filters, including the exact consent wording — for access requests and
+    audits.
+  - Retention: open a rule to **see who it would delete** right under it;
+    turning retention on or running it now shows the record count and the
+    first run's date and asks you to **type DELETE**; people who can't edit
+    see a plain "How long is personal data kept?" summary instead of a greyed
+    form.
 - **Jobs post to the website in the careers house format.**
   - **Job ID** (e.g. IOTA-ENG-006) is required in the job form, unique, and
     sent to the posting's Job ID; a job without one is not published.

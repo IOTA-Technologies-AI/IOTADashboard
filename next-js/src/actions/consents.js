@@ -91,11 +91,47 @@ export function useRetentionDue(rule) {
 export async function saveRetention(config) {
   const res = await iotaApi.put('/privacy/retention', config);
   await mutate('/privacy/retention', res.data, false);
+  await mutate((key) => Array.isArray(key) && String(key[0]).startsWith('/privacy/retention/'));
   return res.data;
 }
 
 export async function runRetention() {
   const res = await iotaApi.post('/privacy/retention/run');
   await refreshConsents();
+  return res.data;
+}
+
+/** Every record matching the filters (up to 10,000), for export. */
+export async function fetchAllConsentRecords({ kind, status, search }) {
+  const all = [];
+  for (let page = 0; page < 100; page += 1) {
+    const res = await iotaApi.get('/consents/records', {
+      params: { kind, status, search, page, limit: 100 },
+    });
+    const { records = [], total = 0 } = res.data ?? {};
+    all.push(...records);
+    if (!records.length || all.length >= total) break;
+  }
+  return all;
+}
+
+/** The retention queue: 'review' | 'pending' | 'kept'. */
+export function useRetentionQueue(status, enabled = true) {
+  const { data, error, isLoading } = useSWR(
+    enabled && status ? ['/privacy/retention/queue', { status }] : null,
+    fetcher,
+    options
+  );
+  return { items: data?.items ?? [], error, loading: isLoading };
+}
+
+/** keep | delete | release one queued record (admins). */
+export async function decideRetention(id, decision, note) {
+  const res = await iotaApi.post(`/privacy/retention/queue/${id}/decision`, { decision, note });
+  await mutate(
+    (key) =>
+      (typeof key === 'string' && key.startsWith('/privacy')) ||
+      (Array.isArray(key) && String(key[0]).startsWith('/privacy'))
+  );
   return res.data;
 }
