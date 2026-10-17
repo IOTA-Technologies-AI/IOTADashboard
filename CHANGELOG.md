@@ -25,6 +25,9 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Nightly retention and LinkedIn sync run in production only.** Staging
+  shares the database and settings, so both used to run them. "Run now" and
+  "Sync now" still work in every environment.
 - **Consent registers: date range, filter chips and expandable rows.** Filter
   by when consent was given (last 7 / 30 days, 3 months, this year, or a
   custom range); narrow leads by purpose and applicants by how consent was
@@ -671,6 +674,11 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **New offer: picking an onboarded employee no longer garbles the form.**
+  The filled-in name, email, passport, nationality and position were drawn
+  over their own labels, and an empty start date showed "required" before
+  anyone could type. Labels now move up when a value is filled in, and only
+  filled values are checked.
 - **The "Stop emails from IOTA" link no longer shows an error.** It
   recorded the withdrawal but then failed writing the lead's history (the
   history requires an actor), so the person saw "Something went wrong".

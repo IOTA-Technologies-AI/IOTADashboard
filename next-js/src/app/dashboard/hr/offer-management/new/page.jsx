@@ -122,6 +122,7 @@ export default function OfferManagementNewPage() {
     watch,
     setValue,
     getValues,
+    clearErrors,
     formState: { errors },
   } = useForm({
     defaultValues: {
@@ -167,18 +168,27 @@ export default function OfferManagementNewPage() {
       .finally(() => setEligibleLoading(false));
   }, []);
 
+  // These inputs are uncontrolled (register), so MUI can't see a value set from
+  // code and leaves the label sitting on top of it. Float it while there is one.
+  const filledLabel = (name) => (watch(name) ? { shrink: true } : undefined);
+
   const applyCandidate = (c) => {
     setCandidate(c);
     if (!c) return;
-    const opts = { shouldValidate: true, shouldDirty: true };
     const day = (v) => (v ? String(v).slice(0, 10) : '');
-    setValue('employeeName', c.candidateName || '', opts);
-    setValue('candidateEmail', c.candidateEmail || '', opts);
-    setValue('passportNumber', c.passportNumber || '', opts);
-    setValue('dateOfBirth', day(c.dateOfBirth), opts);
-    setValue('nationality', c.nationality || '', opts);
-    setValue('position', c.position || '', opts);
-    setValue('startDate', day(c.startDate), opts);
+    // Validate only what the employee record actually fills: checking an empty
+    // field here would show "required" before anyone has had a chance to type.
+    const fill = (name, value) => {
+      setValue(name, value, { shouldDirty: true, shouldValidate: !!value });
+      if (value) clearErrors(name);
+    };
+    fill('employeeName', c.candidateName || '');
+    fill('candidateEmail', c.candidateEmail || '');
+    fill('passportNumber', c.passportNumber || '');
+    fill('dateOfBirth', day(c.dateOfBirth));
+    fill('nationality', c.nationality || '');
+    fill('position', c.position || '');
+    fill('startDate', day(c.startDate));
     const dept = DEPARTMENTS.find(
       (d) =>
         d.toLowerCase() ===
@@ -186,7 +196,7 @@ export default function OfferManagementNewPage() {
           .trim()
           .toLowerCase()
     );
-    if (dept) setValue('department', dept, opts);
+    if (dept) fill('department', dept);
   };
 
   // Calculate total salary
@@ -540,6 +550,7 @@ export default function OfferManagementNewPage() {
                     <TextField
                       fullWidth
                       label="Employee Full Name"
+                      InputLabelProps={filledLabel('employeeName')}
                       {...register('employeeName', { required: 'Name is required' })}
                       error={!!errors.employeeName}
                       helperText={errors.employeeName?.message}
@@ -550,6 +561,7 @@ export default function OfferManagementNewPage() {
                       fullWidth
                       type="email"
                       label="Candidate Email"
+                      InputLabelProps={filledLabel('candidateEmail')}
                       {...register('candidateEmail', {
                         required: 'Email is required',
                         pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Invalid email' },
@@ -562,6 +574,7 @@ export default function OfferManagementNewPage() {
                     <TextField
                       fullWidth
                       label="Passport Number"
+                      InputLabelProps={filledLabel('passportNumber')}
                       {...register('passportNumber', { required: 'Passport number is required' })}
                       error={!!errors.passportNumber}
                       helperText={errors.passportNumber?.message}
@@ -582,6 +595,7 @@ export default function OfferManagementNewPage() {
                     <TextField
                       fullWidth
                       label="Nationality"
+                      InputLabelProps={filledLabel('nationality')}
                       {...register('nationality', { required: 'Nationality is required' })}
                       error={!!errors.nationality}
                       helperText={errors.nationality?.message}
@@ -591,6 +605,7 @@ export default function OfferManagementNewPage() {
                     <TextField
                       fullWidth
                       label="Position/Designation"
+                      InputLabelProps={filledLabel('position')}
                       {...register('position', { required: 'Position is required' })}
                       error={!!errors.position}
                       helperText={errors.position?.message}
