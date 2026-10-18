@@ -4,12 +4,17 @@ import { useRef, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Tab from '@mui/material/Tab';
-import Tabs from '@mui/material/Tabs';
 import Chip from '@mui/material/Chip';
+import Tabs from '@mui/material/Tabs';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Tooltip';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+
+import { inkVerdict, measureCanvasInk } from 'src/utils/signature-ink';
+
+import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
@@ -23,16 +28,112 @@ const SIGNATURE_FONTS = [
   { label: 'Formal', family: 'Pinyon Script' },
 ];
 
+/** Pen colours. Blue-black reads as a wet-ink original on a printed page. */
+const INK_COLORS = [
+  { label: 'Blue ink', value: '#1b3a8c' },
+  { label: 'Black ink', value: '#111827' },
+];
+
+/**
+ * The canvas is drawn at a fixed 2× of its nominal size whatever the screen,
+ * so the exported PNG is crisp in a PDF and the API's minimum-ink rule means
+ * the same thing on every device.
+ */
+const SCALE = 2;
+
+/** Stroke width range, in canvas pixels. */
+const MIN_WIDTH = 1.1 * SCALE;
+const MAX_WIDTH = 3.4 * SCALE;
+
+/** Transparent margin kept around the ink when the signature is cropped. */
+const TRIM_PADDING = 10 * SCALE;
+
+const HINTS = {
+  blank: 'Sign inside the box.',
+  'too-small': 'Too small to accept — sign across the box, as you would on paper.',
+};
+
 // ----------------------------------------------------------------------
 
 /**
- * A signature canvas with two modes:
- *  - Draw : freehand drawing on the canvas (existing behaviour)
- *  - Type  : type your name and pick a signature font — rendered live on the canvas
+ * Width for the next point. A pen's pressure sets it directly; for a finger
+ * or mouse, faster movement thins the line the way real ink does.
+ */
+function nextWidth(prev, point, pointerType, pressure) {
+  if (pointerType === 'pen' && pressure > 0) {
+    return MIN_WIDTH + (MAX_WIDTH - MIN_WIDTH) * Math.min(1, pressure) ** 0.8;
+  }
+  if (!prev) return (MIN_WIDTH + MAX_WIDTH) / 2;
+  const dt = Math.max(1, point.t - prev.t);
+  const velocity = Math.hypot(point.x - prev.x, point.y - prev.y) / SCALE / dt; // css px / ms
+  const v = 0.7 * velocity + 0.3 * (prev.v ?? velocity);
+  point.v = v;
+  const target = Math.max(MIN_WIDTH, MAX_WIDTH / (v + 1));
+  return prev.w + (target - prev.w) * 0.35;
+}
+
+/** Draws the segment ending at points[i], smoothed through the midpoints. */
+function drawSegment(ctx, points, i, color) {
+  const p1 = points[i - 1];
+  const p2 = points[i];
+  const p0 = points[i - 2] || p1;
+  const from = { x: (p0.x + p1.x) / 2, y: (p0.y + p1.y) / 2 };
+  const to = { x: (p1.x + p2.x) / 2, y: (p1.y + p2.y) / 2 };
+  ctx.strokeStyle = color;
+  ctx.lineWidth = (p1.w + p2.w) / 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  ctx.moveTo(from.x, from.y);
+  ctx.quadraticCurveTo(p1.x, p1.y, to.x, to.y);
+  ctx.stroke();
+}
+
+function drawDot(ctx, point, color) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(point.x, point.y, point.w / 2, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawStroke(ctx, stroke) {
+  if (stroke.points.length === 1) {
+    drawDot(ctx, stroke.points[0], stroke.color);
+    return;
+  }
+  for (let i = 1; i < stroke.points.length; i += 1)
+    drawSegment(ctx, stroke.points, i, stroke.color);
+}
+
+/** The signature cropped to its ink plus a margin, as a transparent PNG. */
+function exportTrimmed(canvas, box) {
+  const x = Math.max(0, box.x - TRIM_PADDING);
+  const y = Math.max(0, box.y - TRIM_PADDING);
+  const w = Math.min(canvas.width - x, box.width + TRIM_PADDING * 2);
+  const h = Math.min(canvas.height - y, box.height + TRIM_PADDING * 2);
+  const out = document.createElement('canvas');
+  out.width = w;
+  out.height = h;
+  out.getContext('2d').drawImage(canvas, x, y, w, h, 0, 0, w, h);
+  return out.toDataURL('image/png');
+}
+
+// ----------------------------------------------------------------------
+
+/**
+ * A signature pad with two modes:
+ *  - Draw : freehand, pressure- and speed-sensitive ink
+ *  - Type : type your name and pick a signature font
+ *
+ * Apply stays disabled until there is enough ink to be a signature (the same
+ * rule the API enforces), and the exported image holds only the signature —
+ * the guide line and hints are page elements, not part of the drawing. Any
+ * change after Apply withdraws the applied signature (onSave('')), so what is
+ * submitted is always what is on the pad.
  *
  * Props:
- *  - width, height     : canvas dimensions (internal coordinate space)
- *  - onSave(dataUrl)   : called with a base64 PNG when the user hits "Apply Signature"
+ *  - width, height     : nominal canvas size (drawn at 2×)
+ *  - onSave(dataUrl)   : base64 PNG on "Apply Signature"; '' when withdrawn
  *  - disabled          : locks the canvas
  *  - label             : optional label shown above the tabs
  */
@@ -44,13 +145,17 @@ export default function NdaSignatureCanvas({
   label,
 }) {
   const canvasRef = useRef(null);
-  const isDrawing = useRef(false);
-  const lastPos = useRef({ x: 0, y: 0 });
+  const strokesRef = useRef([]);
+  const activeRef = useRef(null); // { pointerId, stroke }
 
   const [mode, setMode] = useState('draw'); // 'draw' | 'type'
   const [typedName, setTypedName] = useState('');
   const [selectedFont, setSelectedFont] = useState(SIGNATURE_FONTS[0].family);
+  const [inkColor, setInkColor] = useState(INK_COLORS[0].value);
   const [fontsReady, setFontsReady] = useState(false);
+  const [strokeCount, setStrokeCount] = useState(0);
+  const [verdict, setVerdict] = useState('blank');
+  const [applied, setApplied] = useState(false);
 
   // ── Load Google Fonts for signature styles ──────────────────────────────────
   useEffect(() => {
@@ -63,141 +168,175 @@ export default function NdaSignatureCanvas({
         'https://fonts.googleapis.com/css2?family=Dancing+Script:wght@600;700&family=Great+Vibes&family=Pinyon+Script&display=swap';
       document.head.appendChild(link);
     }
-    // Mark fonts ready once the browser has loaded them
-    document.fonts.ready.then(() => setFontsReady(true));
+    // Ask for each face explicitly: fonts.ready alone can settle before an
+    // unused face is fetched, and the typed signature would render in cursive fallback.
+    Promise.all(SIGNATURE_FONTS.map((f) => document.fonts.load(`48px '${f.family}'`)))
+      .catch(() => undefined)
+      .then(() => setFontsReady(true));
   }, []);
 
   // ── Canvas helpers ──────────────────────────────────────────────────────────
 
-  const drawBaseline = useCallback((ctx, canvasEl) => {
-    ctx.setLineDash([4, 4]);
-    ctx.strokeStyle = '#bbb';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(16, canvasEl.height - 20);
-    ctx.lineTo(canvasEl.width - 16, canvasEl.height - 20);
-    ctx.stroke();
-    ctx.setLineDash([]);
+  /** Anything that changes the pad withdraws a signature already applied. */
+  const withdraw = useCallback(() => {
+    if (applied) {
+      setApplied(false);
+      onSave?.('');
+    }
+  }, [applied, onSave]);
+
+  const evaluate = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (canvas) setVerdict(inkVerdict(measureCanvasInk(canvas)));
   }, []);
 
-  const drawPlaceholder = useCallback(() => {
+  const redrawStrokes = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawBaseline(ctx, canvas);
-    ctx.fillStyle = '#ccc';
-    ctx.font = '12px sans-serif';
-    ctx.fillText('Sign above the line', 16, canvas.height - 6);
-  }, [drawBaseline]);
+    strokesRef.current.forEach((s) => drawStroke(ctx, s));
+    setStrokeCount(strokesRef.current.length);
+    evaluate();
+  }, [evaluate]);
 
   const renderTypedSignature = useCallback(
-    (name, fontFamily) => {
+    (name, fontFamily, color) => {
       const canvas = canvasRef.current;
       if (!canvas) return;
       const ctx = canvas.getContext('2d');
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      drawBaseline(ctx, canvas);
 
-      if (!name.trim()) {
-        ctx.fillStyle = '#ccc';
-        ctx.font = '12px sans-serif';
-        ctx.fillText('Type your name to preview', 16, canvas.height - 6);
-        return;
-      }
-
-      // Scale font size so the text fits within the canvas width
-      const maxWidth = canvas.width - 32;
-      let fontSize = Math.min(68, canvas.height - 40);
-      ctx.font = `${fontSize}px '${fontFamily}', cursive`;
-
-      // Shrink if the text overflows
-      while (ctx.measureText(name).width > maxWidth && fontSize > 14) {
-        fontSize -= 2;
+      const text = name.trim();
+      if (text) {
+        // Largest size that fits the width
+        const maxWidth = canvas.width - 32 * SCALE;
+        let fontSize = Math.min(68 * SCALE, canvas.height - 40 * SCALE);
         ctx.font = `${fontSize}px '${fontFamily}', cursive`;
+        while (ctx.measureText(text).width > maxWidth && fontSize > 14 * SCALE) {
+          fontSize -= 2 * SCALE;
+          ctx.font = `${fontSize}px '${fontFamily}', cursive`;
+        }
+        ctx.fillStyle = color;
+        ctx.textBaseline = 'alphabetic';
+        const textWidth = ctx.measureText(text).width;
+        const x = Math.max(16 * SCALE, (canvas.width - textWidth) / 2);
+        ctx.fillText(text, x, canvas.height - 28 * SCALE);
       }
-
-      ctx.fillStyle = '#0d1b2a';
-      ctx.textBaseline = 'alphabetic';
-      const textWidth = ctx.measureText(name).width;
-      const x = Math.max(16, (canvas.width - textWidth) / 2);
-      const y = canvas.height - 28;
-      ctx.fillText(name, x, y);
+      evaluate();
     },
-    [drawBaseline]
+    [evaluate]
   );
 
-  // ── Sync canvas whenever mode / typed name / font / fontsReady changes ──────
+  // ── Sync canvas whenever mode / typed name / font / colour changes ──────────
   useEffect(() => {
     if (mode === 'draw') {
-      drawPlaceholder();
+      redrawStrokes();
     } else {
-      renderTypedSignature(typedName, selectedFont);
+      renderTypedSignature(typedName, selectedFont, inkColor);
     }
-  }, [mode, typedName, selectedFont, fontsReady, drawPlaceholder, renderTypedSignature]);
+  }, [mode, typedName, selectedFont, inkColor, fontsReady, redrawStrokes, renderTypedSignature]);
 
   // ── Draw-mode pointer handlers ──────────────────────────────────────────────
 
-  function getPos(e, canvas) {
+  function toCanvasPoint(e) {
+    const canvas = canvasRef.current;
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
     return {
-      x: (clientX - rect.left) * scaleX,
-      y: (clientY - rect.top) * scaleY,
+      x: ((e.clientX - rect.left) * canvas.width) / rect.width,
+      y: ((e.clientY - rect.top) * canvas.height) / rect.height,
+      t: e.timeStamp || performance.now(),
     };
   }
 
-  function startDraw(e) {
-    if (disabled || mode !== 'draw') return;
-    e.preventDefault();
-    isDrawing.current = true;
-    lastPos.current = getPos(e, canvasRef.current);
+  function addPoint(e) {
+    const active = activeRef.current;
+    const { points, color } = active.stroke;
+    const point = toCanvasPoint(e);
+    const prev = points[points.length - 1];
+    if (prev && Math.hypot(point.x - prev.x, point.y - prev.y) < 1) return;
+    point.w = nextWidth(prev, point, e.pointerType, e.pressure);
+    points.push(point);
+    if (points.length > 1) {
+      drawSegment(canvasRef.current.getContext('2d'), points, points.length - 1, color);
+    }
   }
 
-  function draw(e) {
-    if (!isDrawing.current || disabled || mode !== 'draw') return;
+  function handlePointerDown(e) {
+    if (disabled || mode !== 'draw' || activeRef.current) return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
     e.preventDefault();
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    const pos = getPos(e, canvas);
-    ctx.beginPath();
-    ctx.strokeStyle = '#0d1b2a';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.moveTo(lastPos.current.x, lastPos.current.y);
-    ctx.lineTo(pos.x, pos.y);
-    ctx.stroke();
-    lastPos.current = pos;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    withdraw();
+    const stroke = { color: inkColor, points: [] };
+    activeRef.current = { pointerId: e.pointerId, stroke };
+    addPoint(e);
   }
 
-  function stopDraw() {
-    isDrawing.current = false;
+  function handlePointerMove(e) {
+    if (activeRef.current?.pointerId !== e.pointerId) return;
+    e.preventDefault();
+    // Fast strokes deliver several samples per frame; use them all for smooth curves.
+    const events = e.nativeEvent.getCoalescedEvents?.() || [];
+    if (events.length) events.forEach(addPoint);
+    else addPoint(e);
+  }
+
+  function handlePointerUp(e) {
+    const active = activeRef.current;
+    if (active?.pointerId !== e.pointerId) return;
+    activeRef.current = null;
+    if (active.stroke.points.length === 1) {
+      drawDot(canvasRef.current.getContext('2d'), active.stroke.points[0], active.stroke.color);
+    }
+    strokesRef.current = [...strokesRef.current, active.stroke];
+    setStrokeCount(strokesRef.current.length);
+    evaluate();
   }
 
   // ── Action handlers ─────────────────────────────────────────────────────────
 
   function handleClear() {
+    withdraw();
     if (mode === 'draw') {
-      drawPlaceholder();
+      strokesRef.current = [];
+      redrawStrokes();
     } else {
       setTypedName('');
     }
   }
 
+  function handleUndo() {
+    withdraw();
+    strokesRef.current = strokesRef.current.slice(0, -1);
+    redrawStrokes();
+  }
+
   function handleSave() {
     const canvas = canvasRef.current;
-    const dataUrl = canvas.toDataURL('image/png');
-    onSave?.(dataUrl);
+    const ink = measureCanvasInk(canvas);
+    const result = inkVerdict(ink);
+    setVerdict(result);
+    if (result !== 'ok') return;
+    onSave?.(exportTrimmed(canvas, ink.box));
+    setApplied(true);
   }
 
   function handleModeChange(_, newMode) {
     if (!newMode) return;
+    withdraw();
     setMode(newMode);
   }
+
+  function handleColorChange(value) {
+    if (value === inkColor) return;
+    withdraw();
+    // Recolour what is already drawn, so one signature is one colour.
+    strokesRef.current = strokesRef.current.map((s) => ({ ...s, color: value }));
+    setInkColor(value);
+  }
+
+  const hasMarks = mode === 'draw' ? strokeCount > 0 : !!typedName.trim();
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -209,17 +348,44 @@ export default function NdaSignatureCanvas({
         </Typography>
       )}
 
-      {/* Mode tabs */}
+      {/* Mode tabs + ink colour */}
       {!disabled && (
-        <Tabs
-          value={mode}
-          onChange={handleModeChange}
-          sx={{ mb: 1.5, minHeight: 36 }}
-          TabIndicatorProps={{ style: { height: 2 } }}
-        >
-          <Tab value="draw" label="Draw" sx={{ minHeight: 36, py: 0.5, fontSize: '0.8rem' }} />
-          <Tab value="type" label="Type" sx={{ minHeight: 36, py: 0.5, fontSize: '0.8rem' }} />
-        </Tabs>
+        <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1.5 }}>
+          <Tabs
+            value={mode}
+            onChange={handleModeChange}
+            sx={{ minHeight: 36 }}
+            TabIndicatorProps={{ style: { height: 2 } }}
+          >
+            <Tab value="draw" label="Draw" sx={{ minHeight: 36, py: 0.5, fontSize: '0.8rem' }} />
+            <Tab value="type" label="Type" sx={{ minHeight: 36, py: 0.5, fontSize: '0.8rem' }} />
+          </Tabs>
+          <Stack direction="row" spacing={0.75} alignItems="center">
+            {INK_COLORS.map((c) => (
+              <Tooltip key={c.value} title={c.label}>
+                <Box
+                  component="button"
+                  type="button"
+                  aria-label={c.label}
+                  aria-pressed={inkColor === c.value}
+                  onClick={() => handleColorChange(c.value)}
+                  sx={{
+                    width: 22,
+                    height: 22,
+                    p: 0,
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    bgcolor: c.value,
+                    border: '2px solid',
+                    borderColor: 'background.paper',
+                    outline: inkColor === c.value ? '2px solid' : '1px solid',
+                    outlineColor: inkColor === c.value ? c.value : 'divider',
+                  }}
+                />
+              </Tooltip>
+            ))}
+          </Stack>
+        </Stack>
       )}
 
       {/* Type mode: name input + font picker */}
@@ -230,7 +396,10 @@ export default function NdaSignatureCanvas({
             fullWidth
             placeholder="Type your full name"
             value={typedName}
-            onChange={(e) => setTypedName(e.target.value)}
+            onChange={(e) => {
+              withdraw();
+              setTypedName(e.target.value);
+            }}
             inputProps={{ maxLength: 60 }}
           />
           <Stack direction="row" spacing={1} alignItems="center">
@@ -248,7 +417,10 @@ export default function NdaSignatureCanvas({
                 size="small"
                 variant={selectedFont === f.family ? 'filled' : 'outlined'}
                 color={selectedFont === f.family ? 'primary' : 'default'}
-                onClick={() => setSelectedFont(f.family)}
+                onClick={() => {
+                  withdraw();
+                  setSelectedFont(f.family);
+                }}
                 sx={{ cursor: 'pointer' }}
               />
             ))}
@@ -256,45 +428,109 @@ export default function NdaSignatureCanvas({
         </Stack>
       )}
 
-      {/* Canvas */}
+      {/* Pad: the guide line and hint sit over the canvas, outside the exported image */}
       <Box
         sx={{
+          position: 'relative',
           border: '1px solid',
           borderColor: disabled ? 'divider' : 'primary.main',
           borderRadius: 1,
           overflow: 'hidden',
-          bgcolor: disabled ? 'grey.100' : 'background.paper',
+          bgcolor: disabled ? 'grey.100' : '#fff',
           cursor: disabled || mode === 'type' ? 'default' : 'crosshair',
         }}
       >
+        <Box
+          aria-hidden
+          sx={{
+            position: 'absolute',
+            left: 16,
+            right: 16,
+            bottom: '18%',
+            borderBottom: '1px dashed #bbb',
+            pointerEvents: 'none',
+          }}
+        />
+        <Typography
+          aria-hidden
+          sx={{
+            position: 'absolute',
+            left: 18,
+            bottom: 'calc(18% + 2px)',
+            color: '#9e9e9e',
+            fontSize: 18,
+            lineHeight: 1,
+            pointerEvents: 'none',
+          }}
+        >
+          ×
+        </Typography>
+        {!hasMarks && !disabled && (
+          <Typography
+            aria-hidden
+            variant="caption"
+            sx={{
+              position: 'absolute',
+              left: 16,
+              bottom: 4,
+              color: '#9e9e9e',
+              pointerEvents: 'none',
+            }}
+          >
+            {mode === 'draw' ? 'Sign above the line' : 'Type your name to preview'}
+          </Typography>
+        )}
         <canvas
           ref={canvasRef}
-          width={width}
-          height={height}
-          style={{ display: 'block', width: '100%', touchAction: 'none' }}
-          onMouseDown={startDraw}
-          onMouseMove={draw}
-          onMouseUp={stopDraw}
-          onMouseLeave={stopDraw}
-          onTouchStart={startDraw}
-          onTouchMove={draw}
-          onTouchEnd={stopDraw}
+          width={width * SCALE}
+          height={height * SCALE}
+          aria-label="Signature pad"
+          style={{ display: 'block', width: '100%', touchAction: 'none', position: 'relative' }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerUp}
         />
       </Box>
 
+      {!disabled && hasMarks && verdict !== 'ok' && (
+        <Typography variant="caption" color="warning.main" sx={{ mt: 0.75, display: 'block' }}>
+          {HINTS[verdict]}
+        </Typography>
+      )}
+      {!disabled && mode === 'draw' && !hasMarks && (
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.75, display: 'block' }}>
+          On a phone or tablet, sign with your finger or a stylus for the most natural signature.
+        </Typography>
+      )}
+
       {!disabled && (
-        <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
           <Button size="small" variant="outlined" color="inherit" onClick={handleClear}>
             Clear
           </Button>
+          {mode === 'draw' && (
+            <Button
+              size="small"
+              color="inherit"
+              onClick={handleUndo}
+              disabled={strokeCount === 0}
+              startIcon={<Iconify icon="eva:arrow-back-fill" width={16} />}
+            >
+              Undo
+            </Button>
+          )}
           <Button
             size="small"
             variant="contained"
             onClick={handleSave}
-            disabled={mode === 'type' && !typedName.trim()}
+            disabled={verdict !== 'ok' || applied}
           >
-            Apply Signature
+            {applied ? 'Signature applied' : 'Apply Signature'}
           </Button>
+          {applied && (
+            <Iconify icon="solar:check-circle-bold" width={20} sx={{ color: 'success.main' }} />
+          )}
         </Stack>
       )}
     </Box>

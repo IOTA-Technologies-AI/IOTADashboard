@@ -35,6 +35,7 @@ import {
   commentOnOffer,
   sendOfferForSigning,
   remindEmployeeToSign,
+  requestOfferIotaResign,
   setOfferSignatureZones,
 } from 'src/utils/apiHelper';
 
@@ -54,6 +55,7 @@ import { OfferLetterPDF } from 'src/components/offer-letter/offer-letter-pdf';
 
 import { SignatoryPicker } from 'src/sections/offer/signatory-picker';
 import { OfferLetterCheck } from 'src/sections/offer/offer-letter-check';
+import { SignatoryThumbnail, ResignRequestDialog } from 'src/sections/signatures/signature-review';
 
 import { useAuthContext } from 'src/auth/hooks';
 
@@ -150,6 +152,7 @@ export default function OfferManagementDetailsPage({ params }) {
   // IOTA signing
   const [signatureData, setSignatureData] = useState('');
   const [signing, setSigning] = useState(false);
+  const [resignTarget, setResignTarget] = useState(null); // IOTA signatory being sent back
 
   // Signature zones
   const [signatureZones, setSignatureZones] = useState([]);
@@ -182,6 +185,13 @@ export default function OfferManagementDetailsPage({ params }) {
     offer?.currentApprovalStage &&
     (offer.currentApprovalStage === user?.role ||
       (offer.currentApprovalStage === 'admin' && user?.role === 'superAdmin'));
+
+  // A super admin can send an IOTA signature back until the employee has signed.
+  // The API re-checks both the role and the state.
+  const canSendSignatureBack =
+    user?.role === 'superAdmin' &&
+    (offer?.status === 'pending_iota_signatures' ||
+      (offer?.status === 'pending_employee_signature' && !offer?.employeeSignedAt));
 
   const pendingIotaSignature =
     offer?.status === 'pending_iota_signatures' &&
@@ -507,6 +517,17 @@ export default function OfferManagementDetailsPage({ params }) {
       toast.error(err?.response?.data?.message || 'Failed to submit signature');
     } finally {
       setSigning(false);
+    }
+  };
+
+  const handleRequestResign = async (reason) => {
+    try {
+      const updated = await requestOfferIotaResign(id, resignTarget.email, reason);
+      setOffer(updated);
+      toast.success(`${resignTarget.name || resignTarget.email} has been asked to sign again.`);
+      setResignTarget(null);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to send the signature back');
     }
   };
 
@@ -990,6 +1011,12 @@ export default function OfferManagementDetailsPage({ params }) {
                             : ' · Awaiting signature'}
                         </Typography>
                       </Box>
+                      <SignatoryThumbnail
+                        signatory={s}
+                        canSendBack={canSendSignatureBack}
+                        sendBackBlocked=""
+                        onSendBack={() => setResignTarget(s)}
+                      />
                     </Box>
                   ))}
                 </Stack>
@@ -1558,6 +1585,20 @@ export default function OfferManagementDetailsPage({ params }) {
       </Grid>
 
       {/* ── Approve Dialog ─────────────────────────────────────────────── */}
+      {/* Send an IOTA signature back (super admin) */}
+      <ResignRequestDialog
+        open={!!resignTarget}
+        onClose={() => setResignTarget(null)}
+        signatory={resignTarget}
+        documentLabel="offer letter"
+        downstreamNote={
+          offer.status === 'pending_employee_signature'
+            ? 'This offer has already gone to the employee. It returns to IOTA signing and their signing link stops working; a fresh link is emailed once all IOTA signatures are in again.'
+            : ''
+        }
+        onSubmit={handleRequestResign}
+      />
+
       <Dialog open={approveOpen} onClose={() => setApproveOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Approve Offer Letter</DialogTitle>
         <DialogContent>

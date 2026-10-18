@@ -4011,6 +4011,23 @@ export async function iotaSignOffer(id, signatureData, signerEmail, ipAddress) {
 }
 
 /**
+ * @summary Super admin only: clears an IOTA signatory's signature on an offer
+ * letter and emails them to sign again. If the offer had gone to the employee,
+ * it returns to IOTA signing and the employee's link is withdrawn.
+ * @param {string|number} id - Offer id.
+ * @param {string} signatoryEmail - The IOTA signatory whose signature is sent back.
+ * @param {string} reason - Shown to the signatory and kept in the audit log.
+ * @returns {Promise<object>} The updated offer.
+ */
+export async function requestOfferIotaResign(id, signatoryEmail, reason) {
+  const response = await axios.post(`${API_BASE_URL}/offers/${id}/iota-resign`, {
+    signatoryEmail,
+    reason,
+  });
+  return response.data.offer;
+}
+
+/**
  * @summary Fetches an offer using a one-time signing token (used by the candidate-facing signing page).
  * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
  * @version 1.0.0
@@ -4264,6 +4281,23 @@ export async function iotaSignNda(id, signatureData, signerEmail) {
     console.error('Error submitting IOTA signature:', error);
     throw error;
   }
+}
+
+/**
+ * @summary Super admin only: clears an IOTA signatory's signature on an NDA and
+ * emails them to sign again. If the NDA had moved to the partner, it returns to
+ * IOTA signing and the partners' links are withdrawn until IOTA's side is complete.
+ * @param {string|number} id - NDA id.
+ * @param {string} signatoryEmail - The IOTA signatory whose signature is sent back.
+ * @param {string} reason - Shown to the signatory and kept in the audit log.
+ * @returns {Promise<object>} The updated NDA.
+ */
+export async function requestNdaIotaResign(id, signatoryEmail, reason) {
+  const response = await axios.post(`${API_BASE_URL}ndas/${id}/iota-resign`, {
+    signatoryEmail,
+    reason,
+  });
+  return response.data.nda;
 }
 
 /**
@@ -5373,6 +5407,7 @@ export const apiHelper = {
   updateNda,
   submitNdaForIotaSigning,
   iotaSignNda,
+  requestNdaIotaResign,
   partnerSignNda,
   requestNdaOtp,
   verifyNdaOtp,

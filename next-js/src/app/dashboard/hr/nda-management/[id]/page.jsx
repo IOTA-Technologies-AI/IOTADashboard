@@ -40,6 +40,7 @@ import {
   finalizeNda,
   iotaSignNda,
   linkNdaDocument,
+  requestNdaIotaResign,
   setNdaSignatureZones,
   markNdaFullyExecuted,
   setNdaStampPlacements,
@@ -61,6 +62,7 @@ import { NdaPdfDocument, NdaHtmlTemplate, NdaSignatureCanvas } from 'src/compone
 
 import { NdaReviewPanel } from 'src/sections/nda/nda-review-panel';
 import { NdaReviewEmailDialog } from 'src/sections/nda/nda-review-email-dialog';
+import { SignatoryThumbnail, ResignRequestDialog } from 'src/sections/signatures/signature-review';
 
 import { useAuthContext } from 'src/auth/hooks';
 import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
@@ -208,6 +210,7 @@ export default function NdaDetailsPage({ params }) {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [signatureData, setSignatureData] = useState('');
+  const [resignTarget, setResignTarget] = useState(null); // IOTA signatory being sent back
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [clausesEditing, setClausesEditing] = useState(false);
@@ -600,6 +603,17 @@ export default function NdaDetailsPage({ params }) {
       toast.error('Failed to submit signature');
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleRequestResign = async (reason) => {
+    try {
+      const updated = await requestNdaIotaResign(id, resignTarget.email, reason);
+      setNda(updated);
+      toast.success(`${resignTarget.name || resignTarget.email} has been asked to sign again.`);
+      setResignTarget(null);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to send the signature back');
     }
   };
 
@@ -1245,6 +1259,7 @@ export default function NdaDetailsPage({ params }) {
   const signedSoFar = [...(nda.iotaSignatories || []), ...(nda.partnerSignatories || [])].filter(
     (s) => s.signedAt
   );
+  const partnerHasSigned = (nda.partnerSignatories || []).some((s) => s.signedAt);
   const isEditableStatus = isDraft || isPendingIota || isPendingPartner;
   const isCreator = (nda.createdBy || '').trim().toLowerCase() === editorEmail.trim().toLowerCase();
   const canEdit = isEditableStatus && signedSoFar.length === 0 && (isCreator || editorIsSuperAdmin);
@@ -1551,23 +1566,16 @@ export default function NdaDetailsPage({ params }) {
                         )}
                       </Box>
                       {/* The signature as given, so it can be checked at a glance */}
-                      {s.signedAt && s.signatureData ? (
-                        <Box
-                          component="img"
-                          src={s.signatureData}
-                          alt={`Signature of ${s.name || s.email}`}
-                          sx={{
-                            ml: 'auto',
-                            height: 40,
-                            maxWidth: 140,
-                            objectFit: 'contain',
-                            bgcolor: 'common.white',
-                            border: (theme) => `1px solid ${theme.vars.palette.divider}`,
-                            borderRadius: 0.75,
-                            px: 0.5,
-                          }}
-                        />
-                      ) : null}
+                      <SignatoryThumbnail
+                        signatory={s}
+                        canSendBack={editorIsSuperAdmin && (isPendingIota || isPendingPartner)}
+                        sendBackBlocked={
+                          partnerHasSigned
+                            ? 'A partner has already signed — cancel and reissue the NDA instead.'
+                            : ''
+                        }
+                        onSendBack={() => setResignTarget(s)}
+                      />
                     </Box>
                   ))}
                 </Stack>
@@ -1720,23 +1728,7 @@ export default function NdaDetailsPage({ params }) {
                         )}
                       </Box>
                       {/* The signature as given, so it can be checked at a glance */}
-                      {s.signedAt && s.signatureData ? (
-                        <Box
-                          component="img"
-                          src={s.signatureData}
-                          alt={`Signature of ${s.name || s.email}`}
-                          sx={{
-                            ml: 'auto',
-                            height: 40,
-                            maxWidth: 140,
-                            objectFit: 'contain',
-                            bgcolor: 'common.white',
-                            border: (theme) => `1px solid ${theme.vars.palette.divider}`,
-                            borderRadius: 0.75,
-                            px: 0.5,
-                          }}
-                        />
-                      ) : null}
+                      <SignatoryThumbnail signatory={s} />
                     </Box>
                   ))}
                 </Stack>
@@ -3560,6 +3552,20 @@ export default function NdaDetailsPage({ params }) {
           </LoadingButton>
         </DialogActions>
       </Dialog>
+
+      {/* ── Send an IOTA signature back (super admin) ── */}
+      <ResignRequestDialog
+        open={!!resignTarget}
+        onClose={() => setResignTarget(null)}
+        signatory={resignTarget}
+        documentLabel="NDA"
+        downstreamNote={
+          isPendingPartner
+            ? 'This NDA has already gone to the partner. It returns to IOTA signing and the partner’s signing link stops working; a fresh link is emailed once all IOTA signatures are in again.'
+            : ''
+        }
+        onSubmit={handleRequestResign}
+      />
 
       {/* ── Cancel dialog ── */}
       <Dialog

@@ -25,6 +25,22 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Super admins can send an IOTA signature back for re-signing.** On an NDA
+  or offer letter, each IOTA signatory's signature has a "Send back" action.
+  It clears that signature and emails the signatory the reason with a link to
+  sign again. This works until the partner or employee has signed. If the
+  document had already gone to them, it returns to IOTA signing, their link
+  stops working, and a fresh link is emailed once IOTA's signatures are
+  complete again. Signatures that look blank or incomplete are flagged in red
+  in the signatory lists, and every send-back is recorded in the audit log.
+- **A more natural signing pad.** Strokes now thin and thicken with drawing
+  speed, or with pen pressure on a stylus, and fast strokes stay smooth. The
+  pad offers blue or black ink and an Undo for the last stroke, and draws at
+  twice the resolution so signatures stay crisp in the PDF. The saved image
+  is cropped to the signature, without the guide line or hint text that used
+  to be baked into it, so it fills its signature area. Changing the pad after
+  pressing Apply withdraws the applied signature, so what is submitted is
+  always what is on the pad.
 - **One-time codes: six boxes and a "Paste code" button.** Every code screen
   (authenticator sign-in and re-verify, authenticator setup, invoice approval,
   NDA signing, candidate intake, employee onboarding) now takes the code in six
@@ -731,6 +747,12 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **A blank signature can no longer be applied to an NDA or offer letter.**
+  "Apply Signature" on the drawing pad was always enabled, so pressing it
+  without signing put an empty box on the agreement. The pad now waits for
+  enough ink to be a signature, and the API decodes every submitted signature
+  (IOTA, partner and employee) and refuses one that is blank or just a
+  scribble.
 - **New offer: picking an onboarded employee no longer garbles the form.**
   The filled-in name, email, passport, nationality and position were drawn
   over their own labels, and an empty start date showed "required" before
