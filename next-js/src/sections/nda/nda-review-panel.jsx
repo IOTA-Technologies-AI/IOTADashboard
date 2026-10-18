@@ -158,6 +158,9 @@ export function NdaReviewPanel({ nda, onChange, onEmail }) {
   const [required, setRequired] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [running, setRunning] = useState(false);
+  // Decided by the API: approvers are the approved IOTA signatories
+  // (appConfig ndas › iotaSignatories). null when an older API does not say.
+  const [serverCanDecide, setServerCanDecide] = useState(null);
   const [showChecklist, setShowChecklist] = useState(false);
   const [dialog, setDialog] = useState(null); // 'request' | 'approve' | 'reject'
   const [note, setNote] = useState('');
@@ -168,6 +171,9 @@ export function NdaReviewPanel({ nda, onChange, onEmail }) {
       const data = await getNdaReview(nda.id);
       setState(data.review);
       setRequired(data.reviewRequired);
+      setServerCanDecide(
+        typeof data.canDecideException === 'boolean' ? data.canDecideException : null
+      );
       setLoadError('');
     } catch (err) {
       setLoadError(message(err, 'The review could not be loaded.'));
@@ -211,7 +217,7 @@ export function NdaReviewPanel({ nda, onChange, onEmail }) {
       await changed(review);
       toast.success(
         dialog === 'request'
-          ? 'Exception requested. Admins and Super Admins have been emailed.'
+          ? 'Exception requested. The approvers have been emailed.'
           : dialog === 'approve'
             ? 'Exception approved. The NDA can now be submitted for signing.'
             : 'Exception rejected.'
@@ -239,9 +245,10 @@ export function NdaReviewPanel({ nda, onChange, onEmail }) {
   const blocking = findings.filter((f) => f.severity !== 'low');
   const isDraft = nda.status === 'draft';
   const canDecide =
-    isApprover &&
     state.exceptionStatus === 'pending' &&
-    (roleId === 4 || (state.exceptionRequestedBy || '').toLowerCase() !== me);
+    (serverCanDecide ??
+      (isApprover &&
+        (roleId === 4 || (state.exceptionRequestedBy || '').toLowerCase() !== me)));
 
   let headline;
   if (!required && state.reviewStatus === 'not_reviewed') {
@@ -281,7 +288,7 @@ export function NdaReviewPanel({ nda, onChange, onEmail }) {
   } else if (state.exceptionStatus === 'pending') {
     headline = (
       <Alert severity="warning">
-        Waiting for an Admin / Super Admin to approve an exception, requested by{' '}
+        Waiting for an approver to decide an exception, requested by{' '}
         <strong>{state.exceptionRequestedBy}</strong>: &ldquo;{state.exceptionNote}&rdquo;
       </Alert>
     );
@@ -462,8 +469,8 @@ export function NdaReviewPanel({ nda, onChange, onEmail }) {
               <Typography variant="body2" color="text.secondary">
                 The NDA keeps {blocking.length} clause{blocking.length === 1 ? '' : 's'} that depart
                 from the IOTA standard. Explain why IOTA should sign it anyway (e.g. the partner
-                refuses changes and the business value outweighs the risk). Admins and Super Admins
-                are emailed.
+                refuses changes and the business value outweighs the risk). The approved IOTA
+                signatories are emailed to decide.
               </Typography>
             ) : (
               <Typography variant="body2" color="text.secondary">

@@ -7,6 +7,7 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Grid from '@mui/material/Grid';
 import Chip from '@mui/material/Chip';
+import Radio from '@mui/material/Radio';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Avatar from '@mui/material/Avatar';
@@ -16,6 +17,7 @@ import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
+import RadioGroup from '@mui/material/RadioGroup';
 import IconButton from '@mui/material/IconButton';
 import LoadingButton from '@mui/lab/LoadingButton';
 import Autocomplete from '@mui/material/Autocomplete';
@@ -42,14 +44,34 @@ import {
 
 import { runNdaReview } from 'src/actions/nda-review';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { useNdaSignatories, NDA_SIGNATORY_CONFIG } from 'src/actions/nda-signatories';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
-import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 
 // ----------------------------------------------------------------------
+
+const SIGNING_MODES = [
+  {
+    value: 'dashboard',
+    label: 'IOTA and partner sign in the dashboard',
+    detail: 'IOTA signatories sign here; the partner gets a secure signing link by email.',
+  },
+  {
+    value: 'partner_ink',
+    label: 'IOTA signs in the dashboard, partner signs in ink',
+    detail:
+      'After IOTA signs, you send the IOTA-signed PDF to the partner and upload their ink-signed copy.',
+  },
+  {
+    value: 'ink',
+    label: 'IOTA and partner both sign in ink',
+    detail:
+      'Nobody signs in the dashboard. Print it, get it signed on paper, and upload the signed copy.',
+  },
+];
 
 export default function NdaNewPage() {
   const router = useRouter();
@@ -57,7 +79,10 @@ export default function NdaNewPage() {
   const [iotaOffice, setIotaOffice] = useState(DEFAULT_IOTA_OFFICE);
   const [officeOptions, setOfficeOptions] = useState([]);
   const [documentSource, setDocumentSource] = useState('iota_generated');
-  const [partnerSigningMethod, setPartnerSigningMethod] = useState('digital');
+  // How the NDA is executed. IOTA in ink with the partner in the dashboard is not offered.
+  const [signingMode, setSigningMode] = useState('dashboard');
+  const partnerSigningMethod = signingMode === 'dashboard' ? 'digital' : 'manual';
+  const iotaSigningMethod = signingMode === 'ink' ? 'manual' : 'digital';
   const [requireOtp, setRequireOtp] = useState(false);
   const [requireConsent, setRequireConsent] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null); // native File object
@@ -100,7 +125,13 @@ export default function NdaNewPage() {
   }, []);
   const newDocFileRef = useRef(null);
 
-  const { users: msUsers, loading: msUsersLoading } = useMicrosoftUsers();
+  // IOTA signatories: only the approved list (appConfig ndas › iotaSignatories).
+  const {
+    users: signatoryOptions,
+    loading: signatoryOptionsLoading,
+    unmatched: signatoryUnmatched,
+    error: signatoryError,
+  } = useNdaSignatories();
 
   const handleNewDocFileChange = (e) => {
     const file = e.target.files?.[0];
@@ -166,7 +197,7 @@ export default function NdaNewPage() {
     if (documentSource === 'iota_generated') {
       const incompleteIota = data.iotaSignatories?.some((s) => !s.name || !s.email);
       if (incompleteIota) {
-        toast.error('Please select all IOTA signatories from the Microsoft user list');
+        toast.error('Please select every IOTA signatory from the approved signatory list');
         return;
       }
     }
@@ -188,8 +219,9 @@ export default function NdaNewPage() {
         documentSource,
         iotaOffice,
         partnerSigningMethod,
-        requireOtp,
-        requireConsent,
+        iotaSigningMethod,
+        requireOtp: partnerSigningMethod === 'digital' && requireOtp,
+        requireConsent: partnerSigningMethod === 'digital' && requireConsent,
       });
 
       // Step 2: if an external file was selected, upload it via OneDrive session (no body size limit)
@@ -321,29 +353,46 @@ export default function NdaNewPage() {
               </ToggleButtonGroup>
 
               <Typography variant="subtitle2" sx={{ mt: 3, mb: 1 }}>
-                Partner Signing Method
+                How will this NDA be signed?
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                Digital sends the partner a secure signing link by email. Manual means IOTA will
-                share the finalized PDF for a wet or offline signature.
-              </Typography>
-              <ToggleButtonGroup
-                value={partnerSigningMethod}
-                exclusive
-                onChange={(_, val) => {
-                  if (val) setPartnerSigningMethod(val);
-                }}
-                size="small"
+              <RadioGroup
+                value={signingMode}
+                onChange={(e) => setSigningMode(e.target.value)}
+                sx={{ gap: 1 }}
               >
-                <ToggleButton value="digital">
-                  <Iconify icon="solar:letter-bold" sx={{ mr: 1 }} />
-                  Digital (Email Link)
-                </ToggleButton>
-                <ToggleButton value="manual">
-                  <Iconify icon="solar:pen-new-round-bold" sx={{ mr: 1 }} />
-                  Manual (Wet Signature)
-                </ToggleButton>
-              </ToggleButtonGroup>
+                {SIGNING_MODES.map((m) => (
+                  <FormControlLabel
+                    key={m.value}
+                    value={m.value}
+                    control={<Radio size="small" />}
+                    sx={{
+                      m: 0,
+                      p: 1.25,
+                      pr: 2,
+                      alignItems: 'flex-start',
+                      border: '1px solid',
+                      borderRadius: 1,
+                      borderColor: signingMode === m.value ? 'primary.main' : 'divider',
+                    }}
+                    label={
+                      <Box sx={{ pt: 0.75 }}>
+                        <Typography variant="body2" fontWeight={600}>
+                          {m.label}
+                        </Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {m.detail}
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                ))}
+              </RadioGroup>
+              {partnerSigningMethod === 'manual' && (
+                <Alert severity="info" sx={{ mt: 1.5 }}>
+                  A To-Do is added for you to get the ink-signed copy back and upload it. You will be
+                  reminded every morning until the NDA is fully executed and stored in OneDrive.
+                </Alert>
+              )}
 
               {/* ── Signing Security Options ── */}
               {partnerSigningMethod === 'digital' && (
@@ -527,17 +576,36 @@ export default function NdaNewPage() {
                   Add Signatory
                 </Button>
               </Stack>
+              <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1.5 }}>
+                Only approved IOTA signatories can sign NDAs. The list is {NDA_SIGNATORY_CONFIG}.
+              </Typography>
+              {signatoryError ? (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  The IOTA signatory list could not be loaded.
+                </Alert>
+              ) : null}
+              {!signatoryOptionsLoading && !signatoryError && !signatoryOptions.length ? (
+                <Alert severity="warning" sx={{ mb: 2 }}>
+                  No one is set up to sign NDAs for IOTA. Add their email to {NDA_SIGNATORY_CONFIG}.
+                </Alert>
+              ) : null}
+              {signatoryUnmatched.length ? (
+                <Typography variant="caption" color="warning.main" display="block" sx={{ mb: 1.5 }}>
+                  Not found in Microsoft: {signatoryUnmatched.join(', ')}. Check the spelling in{' '}
+                  {NDA_SIGNATORY_CONFIG}.
+                </Typography>
+              ) : null}
 
               <Stack spacing={2}>
                 {iotaFields.map((field, i) => {
                   const watchedEmail = watch(`iotaSignatories.${i}.email`);
-                  const selectedUser = msUsers.find((u) => u.email === watchedEmail) || null;
+                  const selectedUser = signatoryOptions.find((u) => u.email === watchedEmail) || null;
                   return (
                     <Box key={field.id} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
                       <Box sx={{ flex: 1 }}>
                         <Autocomplete
-                          options={msUsers}
-                          loading={msUsersLoading}
+                          options={signatoryOptions}
+                          loading={signatoryOptionsLoading}
                           getOptionLabel={(opt) => opt?.name || ''}
                           isOptionEqualToValue={(opt, val) => opt?.email === val?.email}
                           value={selectedUser}
@@ -582,7 +650,7 @@ export default function NdaNewPage() {
                                 ...params.InputProps,
                                 endAdornment: (
                                   <>
-                                    {msUsersLoading ? <CircularProgress size={16} /> : null}
+                                    {signatoryOptionsLoading ? <CircularProgress size={16} /> : null}
                                     {params.InputProps.endAdornment}
                                   </>
                                 ),

@@ -32,6 +32,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { paths } from 'src/routes/paths';
 
 import { withFramedNdaSignatures } from 'src/utils/signature-frame';
+import { ndaStatusLabel, ndaSigningModeLabel } from 'src/utils/nda-signing';
 import { stampNdaPdf, uint8ToBase64, signatureCaption } from 'src/utils/nda-pdf';
 import { officeLabel, stampForOffice, governingLawFor } from 'src/utils/iota-offices';
 import {
@@ -54,6 +55,7 @@ import {
 } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
+import { useNdaSignatories } from 'src/actions/nda-signatories';
 import { ndaSigningBlockedReason } from 'src/actions/nda-review';
 
 import { toast } from 'src/components/snackbar';
@@ -82,18 +84,12 @@ const STATUS_COLOR = {
   cancelled: 'error',
 };
 
-const STATUS_LABEL = {
-  draft: 'Draft',
-  pending_iota_signatures: 'Pending IOTA Signatures',
-  pending_partner_signatures: 'Pending Partner Signatures',
-  fully_executed: 'Fully Executed',
-  expired: 'Expired',
-  cancelled: 'Cancelled',
-};
 
 const ACTION_LABEL = {
   created: 'Created',
   submitted_for_iota_signing: 'Submitted for IOTA Signing',
+  submitted_for_ink_signing: 'Sent for Ink Signatures',
+  iota_signature_rejected: 'IOTA Signature Sent Back',
   iota_signed: 'IOTA Signed',
   partner_signing_tokens_issued: 'Partner Signing Links Issued',
   partner_signed: 'Partner Signed',
@@ -202,6 +198,8 @@ export default function NdaDetailsPage({ params }) {
   const { id } = use(params);
   const { user } = useAuthContext();
   const { users: msUsers, loading: msUsersLoading } = useMicrosoftUsers();
+  // IOTA signatories come from the approved list, not the whole directory.
+  const { users: signatoryOptions, loading: signatoryOptionsLoading } = useNdaSignatories();
   // Who the API records as having made the edit, and whose right to make it the
   // API re-checks. Sent on every mutation rather than trusted from the client.
   const editorEmail = user?.email || '';
@@ -502,13 +500,24 @@ export default function NdaDetailsPage({ params }) {
       setActionLoading(true);
       const updated = await submitNdaForIotaSigning(id, userEmail);
       setNda(updated);
-      celebrate({
-        kind: 'sent',
-        chip: 'Sent for signing',
-        documentId: nda?.ndaNumber,
-        title: 'NDA sent for IOTA signatures',
-        description: 'Signatories have been emailed.',
-      });
+      celebrate(
+        updated.iotaSigningMethod === 'manual'
+          ? {
+              kind: 'sent',
+              chip: 'Out for ink signatures',
+              documentId: nda?.ndaNumber,
+              title: 'NDA ready for ink signatures',
+              description:
+                'Download it for signing on paper. A To-Do reminds you until the signed copy is uploaded.',
+            }
+          : {
+              kind: 'sent',
+              chip: 'Sent for signing',
+              documentId: nda?.ndaNumber,
+              title: 'NDA sent for IOTA signatures',
+              description: 'Signatories have been emailed.',
+            }
+      );
     } catch (err) {
       console.error(err);
       toast.error(err?.response?.data?.message || 'Failed to submit for signing');
@@ -1262,6 +1271,7 @@ export default function NdaDetailsPage({ params }) {
   const isPendingIota = nda.status === 'pending_iota_signatures';
   const isPendingPartner = nda.status === 'pending_partner_signatures';
   const isFullyExecuted = nda.status === 'fully_executed';
+  const isAllInk = nda.iotaSigningMethod === 'manual';
 
   // Editable up to the first signature and not past it — after that, the
   // document on file is the document somebody signed. assertEditable() on the
@@ -1344,7 +1354,7 @@ export default function NdaDetailsPage({ params }) {
               >
                 <Typography variant="h6">Agreement Details</Typography>
                 <Chip
-                  label={STATUS_LABEL[nda.status]}
+                  label={ndaStatusLabel(nda)}
                   color={STATUS_COLOR[nda.status]}
                   size="small"
                 />
@@ -1387,14 +1397,7 @@ export default function NdaDetailsPage({ params }) {
                       : 'Generated Template'
                   }
                 />
-                <DetailRow
-                  label="Partner Signing"
-                  value={
-                    nda.partnerSigningMethod === 'manual'
-                      ? 'Manual (Wet Signature)'
-                      : 'Digital (Email Link)'
-                  }
-                />
+                <DetailRow label="Signing" value={ndaSigningModeLabel(nda)} />
                 {nda.onedriveWebUrl && (
                   <Box sx={{ pt: 1 }}>
                     <Button
@@ -1456,9 +1459,9 @@ export default function NdaDetailsPage({ params }) {
                       sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}
                     >
                       <Autocomplete
-                        options={msUsers}
-                        loading={msUsersLoading}
-                        value={msUsers.find((u) => u.email === row.email) || null}
+                        options={signatoryOptions}
+                        loading={signatoryOptionsLoading}
+                        value={signatoryOptions.find((u) => u.email === row.email) || null}
                         isOptionEqualToValue={(opt, val) => opt.email === val?.email}
                         getOptionLabel={(o) =>
                           o?.name ? `${o.name} (${o.email})` : o?.email || ''
@@ -1487,7 +1490,7 @@ export default function NdaDetailsPage({ params }) {
                                 ...paramsInput.InputProps,
                                 endAdornment: (
                                   <>
-                                    {msUsersLoading ? <CircularProgress size={16} /> : null}
+                                    {signatoryOptionsLoading ? <CircularProgress size={16} /> : null}
                                     {paramsInput.InputProps.endAdornment}
                                   </>
                                 ),
@@ -1756,7 +1759,9 @@ export default function NdaDetailsPage({ params }) {
                     'Waiting for partner signatories to sign.'}
                   {isPendingPartner &&
                     nda.partnerSigningMethod === 'manual' &&
-                    'Partner is signing manually. Once the wet-signed document is received, mark the NDA as Fully Executed below.'}
+                    (isAllInk
+                      ? 'IOTA and the partner sign in ink. Once the signed copy is back, upload it below to complete the NDA.'
+                      : 'Partner is signing in ink. Once their signed copy is back, upload it below to complete the NDA.')}
                 </Typography>
               </Card>
             )}
@@ -1770,10 +1775,11 @@ export default function NdaDetailsPage({ params }) {
                       Mark as Fully Executed
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
-                      The partner is signing via wet (manual) signature. Once you have received the
-                      physically signed document, upload it here and mark the NDA as Fully Executed.
-                      Uploading the file is optional but recommended — it will be stored in
-                      OneDrive.
+                      {isAllInk
+                        ? 'IOTA and the partner sign this NDA in ink. '
+                        : 'The partner signs this NDA in ink. '}
+                      Upload the fully signed copy to mark it Fully Executed — it is stored in
+                      OneDrive as the executed NDA, and your follow-up To-Do closes.
                     </Typography>
                   </Box>
 
@@ -1811,10 +1817,11 @@ export default function NdaDetailsPage({ params }) {
                     variant="contained"
                     color="success"
                     loading={wetSigLoading}
+                    disabled={!wetSigFile}
                     startIcon={<Iconify icon="solar:check-circle-bold" />}
                     onClick={handleMarkFullyExecuted}
                   >
-                    {wetSigFile ? 'Mark as Fully Executed & Upload' : 'Mark as Fully Executed'}
+                    Mark as Fully Executed &amp; Upload
                   </LoadingButton>
                 </Stack>
               </Card>
@@ -3685,7 +3692,7 @@ export default function NdaDetailsPage({ params }) {
                     startIcon={<Iconify icon="solar:pen-bold" />}
                     onClick={handleSubmitForSigning}
                   >
-                    Submit for IOTA Signing
+                    {isAllInk ? 'Send for Ink Signatures' : 'Submit for IOTA Signing'}
                   </LoadingButton>
                 </span>
               </Tooltip>
@@ -3713,17 +3720,22 @@ export default function NdaDetailsPage({ params }) {
               )}
 
             {isPendingPartner && nda.partnerSigningMethod === 'manual' && (
-              <LoadingButton
-                variant="contained"
-                color="success"
-                size="small"
-                fullWidth
-                loading={wetSigLoading}
-                startIcon={<Iconify icon="solar:check-circle-bold" />}
-                onClick={handleMarkFullyExecuted}
-              >
-                {wetSigFile ? 'Mark Fully Executed & Upload' : 'Mark as Fully Executed'}
-              </LoadingButton>
+              <Tooltip title={wetSigFile ? '' : 'Upload the signed copy first (left panel)'}>
+                <span>
+                  <LoadingButton
+                    variant="contained"
+                    color="success"
+                    size="small"
+                    fullWidth
+                    loading={wetSigLoading}
+                    disabled={!wetSigFile}
+                    startIcon={<Iconify icon="solar:check-circle-bold" />}
+                    onClick={handleMarkFullyExecuted}
+                  >
+                    Mark Fully Executed &amp; Upload
+                  </LoadingButton>
+                </span>
+              </Tooltip>
             )}
 
             {isFullyExecuted && !nda.onedriveFileId && (

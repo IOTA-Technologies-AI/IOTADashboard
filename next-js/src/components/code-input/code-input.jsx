@@ -107,7 +107,20 @@ export function CodeInput({
           if (disabled) return;
           e.preventDefault();
           e.stopPropagation();
-          fill(e.clipboardData?.getData('text') ?? '');
+          const data = e.clipboardData;
+          fill(data?.getData('text/plain') || data?.getData('text') || '');
+        }}
+        // A code can also arrive without a paste event — the phone keyboard's
+        // clipboard suggestion, "AutoFill from Messages/Passwords", a password
+        // manager — as several characters typed into whichever box has focus.
+        // The library keeps only the first character unless it is the first
+        // box (and even then cuts "123 456" short), so take the whole code here.
+        onChangeCapture={(e) => {
+          const text = e.target?.value ?? '';
+          if (disabled || text.length <= 1) return;
+          if (!codeFromText(text)) return;
+          e.stopPropagation();
+          fill(text);
         }}
         sx={{
           width: 1,

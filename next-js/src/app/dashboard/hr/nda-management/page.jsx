@@ -15,6 +15,7 @@ import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import { paths } from 'src/routes/paths';
 
 import { getNdas } from 'src/utils/apiHelper';
+import { ndaStatusLabel } from 'src/utils/nda-signing';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import { runNdaReview, ndaNeedsReview } from 'src/actions/nda-review';
@@ -34,14 +35,6 @@ const STATUS_COLOR = {
   cancelled: 'error',
 };
 
-const STATUS_LABEL = {
-  draft: 'Draft',
-  pending_iota_signatures: 'Pending IOTA Signatures',
-  pending_partner_signatures: 'Pending Partner Signatures',
-  fully_executed: 'Fully Executed',
-  expired: 'Expired',
-  cancelled: 'Cancelled',
-};
 
 /** The review column: what the IOTA standard review says about this NDA. */
 function reviewChip(row) {
@@ -166,10 +159,10 @@ export default function NdaManagementPage() {
       field: 'status',
       headerName: 'Status',
       width: 220,
-      renderCell: ({ value }) => (
+      renderCell: ({ value, row }) => (
         <Chip
           size="small"
-          label={STATUS_LABEL[value] || value}
+          label={ndaStatusLabel(row)}
           color={STATUS_COLOR[value] || 'default'}
           variant="soft"
         />

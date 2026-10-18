@@ -25,6 +25,21 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **NDAs: choose how the NDA is signed.** When building an NDA you pick one
+  of three modes: IOTA and partner both sign in the dashboard; IOTA signs in
+  the dashboard and the partner signs in ink; or both sign in ink. An all-ink
+  NDA skips dashboard signing and is labelled "Awaiting Ink Signatures". An
+  ink-signed NDA is completed by uploading the signed copy, which is now
+  required because it is the copy stored in OneDrive. Needs
+  `20261018_nda_signatories_and_signing_modes.sql`.
+- **NDAs: a follow-up To-Do for every unfinished NDA.** Once an NDA is out
+  for signature, its creator gets a To-Do saying what is needed next: chase
+  IOTA or partner signatures, get the ink-signed copy back and upload it, or
+  finalize and store the executed NDA in OneDrive. The To-Do board's morning
+  reminder emails the creator about it every day. The task updates as the
+  NDA moves on, comes back if it is closed early, and moves to Done once the
+  NDA is fully executed and stored in OneDrive. A daily job adds tasks for
+  NDAs that were already open.
 - **Super admins can send an IOTA signature back for re-signing.** On an NDA
   or offer letter, each IOTA signatory's signature has a "Send back" action.
   It clears that signature and emails the signatory the reason with a link to
@@ -676,6 +691,14 @@ is running.
   to the API; they previously called it anonymously.
 
 ### Changed
+- **NDAs: only approved people can sign for IOTA or approve an exception.**
+  The IOTA signatory picker on NDAs lists only the people on appConfig
+  ndas › iotaSignatories (Jaffar Meeran and Mohammed Zakiuddin to start),
+  not every Microsoft user, and the API refuses anyone else. The same list
+  decides who approves an NDA exception and who is emailed about one;
+  previously that was every Admin and Super Admin. Add a person by adding
+  their email or name to that appConfig entry. Offer letters keep their own
+  list (offers › iotaSignatories).
 - **Resume Formatting shows who each candidate is.** The library and a
   requirement's candidate list show the candidate's full name and email from
   the original resume, so two candidates who share a first name can be told
@@ -769,6 +792,11 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **"Paste code" now takes a code however it arrives.** A code from an
+  authenticator app often comes in without a paste event: the phone
+  keyboard's clipboard suggestion, "AutoFill from Messages/Passwords", or a
+  password manager. It then landed in one box, and only its first digit was
+  kept. A whole code typed or filled into any box now fills all six.
 - **A blank signature can no longer be applied to an NDA or offer letter.**
   "Apply Signature" on the drawing pad was always enabled, so pressing it
   without signing put an empty box on the agreement. The pad now waits for
