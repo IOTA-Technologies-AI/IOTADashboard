@@ -8,7 +8,6 @@ import Card from '@mui/material/Card';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
-import TextField from '@mui/material/TextField';
 import Container from '@mui/material/Container';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
@@ -22,6 +21,7 @@ import { totpSetup, totpStatus, totpVerify, totpVerifySetup } from 'src/utils/ap
 import { supabase } from 'src/lib/supabase';
 
 import { Iconify } from 'src/components/iconify';
+import { CodeInput } from 'src/components/code-input';
 
 import { signOut } from 'src/auth/context/supabase/action';
 
@@ -250,8 +250,8 @@ export default function SupabaseAuthCallbackPage() {
   };
 
   // ── Verify setup code (first-time) ────────────────────────────────────────
-  const handleVerifySetup = async () => {
-    const trimmed = otp.replace(/\s/g, '');
+  const handleVerifySetup = async (code = otp) => {
+    const trimmed = code.replace(/\s/g, '');
     if (trimmed.length !== 6) {
       setOtpError('Enter the 6-digit code from your authenticator app.');
       return;
@@ -272,8 +272,8 @@ export default function SupabaseAuthCallbackPage() {
   };
 
   // ── Verify OTP (returning user) ───────────────────────────────────────────
-  const handleVerify = async () => {
-    const trimmed = otp.replace(/\s/g, '');
+  const handleVerify = async (code = otp) => {
+    const trimmed = code.replace(/\s/g, '');
     if (trimmed.length !== 6) {
       setOtpError('Enter the 6-digit code from your authenticator app.');
       return;
@@ -462,23 +462,17 @@ export default function SupabaseAuthCallbackPage() {
                 </Typography>
               </Stack>
 
-              <TextField
+              <CodeInput
                 autoFocus
-                fullWidth
-                label="Authenticator Code"
-                placeholder="000 000"
                 value={otp}
-                onChange={(e) => {
-                  setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6));
+                onChange={(code) => {
+                  setOtp(code);
                   setOtpError('');
                 }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleVerifySetup();
-                }}
-                inputProps={{ inputMode: 'numeric', maxLength: 6 }}
-                error={!!otpError}
+                onComplete={(code) => handleVerifySetup(code)}
+                disabled={verifying}
+                error={otpError}
                 helperText={otpError}
-                sx={{ '& input': { textAlign: 'center', fontSize: '1.5rem', letterSpacing: 6 } }}
               />
 
               <Button
@@ -486,7 +480,7 @@ export default function SupabaseAuthCallbackPage() {
                 size="large"
                 variant="contained"
                 color="success"
-                onClick={handleVerifySetup}
+                onClick={() => handleVerifySetup()}
                 disabled={verifying || otp.replace(/\s/g, '').length !== 6}
                 startIcon={
                   verifying ? (
@@ -538,30 +532,24 @@ export default function SupabaseAuthCallbackPage() {
                 </Typography>
               </Stack>
 
-              <TextField
+              <CodeInput
                 autoFocus
-                fullWidth
-                label="Authenticator Code"
-                placeholder="000 000"
                 value={otp}
-                onChange={(e) => {
-                  setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6));
+                onChange={(code) => {
+                  setOtp(code);
                   setOtpError('');
                 }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') handleVerify();
-                }}
-                inputProps={{ inputMode: 'numeric', maxLength: 6 }}
-                error={!!otpError}
+                onComplete={(code) => handleVerify(code)}
+                disabled={verifying}
+                error={otpError}
                 helperText={otpError}
-                sx={{ '& input': { textAlign: 'center', fontSize: '1.5rem', letterSpacing: 6 } }}
               />
 
               <Button
                 fullWidth
                 size="large"
                 variant="contained"
-                onClick={handleVerify}
+                onClick={() => handleVerify()}
                 disabled={verifying || otp.replace(/\s/g, '').length !== 6}
                 startIcon={
                   verifying ? (

@@ -6,7 +6,6 @@ import Box from '@mui/material/Box';
 import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
-import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -19,6 +18,7 @@ import { RouterLink } from 'src/routes/components';
 import { totpVerify } from 'src/utils/apiHelper';
 
 import { Iconify } from 'src/components/iconify';
+import { CodeInput } from 'src/components/code-input';
 
 // ----------------------------------------------------------------------
 // TOTPModal — shows a 6-digit OTP prompt before a sensitive action.
@@ -51,13 +51,13 @@ export function TOTPModal({
     onClose();
   };
 
-  const handleVerify = async () => {
+  const handleVerify = async (entered = code) => {
     if (!userIdentifier) {
       setCodeError('Unable to find your account identity. Please sign out and sign in again.');
       return;
     }
 
-    const trimmed = code.replace(/\s/g, '');
+    const trimmed = entered.replace(/\s/g, '');
     if (trimmed.length !== 6 || !/^\d{6}$/.test(trimmed)) {
       setCodeError('Enter the 6-digit code shown in Microsoft Authenticator.');
       return;
@@ -141,23 +141,17 @@ export function TOTPModal({
           <em>IOTA Technologies</em> to {actionLabel.toLowerCase()}.
         </Typography>
 
-        <TextField
-          fullWidth
+        <CodeInput
           autoFocus
-          label="6-digit code"
-          placeholder="000 000"
           value={code}
-          onChange={(e) => {
-            const val = e.target.value.replace(/[^\d\s]/g, '');
-            setCode(val);
+          onChange={(v) => {
+            setCode(v);
             if (codeError) setCodeError('');
           }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') handleVerify();
-          }}
-          inputProps={{ maxLength: 7, inputMode: 'numeric', pattern: '[0-9]*' }}
-          error={!!codeError}
-          helperText={codeError || ' '}
+          onComplete={(v) => handleVerify(v)}
+          disabled={loading}
+          error={codeError}
+          helperText={codeError}
         />
       </DialogContent>
 
@@ -168,7 +162,7 @@ export function TOTPModal({
         <Button
           variant="contained"
           color="success"
-          onClick={handleVerify}
+          onClick={() => handleVerify()}
           disabled={loading || code.replace(/\s/g, '').length < 6}
           startIcon={
             loading ? (

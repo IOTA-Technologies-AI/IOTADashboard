@@ -8,7 +8,6 @@ import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Avatar from '@mui/material/Avatar';
 import Divider from '@mui/material/Divider';
-import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
@@ -30,6 +29,7 @@ import {
 } from 'src/utils/totp-session';
 
 import { Iconify } from 'src/components/iconify';
+import { CodeInput } from 'src/components/code-input';
 import { SplashScreen } from 'src/components/loading-screen';
 
 import { useAuthContext } from '../hooks';
@@ -255,8 +255,8 @@ export function TotpGuard({ children }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, authenticated, email, isBypassPath]);
 
-  const handleVerify = async () => {
-    const trimmed = otp.replace(/\s/g, '');
+  const handleVerify = async (code = otp) => {
+    const trimmed = code.replace(/\s/g, '');
     if (trimmed.length !== 6) {
       setError('Enter the 6-digit code from your authenticator app.');
       return;
@@ -403,23 +403,16 @@ export function TotpGuard({ children }) {
               Enter the 6-digit code from <strong>Microsoft Authenticator</strong> for this account.
             </Typography>
 
-            <TextField
+            <CodeInput
               autoFocus
-              fullWidth
-              label="Authenticator Code"
-              placeholder="000 000"
               value={otp}
-              onChange={(e) => {
-                setOtp(e.target.value.replace(/[^0-9]/g, '').slice(0, 6));
+              onChange={(code) => {
+                setOtp(code);
                 if (!locked) setError('');
               }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') handleVerify();
-              }}
-              inputProps={{ inputMode: 'numeric', maxLength: 6 }}
-              disabled={locked}
-              error={!!error}
-              helperText={locked ? '' : error}
+              onComplete={(code) => handleVerify(code)}
+              disabled={locked || verifying}
+              error={error}
             />
 
             {error && (
@@ -442,7 +435,7 @@ export function TotpGuard({ children }) {
               fullWidth
               variant="contained"
               size="large"
-              onClick={handleVerify}
+              onClick={() => handleVerify()}
               disabled={verifying || locked || otp.replace(/\s/g, '').length !== 6}
               startIcon={
                 verifying ? (

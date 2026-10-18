@@ -25,6 +25,15 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **One-time codes: six boxes and a "Paste code" button.** Every code screen
+  (authenticator sign-in and re-verify, authenticator setup, invoice approval,
+  NDA signing, candidate intake, employee onboarding) now takes the code in six
+  boxes. "Paste code" — or Ctrl/⌘+V into any box — fills them from the
+  clipboard, accepting "123 456" or a whole message, and verifies straight
+  away. A wrong code shakes the boxes.
+- **Sign-in page: a door ajar onto a night sky** replaces the dashboard
+  illustration. It swings open on load and stays still for anyone who has
+  reduced motion turned on.
 - **Offer letters: IOTA signatories from a list, saved clauses, and an Addendum.**
   - IOTA signatories are chosen from a dropdown of Microsoft users on an
     allow-list in appConfig (offers › iotaSignatories) — Abdul Raheem Syed for

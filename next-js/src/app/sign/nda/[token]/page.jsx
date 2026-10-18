@@ -8,7 +8,6 @@ import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
 import Divider from '@mui/material/Divider';
 import Checkbox from '@mui/material/Checkbox';
-import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import FormControlLabel from '@mui/material/FormControlLabel';
@@ -18,6 +17,7 @@ import { verifyNdaOtp, getNdaByToken, requestNdaOtp, partnerSignNda } from 'src/
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
+import { CodeInput } from 'src/components/code-input';
 import { celebrate } from 'src/components/success-moment';
 import { NdaHtmlTemplate, NdaSignatureCanvas } from 'src/components/nda';
 
@@ -250,14 +250,14 @@ export default function PartnerNdaSignPage({ params }) {
     }
   };
 
-  const handleVerifyOtp = async () => {
-    if (!otpCode || otpCode.length !== 6) {
+  const handleVerifyOtp = async (code = otpCode) => {
+    if (!code || code.length !== 6) {
       toast.error('Please enter the 6-digit code');
       return;
     }
     try {
       setVerifyingOtp(true);
-      const data = await verifyNdaOtp(token, otpCode);
+      const data = await verifyNdaOtp(token, code);
       setSessionToken(data.sessionToken);
       setVerifyStep('otp-verified');
       toast.success('Identity verified — you may now sign the document');
@@ -416,19 +416,19 @@ export default function PartnerNdaSignPage({ params }) {
                 for 10 minutes.
               </Typography>
               <Stack direction="row" spacing={1.5} alignItems="flex-start">
-                <TextField
-                  label="6-digit code"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                  inputProps={{ inputMode: 'numeric', maxLength: 6 }}
+                <CodeInput
                   size="small"
-                  sx={{ width: 160 }}
+                  align="left"
+                  value={otpCode}
+                  onChange={setOtpCode}
+                  onComplete={(code) => handleVerifyOtp(code)}
+                  disabled={verifyingOtp}
                 />
                 <LoadingButton
                   variant="contained"
                   color="warning"
                   loading={verifyingOtp}
-                  onClick={handleVerifyOtp}
+                  onClick={() => handleVerifyOtp()}
                   disabled={otpCode.length !== 6}
                 >
                   Verify Code

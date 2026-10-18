@@ -19,6 +19,7 @@ export function AuthSplitSection({
   title = 'Manage the job',
   imgUrl = `${CONFIG.assetsDir}/assets/illustrations/illustration-dashboard.webp`,
   subtitle = 'More effectively with optimized workflows.',
+  illustration,
   ...other
 }) {
   return (
@@ -62,12 +63,14 @@ export function AuthSplitSection({
         )}
       </div>
 
-      <Box
-        component="img"
-        alt="Dashboard illustration"
-        src={imgUrl}
-        sx={{ width: 1, aspectRatio: '4/3', objectFit: 'cover' }}
-      />
+      {illustration ?? (
+        <Box
+          component="img"
+          alt="Dashboard illustration"
+          src={imgUrl}
+          sx={{ width: 1, aspectRatio: '4/3', objectFit: 'cover' }}
+        />
+      )}
 
       {!!methods?.length && method && (
         <Box component="ul" sx={{ gap: 2, display: 'flex' }}>

@@ -29,6 +29,7 @@ import {
   submitCandidateIntakeForm,
 } from 'src/utils/apiHelper';
 
+import { CodeInput } from 'src/components/code-input';
 import { celebrate } from 'src/components/success-moment';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -150,11 +151,11 @@ function StepVerifyIdentity({ tokenRecord, onVerified }) {
     }
   };
 
-  const handleVerifyOtp = async () => {
+  const handleVerifyOtp = async (code = otp) => {
     setError('');
     setVerifying(true);
     try {
-      const res = await verifyCandidateIntakeOtp(tokenRecord.token, email, otp);
+      const res = await verifyCandidateIntakeOtp(tokenRecord.token, email, code);
       onVerified(res.sessionToken, email);
     } catch (e) {
       setError(e?.response?.data?.message || e?.message || 'Invalid code. Please try again.');
@@ -199,23 +200,20 @@ function StepVerifyIdentity({ tokenRecord, onVerified }) {
         </LoadingButton>
       ) : (
         <Stack spacing={2}>
-          <TextField
-            label="Verification Code"
+          <CodeInput
+            autoFocus
             value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            inputProps={{
-              maxLength: 6,
-              inputMode: 'numeric',
-              style: { letterSpacing: '8px', fontSize: '24px', fontWeight: 700 },
-            }}
-            fullWidth
+            onChange={setOtp}
+            onComplete={(code) => handleVerifyOtp(code)}
+            disabled={verifying}
+            error={error}
             helperText="Enter the 6-digit code from your email."
           />
           <LoadingButton
             variant="contained"
             size="large"
             loading={verifying}
-            onClick={handleVerifyOtp}
+            onClick={() => handleVerifyOtp()}
             disabled={otp.length !== 6}
           >
             Verify & Continue
