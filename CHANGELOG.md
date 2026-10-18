@@ -691,6 +691,22 @@ is running.
   to the API; they previously called it anonymously.
 
 ### Changed
+- **NDA page: actions no longer float over the page.** The floating "Actions"
+  panel covered buttons and content on the right of the NDA page. Actions
+  now sit in two places. The title row has the one action the NDA needs now
+  (Submit, Sign now, Remind Partner, Upload signed copy, Upload to OneDrive),
+  Print, and a ⋯ menu for the occasional ones: Email review, Download with
+  stamps, Download original and Cancel NDA. A banner under the title says
+  what the NDA is waiting for, who still has to sign, or why it can't go out
+  yet, and repeats that action.
+- **NDA status follows review and exceptional approval.** Before an NDA goes
+  for signature, its status is no longer just "Draft". On the NDA page and in
+  the NDA list it reads Under Review (the AI review flagged clauses), Review
+  Passed, Under Exceptional Approval, Exceptionally Approved or Exceptional
+  Approval Rejected, then Pending IOTA Signatures, Pending Partner Signatures
+  and so on. Editing the wording clears the review, so the status goes back
+  to Draft. The next-step banner is restyled as a soft tinted card with the
+  action that moves the NDA on.
 - **NDAs: only approved people can sign for IOTA or approve an exception.**
   The IOTA signatory picker on NDAs lists only the people on appConfig
   ndas › iotaSignatories (Jaffar Meeran and Mohammed Zakiuddin to start),

@@ -15,7 +15,7 @@ import { DataGrid, GridActionsCellItem } from '@mui/x-data-grid';
 import { paths } from 'src/routes/paths';
 
 import { getNdas } from 'src/utils/apiHelper';
-import { ndaStatusLabel } from 'src/utils/nda-signing';
+import { ndaStatusChip } from 'src/utils/nda-signing';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import { runNdaReview, ndaNeedsReview } from 'src/actions/nda-review';
@@ -25,16 +25,6 @@ import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 // ── Status colour map ──────────────────────────────────────────────────────
-
-const STATUS_COLOR = {
-  draft: 'default',
-  pending_iota_signatures: 'warning',
-  pending_partner_signatures: 'info',
-  fully_executed: 'success',
-  expired: 'error',
-  cancelled: 'error',
-};
-
 
 /** The review column: what the IOTA standard review says about this NDA. */
 function reviewChip(row) {
@@ -110,7 +100,7 @@ export default function NdaManagementPage() {
       setBulk({ done: i, total: queue.length, current: queue[i].ndaNumber });
       try {
         // One at a time: each is a full document read and AI call.
-         
+
         const review = await runNdaReview(queue[i].id);
         if (review?.reviewStatus === 'attention') flagged += 1;
       } catch (err) {
@@ -162,8 +152,8 @@ export default function NdaManagementPage() {
       renderCell: ({ value, row }) => (
         <Chip
           size="small"
-          label={ndaStatusLabel(row)}
-          color={STATUS_COLOR[value] || 'default'}
+          label={ndaStatusChip(row).label}
+          color={ndaStatusChip(row).color}
           variant="soft"
         />
       ),

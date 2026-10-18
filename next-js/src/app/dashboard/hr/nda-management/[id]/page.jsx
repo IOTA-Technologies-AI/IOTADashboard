@@ -11,7 +11,6 @@ import Grid from '@mui/material/Grid';
 import Tabs from '@mui/material/Tabs';
 import Stack from '@mui/material/Stack';
 import Alert from '@mui/material/Alert';
-import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Select from '@mui/material/Select';
@@ -32,7 +31,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 import { paths } from 'src/routes/paths';
 
 import { withFramedNdaSignatures } from 'src/utils/signature-frame';
-import { ndaStatusLabel, ndaSigningModeLabel } from 'src/utils/nda-signing';
+import { ndaStatusChip, ndaSigningModeLabel } from 'src/utils/nda-signing';
 import { stampNdaPdf, uint8ToBase64, signatureCaption } from 'src/utils/nda-pdf';
 import { officeLabel, stampForOffice, governingLawFor } from 'src/utils/iota-offices';
 import {
@@ -68,22 +67,13 @@ import { NdaReviewPanel } from 'src/sections/nda/nda-review-panel';
 import { SignatureLog } from 'src/sections/signatures/signature-log';
 import { useFramedNda } from 'src/sections/signatures/use-framed-nda';
 import { NdaReviewEmailDialog } from 'src/sections/nda/nda-review-email-dialog';
+import { NdaHeaderActions, NdaNextStepBanner } from 'src/sections/nda/nda-action-bar';
 import { SignatoryThumbnail, ResignRequestDialog } from 'src/sections/signatures/signature-review';
 
 import { useAuthContext } from 'src/auth/hooks';
 import { useMicrosoftUsers } from 'src/auth/hooks/use-microsoft-users';
 //End of Imports
 // ── Helpers ──────────────────────────────────────────────────────────────────
-
-const STATUS_COLOR = {
-  draft: 'default',
-  pending_iota_signatures: 'warning',
-  pending_partner_signatures: 'info',
-  fully_executed: 'success',
-  expired: 'error',
-  cancelled: 'error',
-};
-
 
 const ACTION_LABEL = {
   created: 'Created',
@@ -1272,6 +1262,7 @@ export default function NdaDetailsPage({ params }) {
   const isPendingPartner = nda.status === 'pending_partner_signatures';
   const isFullyExecuted = nda.status === 'fully_executed';
   const isAllInk = nda.iotaSigningMethod === 'manual';
+  const statusChip = ndaStatusChip(nda);
 
   // Editable up to the first signature and not past it — after that, the
   // document on file is the document somebody signed. assertEditable() on the
@@ -1302,6 +1293,180 @@ export default function NdaDetailsPage({ params }) {
     nda.status
   );
 
+  // ── What this NDA needs next: shown in the title row and the banner ──
+  const waitingOn = (list) =>
+    (list || [])
+      .filter((s) => !s.signedAt)
+      .map((s) => s.name || s.email)
+      .join(', ');
+  const isPartnerInk = nda.partnerSigningMethod === 'manual';
+  const isWordUpload = isExternalUpload && isUploadedWordDocument;
+
+  let nextStep = null;
+  if (isDraft) {
+    // Title and tone follow the review lifecycle shown on the status chip.
+    const draftTitle = {
+      'Under Review': ['Under review — some clauses need attention', 'warning'],
+      'Under Exceptional Approval': ['Under exceptional approval', 'info'],
+      'Exceptionally Approved': ['Exceptionally approved — ready to send', 'success'],
+      'Exceptional Approval Rejected': ['Exceptional approval rejected', 'error'],
+      'Review Passed': ['Review passed — ready to send', 'success'],
+    }[statusChip.label] || [
+      signingBlockedReason ? 'Draft — not ready to send yet' : 'Draft — ready to send',
+      signingBlockedReason ? 'warning' : 'info',
+    ];
+    nextStep = {
+      severity: draftTitle[1],
+      title: draftTitle[0],
+      detail:
+        signingBlockedReason ||
+        (isAllInk
+          ? 'Send it for ink signatures: print it, have IOTA and the partner sign on paper, then upload the signed copy.'
+          : 'Submit it for signing. The IOTA signatories are emailed to sign in the dashboard.'),
+      primary: {
+        label: isAllInk ? 'Send for Ink Signatures' : 'Submit for Signing',
+        icon: 'solar:pen-bold',
+        onClick: handleSubmitForSigning,
+        loading: actionLoading,
+        disabled: !!signingBlockedReason,
+        tooltip: signingBlockedReason,
+      },
+    };
+  } else if (isPendingIota) {
+    nextStep = pendingIotaSignature
+      ? {
+          severity: 'warning',
+          title: 'Your signature is needed',
+          detail: 'You are an IOTA signatory on this NDA. Sign below.',
+          primary: {
+            label: 'Sign now',
+            icon: 'solar:pen-bold',
+            onClick: () =>
+              document
+                .getElementById('nda-sign-here')
+                ?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+          },
+        }
+      : {
+          severity: 'info',
+          title: 'Waiting for IOTA signatures',
+          detail: `Still to sign: ${waitingOn(nda.iotaSignatories) || '—'}.`,
+        };
+  } else if (isPendingPartner && isPartnerInk) {
+    nextStep = {
+      severity: 'warning',
+      title: isAllInk
+        ? 'Waiting for ink signatures'
+        : `Waiting for ${nda.partnerCompanyName || 'the partner'}'s ink signature`,
+      detail: isAllInk
+        ? `Print it and have it signed on paper by IOTA (${waitingOn(nda.iotaSignatories) || '—'}) and the partner (${waitingOn(nda.partnerSignatories) || '—'}), then upload the signed copy. It is stored in OneDrive.`
+        : `Send the IOTA-signed copy to ${waitingOn(nda.partnerSignatories) || 'the partner'}, then upload their signed copy. It is stored in OneDrive.`,
+      primary: wetSigFile
+        ? {
+            label: 'Mark Fully Executed & Upload',
+            icon: 'solar:check-circle-bold',
+            color: 'success',
+            onClick: handleMarkFullyExecuted,
+            loading: wetSigLoading,
+          }
+        : {
+            label: 'Upload signed copy',
+            icon: 'solar:file-check-bold-duotone',
+            onClick: () => wetSigInputRef.current?.click(),
+          },
+      secondary: [
+        {
+          label: isAllInk ? 'Print for signing' : 'Print IOTA-signed copy',
+          icon: 'solar:printer-minimalistic-bold',
+          onClick: handlePrint,
+        },
+      ],
+    };
+  } else if (isPendingPartner) {
+    nextStep = {
+      severity: 'info',
+      title: `Waiting for ${nda.partnerCompanyName || 'the partner'} to sign`,
+      detail: `Still to sign: ${waitingOn(nda.partnerSignatories) || '—'}. They have a signing link by email.`,
+      primary: waitingOn(nda.partnerSignatories)
+        ? {
+            label: 'Remind Partner',
+            icon: 'solar:bell-bing-bold',
+            onClick: handleRemindPartner,
+            loading: remindPartnerLoading,
+          }
+        : null,
+    };
+  } else if (isFullyExecuted && !nda.onedriveFileId) {
+    nextStep = {
+      severity: 'warning',
+      title: 'Signed by everyone — store it in OneDrive',
+      detail: isWordUpload
+        ? 'Convert the Word document to PDF first, so the signatures and stamps can be embedded.'
+        : 'Upload the executed NDA to OneDrive to complete it.',
+      primary: {
+        label: isWordUpload ? 'Convert to PDF to Upload' : 'Upload to OneDrive',
+        icon: 'logos:microsoft-onedrive',
+        color: 'success',
+        onClick: handleFinalize,
+        loading: actionLoading,
+        disabled: isWordUpload,
+      },
+    };
+  } else if (isFullyExecuted) {
+    nextStep = {
+      severity: 'success',
+      title: 'Fully executed and stored in OneDrive',
+      secondary: nda.onedriveWebUrl
+        ? [{ label: 'Open in OneDrive', icon: 'eva:external-link-fill', href: nda.onedriveWebUrl }]
+        : [],
+    };
+  }
+
+  const downloadOriginal = () => {
+    const a = document.createElement('a');
+    a.href = `data:application/octet-stream;base64,${docBase64}`;
+    a.download = nda.uploadedDocumentName;
+    a.click();
+  };
+
+  const headerMenu = [
+    {
+      key: 'email-review',
+      label: 'Email review to IOTA',
+      icon: 'solar:letter-bold',
+      disabled: !nda.reviewResult,
+      tooltip: 'Run the IOTA standard review first',
+      onClick: () => setReviewEmailOpen(true),
+    },
+    isExternalUpload && docBase64 && isUploadedPdf
+      ? {
+          key: 'download-stamped',
+          label: downloadProcessing ? 'Preparing download…' : 'Download with stamps',
+          icon: 'solar:download-bold',
+          disabled: downloadProcessing,
+          onClick: handleDownloadProcessed,
+        }
+      : null,
+    isExternalUpload && docBase64
+      ? {
+          key: 'download-original',
+          label: 'Download original',
+          icon: 'solar:file-text-bold',
+          onClick: downloadOriginal,
+        }
+      : null,
+    isCancellable ? { key: 'cancel-divider', divider: true } : null,
+    isCancellable
+      ? {
+          key: 'cancel',
+          label: 'Cancel NDA',
+          icon: 'solar:close-circle-bold',
+          danger: true,
+          onClick: () => setCancelDialogOpen(true),
+        }
+      : null,
+  ];
+
   return (
     <DashboardContent>
       {/* ── Breadcrumbs ── */}
@@ -1314,28 +1479,17 @@ export default function NdaDetailsPage({ params }) {
           { name: nda.ndaNumber },
         ]}
         action={
-          <Stack direction="row" spacing={1}>
-            <Button
-              variant="outlined"
-              startIcon={<Iconify icon="solar:printer-minimalistic-bold" />}
-              onClick={handlePrint}
-            >
-              Print
-            </Button>
-            {isCancellable && (
-              <Button
-                variant="outlined"
-                color="error"
-                startIcon={<Iconify icon="solar:close-circle-bold" />}
-                onClick={() => setCancelDialogOpen(true)}
-              >
-                Cancel NDA
-              </Button>
-            )}
-          </Stack>
+          <NdaHeaderActions
+            primary={nextStep?.primary}
+            onPrint={handlePrint}
+            menuItems={headerMenu}
+          />
         }
-        sx={{ mb: { xs: 3, md: 5 } }}
+        sx={{ mb: 3 }}
       />
+
+      {/* What the NDA is waiting for, and the action that moves it on */}
+      <NdaNextStepBanner step={nextStep} />
 
       {/* Checked against the IOTA standard before it can go for signature */}
       <NdaReviewPanel nda={nda} onChange={fetchNda} onEmail={() => setReviewEmailOpen(true)} />
@@ -1353,11 +1507,7 @@ export default function NdaDetailsPage({ params }) {
                 sx={{ mb: 2 }}
               >
                 <Typography variant="h6">Agreement Details</Typography>
-                <Chip
-                  label={ndaStatusLabel(nda)}
-                  color={STATUS_COLOR[nda.status]}
-                  size="small"
-                />
+                <Chip label={statusChip.label} color={statusChip.color} size="small" />
               </Stack>
               <Divider sx={{ mb: 2 }} />
               <Stack spacing={0.5}>
@@ -1490,7 +1640,9 @@ export default function NdaDetailsPage({ params }) {
                                 ...paramsInput.InputProps,
                                 endAdornment: (
                                   <>
-                                    {signatoryOptionsLoading ? <CircularProgress size={16} /> : null}
+                                    {signatoryOptionsLoading ? (
+                                      <CircularProgress size={16} />
+                                    ) : null}
                                     {paramsInput.InputProps.endAdornment}
                                   </>
                                 ),
@@ -1748,24 +1900,6 @@ export default function NdaDetailsPage({ params }) {
               )}
             </Card>
 
-            {/* Action buttons */}
-            {(isDraft || isPendingIota || isPendingPartner) && (
-              <Card sx={{ p: 2 }}>
-                <Typography variant="caption" color="text.secondary">
-                  {isDraft && 'NDA is in draft. Use the action panel → to submit for signing.'}
-                  {isPendingIota && 'Waiting for IOTA signatories to sign.'}
-                  {isPendingPartner &&
-                    nda.partnerSigningMethod !== 'manual' &&
-                    'Waiting for partner signatories to sign.'}
-                  {isPendingPartner &&
-                    nda.partnerSigningMethod === 'manual' &&
-                    (isAllInk
-                      ? 'IOTA and the partner sign in ink. Once the signed copy is back, upload it below to complete the NDA.'
-                      : 'Partner is signing in ink. Once their signed copy is back, upload it below to complete the NDA.')}
-                </Typography>
-              </Card>
-            )}
-
             {/* ── Manual (Wet Signature) — Mark as Fully Executed ── */}
             {isPendingPartner && nda.partnerSigningMethod === 'manual' && (
               <Card sx={{ p: 3, border: '2px solid', borderColor: 'warning.main' }}>
@@ -1882,7 +2016,10 @@ export default function NdaDetailsPage({ params }) {
           <Stack spacing={3}>
             {/* Signature canvas (shown when this user needs to sign) */}
             {pendingIotaSignature && (
-              <Card sx={{ p: 3, border: '2px solid', borderColor: 'warning.main' }}>
+              <Card
+                id="nda-sign-here"
+                sx={{ p: 3, border: '2px solid', borderColor: 'warning.main' }}
+              >
                 <Alert severity="info" sx={{ mb: 2 }}>
                   Your signature is required. Draw your signature below and click Apply.
                 </Alert>
@@ -3630,171 +3767,6 @@ export default function NdaDetailsPage({ params }) {
           </LoadingButton>
         </DialogActions>
       </Dialog>
-
-      {/* ── Floating Action Panel ── */}
-      {nda.status !== 'cancelled' && (
-        <Paper
-          elevation={4}
-          sx={{
-            position: 'fixed',
-            right: 24,
-            top: 160,
-            zIndex: 1200,
-            width: 214,
-            p: 1.5,
-            borderRadius: 2,
-          }}
-        >
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{
-              display: 'block',
-              mb: 1,
-              fontWeight: 700,
-              textTransform: 'uppercase',
-              letterSpacing: 0.5,
-            }}
-          >
-            Actions
-          </Typography>
-          <Stack spacing={1}>
-            <Tooltip
-              title={
-                nda.reviewResult
-                  ? 'Send the review comments and the NDA to the IOTA team'
-                  : 'Run the IOTA standard review first'
-              }
-            >
-              <span>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  fullWidth
-                  disabled={!nda.reviewResult}
-                  startIcon={<Iconify icon="solar:letter-bold" />}
-                  onClick={() => setReviewEmailOpen(true)}
-                >
-                  Email Review to IOTA
-                </Button>
-              </span>
-            </Tooltip>
-
-            {isDraft && (
-              <Tooltip title={signingBlockedReason}>
-                <span>
-                  <LoadingButton
-                    variant="contained"
-                    size="small"
-                    fullWidth
-                    loading={actionLoading}
-                    disabled={!!signingBlockedReason}
-                    startIcon={<Iconify icon="solar:pen-bold" />}
-                    onClick={handleSubmitForSigning}
-                  >
-                    {isAllInk ? 'Send for Ink Signatures' : 'Submit for IOTA Signing'}
-                  </LoadingButton>
-                </span>
-              </Tooltip>
-            )}
-            {isDraft && signingBlockedReason ? (
-              <Typography variant="caption" color="warning.main">
-                {signingBlockedReason}
-              </Typography>
-            ) : null}
-
-            {isPendingPartner &&
-              nda.partnerSigningMethod !== 'manual' &&
-              Array.isArray(nda.partnerSignatories) &&
-              nda.partnerSignatories.some((s) => !s.signedAt) && (
-                <LoadingButton
-                  variant="outlined"
-                  size="small"
-                  fullWidth
-                  loading={remindPartnerLoading}
-                  startIcon={<Iconify icon="solar:bell-bing-bold" />}
-                  onClick={handleRemindPartner}
-                >
-                  Remind Partner
-                </LoadingButton>
-              )}
-
-            {isPendingPartner && nda.partnerSigningMethod === 'manual' && (
-              <Tooltip title={wetSigFile ? '' : 'Upload the signed copy first (left panel)'}>
-                <span>
-                  <LoadingButton
-                    variant="contained"
-                    color="success"
-                    size="small"
-                    fullWidth
-                    loading={wetSigLoading}
-                    disabled={!wetSigFile}
-                    startIcon={<Iconify icon="solar:check-circle-bold" />}
-                    onClick={handleMarkFullyExecuted}
-                  >
-                    Mark Fully Executed &amp; Upload
-                  </LoadingButton>
-                </span>
-              </Tooltip>
-            )}
-
-            {isFullyExecuted && !nda.onedriveFileId && (
-              <LoadingButton
-                variant="contained"
-                color="success"
-                size="small"
-                fullWidth
-                loading={actionLoading}
-                startIcon={<Iconify icon="logos:microsoft-onedrive" />}
-                onClick={handleFinalize}
-                disabled={isExternalUpload && isUploadedWordDocument}
-              >
-                {isExternalUpload && isUploadedWordDocument
-                  ? 'Convert to PDF to Upload'
-                  : 'Upload to OneDrive'}
-              </LoadingButton>
-            )}
-
-            {isExternalUpload && isUploadedWordDocument && (
-              <Alert severity="warning" sx={{ py: 1 }}>
-                Convert the Word document to PDF before uploading so signatures and stamps can be
-                embedded correctly.
-              </Alert>
-            )}
-
-            {nda.documentSource === 'external_upload' && docBase64 && (
-              <>
-                {isUploadedPdf && (
-                  <LoadingButton
-                    variant="contained"
-                    size="small"
-                    fullWidth
-                    loading={downloadProcessing}
-                    startIcon={<Iconify icon="solar:download-bold" />}
-                    onClick={handleDownloadProcessed}
-                  >
-                    Download with Stamps
-                  </LoadingButton>
-                )}
-                <Button
-                  variant="outlined"
-                  size="small"
-                  fullWidth
-                  startIcon={<Iconify icon="solar:document-bold" />}
-                  onClick={() => {
-                    const a = document.createElement('a');
-                    a.href = `data:application/octet-stream;base64,${docBase64}`;
-                    a.download = nda.uploadedDocumentName;
-                    a.click();
-                  }}
-                >
-                  Download Original
-                </Button>
-              </>
-            )}
-          </Stack>
-        </Paper>
-      )}
 
       <NdaReviewEmailDialog
         open={reviewEmailOpen}
