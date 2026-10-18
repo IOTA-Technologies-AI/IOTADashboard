@@ -824,6 +824,22 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Expenses: attaching a receipt no longer fails with "Missing Microsoft
+  access token".** Receipts were uploaded with the person's own Microsoft
+  token, which the dashboard only receives at sign-in and which expires
+  within the hour. Most uploads failed, and the ones that worked sat in the
+  submitter's private OneDrive. Receipts now go through the API to the
+  company OneDrive (Accounts/Expense Attachments/<year>/<month>), named
+  `<date>_<uploader>_<file>`, with a link anyone at IOTA can open. Files up
+  to 20 MB.
+- **NDA documents stay downloadable after the signatories change.** An
+  uploaded NDA's file was looked up in the first IOTA signatory's OneDrive
+  at the time of reading. If the signatories changed after the upload,
+  OneDrive answered 404, and the NDA's preview, print, download and
+  placement screens came up empty. Each file now records the drive it is
+  in. Older files are located from their own link and remembered. If a file
+  is really gone, the NDA page says so, with a Retry button. Needs
+  `20261019_nda_onedrive_drive.sql`.
 - **"Paste code" now takes a code however it arrives.** A code from an
   authenticator app often comes in without a paste event: the phone
   keyboard's clipboard suggestion, "AutoFill from Messages/Passwords", or a

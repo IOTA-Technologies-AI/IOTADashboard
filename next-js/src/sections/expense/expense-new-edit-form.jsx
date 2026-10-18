@@ -30,9 +30,13 @@ import { clearFormData } from 'src/hooks/use-form-autosave';
 import { fCurrency } from 'src/utils/format-number'; // ✅ Added for formatting
 import { apiHelper, getCostCenters, getExpenseTypes } from 'src/utils/apiHelper';
 import { EXPENSE_CURRENCIES, EXPENSE_APPROVAL_STATUS_OPTIONS } from 'src/utils/constants/enums';
-import { getOneDriveToken, seedOneDriveToken, refreshAccessToken } from 'src/utils/onedrive-helper';
 
 import { useCanEditLockedRecord } from 'src/actions/admin-edit-mode';
+import {
+  putToUploadSession,
+  shareExpenseAttachment,
+  createExpenseAttachmentUploadSession,
+} from 'src/actions/expense-attachments';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -47,21 +51,6 @@ import { useMicrosoftProfile } from 'src/auth/hooks/use-microsoft-profile';
 const INVOICE_AGAINST_INVOICE_TYPE = 18;
 const MAX_ATTACHMENT_SIZE = 20 * 1024 * 1024; // 20MB
 const ALLOWED_EXTENSIONS = ['pdf', 'doc', 'docx', 'png', 'jpg', 'jpeg'];
-const MONTH_NAMES = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
 const ExpenseSchema = zod.object({
   expenseType: zod.coerce.number().min(1, { message: 'Expense type is required!' }),
   expenseDate: zod.string().min(1, { message: 'Expense date is required!' }),
@@ -149,210 +138,6 @@ export function ExpenseNewEditForm({ currentExpense }) {
   const [attachmentName, setAttachmentName] = useState('');
   const [attachmentError, setAttachmentError] = useState('');
 
-  const sanitizeFileName = (fileName) => {
-    const parts = fileName.split('.');
-    const ext = (parts.pop() || '').toLowerCase();
-    const safeBase = parts
-      .join('.')
-      .replace(/[^a-z0-9-_]+/gi, '_')
-      .replace(/_{2,}/g, '_')
-      .replace(/^_|_$/g, '')
-      .slice(0, 80);
-
-    const finalExt = ext ? `.${ext}` : '';
-    return `${safeBase || 'attachment'}${finalExt}`;
-  };
-
-  const fileToBase64 = (file) =>
-    new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result?.toString() || '';
-        const commaIndex = result.indexOf(',');
-        resolve(commaIndex >= 0 ? result.slice(commaIndex + 1) : result);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-
-  const getAttachmentFolder = () => {
-    const now = new Date();
-    const year = now.getFullYear();
-    const month = MONTH_NAMES[now.getMonth()];
-    return `Accounts/Expense Attachments/${year}/${month}`;
-  };
-
-  const encodeGraphPath = (path) => path.split('/').map(encodeURIComponent).join('/');
-
-  const uploadViaSimplePut = async ({ accessToken, file, folderPath, fileName }) => {
-    const encodedPath = encodeGraphPath(folderPath);
-    const targetUrl = `https://graph.microsoft.com/v1.0/me/drive/root:/${encodedPath}/${encodeURIComponent(fileName)}:/content`;
-
-    const res = await fetch(targetUrl, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': file.type || 'application/octet-stream',
-      },
-      body: file,
-    });
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || 'Upload failed');
-    }
-
-    return res.json();
-  };
-
-  const uploadViaSession = async ({ accessToken, file, folderPath, fileName }) => {
-    const encodedPath = encodeGraphPath(folderPath);
-    const sessionRes = await fetch(
-      `https://graph.microsoft.com/v1.0/me/drive/root:/${encodedPath}/${encodeURIComponent(fileName)}:/createUploadSession`,
-      {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          item: {
-            '@microsoft.graph.conflictBehavior': 'replace',
-            name: fileName,
-            description: 'Expense attachment upload',
-          },
-        }),
-      }
-    );
-
-    if (!sessionRes.ok) {
-      const text = await sessionRes.text();
-      throw new Error(text || 'Failed to start upload session');
-    }
-
-    const session = await sessionRes.json();
-    const uploadUrl = session.uploadUrl;
-    if (!uploadUrl) throw new Error('Missing upload URL');
-
-    const chunkSize = 320 * 1024; // 320KB chunks keep memory low
-    let start = 0;
-    let lastResponse = null;
-
-    while (start < file.size) {
-      const end = Math.min(start + chunkSize, file.size);
-      const chunk = file.slice(start, end);
-
-      const res = await fetch(uploadUrl, {
-        method: 'PUT',
-        headers: {
-          'Content-Length': `${chunk.size}`,
-          'Content-Range': `bytes ${start}-${end - 1}/${file.size}`,
-        },
-        body: chunk,
-      });
-
-      if (!(res.status === 200 || res.status === 201 || res.status === 202)) {
-        const text = await res.text();
-        throw new Error(text || 'Chunk upload failed');
-      }
-
-      lastResponse = await res.json();
-      start = end;
-    }
-
-    return lastResponse;
-  };
-
-  const getTokens = () => {
-    const stored = getOneDriveToken();
-    return {
-      accessToken: stored.accessToken || user?.provider_token || user?.providerToken,
-      refreshToken:
-        stored.refreshToken || user?.provider_refresh_token || user?.providerRefreshToken,
-    };
-  };
-
-  const fetchWithAuth = async (url, init, refreshToken) => {
-    const response = await fetch(url, init);
-
-    if (response.status === 401 && refreshToken) {
-      const refreshed = await refreshAccessToken(refreshToken);
-      const newAccess = refreshed.access_token || refreshed.accessToken;
-      const newRefresh = refreshed.refresh_token || refreshed.refreshToken || refreshToken;
-
-      if (newAccess) {
-        seedOneDriveToken(newAccess, newRefresh);
-        const retryInit = {
-          ...init,
-          headers: { ...init.headers, Authorization: `Bearer ${newAccess}` },
-        };
-        return fetch(url, retryInit);
-      }
-    }
-
-    return response;
-  };
-
-  const notifyManagerForApproval = async (createdExpense, submittedExpense) => {
-    const managerEmail = profile?.managerEmail;
-    if (!managerEmail) {
-      console.warn('No manager email found for approval notification');
-      return;
-    }
-
-    const { accessToken, refreshToken } = getTokens();
-    if (!accessToken) {
-      console.warn('No Microsoft token available for approval email');
-      return;
-    }
-
-    const subject = `Expense ${createdExpense?.referenceId || ''} awaiting your approval`;
-    const amount = submittedExpense?.originalExpenseAmount || submittedExpense?.expenseAmount;
-    const currency = submittedExpense?.originalExpenseCurrency || 'SAR';
-    const submitter = profile?.displayName || user?.displayName || user?.email || 'A team member';
-    const expenseDate = submittedExpense?.expenseDate;
-
-    const mailPayload = {
-      message: {
-        subject,
-        body: {
-          contentType: 'HTML',
-          content: `
-            <p>Hello,</p>
-            <p>${submitter} submitted an expense that needs your approval.</p>
-            <ul>
-              <li><strong>Amount:</strong> ${amount ? `${amount} ${currency}` : 'N/A'}</li>
-              <li><strong>Date:</strong> ${expenseDate || 'N/A'}</li>
-              <li><strong>Reference:</strong> ${createdExpense?.referenceId || createdExpense?.id || 'N/A'}</li>
-            </ul>
-            <p>Please review and approve it in the dashboard.</p>
-          `,
-        },
-        toRecipients: [{ emailAddress: { address: managerEmail } }],
-      },
-      saveToSentItems: false,
-    };
-
-    const init = {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(mailPayload),
-    };
-
-    const res = await fetchWithAuth(
-      'https://graph.microsoft.com/v1.0/me/sendMail',
-      init,
-      refreshToken
-    );
-
-    if (!res.ok) {
-      const text = await res.text();
-      throw new Error(text || 'Failed to send approval email');
-    }
-  };
   console.log('🔍 ExpenseNewEditForm - currentExpense:', currentExpense);
   console.log('🔍 originalExpenseAmount:', currentExpense?.originalExpenseAmount);
   console.log('🔍 expenseAmount:', currentExpense?.expenseAmount);
@@ -561,53 +346,23 @@ export function ExpenseNewEditForm({ currentExpense }) {
     setUploadingAttachment(true);
 
     try {
-      const safeName = sanitizeFileName(file.name);
-      const folderPath = getAttachmentFolder();
-      const { accessToken, refreshToken } = getTokens();
+      // The API opens an upload session in the company OneDrive and the file
+      // goes straight there — no personal Microsoft token needed (ISS-0009).
+      const { uploadUrl, fileName: storedName } = await createExpenseAttachmentUploadSession(
+        file.name,
+        file.size
+      );
+      const uploaded = await putToUploadSession(uploadUrl, file);
+      if (!uploaded?.id) throw new Error('Upload did not finish. Please try again.');
 
-      if (!accessToken) {
-        throw new Error('Missing Microsoft access token. Please reconnect your account.');
-      }
-
-      const useSession = file.size > 3.5 * 1024 * 1024; // >3.5MB => upload session
-
-      const uploadFn = async (token) => {
-        if (useSession) {
-          return uploadViaSession({ accessToken: token, file, folderPath, fileName: safeName });
-        }
-        return uploadViaSimplePut({ accessToken: token, file, folderPath, fileName: safeName });
-      };
-
-      let uploadResponse;
-      try {
-        uploadResponse = await uploadFn(accessToken);
-      } catch (err) {
-        if (refreshToken) {
-          const refreshed = await refreshAccessToken(refreshToken);
-          const newAccess = refreshed.access_token || refreshed.accessToken;
-          const newRefresh = refreshed.refresh_token || refreshed.refreshToken || refreshToken;
-          if (newAccess) {
-            seedOneDriveToken(newAccess, newRefresh);
-            uploadResponse = await uploadFn(newAccess);
-          } else {
-            throw err;
-          }
-        } else {
-          throw err;
-        }
-      }
-
-      const uploadedUrl =
-        uploadResponse?.webUrl ||
-        uploadResponse?.['@microsoft.graph.downloadUrl'] ||
-        uploadResponse?.id;
-
+      // An IOTA-wide view link, so finance and approvers can open the receipt.
+      const { webUrl: uploadedUrl } = await shareExpenseAttachment(uploaded.id);
       if (!uploadedUrl) {
         throw new Error('Upload did not return a file URL.');
       }
 
       setValue('fileLocation', uploadedUrl);
-      setAttachmentName(safeName);
+      setAttachmentName(storedName);
       toast.success('Attachment uploaded to OneDrive.');
     } catch (error) {
       console.error('Attachment upload failed:', error);
