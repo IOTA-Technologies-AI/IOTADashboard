@@ -66,6 +66,7 @@ import { NdaPdfDocument, NdaHtmlTemplate, NdaSignatureCanvas } from 'src/compone
 import { NdaReviewPanel } from 'src/sections/nda/nda-review-panel';
 import { SignatureLog } from 'src/sections/signatures/signature-log';
 import { useFramedNda } from 'src/sections/signatures/use-framed-nda';
+import { NdaRevisionPanel } from 'src/sections/nda/nda-revision-panel';
 import { NdaReviewEmailDialog } from 'src/sections/nda/nda-review-email-dialog';
 import { NdaHeaderActions, NdaNextStepBanner } from 'src/sections/nda/nda-action-bar';
 import { SignatoryThumbnail, ResignRequestDialog } from 'src/sections/signatures/signature-review';
@@ -80,6 +81,8 @@ const ACTION_LABEL = {
   submitted_for_iota_signing: 'Submitted for IOTA Signing',
   submitted_for_ink_signing: 'Sent for Ink Signatures',
   iota_signature_rejected: 'IOTA Signature Sent Back',
+  revision_received: 'Partner Revision Received',
+  revision_compared: 'Revision Compared',
   iota_signed: 'IOTA Signed',
   partner_signing_tokens_issued: 'Partner Signing Links Issued',
   partner_signed: 'Partner Signed',
@@ -271,6 +274,7 @@ export default function NdaDetailsPage({ params }) {
   const [wetSigFile, setWetSigFile] = useState(null); // { name, base64 } for fully-executed upload
   const [wetSigLoading, setWetSigLoading] = useState(false);
   const [reviewEmailOpen, setReviewEmailOpen] = useState(false);
+  const [revisionOpen, setRevisionOpen] = useState(false); // partner's revised document
   const wetSigInputRef = useRef(null);
 
   const userEmail = user?.email || '';
@@ -1302,6 +1306,10 @@ export default function NdaDetailsPage({ params }) {
   const isPartnerInk = nda.partnerSigningMethod === 'manual';
   const isWordUpload = isExternalUpload && isUploadedWordDocument;
 
+  // A partner answering IOTA's review with a new document: a new version of
+  // this NDA, compared with the one reviewed (ndas/ndaRevisions.ts).
+  const canTakeRevision = isDraft && !!nda.reviewResult && (isCreator || editorIsSuperAdmin);
+
   let nextStep = null;
   if (isDraft) {
     // Title and tone follow the review lifecycle shown on the status chip.
@@ -1323,6 +1331,15 @@ export default function NdaDetailsPage({ params }) {
         (isAllInk
           ? 'Send it for ink signatures: print it, have IOTA and the partner sign on paper, then upload the signed copy.'
           : 'Submit it for signing. The IOTA signatories are emailed to sign in the dashboard.'),
+      secondary: canTakeRevision
+        ? [
+            {
+              label: 'Partner sent a revised version',
+              icon: 'solar:restart-bold',
+              onClick: () => setRevisionOpen(true),
+            },
+          ]
+        : [],
       primary: {
         label: isAllInk ? 'Send for Ink Signatures' : 'Submit for Signing',
         icon: 'solar:pen-bold',
@@ -1430,6 +1447,14 @@ export default function NdaDetailsPage({ params }) {
   };
 
   const headerMenu = [
+    canTakeRevision
+      ? {
+          key: 'revision',
+          label: 'Partner sent a revised version',
+          icon: 'solar:restart-bold',
+          onClick: () => setRevisionOpen(true),
+        }
+      : null,
     {
       key: 'email-review',
       label: 'Email review to IOTA',
@@ -1493,6 +1518,17 @@ export default function NdaDetailsPage({ params }) {
 
       {/* Checked against the IOTA standard before it can go for signature */}
       <NdaReviewPanel nda={nda} onChange={fetchNda} onEmail={() => setReviewEmailOpen(true)} />
+
+      {/* The partner's revised document against the version IOTA reviewed */}
+      <NdaRevisionPanel
+        nda={nda}
+        dialogOpen={revisionOpen}
+        onDialogClose={() => setRevisionOpen(false)}
+        onUpdated={(updated) => {
+          setNda(updated);
+          setFetchedDocBase64(null);
+        }}
+      />
 
       <Grid container spacing={3}>
         {/* ── Left col: summary + actions ── */}

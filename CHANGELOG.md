@@ -25,6 +25,22 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **NDAs: take a partner's revised document against the one IOTA reviewed.**
+  When a partner answers IOTA's review with a new document, choose "Partner
+  sent a revised version" on the NDA, instead of creating a new NDA. The
+  revised file becomes the next version of the same NDA. The previous file
+  and its review are kept, in OneDrive as `…_Rev2`, `…_Rev3`. The AI then
+  compares the two versions and shows:
+  - each risk IOTA raised: resolved, partly resolved or not resolved, judged
+    against what IOTA asked for, with the revised wording quoted;
+  - every clause the partner added, removed or reworded, with its risk to
+    IOTA. Changes IOTA didn't ask for are flagged "Not requested by IOTA",
+    and fixes that overreach are caught too.
+
+  The revised document is also reviewed against the IOTA standard as usual.
+  The NDA stays "Under Review" while any raised risk is unresolved or a
+  change adds risk. Earlier versions can be downloaded from the Versions tab.
+  Draft NDAs only. Needs `20261019_nda_revisions.sql`.
 - **NDAs: choose how the NDA is signed.** When building an NDA you pick one
   of three modes: IOTA and partner both sign in the dashboard; IOTA signs in
   the dashboard and the partner signs in ink; or both sign in ink. An all-ink

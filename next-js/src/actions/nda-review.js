@@ -16,6 +16,27 @@ export async function runNdaReview(id) {
   return res.data?.review;
 }
 
+/**
+ * A partner's revised document (already uploaded to OneDrive) as the next
+ * version of this NDA. The API archives the current version, then compares
+ * the two and reviews the new one — two AI passes, so allow a few minutes.
+ * Resolves to { nda, comparison, comparisonError }. See ndas/ndaRevisions.ts.
+ */
+export async function receiveNdaRevision(id, { fileName, onedriveFileId, onedriveWebUrl }) {
+  const res = await iotaApi.post(
+    `/ndas/${id}/revisions`,
+    { fileName, onedriveFileId, onedriveWebUrl },
+    { timeout: 300000 }
+  );
+  return res.data;
+}
+
+/** Runs the version comparison again. */
+export async function compareNdaRevision(id) {
+  const res = await iotaApi.post(`/ndas/${id}/revisions/compare`, {}, { timeout: 300000 });
+  return res.data;
+}
+
 export async function requestNdaException(id, note) {
   const res = await iotaApi.post(`/ndas/${id}/review/exception`, { note });
   return res.data?.review;

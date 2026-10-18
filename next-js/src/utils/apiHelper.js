@@ -4605,11 +4605,13 @@ export async function markNdaFullyExecuted(id, markedBy, fileName, fileBase64) {
  * The browser then PUTs the raw file bytes directly to the returned uploadUrl,
  * completely bypassing Encore's JSON body size limit.
  */
-export async function createNdaUploadSession(id, fileName, contentType) {
+export async function createNdaUploadSession(id, fileName, contentType, revision) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/${id}/create-upload-session`, {
       fileName,
       contentType: contentType || 'application/octet-stream',
+      // A partner's revised document is saved as …_Rev<n>, next to the earlier versions.
+      ...(revision ? { revision } : {}),
     });
     return response.data; // { uploadUrl, safeFileName }
   } catch (error) {
@@ -4640,9 +4642,12 @@ export async function linkNdaDocument(id, fileName, onedriveFileId, onedriveWebU
  * Fetches NDA document content (base64) for inline viewing.
  * Returns stored base64 for legacy uploads; fetches from OneDrive for new uploads.
  */
-export async function fetchNdaDocumentContent(id) {
+export async function fetchNdaDocumentContent(id, version) {
   try {
-    const response = await axios.get(`${API_BASE_URL}ndas/${id}/document`);
+    // `version`: an earlier version of a partner's document (ndaRevisions.ts).
+    const response = await axios.get(`${API_BASE_URL}ndas/${id}/document`, {
+      params: version ? { version } : undefined,
+    });
     return response.data; // { fileName, contentType, base64 }
   } catch (error) {
     console.error('Error fetching NDA document content:', error);
