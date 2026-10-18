@@ -4624,12 +4624,20 @@ export async function createNdaUploadSession(id, fileName, contentType, revision
  * Links an already-uploaded OneDrive file to the NDA record.
  * Called after the browser completes the direct OneDrive upload.
  */
-export async function linkNdaDocument(id, fileName, onedriveFileId, onedriveWebUrl) {
+export async function linkNdaDocument(
+  id,
+  fileName,
+  onedriveFileId,
+  onedriveWebUrl,
+  onedriveDriveId
+) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/${id}/link-document`, {
       fileName,
       onedriveFileId,
       onedriveWebUrl,
+      // Which OneDrive holds it, so it is found again whoever the signatories become.
+      ...(onedriveDriveId ? { onedriveDriveId } : {}),
     });
     return response.data.nda;
   } catch (error) {

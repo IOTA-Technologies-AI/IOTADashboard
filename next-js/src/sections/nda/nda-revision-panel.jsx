@@ -515,6 +515,7 @@ function RevisionDialog({ nda, open, onClose, nextVersion, onDone }) {
         fileName: file.name,
         onedriveFileId: uploaded.id,
         onedriveWebUrl: uploaded.webUrl,
+        onedriveDriveId: uploaded.parentReference?.driveId,
       });
       onDone?.(res.nda);
       if (res.comparisonError) {

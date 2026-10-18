@@ -271,6 +271,8 @@ export default function NdaDetailsPage({ params }) {
   const [docUploading, setDocUploading] = useState(false);
   // base64 fetched lazily from the backend proxy (for new-style OneDrive uploads)
   const [fetchedDocBase64, setFetchedDocBase64] = useState(null);
+  const [docLoadError, setDocLoadError] = useState('');
+  const [docReload, setDocReload] = useState(0);
   const [wetSigFile, setWetSigFile] = useState(null); // { name, base64 } for fully-executed upload
   const [wetSigLoading, setWetSigLoading] = useState(false);
   const [reviewEmailOpen, setReviewEmailOpen] = useState(false);
@@ -328,15 +330,24 @@ export default function NdaDetailsPage({ params }) {
     if (nda.documentSource !== 'external_upload') return;
     let cancelled = false;
     setFetchedDocBase64(null);
+    setDocLoadError('');
     fetchNdaDocumentContent(id)
       .then(({ base64 }) => {
         if (!cancelled) setFetchedDocBase64(base64);
       })
-      .catch((err) => console.error('Failed to fetch NDA document content:', err));
+      .catch((err) => {
+        console.error('Failed to fetch NDA document content:', err);
+        // Without the file every preview, print and download is empty — say so.
+        if (!cancelled) {
+          setDocLoadError(
+            err?.response?.data?.message || err?.message || 'The document could not be loaded.'
+          );
+        }
+      });
     return () => {
       cancelled = true;
     };
-  }, [nda?.onedriveFileId, nda?.uploadedDocumentBase64, nda?.documentSource, id]);
+  }, [nda?.onedriveFileId, nda?.uploadedDocumentBase64, nda?.documentSource, id, docReload]);
 
   // The document the placement previews are drawn from.
   //
@@ -942,7 +953,13 @@ export default function NdaDetailsPage({ params }) {
       const uploadData = await uploadRes.json();
 
       // Step 3: Encore links the OneDrive file to the NDA record (tiny request — no file data)
-      const updated = await linkNdaDocument(id, file.name, uploadData.id, uploadData.webUrl);
+      const updated = await linkNdaDocument(
+        id,
+        file.name,
+        uploadData.id,
+        uploadData.webUrl,
+        uploadData.parentReference?.driveId
+      );
       setNda(updated);
       setFetchedDocBase64(null); // clear cached base64 — will be re-fetched lazily
       toast.success('Document uploaded successfully');
@@ -1181,14 +1198,18 @@ export default function NdaDetailsPage({ params }) {
 
   // Download the uploaded document with stamps + signature zones embedded
   const handleDownloadProcessed = async () => {
+    let loadError = '';
     const downloadBase64 =
       docBase64 ||
       (await fetchNdaDocumentContent(id)
         .then((r) => r.base64)
-        .catch(() => null));
+        .catch((err) => {
+          loadError = err?.response?.data?.message || err?.message || '';
+          return null;
+        }));
 
     if (!downloadBase64) {
-      toast.error('No document available to download.');
+      toast.error(loadError || 'No document available to download.');
       return;
     }
 
@@ -1515,6 +1536,21 @@ export default function NdaDetailsPage({ params }) {
 
       {/* What the NDA is waiting for, and the action that moves it on */}
       <NdaNextStepBanner step={nextStep} />
+
+      {docLoadError && (
+        <Alert
+          severity="error"
+          sx={{ mb: 3 }}
+          action={
+            <Button color="inherit" size="small" onClick={() => setDocReload((n) => n + 1)}>
+              Retry
+            </Button>
+          }
+        >
+          The NDA&apos;s document could not be loaded, so the previews, print and downloads are
+          empty. {docLoadError}
+        </Alert>
+      )}
 
       {/* Checked against the IOTA standard before it can go for signature */}
       <NdaReviewPanel nda={nda} onChange={fetchNda} onEmail={() => setReviewEmailOpen(true)} />

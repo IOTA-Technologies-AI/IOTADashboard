@@ -22,10 +22,13 @@ export async function runNdaReview(id) {
  * the two and reviews the new one — two AI passes, so allow a few minutes.
  * Resolves to { nda, comparison, comparisonError }. See ndas/ndaRevisions.ts.
  */
-export async function receiveNdaRevision(id, { fileName, onedriveFileId, onedriveWebUrl }) {
+export async function receiveNdaRevision(
+  id,
+  { fileName, onedriveFileId, onedriveWebUrl, onedriveDriveId }
+) {
   const res = await iotaApi.post(
     `/ndas/${id}/revisions`,
-    { fileName, onedriveFileId, onedriveWebUrl },
+    { fileName, onedriveFileId, onedriveWebUrl, onedriveDriveId },
     { timeout: 300000 }
   );
   return res.data;

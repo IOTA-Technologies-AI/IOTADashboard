@@ -50,7 +50,6 @@ import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
-
 // ----------------------------------------------------------------------
 
 const SIGNING_MODES = [
@@ -244,7 +243,13 @@ export default function NdaNewPage() {
           throw new Error(`Document upload failed (${uploadRes.status}): ${errText}`);
         }
         const uploadData = await uploadRes.json();
-        await linkNdaDocument(nda.id, uploadedFile.name, uploadData.id, uploadData.webUrl);
+        await linkNdaDocument(
+          nda.id,
+          uploadedFile.name,
+          uploadData.id,
+          uploadData.webUrl,
+          uploadData.parentReference?.driveId
+        );
       }
 
       toast.success(`NDA ${nda.ndaNumber} created`);
@@ -389,8 +394,8 @@ export default function NdaNewPage() {
               </RadioGroup>
               {partnerSigningMethod === 'manual' && (
                 <Alert severity="info" sx={{ mt: 1.5 }}>
-                  A To-Do is added for you to get the ink-signed copy back and upload it. You will be
-                  reminded every morning until the NDA is fully executed and stored in OneDrive.
+                  A To-Do is added for you to get the ink-signed copy back and upload it. You will
+                  be reminded every morning until the NDA is fully executed and stored in OneDrive.
                 </Alert>
               )}
 
@@ -599,7 +604,8 @@ export default function NdaNewPage() {
               <Stack spacing={2}>
                 {iotaFields.map((field, i) => {
                   const watchedEmail = watch(`iotaSignatories.${i}.email`);
-                  const selectedUser = signatoryOptions.find((u) => u.email === watchedEmail) || null;
+                  const selectedUser =
+                    signatoryOptions.find((u) => u.email === watchedEmail) || null;
                   return (
                     <Box key={field.id} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
                       <Box sx={{ flex: 1 }}>
@@ -650,7 +656,9 @@ export default function NdaNewPage() {
                                 ...params.InputProps,
                                 endAdornment: (
                                   <>
-                                    {signatoryOptionsLoading ? <CircularProgress size={16} /> : null}
+                                    {signatoryOptionsLoading ? (
+                                      <CircularProgress size={16} />
+                                    ) : null}
                                     {params.InputProps.endAdornment}
                                   </>
                                 ),
