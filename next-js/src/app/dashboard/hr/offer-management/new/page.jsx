@@ -12,12 +12,10 @@ import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
-import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import Checkbox from '@mui/material/Checkbox';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
-import IconButton from '@mui/material/IconButton';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
 import Autocomplete from '@mui/material/Autocomplete';
@@ -44,6 +42,9 @@ import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { OfferLetterPDF } from 'src/components/offer-letter';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+
+import { OfferClauses } from 'src/sections/offer/offer-clauses';
+import { SignatoryPicker } from 'src/sections/offer/signatory-picker';
 
 // ----------------------------------------------------------------------
 
@@ -895,71 +896,10 @@ export default function OfferManagementNewPage() {
                   IOTA Signatories
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Optional — pre-configure who from IOTA must sign this offer letter. They will be
-                  emailed in order once the offer is approved and sent for signing.
+                  Who signs the letter for IOTA, from the approved list. They are emailed in order
+                  once the offer is approved and sent for signing.
                 </Typography>
-                <Stack spacing={1.5}>
-                  {iotaSignatories.map((s, i) => (
-                    <Stack key={i} direction="row" spacing={1} alignItems="center">
-                      <TextField
-                        size="small"
-                        label="Full Name"
-                        value={s.name}
-                        onChange={(e) =>
-                          setIotaSignatories((prev) =>
-                            prev.map((x, j) => (j === i ? { ...x, name: e.target.value } : x))
-                          )
-                        }
-                        sx={{ flex: 2 }}
-                      />
-                      <TextField
-                        size="small"
-                        label="Email"
-                        type="email"
-                        value={s.email}
-                        onChange={(e) =>
-                          setIotaSignatories((prev) =>
-                            prev.map((x, j) => (j === i ? { ...x, email: e.target.value } : x))
-                          )
-                        }
-                        sx={{ flex: 2 }}
-                      />
-                      <TextField
-                        size="small"
-                        label="Title / Role"
-                        value={s.title}
-                        onChange={(e) =>
-                          setIotaSignatories((prev) =>
-                            prev.map((x, j) => (j === i ? { ...x, title: e.target.value } : x))
-                          )
-                        }
-                        sx={{ flex: 1.5 }}
-                      />
-                      {iotaSignatories.length > 1 && (
-                        <Tooltip title="Remove">
-                          <IconButton
-                            size="small"
-                            onClick={() =>
-                              setIotaSignatories((prev) => prev.filter((_, j) => j !== i))
-                            }
-                          >
-                            <Iconify icon="eva:close-fill" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </Stack>
-                  ))}
-                  <Button
-                    size="small"
-                    startIcon={<Iconify icon="eva:plus-fill" />}
-                    onClick={() =>
-                      setIotaSignatories((prev) => [...prev, { name: '', email: '', title: '' }])
-                    }
-                    sx={{ alignSelf: 'flex-start' }}
-                  >
-                    Add Signatory
-                  </Button>
-                </Stack>
+                <SignatoryPicker value={iotaSignatories} onChange={setIotaSignatories} />
               </Card>
 
               {letterSource === 'generated' && (
@@ -969,76 +909,12 @@ export default function OfferManagementNewPage() {
                 </Alert>
               )}
 
-              {/* ── Additional Clauses ──────────────────────────────────── */}
-              <Card sx={{ p: 3 }}>
-                <Typography variant="h6" sx={{ mb: 0.5 }}>
-                  Additional Clauses
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                  Optional — add custom or country-specific terms that will appear in the offer
-                  letter before the signature pages.
-                </Typography>
-
-                <Stack spacing={2}>
-                  {clauses.map((clause, i) => (
-                    <Box
-                      key={i}
-                      sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}
-                    >
-                      <Stack
-                        direction="row"
-                        alignItems="center"
-                        justifyContent="space-between"
-                        sx={{ mb: 1 }}
-                      >
-                        <Typography variant="subtitle2">Clause {i + 1}</Typography>
-                        <IconButton
-                          size="small"
-                          color="error"
-                          onClick={() => setClauses((prev) => prev.filter((_, idx) => idx !== i))}
-                        >
-                          <Iconify icon="eva:close-fill" />
-                        </IconButton>
-                      </Stack>
-                      <TextField
-                        label="Clause Title"
-                        size="small"
-                        fullWidth
-                        value={clause.title}
-                        onChange={(e) =>
-                          setClauses((prev) =>
-                            prev.map((c, idx) => (idx === i ? { ...c, title: e.target.value } : c))
-                          )
-                        }
-                        sx={{ mb: 1 }}
-                      />
-                      <TextField
-                        label="Clause Content"
-                        size="small"
-                        fullWidth
-                        multiline
-                        rows={3}
-                        value={clause.content}
-                        onChange={(e) =>
-                          setClauses((prev) =>
-                            prev.map((c, idx) =>
-                              idx === i ? { ...c, content: e.target.value } : c
-                            )
-                          )
-                        }
-                      />
-                    </Box>
-                  ))}
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<Iconify icon="eva:plus-fill" />}
-                    onClick={() => setClauses((prev) => [...prev, { title: '', content: '' }])}
-                  >
-                    Add Clause
-                  </Button>
-                </Stack>
-              </Card>
+              {/* ── Addendum clauses ─────────────────────────────────────── */}
+              <OfferClauses
+                clauses={clauses}
+                setClauses={setClauses}
+                clientName={client && !client.internal ? client.name : ''}
+              />
             </Stack>
           </Grid>
 

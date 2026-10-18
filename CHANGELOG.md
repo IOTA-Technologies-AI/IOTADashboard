@@ -25,6 +25,18 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Offer letters: IOTA signatories from a list, saved clauses, and an Addendum.**
+  - IOTA signatories are chosen from a dropdown of Microsoft users on an
+    allow-list in appConfig (offers › iotaSignatories) — Abdul Raheem Syed for
+    now; add a person by adding their email or name there. The API refuses
+    anyone not on the list, and takes names and titles from Microsoft.
+  - Clauses can be saved for reuse and added from a saved list, the ones for
+    the offer's client first (e.g. American Express overtime). Saved clauses
+    live in appConfig (offers › clauseLibrary).
+  - An offer's own clauses are printed on an **Addendum** page (A.1, A.2…)
+    after section 7 and before the Acceptance page, so the signatures cover
+    them; with no clauses there is no Addendum page.
+  - Needs `sql/20261017_offer_settings.sql` (API repo).
 - **A "sent" / "signed" moment wherever something leaves IOTA or is completed.**
   Adapted from Docusign's "Sending an envelope" flow on Mobbin and rebuilt in
   IOTA's style: the letter prepares, paper planes take off along drawn trails

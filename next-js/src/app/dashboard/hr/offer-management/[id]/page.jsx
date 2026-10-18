@@ -52,6 +52,7 @@ import { celebrate } from 'src/components/success-moment';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { OfferLetterPDF } from 'src/components/offer-letter/offer-letter-pdf';
 
+import { SignatoryPicker } from 'src/sections/offer/signatory-picker';
 import { OfferLetterCheck } from 'src/sections/offer/offer-letter-check';
 
 import { useAuthContext } from 'src/auth/hooks';
@@ -458,7 +459,7 @@ export default function OfferManagementDetailsPage({ params }) {
   const handleSendForSigning = async () => {
     const valid = newIotaSignatories.filter((s) => s.name.trim() && s.email.trim());
     if (valid.length === 0) {
-      toast.error('Add at least one signatory with name and email');
+      toast.error('Choose who signs for IOTA.');
       return;
     }
     try {
@@ -1652,64 +1653,9 @@ export default function OfferManagementDetailsPage({ params }) {
         <DialogTitle>Set Up IOTA Signing</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Add the IOTA employees who must sign this offer letter. They will be emailed in order.
+            Choose who signs this offer letter for IOTA. They are emailed in order.
           </Typography>
-          <Stack spacing={2}>
-            {newIotaSignatories.map((s, i) => (
-              <Stack key={i} direction="row" spacing={1} alignItems="center">
-                <TextField
-                  size="small"
-                  label="Full Name"
-                  value={s.name}
-                  onChange={(e) =>
-                    setNewIotaSignatories((prev) =>
-                      prev.map((x, j) => (j === i ? { ...x, name: e.target.value } : x))
-                    )
-                  }
-                  sx={{ flex: 2 }}
-                />
-                <TextField
-                  size="small"
-                  label="Email"
-                  value={s.email}
-                  onChange={(e) =>
-                    setNewIotaSignatories((prev) =>
-                      prev.map((x, j) => (j === i ? { ...x, email: e.target.value } : x))
-                    )
-                  }
-                  sx={{ flex: 2 }}
-                />
-                <TextField
-                  size="small"
-                  label="Title"
-                  value={s.title}
-                  onChange={(e) =>
-                    setNewIotaSignatories((prev) =>
-                      prev.map((x, j) => (j === i ? { ...x, title: e.target.value } : x))
-                    )
-                  }
-                  sx={{ flex: 1.5 }}
-                />
-                {newIotaSignatories.length > 1 && (
-                  <IconButton
-                    size="small"
-                    onClick={() => setNewIotaSignatories((prev) => prev.filter((_, j) => j !== i))}
-                  >
-                    <Iconify icon="eva:close-fill" />
-                  </IconButton>
-                )}
-              </Stack>
-            ))}
-            <Button
-              size="small"
-              startIcon={<Iconify icon="eva:plus-fill" />}
-              onClick={() =>
-                setNewIotaSignatories((prev) => [...prev, { name: '', email: '', title: '' }])
-              }
-            >
-              Add Signatory
-            </Button>
-          </Stack>
+          <SignatoryPicker value={newIotaSignatories} onChange={setNewIotaSignatories} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setSendForSigningOpen(false)}>Cancel</Button>

@@ -156,9 +156,7 @@ function Section({ n, title, children, wrap = true }) {
   return (
     <Page size="A4" style={s.page} wrap={wrap}>
       <Header />
-      <Text style={s.h1}>
-        {n}. {title}
-      </Text>
+      <Text style={s.h1}>{n ? `${n}. ${title}` : title}</Text>
       {children}
       <View style={s.footerRule} fixed />
     </Page>
@@ -642,12 +640,21 @@ export function OfferLetterPDF({ offer, data }) {
           {longDate(d.offerValidUntil) || 'the date stated by the Company'}, after which it lapses
           unless extended in writing.
         </Clause>
-        {d.clauses.map((c, i) => (
-          <Clause key={i} n={`7.${7 + i}`} title={c.title || 'Additional term'}>
-            {c.content}
-          </Clause>
-        ))}
       </Section>
+
+      {/* Addendum — the offer's own clauses, only when there are any */}
+      {d.clauses.length ? (
+        <Section title="Addendum">
+          <Text style={s.p}>
+            The following terms form part of this offer and apply in addition to sections 1 to 7.
+          </Text>
+          {d.clauses.map((c, i) => (
+            <Clause key={`${i}-${c.title}`} n={`A.${i + 1}`} title={c.title || 'Additional term'}>
+              {c.content}
+            </Clause>
+          ))}
+        </Section>
+      ) : null}
 
       {/* 8. Acceptance */}
       <Section n={8} title="Acceptance" wrap={false}>
