@@ -1,4 +1,5 @@
 import { stampForOffice } from 'src/utils/iota-offices';
+import { frameSignature } from 'src/utils/signature-frame';
 
 // ----------------------------------------------------------------------
 // Embeds signatures and the company stamp into an uploaded NDA PDF.
@@ -177,7 +178,11 @@ export async function stampNdaPdf({
 
       let image = null;
       try {
-        image = await embedSignature(pdfDoc, signatory.signatureData);
+        // Recorded signatures carry their ID in a frame (src/utils/signature-frame.js).
+        image = await embedSignature(
+          pdfDoc,
+          await frameSignature(signatory.signatureData, signatory.signatureId)
+        );
       } catch (err) {
         console.warn(`[nda-pdf] signature image for ${who} unreadable:`, err);
       }

@@ -13,7 +13,11 @@ import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { getOfferByToken, employeeSignOffer } from 'src/utils/apiHelper';
+import {
+  getOfferByToken,
+  employeeSignOffer,
+  createPublicSignatureHandoff,
+} from 'src/utils/apiHelper';
 
 import { base64ToBlobUrl, getOfferDocumentByToken } from 'src/actions/offer-documents';
 
@@ -33,6 +37,7 @@ export default function SignOfferPage({ params }) {
   const [signed, setSigned] = useState(false);
 
   const [signatureData, setSignatureData] = useState('');
+  const [signatureMeta, setSignatureMeta] = useState(null); // how it was captured (pad → API)
   const [submitting, setSubmitting] = useState(false);
 
   // Zone preview (pdfjs)
@@ -153,7 +158,7 @@ export default function SignOfferPage({ params }) {
       } catch {
         /* ignore */
       }
-      await employeeSignOffer(token, signatureData, ipAddress);
+      await employeeSignOffer(token, signatureData, ipAddress, signatureMeta || {});
       setSigned(true);
       celebrate({
         kind: 'signed',
@@ -170,7 +175,7 @@ export default function SignOfferPage({ params }) {
     } finally {
       setSubmitting(false);
     }
-  }, [token, signatureData, offerData?.offer?.contractNumber]);
+  }, [token, signatureData, signatureMeta, offerData?.offer?.contractNumber]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -434,7 +439,14 @@ export default function SignOfferPage({ params }) {
             Draw your signature in the box below. By signing, you confirm your acceptance of this
             offer letter.
           </Typography>
-          <NdaSignatureCanvas onSave={setSignatureData} label="Draw your signature here" />
+          <NdaSignatureCanvas
+            onSave={(data, meta) => {
+              setSignatureData(data);
+              setSignatureMeta(meta);
+            }}
+            phoneHandoff={{ create: () => createPublicSignatureHandoff('offer', token) }}
+            label="Draw your signature here"
+          />
         </Card>
 
         {/* Submit */}

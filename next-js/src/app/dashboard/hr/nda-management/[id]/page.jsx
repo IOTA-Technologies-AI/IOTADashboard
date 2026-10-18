@@ -31,6 +31,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
 
+import { withFramedNdaSignatures } from 'src/utils/signature-frame';
 import { stampNdaPdf, uint8ToBase64, signatureCaption } from 'src/utils/nda-pdf';
 import { officeLabel, stampForOffice, governingLawFor } from 'src/utils/iota-offices';
 import {
@@ -44,6 +45,7 @@ import {
   setNdaSignatureZones,
   markNdaFullyExecuted,
   setNdaStampPlacements,
+  createSignatureHandoff,
   createNdaUploadSession,
   submitNdaForIotaSigning,
   fetchNdaDocumentContent,
@@ -61,6 +63,8 @@ import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { NdaPdfDocument, NdaHtmlTemplate, NdaSignatureCanvas } from 'src/components/nda';
 
 import { NdaReviewPanel } from 'src/sections/nda/nda-review-panel';
+import { SignatureLog } from 'src/sections/signatures/signature-log';
+import { useFramedNda } from 'src/sections/signatures/use-framed-nda';
 import { NdaReviewEmailDialog } from 'src/sections/nda/nda-review-email-dialog';
 import { SignatoryThumbnail, ResignRequestDialog } from 'src/sections/signatures/signature-review';
 
@@ -210,6 +214,7 @@ export default function NdaDetailsPage({ params }) {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [signatureData, setSignatureData] = useState('');
+  const [signatureMeta, setSignatureMeta] = useState(null); // how it was captured (pad → API)
   const [resignTarget, setResignTarget] = useState(null); // IOTA signatory being sent back
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
@@ -289,6 +294,9 @@ export default function NdaDetailsPage({ params }) {
   // the lazily-fetched value (new OneDrive-only uploads where the column is null).
   const docBase64 = nda?.uploadedDocumentBase64 || fetchedDocBase64;
 
+  // Previews show recorded signatures in their signature-ID frame.
+  const framedNda = useFramedNda(nda);
+
   const pendingIotaSignature =
     nda?.status === 'pending_iota_signatures' &&
     Array.isArray(nda?.iotaSignatories) &&
@@ -366,8 +374,8 @@ export default function NdaDetailsPage({ params }) {
       const bytes = Uint8Array.from(atob(docBase64), (c) => c.charCodeAt(0));
       publish(URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' })));
     } else if (nda && nda.documentSource !== 'external_upload') {
-      pdf(<NdaPdfDocument nda={nda} />)
-        .toBlob()
+      withFramedNdaSignatures(nda)
+        .then((framed) => pdf(<NdaPdfDocument nda={framed} />).toBlob())
         .then((blob) => publish(URL.createObjectURL(blob)))
         .catch((err) => {
           // A failure here must not look like "no document": the skeleton is
@@ -584,7 +592,7 @@ export default function NdaDetailsPage({ params }) {
     }
     try {
       setActionLoading(true);
-      const updated = await iotaSignNda(id, signatureData, userEmail);
+      const updated = await iotaSignNda(id, signatureData, userEmail, signatureMeta || {});
       setNda(updated);
       setSignatureData('');
       if (updated.status === 'pending_partner_signatures') {
@@ -679,7 +687,9 @@ export default function NdaDetailsPage({ params }) {
         }
       } else {
         // Generate PDF from react-pdf template
-        const blob = await pdf(<NdaPdfDocument nda={latestNda} />).toBlob();
+        const blob = await pdf(
+          <NdaPdfDocument nda={await withFramedNdaSignatures(latestNda)} />
+        ).toBlob();
         const arrayBuffer = await blob.arrayBuffer();
         fileBase64 = uint8ToBase64(new Uint8Array(arrayBuffer));
       }
@@ -1810,6 +1820,14 @@ export default function NdaDetailsPage({ params }) {
               </Card>
             )}
 
+            {/* Signature Log — every signature with its ID, method and hash */}
+            <SignatureLog
+              entries={[
+                ...(nda.iotaSignatories || []).map((s) => ({ ...s, side: 'IOTA' })),
+                ...(nda.partnerSignatories || []).map((s) => ({ ...s, side: 'Partner' })),
+              ]}
+            />
+
             {/* Audit Log */}
             {nda.auditLog?.length > 0 && (
               <Card sx={{ p: 3 }}>
@@ -1861,7 +1879,14 @@ export default function NdaDetailsPage({ params }) {
                 <Alert severity="info" sx={{ mb: 2 }}>
                   Your signature is required. Draw your signature below and click Apply.
                 </Alert>
-                <NdaSignatureCanvas onSave={setSignatureData} label="Draw your signature here" />
+                <NdaSignatureCanvas
+                  onSave={(data, meta) => {
+                    setSignatureData(data);
+                    setSignatureMeta(meta);
+                  }}
+                  phoneHandoff={{ create: () => createSignatureHandoff('nda', id) }}
+                  label="Draw your signature here"
+                />
                 {signatureData && (
                   <Box sx={{ mt: 2 }}>
                     <LoadingButton
@@ -2023,7 +2048,7 @@ export default function NdaDetailsPage({ params }) {
                     bgcolor: 'background.default',
                   }}
                 >
-                  <NdaHtmlTemplate nda={nda} showSignatures />
+                  <NdaHtmlTemplate nda={framedNda} showSignatures />
                 </Box>
               </Card>
             )}
@@ -3772,7 +3797,9 @@ export default function NdaDetailsPage({ params }) {
               .catch(() => {});
         }}
         buildAttachment={async () => {
-          const blob = await pdf(<NdaPdfDocument nda={nda} />).toBlob();
+          const blob = await pdf(
+            <NdaPdfDocument nda={await withFramedNdaSignatures(nda)} />
+          ).toBlob();
           return {
             base64: uint8ToBase64(new Uint8Array(await blob.arrayBuffer())),
             name: `${nda.ndaNumber || 'NDA'}.pdf`,

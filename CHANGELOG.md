@@ -41,6 +41,28 @@ is running.
   to be baked into it, so it fills its signature area. Changing the pad after
   pressing Apply withdraws the applied signature, so what is submitted is
   always what is on the pad.
+- **Sign on your phone.** The signing pad on NDAs and offer letters, for IOTA
+  signatories, partners and employees, has a "Use my phone" tab. Scan the QR
+  code, sign with your finger, and the signature appears back on the
+  computer, where you check it and submit as usual. The phone only delivers
+  the image; it cannot sign anything. Each code works once, expires after 10
+  minutes, and is replaced when a new one is shown. The image is erased from
+  the server as soon as the computer collects it. Needs
+  `20261018_signature_handoff.sql`.
+- **Click to start / stop pen.** For a mouse or trackpad, a switch under the
+  pad lets the pen follow the pointer without holding the button down. Click
+  to put it down, click again (or press Esc, or leave the pad) to lift it.
+  The setting is remembered on that browser.
+- **Twelve signature styles in Type mode.** Your name is previewed in each
+  style to pick from, with an optional flourish underline.
+- **Signature IDs and a Signature Log.** Each signature now gets an ID when it
+  is recorded. On the document it is printed in a rounded bracket frame
+  around the signature, under "IOTA eSigned by:". NDA and offer pages in the
+  dashboard have a Signature Log that lists every signature with its ID, how
+  it was captured (drawn, typed or on a phone), the signer's IP, and a
+  SHA-256 of the image. The log flags any image that no longer matches its
+  hash. The ID is also written into the audit entry for the signing.
+  Signatures recorded before this change are shown unframed.
 - **One-time codes: six boxes and a "Paste code" button.** Every code screen
   (authenticator sign-in and re-verify, authenticator setup, invoice approval,
   NDA signing, candidate intake, employee onboarding) now takes the code in six

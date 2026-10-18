@@ -35,6 +35,7 @@ import {
   commentOnOffer,
   sendOfferForSigning,
   remindEmployeeToSign,
+  createSignatureHandoff,
   requestOfferIotaResign,
   setOfferSignatureZones,
 } from 'src/utils/apiHelper';
@@ -53,6 +54,7 @@ import { celebrate } from 'src/components/success-moment';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { OfferLetterPDF } from 'src/components/offer-letter/offer-letter-pdf';
 
+import { SignatureLog } from 'src/sections/signatures/signature-log';
 import { SignatoryPicker } from 'src/sections/offer/signatory-picker';
 import { OfferLetterCheck } from 'src/sections/offer/offer-letter-check';
 import { SignatoryThumbnail, ResignRequestDialog } from 'src/sections/signatures/signature-review';
@@ -151,6 +153,7 @@ export default function OfferManagementDetailsPage({ params }) {
 
   // IOTA signing
   const [signatureData, setSignatureData] = useState('');
+  const [signatureMeta, setSignatureMeta] = useState(null); // how it was captured (pad → API)
   const [signing, setSigning] = useState(false);
   const [resignTarget, setResignTarget] = useState(null); // IOTA signatory being sent back
 
@@ -499,7 +502,7 @@ export default function OfferManagementDetailsPage({ params }) {
     }
     try {
       setSigning(true);
-      const updated = await iotaSignOffer(id, signatureData, userEmail);
+      const updated = await iotaSignOffer(id, signatureData, userEmail, '', signatureMeta || {});
       setOffer(updated);
       setSignatureData('');
       if (updated.status === 'pending_employee_signature') {
@@ -591,6 +594,7 @@ export default function OfferManagementDetailsPage({ params }) {
               email: offer.candidateEmail,
               signedAt: offer.employeeSignedAt,
               signatureData: offer.employeeSignatureData,
+              signatureId: offer.employeeSignatureId,
             },
           ],
         },
@@ -956,7 +960,14 @@ export default function OfferManagementDetailsPage({ params }) {
                   signature below to proceed.
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
-                <NdaSignatureCanvas onSave={setSignatureData} label="Draw your signature" />
+                <NdaSignatureCanvas
+                  onSave={(data, meta) => {
+                    setSignatureData(data);
+                    setSignatureMeta(meta);
+                  }}
+                  phoneHandoff={{ create: () => createSignatureHandoff('offer', id) }}
+                  label="Draw your signature"
+                />
                 {signatureData && (
                   <Box sx={{ mt: 2 }}>
                     <LoadingButton
@@ -1389,6 +1400,23 @@ export default function OfferManagementDetailsPage({ params }) {
                 )}
               </Card>
             )}
+
+            {/* Signature Log — every signature with its ID, method and hash */}
+            <SignatureLog
+              entries={[
+                ...iotaSignatories.map((s) => ({ ...s, side: 'IOTA' })),
+                {
+                  side: 'Employee',
+                  name: offer.candidateName,
+                  email: offer.candidateEmail,
+                  signedAt: offer.employeeSignedAt,
+                  signatureData: offer.employeeSignatureData,
+                  signatureId: offer.employeeSignatureId,
+                  signatureHash: offer.employeeSignatureHash,
+                  signatureMethod: offer.employeeSignatureMethod,
+                },
+              ]}
+            />
 
             {/* Audit Log */}
             {auditLog.length > 0 && (

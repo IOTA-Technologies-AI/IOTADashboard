@@ -13,13 +13,21 @@ import LoadingButton from '@mui/lab/LoadingButton';
 import FormControlLabel from '@mui/material/FormControlLabel';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { verifyNdaOtp, getNdaByToken, requestNdaOtp, partnerSignNda } from 'src/utils/apiHelper';
+import {
+  verifyNdaOtp,
+  getNdaByToken,
+  requestNdaOtp,
+  partnerSignNda,
+  createPublicSignatureHandoff,
+} from 'src/utils/apiHelper';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 import { CodeInput } from 'src/components/code-input';
 import { celebrate } from 'src/components/success-moment';
 import { NdaHtmlTemplate, NdaSignatureCanvas } from 'src/components/nda';
+
+import { useFramedNda } from 'src/sections/signatures/use-framed-nda';
 
 function getDocumentExtension(fileName = '') {
   const normalized = String(fileName).toLowerCase().trim();
@@ -47,6 +55,7 @@ export default function PartnerNdaSignPage({ params }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [signatureData, setSignatureData] = useState('');
+  const [signatureMeta, setSignatureMeta] = useState(null); // how it was captured (pad → API)
   const [signing, setSigning] = useState(false);
   const [done, setDone] = useState(false);
 
@@ -75,6 +84,8 @@ export default function PartnerNdaSignPage({ params }) {
   const zoneCanvasRef = useRef(null);
 
   // For external_upload NDAs: create a blob URL to show the uploaded PDF in an iframe
+  // Recorded signatures appear in their signature-ID frame.
+  const framedNda = useFramedNda(nda);
   const uploadedDocumentName = nda?.uploadedDocumentName || '';
   const isUploadedPdf = isPdfDocument(uploadedDocumentName);
   const isUploadedWordDocument = isWordDocument(uploadedDocumentName);
@@ -217,7 +228,14 @@ export default function PartnerNdaSignPage({ params }) {
         // Silently ignore — IP is supplementary
       }
       const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-      await partnerSignNda(token, signatureData, ipAddress, sessionToken || null, ua);
+      await partnerSignNda(
+        token,
+        signatureData,
+        ipAddress,
+        sessionToken || null,
+        ua,
+        signatureMeta || {}
+      );
       setDone(true);
       celebrate({
         kind: 'signed',
@@ -492,7 +510,7 @@ export default function PartnerNdaSignPage({ params }) {
                 </Stack>
               ) : (
                 /* IOTA-generated template */
-                <NdaHtmlTemplate nda={nda} showSignatures showAuditTrail={false} />
+                <NdaHtmlTemplate nda={framedNda} showSignatures showAuditTrail={false} />
               )}
             </Box>
           </Card>
@@ -522,7 +540,13 @@ export default function PartnerNdaSignPage({ params }) {
                 </Typography>
                 <Divider sx={{ mb: 2 }} />
                 <NdaSignatureCanvas
-                  onSave={setSignatureData}
+                  onSave={(data, meta) => {
+                    setSignatureData(data);
+                    setSignatureMeta(meta);
+                  }}
+                  phoneHandoff={{
+                    create: () => createPublicSignatureHandoff('nda', token, sessionToken),
+                  }}
                   label="Draw or type your signature here"
                 />
 

@@ -3995,13 +3995,15 @@ export async function sendOfferForSigning(id, iotaSignatories, requestedBy) {
  * @param {string} [ipAddress] - IP address of the signer for audit trail.
  * @returns {Promise<object>} The updated offer object.
  */
-export async function iotaSignOffer(id, signatureData, signerEmail, ipAddress) {
+export async function iotaSignOffer(id, signatureData, signerEmail, ipAddress, meta = {}) {
   try {
     const response = await axios.post(`${API_BASE_URL}/offers/${id}/iotaSign`, {
       id,
       signatureData,
       signerEmail,
       ipAddress: ipAddress || '',
+      signatureMethod: meta.method,
+      handoffId: meta.handoffId,
     });
     return response.data.offer;
   } catch (error) {
@@ -4025,6 +4027,55 @@ export async function requestOfferIotaResign(id, signatoryEmail, reason) {
     reason,
   });
   return response.data.offer;
+}
+
+// ── Sign on my phone (signaturehandoff service) ──────────────────────────────
+// The phone only hands an image back to this computer; signing still goes
+// through the normal endpoints above. See signaturehandoff/handoff.ts.
+
+/** IOTA signatory (logged in): start a phone handoff for an NDA or offer. */
+export async function createSignatureHandoff(documentType, documentId) {
+  const response = await axios.post(`${API_BASE_URL}signature-handoff`, {
+    documentType,
+    documentId: String(documentId),
+  });
+  return response.data;
+}
+
+/** Partner / employee on their signing link: start a phone handoff. */
+export async function createPublicSignatureHandoff(documentType, signingToken, sessionToken) {
+  const response = await axios.post(`${API_BASE_URL}signature-handoff/public`, {
+    documentType,
+    signingToken,
+    sessionToken: sessionToken || null,
+  });
+  return response.data;
+}
+
+/** The computer polls this; it returns the image once, then the server forgets it. */
+export async function collectSignatureHandoff(handoffId, pollToken) {
+  const response = await axios.post(`${API_BASE_URL}signature-handoff/${handoffId}/collect`, {
+    pollToken,
+  });
+  return response.data;
+}
+
+export async function cancelSignatureHandoff(handoffId, pollToken) {
+  await axios.post(`${API_BASE_URL}signature-handoff/${handoffId}/cancel`, { pollToken });
+}
+
+/** The phone: what it is signing. */
+export async function getHandoffCapture(captureToken) {
+  const response = await axios.get(`${API_BASE_URL}signature-handoff/capture/${captureToken}`);
+  return response.data;
+}
+
+/** The phone: send the signature to the computer. */
+export async function submitHandoffCapture(captureToken, signatureData) {
+  const response = await axios.post(`${API_BASE_URL}signature-handoff/capture/${captureToken}`, {
+    signatureData,
+  });
+  return response.data;
 }
 
 /**
@@ -4057,12 +4108,14 @@ export async function getOfferByToken(token) {
  * @param {string} [ipAddress] - IP address of the candidate for audit trail.
  * @returns {Promise<object>} The updated offer object with the candidate's signature.
  */
-export async function employeeSignOffer(token, signatureData, ipAddress) {
+export async function employeeSignOffer(token, signatureData, ipAddress, meta = {}) {
   try {
     const response = await axios.post(`${API_BASE_URL}/offers/employee-sign`, {
       token,
       signatureData,
       ipAddress: ipAddress || '',
+      signatureMethod: meta.method,
+      handoffId: meta.handoffId,
     });
     return response.data.offer;
   } catch (error) {
@@ -4270,11 +4323,13 @@ export async function submitNdaForIotaSigning(id, submittedBy) {
  * @param {string} signerEmail - Email of the IOTA signatory.
  * @returns {Promise<object>} The updated NDA object with the IOTA signature recorded.
  */
-export async function iotaSignNda(id, signatureData, signerEmail) {
+export async function iotaSignNda(id, signatureData, signerEmail, meta = {}) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/${id}/iotaSign`, {
       signatureData,
       signerEmail,
+      signatureMethod: meta.method,
+      handoffId: meta.handoffId,
     });
     return response.data.nda;
   } catch (error) {
@@ -4311,13 +4366,22 @@ export async function requestNdaIotaResign(id, signatoryEmail, reason) {
  * @param {string} [ipAddress] - IP address of the partner for audit trail.
  * @returns {Promise<object>} The updated NDA object with the partner's signature recorded.
  */
-export async function partnerSignNda(token, signatureData, ipAddress, sessionToken, userAgent) {
+export async function partnerSignNda(
+  token,
+  signatureData,
+  ipAddress,
+  sessionToken,
+  userAgent,
+  meta = {}
+) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/sign/${token}`, {
       signatureData,
       ipAddress: ipAddress || '',
       sessionToken: sessionToken || '',
       userAgent: userAgent || '',
+      signatureMethod: meta.method,
+      handoffId: meta.handoffId,
     });
     return response.data.nda;
   } catch (error) {
