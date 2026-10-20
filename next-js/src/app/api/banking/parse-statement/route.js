@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 
 import { API_HOST } from 'src/utils/api-host';
 import { SUPPORTED_BANKS, getCurrencyByRegion } from 'src/utils/constants/banking';
+import { StatementReadError, parseBankStatement } from 'src/utils/bank-statements';
 
 const API_BASE_URL = API_HOST;
-const PDF_PARSER_URL = process.env.PDF_PARSER_URL || 'https://iota-pdf-parser.onrender.com';
 
 export async function POST(request) {
   try {
@@ -26,64 +26,23 @@ export async function POST(request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Call Python PDF parser service
-    console.log('Calling Python PDF parser service...');
-    const pythonFormData = new FormData();
-    pythonFormData.append('file', new Blob([buffer], { type: 'application/pdf' }), file.name);
-    pythonFormData.append('bank', bankId || 'emirates_nbd');
-    if (password) {
-      pythonFormData.append('password', password);
-    }
-
+    // Read the statement here — the Python parser on Render this used to call
+    // is gone (ISS-0011). See src/utils/bank-statements.
     let parsedStatement;
     try {
-      const pythonResponse = await fetch(`${PDF_PARSER_URL}/parse`, {
-        method: 'POST',
-        body: pythonFormData,
-      });
-
-      if (!pythonResponse.ok) {
-        // The parser answers JSON when it ran; anything else is the host
-        // speaking (Render's "Service Suspended" page, a cold-start 502…),
-        // which used to surface as "PDF parsing failed: Unknown error" (ISS-0011).
-        const raw = await pythonResponse.text().catch(() => '');
-        let errorData = {};
-        try {
-          errorData = JSON.parse(raw);
-        } catch {
-          errorData = {};
-        }
-        const reason = errorData.error || errorData.detail || errorData.message;
-        if (reason) {
-          return NextResponse.json({ error: `PDF parsing failed: ${reason}` }, { status: 400 });
-        }
-        const suspended = /suspended/i.test(raw);
-        console.error(
-          `[banking] PDF parser unavailable: HTTP ${pythonResponse.status} from ${PDF_PARSER_URL}`
-        );
-        return NextResponse.json(
-          {
-            error: suspended
-              ? 'The bank statement reader is switched off (its hosting service is suspended), so statements cannot be imported right now. Please tell IT.'
-              : `The bank statement reader is not responding (HTTP ${pythonResponse.status}). Please try again in a minute.`,
-          },
-          { status: 503 }
-        );
-      }
-
-      parsedStatement = await pythonResponse.json();
-      console.log('Python parser result:', JSON.stringify(parsedStatement, null, 2));
-
-      if (!parsedStatement.accountInfo || !parsedStatement.statementInfo) {
-        return NextResponse.json(
-          { error: 'Invalid parser response: missing required data' },
-          { status: 400 }
-        );
-      }
+      parsedStatement = await parseBankStatement(buffer, bankId || 'emirates_nbd', password);
+      const r = parsedStatement.reconciliation;
+      console.log(
+        `[banking] ${parsedStatement.bankId}: ${parsedStatement.transactions.length} transactions; ` +
+          (r.balanced ? 'balances agree' : `off by ${r.difference} against the closing balance`)
+      );
     } catch (parseError) {
-      console.error('Python PDF Parser Error:', parseError);
+      if (parseError instanceof StatementReadError) {
+        return NextResponse.json({ error: parseError.message }, { status: parseError.status });
+      }
+      console.error('[banking] statement parse failed:', parseError);
       return NextResponse.json(
-        { error: 'Failed to parse PDF: ' + (parseError.message || 'Parser service unavailable') },
+        { error: `The statement could not be read: ${parseError?.message || parseError}` },
         { status: 500 }
       );
     }
@@ -366,6 +325,9 @@ export async function POST(request) {
         newTransactions: insertedCount,
         duplicatesSkipped: parsedStatement.transactions.length - newTransactions.length,
       },
+      // Opening + credits − debits against the closing balance: off means a
+      // transaction was missed or misread.
+      reconciliation: parsedStatement.reconciliation,
     });
   } catch (error) {
     console.error('Statement upload error:', error);

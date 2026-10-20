@@ -829,12 +829,17 @@ is running.
   inside one API request, and larger scans went over the API's size limit.
   The file now goes straight from the browser to OneDrive (saved as
   `…_FullyExecuted`), and the API only records it. Files up to 60 MB.
-- **Banking: a clear message when the statement reader is down.**
-  Uploading a bank statement showed "PDF parsing failed: Unknown error".
-  The statement reader (the separate PDF parser service) had been suspended
-  by its host, which answers with a web page rather than an error the
-  dashboard could read. The upload now says the reader is switched off, or
-  not responding, instead.
+- **Banking: bank statements are read inside the dashboard again.**
+  Statement upload failed with "PDF parsing failed: Unknown error" because
+  the separate PDF parser service on Render was switched off. Statements are
+  now read by the dashboard itself, so there is no outside service left to
+  fail. Saudi Investment Bank and Emirates NBD are supported, as before.
+  Fixed on the way: Saudi Investment Bank statements from any year other
+  than 2025 found no transactions, and a transaction whose description
+  contained a word such as "Account" or "Balance" was skipped. After an
+  upload, the dialog warns if the imported transactions don't add up to the
+  statement's closing balance. Statements from other banks get a clear
+  "cannot be read yet" message.
 - **Expenses: attaching a receipt no longer fails with "Missing Microsoft
   access token".** Receipts were uploaded with the person's own Microsoft
   token, which the dashboard only receives at sign-in and which expires

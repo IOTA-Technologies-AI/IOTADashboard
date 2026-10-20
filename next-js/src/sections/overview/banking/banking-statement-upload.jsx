@@ -24,7 +24,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { getLiveAccessToken } from 'src/utils/jwt-auth';
-import { SUPPORTED_BANKS, BANK_REGIONS } from 'src/utils/constants/banking';
+import { BANK_REGIONS, SUPPORTED_BANKS } from 'src/utils/constants/banking';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -325,6 +325,13 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
                   <Typography variant="body2">
                     Transactions: {parseResult.transactions?.length || 0}
                   </Typography>
+                  {parseResult.reconciliation && !parseResult.reconciliation.balanced ? (
+                    <Typography variant="body2" sx={{ color: 'warning.main', pt: 0.5 }}>
+                      The imported transactions don&apos;t add up to the statement&apos;s closing
+                      balance (off by {parseResult.reconciliation.difference}). Check them against
+                      the statement — a line may have been misread.
+                    </Typography>
+                  ) : null}
                 </Stack>
               </Box>
             )}
