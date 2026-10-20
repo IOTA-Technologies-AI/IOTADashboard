@@ -4587,11 +4587,18 @@ export async function setNdaPartnerSignatureZones(id, partnerSignatureZones) {
  * @param {string} [fileBase64] - base64-encoded file bytes to upload to OneDrive.
  * @returns {Promise<object>} The updated NDA object.
  */
-export async function markNdaFullyExecuted(id, markedBy, fileName, fileBase64) {
+export async function markNdaFullyExecuted(id, markedBy, fileName, fileBase64, uploaded) {
   try {
     const payload = { id, markedBy };
     if (fileName) payload.fileName = fileName;
     if (fileBase64) payload.fileBase64 = fileBase64;
+    // The executed copy already in OneDrive (uploaded through an upload session):
+    // large files can't go inline — the API refuses bodies that size (ISS-0010).
+    if (uploaded?.onedriveFileId) {
+      payload.onedriveFileId = uploaded.onedriveFileId;
+      payload.onedriveWebUrl = uploaded.onedriveWebUrl;
+      if (uploaded.onedriveDriveId) payload.onedriveDriveId = uploaded.onedriveDriveId;
+    }
     const response = await axios.post(`${API_BASE_URL}ndas/${id}/mark-fully-executed`, payload);
     return response.data.nda;
   } catch (error) {
@@ -4605,11 +4612,13 @@ export async function markNdaFullyExecuted(id, markedBy, fileName, fileBase64) {
  * The browser then PUTs the raw file bytes directly to the returned uploadUrl,
  * completely bypassing Encore's JSON body size limit.
  */
-export async function createNdaUploadSession(id, fileName, contentType, revision) {
+export async function createNdaUploadSession(id, fileName, contentType, revision, purpose) {
   try {
     const response = await axios.post(`${API_BASE_URL}ndas/${id}/create-upload-session`, {
       fileName,
       contentType: contentType || 'application/octet-stream',
+      // 'executed': the ink-signed copy, saved as …_FullyExecuted.
+      ...(purpose ? { purpose } : {}),
       // A partner's revised document is saved as …_Rev<n>, next to the earlier versions.
       ...(revision ? { revision } : {}),
     });

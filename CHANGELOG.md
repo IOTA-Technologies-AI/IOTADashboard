@@ -824,6 +824,17 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **NDAs: uploading the ink-signed copy no longer fails with "length limit
+  exceeded".** "Mark Fully Executed & Upload" sent the whole signed document
+  inside one API request, and larger scans went over the API's size limit.
+  The file now goes straight from the browser to OneDrive (saved as
+  `…_FullyExecuted`), and the API only records it. Files up to 60 MB.
+- **Banking: a clear message when the statement reader is down.**
+  Uploading a bank statement showed "PDF parsing failed: Unknown error".
+  The statement reader (the separate PDF parser service) had been suspended
+  by its host, which answers with a web page rather than an error the
+  dashboard could read. The upload now says the reader is switched off, or
+  not responding, instead.
 - **Expenses: attaching a receipt no longer fails with "Missing Microsoft
   access token".** Receipts were uploaded with the person's own Microsoft
   token, which the dashboard only receives at sign-in and which expires

@@ -43,10 +43,31 @@ export async function POST(request) {
       });
 
       if (!pythonResponse.ok) {
-        const errorData = await pythonResponse.json().catch(() => ({}));
+        // The parser answers JSON when it ran; anything else is the host
+        // speaking (Render's "Service Suspended" page, a cold-start 502…),
+        // which used to surface as "PDF parsing failed: Unknown error" (ISS-0011).
+        const raw = await pythonResponse.text().catch(() => '');
+        let errorData = {};
+        try {
+          errorData = JSON.parse(raw);
+        } catch {
+          errorData = {};
+        }
+        const reason = errorData.error || errorData.detail || errorData.message;
+        if (reason) {
+          return NextResponse.json({ error: `PDF parsing failed: ${reason}` }, { status: 400 });
+        }
+        const suspended = /suspended/i.test(raw);
+        console.error(
+          `[banking] PDF parser unavailable: HTTP ${pythonResponse.status} from ${PDF_PARSER_URL}`
+        );
         return NextResponse.json(
-          { error: 'PDF parsing failed: ' + (errorData.error || 'Unknown error') },
-          { status: 400 }
+          {
+            error: suspended
+              ? 'The bank statement reader is switched off (its hosting service is suspended), so statements cannot be imported right now. Please tell IT.'
+              : `The bank statement reader is not responding (HTTP ${pythonResponse.status}). Please try again in a minute.`,
+          },
+          { status: 503 }
         );
       }
 

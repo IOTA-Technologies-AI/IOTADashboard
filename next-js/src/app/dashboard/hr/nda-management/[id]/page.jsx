@@ -30,6 +30,7 @@ import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
 
+import { putToUploadSession } from 'src/utils/onedrive-upload';
 import { withFramedNdaSignatures } from 'src/utils/signature-frame';
 import { ndaStatusChip, ndaSigningModeLabel } from 'src/utils/nda-signing';
 import { stampNdaPdf, uint8ToBase64, signatureCaption } from 'src/utils/nda-pdf';
@@ -545,50 +546,53 @@ export default function NdaDetailsPage({ params }) {
     }
   };
 
+  // The ink-signed copy is kept as the chosen File and sent straight to
+  // OneDrive on submit — never read into the request, which is size-limited
+  // (ISS-0010: a signed scan exceeded it).
   const handleWetSigFileChange = (e) => {
     const file = e.target.files?.[0];
+    e.target.value = ''; // so the same file can be chosen again
     if (!file) return;
-    // Warn for files > 15 MB (base64 overhead brings ~20 MB to the API)
-    if (file.size > 15 * 1024 * 1024) {
-      toast.error('File is too large (max 15 MB). Please compress or split the document.');
-      e.target.value = '';
+    if (!file.size) {
+      toast.error('The selected file is empty. Please choose the signed document again.');
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = reader.result;
-      const base64 = typeof result === 'string' ? result.split(',')[1] : null;
-      if (!base64) {
-        toast.error('Failed to read file — the file may be empty or corrupted.');
-        return;
-      }
-      setWetSigFile({ name: file.name, base64 });
-    };
-    reader.onerror = () => {
-      console.error('FileReader error for wet-sig file:', reader.error);
-      toast.error('Could not read the selected file. Please try a different file.');
-    };
-    reader.readAsDataURL(file);
-    // reset input so the same file can be re-selected if needed
-    e.target.value = '';
+    if (file.size > 60 * 1024 * 1024) {
+      toast.error('File is too large (max 60 MB). Please compress the scan.');
+      return;
+    }
+    setWetSigFile({ name: file.name, file });
   };
 
   const handleMarkFullyExecuted = async () => {
+    if (!wetSigFile?.file) {
+      toast.error('Choose the signed copy to upload first.');
+      return;
+    }
     try {
       setWetSigLoading(true);
-      const updated = await markNdaFullyExecuted(
+      const { file } = wetSigFile;
+      const ext = file.name.split('.').pop()?.toLowerCase();
+      const contentType =
+        file.type || (ext === 'pdf' ? 'application/pdf' : 'application/octet-stream');
+      const { uploadUrl } = await createNdaUploadSession(
         id,
-        userEmail,
-        wetSigFile?.name,
-        wetSigFile?.base64
+        file.name,
+        contentType,
+        undefined,
+        'executed'
       );
+      const uploaded = await putToUploadSession(uploadUrl, file);
+      if (!uploaded?.id) throw new Error('The upload did not finish. Please try again.');
+
+      const updated = await markNdaFullyExecuted(id, userEmail, file.name, null, {
+        onedriveFileId: uploaded.id,
+        onedriveWebUrl: uploaded.webUrl,
+        onedriveDriveId: uploaded.parentReference?.driveId,
+      });
       setNda(updated);
       setWetSigFile(null);
-      toast.success(
-        wetSigFile
-          ? 'NDA marked as Fully Executed and document uploaded to OneDrive.'
-          : 'NDA marked as Fully Executed.'
-      );
+      toast.success('NDA marked as Fully Executed and the signed copy stored in OneDrive.');
     } catch (err) {
       console.error(err);
       toast.error(
