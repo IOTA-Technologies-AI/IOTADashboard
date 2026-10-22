@@ -31,7 +31,9 @@ import { fDate, fToNow, fDateTime } from 'src/utils/format-time';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
+  mimeOf,
   saveBlob,
+  extensionOf,
   base64ToBlob,
   useManagedDocument,
   updateManagedDocument,
@@ -66,12 +68,27 @@ const STATUS_ACTION = {
 function auditText(entry) {
   if (entry.action === 'id_issued') return 'Document ID issued';
   if (entry.action === 'version_sent') return `Version ${entry.version} sent`;
-  if (entry.action === 'revision_uploaded') return `Revision v${entry.version} uploaded`;
+  if (entry.action === 'revision_uploaded' || entry.action === 'version_uploaded') {
+    return `Version ${entry.version} uploaded`;
+  }
   if (entry.action.startsWith('status_')) {
     return `Marked ${statusOf(entry.action.slice(7)).label.toLowerCase()}`;
   }
   return entry.action;
 }
+
+/** Files the browser can show inline; Office files are downloaded or opened in OneDrive. */
+const PREVIEWABLE = ['pdf', 'png', 'jpg', 'jpeg'];
+const canPreview = (fileName) => PREVIEWABLE.includes(extensionOf(fileName));
+
+const FILE_KIND = {
+  doc: 'Word document',
+  docx: 'Word document',
+  xls: 'Excel workbook',
+  xlsx: 'Excel workbook',
+  ppt: 'PowerPoint presentation',
+  pptx: 'PowerPoint presentation',
+};
 
 const fadeUp = (delay = 0) => ({
   initial: { opacity: 0, y: 24 },
@@ -256,10 +273,16 @@ export function DocumentDetailsView({ documentId }) {
       setPreview({ version: selected, url: cached.url, error: '' });
       return undefined;
     }
+    // Only fetch what can be shown; an Office file is opened on demand.
+    const fileName = versions.find((v) => v.version === selected)?.fileName;
+    if (fileName && !canPreview(fileName)) {
+      setPreview({ version: selected, url: '', error: '', unsupported: true });
+      return undefined;
+    }
     setPreview({ version: selected, url: '', error: '' });
     getDocumentVersionFile(doc.documentId, selected)
       .then((file) => {
-        const blob = base64ToBlob(file.base64);
+        const blob = base64ToBlob(file.base64, mimeOf(file.fileName));
         const entry = { blob, url: URL.createObjectURL(blob), fileName: file.fileName };
         files.current.set(selected, entry);
         if (!cancelled) setPreview({ version: selected, url: entry.url, error: '' });
@@ -276,7 +299,7 @@ export function DocumentDetailsView({ documentId }) {
     return () => {
       cancelled = true;
     };
-  }, [selected, doc]);
+  }, [selected, doc, versions]);
 
   if (loading && !doc) {
     return (
@@ -357,7 +380,7 @@ export function DocumentDetailsView({ documentId }) {
       let entry = files.current.get(selected);
       if (!entry) {
         const file = await getDocumentVersionFile(doc.documentId, selected);
-        const blob = base64ToBlob(file.base64);
+        const blob = base64ToBlob(file.base64, mimeOf(file.fileName));
         entry = { blob, url: URL.createObjectURL(blob), fileName: file.fileName };
         files.current.set(selected, entry);
       }
@@ -450,7 +473,7 @@ export function DocumentDetailsView({ documentId }) {
             onClick={() => setRevisionOpen(true)}
             disabled={doc.status === 'archived'}
           >
-            Upload revision
+            Upload new version
           </Button>
         </Stack>
       </Stack>
@@ -562,14 +585,44 @@ export function DocumentDetailsView({ documentId }) {
         ) : (
           <AnimatePresence mode="wait">
             <m.div
-              key={`${preview.version}-${preview.url ? 'ready' : preview.error ? 'error' : 'loading'}`}
+              key={`${preview.version}-${preview.url || preview.error || preview.unsupported || 'loading'}`}
               initial={{ opacity: 0, scale: 0.985 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.985 }}
               transition={{ duration: 0.25 }}
               style={{ position: 'absolute', inset: 0 }}
             >
-              {preview.url ? (
+              {preview.unsupported ? (
+                <EmptyContent
+                  sx={{ height: 1 }}
+                  title={`${FILE_KIND[extensionOf(selectedVersion?.fileName)] || 'This file'} — no preview`}
+                  description="Download it, or open it in OneDrive to view and edit it there."
+                  action={
+                    <Stack direction="row" spacing={1.5} sx={{ mt: 3 }}>
+                      {selectedVersion?.onedriveWebUrl && (
+                        <Button
+                          variant="outlined"
+                          color="inherit"
+                          startIcon={<Iconify icon="logos:microsoft-onedrive" />}
+                          href={selectedVersion.onedriveWebUrl}
+                          target="_blank"
+                          rel="noopener"
+                        >
+                          Open in OneDrive
+                        </Button>
+                      )}
+                      <LoadingButton
+                        variant="contained"
+                        loading={downloading}
+                        startIcon={<Iconify icon="solar:download-bold" />}
+                        onClick={handleDownload}
+                      >
+                        Download
+                      </LoadingButton>
+                    </Stack>
+                  }
+                />
+              ) : preview.url ? (
                 <Box
                   component="iframe"
                   title={`${doc.display} version ${preview.version}`}

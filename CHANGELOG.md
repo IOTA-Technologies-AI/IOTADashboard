@@ -38,8 +38,15 @@ is running.
   or resource, and status filters; a document's page previews any version,
   downloads it, opens it in OneDrive, takes an uploaded revision as the next
   version, and records status (sent, accepted, rejected, archived), notes and
-  activity. Needs `sql/20261022_document_management.sql` in the API repo, and
-  the API deployed.
+  activity. **Add document** files a document prepared outside the dashboard
+  (PDF, Word, Excel, PowerPoint or image): choose its type (proposal,
+  statement of work, contract, NDA, invoice, general…), client or Internal,
+  person and office; it is given a document ID and kept in OneDrive as v1,
+  and each later revision is uploaded as the next version. An uploaded file is
+  filed, not marked sent — mark it sent when it goes out. Office files open in
+  OneDrive or download; PDFs and images preview on the page. Needs
+  `sql/20261022_document_management.sql` in the API repo, and the API
+  deployed.
 - **NDAs: take a partner's revised document against the one IOTA reviewed.**
   When a partner answers IOTA's review with a new document, choose "Partner
   sent a revised version" on the NDA, instead of creating a new NDA. The

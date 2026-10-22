@@ -1,0 +1,251 @@
+'use client';
+
+import useSWR from 'swr';
+import { useState } from 'react';
+import { m, AnimatePresence } from 'framer-motion';
+
+import Alert from '@mui/material/Alert';
+import Stack from '@mui/material/Stack';
+import Button from '@mui/material/Button';
+import Dialog from '@mui/material/Dialog';
+import MenuItem from '@mui/material/MenuItem';
+import TextField from '@mui/material/TextField';
+import Typography from '@mui/material/Typography';
+import LoadingButton from '@mui/lab/LoadingButton';
+import DialogTitle from '@mui/material/DialogTitle';
+import Autocomplete from '@mui/material/Autocomplete';
+import ToggleButton from '@mui/material/ToggleButton';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+
+import { paths } from 'src/routes/paths';
+import { useRouter } from 'src/routes/hooks';
+
+import { listCustomers } from 'src/actions/documents';
+import {
+  isAcceptedFile,
+  DOCUMENT_ACCEPT,
+  useDocumentTypes,
+  createManagedDocument,
+} from 'src/actions/document-management';
+
+import { Upload } from 'src/components/upload';
+import { toast } from 'src/components/snackbar';
+
+// ----------------------------------------------------------------------
+
+const INTERNAL = { id: null, name: 'Internal (IOTA office)' };
+
+const titleFromFileName = (name) =>
+  String(name || '')
+    .replace(/\.[^.]+$/, '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+/**
+ * Add a document prepared outside the dashboard: it is given an IOTA document
+ * ID and the file is kept in OneDrive as version 1.
+ */
+export function DocumentNewDialog({ open, onClose }) {
+  const router = useRouter();
+  const types = useDocumentTypes(open);
+  const { data: customers = [] } = useSWR(
+    open ? 'document-management/customers' : null,
+    listCustomers,
+    {
+      revalidateOnFocus: false,
+    }
+  );
+
+  const [file, setFile] = useState(null);
+  const [title, setTitle] = useState('');
+  const [docType, setDocType] = useState('GEN');
+  const [client, setClient] = useState(INTERNAL);
+  const [subjectName, setSubjectName] = useState('');
+  const [office, setOffice] = useState('KSA');
+  const [notes, setNotes] = useState('');
+  const [error, setError] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  const reset = () => {
+    setFile(null);
+    setTitle('');
+    setDocType('GEN');
+    setClient(INTERNAL);
+    setSubjectName('');
+    setOffice('KSA');
+    setNotes('');
+    setError('');
+  };
+
+  const handleClose = () => {
+    if (busy) return;
+    reset();
+    onClose();
+  };
+
+  const handleDrop = (accepted) => {
+    const picked = accepted[0];
+    if (!picked) return;
+    if (!isAcceptedFile(picked)) {
+      setError('Upload a PDF, Word, Excel, PowerPoint or image file.');
+      return;
+    }
+    setError('');
+    setFile(picked);
+    if (!title.trim()) setTitle(titleFromFileName(picked.name));
+  };
+
+  const handleSubmit = async () => {
+    if (!file || !title.trim()) return;
+    setBusy(true);
+    setError('');
+    try {
+      const document = await createManagedDocument(
+        {
+          title: title.trim(),
+          docType,
+          customerId: client?.id ?? null,
+          subjectName: subjectName.trim() || undefined,
+          iotaOffice: office,
+          notes: notes.trim() || undefined,
+        },
+        file,
+        'Uploaded to Document Management'
+      );
+      toast.success(`Filed as ${document.display} — version 1 is in OneDrive.`);
+      reset();
+      onClose();
+      router.push(paths.dashboard.general.documentManagement.details(document.documentId));
+    } catch (err) {
+      setError(err.response?.data?.message || err.message || 'The document could not be added.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+      <DialogTitle>Add document</DialogTitle>
+      <DialogContent>
+        <Stack spacing={2.5} sx={{ pt: 1 }}>
+          <Typography variant="body2" color="text.secondary">
+            For a document prepared outside the dashboard. It is given an IOTA document ID and kept
+            in OneDrive as version 1; later revisions are uploaded as new versions.
+          </Typography>
+
+          <Upload
+            value={file}
+            onDrop={handleDrop}
+            onDelete={() => setFile(null)}
+            accept={DOCUMENT_ACCEPT}
+            disabled={busy}
+          />
+
+          <AnimatePresence initial={false}>
+            {file && (
+              <m.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3, ease: [0.43, 0.13, 0.23, 0.96] }}
+                style={{ overflow: 'hidden' }}
+              >
+                <Stack spacing={2.5} sx={{ pt: 0.5 }}>
+                  <TextField
+                    label="Title"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    required
+                    disabled={busy}
+                  />
+
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                    <TextField
+                      select
+                      fullWidth
+                      label="Document type"
+                      value={types.some((t) => t.code === docType) ? docType : ''}
+                      onChange={(e) => setDocType(e.target.value)}
+                      disabled={busy}
+                    >
+                      {types.map((t) => (
+                        <MenuItem key={t.code} value={t.code}>
+                          {t.name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+
+                    <Autocomplete
+                      fullWidth
+                      value={client}
+                      options={[INTERNAL, ...customers]}
+                      getOptionLabel={(o) => o?.name ?? ''}
+                      isOptionEqualToValue={(a, b) => a.id === b.id}
+                      onChange={(e, value) => setClient(value ?? INTERNAL)}
+                      disabled={busy}
+                      renderInput={(params) => <TextField {...params} label="Client" />}
+                    />
+                  </Stack>
+
+                  <Stack
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={2}
+                    alignItems={{ sm: 'center' }}
+                  >
+                    <TextField
+                      fullWidth
+                      label="Person (optional)"
+                      placeholder="The resource or employee it concerns"
+                      value={subjectName}
+                      onChange={(e) => setSubjectName(e.target.value)}
+                      disabled={busy}
+                    />
+                    <ToggleButtonGroup
+                      exclusive
+                      size="small"
+                      value={office}
+                      onChange={(e, value) => value && setOffice(value)}
+                      disabled={busy}
+                      sx={{ flexShrink: 0 }}
+                    >
+                      <ToggleButton value="KSA">KSA</ToggleButton>
+                      <ToggleButton value="India">India</ToggleButton>
+                    </ToggleButtonGroup>
+                  </Stack>
+
+                  <TextField
+                    label="Notes"
+                    placeholder="Who prepared it, where it came from, next steps…"
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    multiline
+                    minRows={2}
+                    disabled={busy}
+                  />
+                </Stack>
+              </m.div>
+            )}
+          </AnimatePresence>
+
+          {error && <Alert severity="error">{error}</Alert>}
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose} disabled={busy}>
+          Cancel
+        </Button>
+        <LoadingButton
+          variant="contained"
+          onClick={handleSubmit}
+          loading={busy}
+          disabled={!file || !title.trim() || !docType}
+        >
+          Add document
+        </LoadingButton>
+      </DialogActions>
+    </Dialog>
+  );
+}

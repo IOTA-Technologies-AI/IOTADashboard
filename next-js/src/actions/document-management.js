@@ -47,6 +47,33 @@ export function useManagedDocument(documentId) {
   };
 }
 
+/** The document types an ID can carry: [{ code, name }]. */
+export function useDocumentTypes(enabled = true) {
+  const { data } = useSWR(
+    enabled ? ['/document-management/doc-types', {}] : null,
+    fetcher,
+    options
+  );
+  return data?.types ?? [];
+}
+
+/**
+ * Register a document prepared outside the dashboard and upload `file` as v1.
+ * Resolves to the document. If the upload fails the document still exists,
+ * with no version, and the file can be uploaded again from its page.
+ */
+export async function createManagedDocument(payload, file, note) {
+  const res = await iotaApi.post('/document-management/documents', payload);
+  const { document } = res.data;
+  await sendDocumentVersion(document.documentId, {
+    render: async () => file,
+    origin: 'uploaded',
+    extension: extensionOf(file.name),
+    note,
+  });
+  return document;
+}
+
 /** The proposal's document, issuing its ID the first time. Idempotent. */
 export async function ensureProposalDocument(proposalId) {
   const res = await iotaApi.post(`/document-management/proposals/${proposalId}/ensure`, {});
@@ -60,7 +87,7 @@ export async function updateManagedDocument(documentId, payload) {
   return res.data.document;
 }
 
-/** A version's PDF, read back from OneDrive. */
+/** A version's file, read back from OneDrive. */
 export async function getDocumentVersionFile(documentId, version) {
   const res = await iotaApi.get(
     `/document-management/documents/${documentId}/versions/${version}/file`,
@@ -81,14 +108,20 @@ export async function fingerprintOf(value) {
  * the last version sent — return that version unchanged.
  *
  * `render(version)` builds the PDF Blob printing that version number; it runs
- * once the version is known. Uploaded revisions pass a ready file and no
- * fingerprint, so they always become a new version.
+ * once the version is known. Uploaded files pass a ready file, their
+ * `extension` and no fingerprint, so they always become a new version.
  *
  * Resolves to { version, fileName, blob, reused }.
  */
-export async function sendDocumentVersion(documentId, { render, fingerprint, origin, note }) {
+export async function sendDocumentVersion(
+  documentId,
+  { render, fingerprint, origin, note, extension }
+) {
   const base = `/document-management/documents/${documentId}`;
-  const { data: plan } = await iotaApi.post(`${base}/versions/prepare`, { fingerprint });
+  const { data: plan } = await iotaApi.post(`${base}/versions/prepare`, {
+    fingerprint,
+    extension,
+  });
 
   const blob = await render(plan.version);
   if (plan.reuse) return { version: plan.version, fileName: plan.fileName, blob, reused: true };
@@ -101,11 +134,43 @@ export async function sendDocumentVersion(documentId, { render, fingerprint, ori
     sizeBytes: blob.size,
     fingerprint,
     origin: origin || 'generated',
+    extension,
     note,
   });
   await refreshAll();
   return { version: plan.version, fileName: plan.fileName, blob, reused: false };
 }
+
+/** File types a version may be (the API refuses others). */
+export const DOCUMENT_ACCEPT = {
+  'application/pdf': ['.pdf'],
+  'application/msword': ['.doc'],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+  'application/vnd.ms-excel': ['.xls'],
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+  'application/vnd.ms-powerpoint': ['.ppt'],
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+  'image/png': ['.png'],
+  'image/jpeg': ['.jpg', '.jpeg'],
+};
+
+export const extensionOf = (fileName) =>
+  String(fileName || '')
+    .split('.')
+    .pop()
+    .toLowerCase();
+
+export const isAcceptedFile = (file) =>
+  Object.values(DOCUMENT_ACCEPT).some((exts) => exts.includes(`.${extensionOf(file?.name)}`));
+
+/** The MIME type for a file name, so previews and downloads open correctly. */
+export const mimeOf = (fileName) => {
+  const ext = `.${extensionOf(fileName)}`;
+  return (
+    Object.keys(DOCUMENT_ACCEPT).find((type) => DOCUMENT_ACCEPT[type].includes(ext)) ||
+    'application/octet-stream'
+  );
+};
 
 export const base64ToBlob = (base64, type = 'application/pdf') =>
   new Blob([Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))], { type });

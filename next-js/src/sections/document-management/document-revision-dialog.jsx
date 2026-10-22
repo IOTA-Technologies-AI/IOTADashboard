@@ -13,7 +13,12 @@ import DialogTitle from '@mui/material/DialogTitle';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 
-import { sendDocumentVersion } from 'src/actions/document-management';
+import {
+  extensionOf,
+  isAcceptedFile,
+  DOCUMENT_ACCEPT,
+  sendDocumentVersion,
+} from 'src/actions/document-management';
 
 import { Upload } from 'src/components/upload';
 import { toast } from 'src/components/snackbar';
@@ -47,8 +52,8 @@ export function DocumentRevisionDialog({ open, onClose, document, onUploaded }) 
   const handleDrop = (accepted) => {
     const picked = accepted[0];
     if (!picked) return;
-    if (picked.type !== 'application/pdf' && !picked.name.toLowerCase().endsWith('.pdf')) {
-      setError('Upload the revision as a PDF.');
+    if (!isAcceptedFile(picked)) {
+      setError('Upload a PDF, Word, Excel, PowerPoint or image file.');
       return;
     }
     setError('');
@@ -62,9 +67,10 @@ export function DocumentRevisionDialog({ open, onClose, document, onUploaded }) 
       const sent = await sendDocumentVersion(document.documentId, {
         render: async () => file,
         origin: 'uploaded',
+        extension: extensionOf(file.name),
         note: note.trim() || undefined,
       });
-      toast.success(`Revision saved to OneDrive as ${sent.fileName}.`);
+      toast.success(`Version ${sent.version} saved to OneDrive as ${sent.fileName}.`);
       reset();
       onUploaded?.(sent.version);
       onClose();
@@ -77,13 +83,15 @@ export function DocumentRevisionDialog({ open, onClose, document, onUploaded }) 
 
   return (
     <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
-      <DialogTitle>Upload revision</DialogTitle>
+      <DialogTitle>Upload new version</DialogTitle>
       <DialogContent>
         <Stack spacing={2.5} sx={{ pt: 1 }}>
           <Typography variant="body2" color="text.secondary">
             The file is kept in OneDrive as{' '}
             <Typography component="span" variant="subtitle2" color="text.primary">
-              {document ? `${document.display}_v${nextVersion}.pdf` : ''}
+              {document
+                ? `${document.display}_v${nextVersion}.${file ? extensionOf(file.name) : 'pdf'}`
+                : ''}
             </Typography>
             . Earlier versions stay as they are.
           </Typography>
@@ -92,7 +100,7 @@ export function DocumentRevisionDialog({ open, onClose, document, onUploaded }) 
             value={file}
             onDrop={handleDrop}
             onDelete={() => setFile(null)}
-            accept={{ 'application/pdf': ['.pdf'] }}
+            accept={DOCUMENT_ACCEPT}
             disabled={busy}
           />
 

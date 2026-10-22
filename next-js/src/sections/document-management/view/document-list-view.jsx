@@ -11,6 +11,7 @@ import Menu from '@mui/material/Menu';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
+import Button from '@mui/material/Button';
 import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
@@ -34,6 +35,7 @@ import { fToNow, fDateTime } from 'src/utils/format-time';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
+  mimeOf,
   saveBlob,
   base64ToBlob,
   useManagedDocuments,
@@ -47,6 +49,7 @@ import { EmptyContent } from 'src/components/empty-content';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { varFade, varContainer, AnimateCountUp } from 'src/components/animate';
 
+import { DocumentNewDialog } from '../document-new-dialog';
 import { statusOf, STATUS_ORDER } from '../document-labels';
 
 // ----------------------------------------------------------------------
@@ -164,6 +167,7 @@ export function DocumentListView() {
   const [rowsPerPage, setRowsPerPage] = useState(25);
   const [menu, setMenu] = useState(null);
   const [downloading, setDownloading] = useState('');
+  const [addOpen, setAddOpen] = useState(false);
 
   const debouncedSearch = useDebounce(search.trim(), 300);
 
@@ -183,7 +187,7 @@ export function DocumentListView() {
     setDownloading(doc.documentId);
     try {
       const file = await getDocumentVersionFile(doc.documentId, doc.currentVersion);
-      saveBlob(base64ToBlob(file.base64), file.fileName);
+      saveBlob(base64ToBlob(file.base64, mimeOf(file.fileName)), file.fileName);
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'The download failed.');
     } finally {
@@ -265,15 +269,13 @@ export function DocumentListView() {
             </Label>
           </TableCell>
           <TableCell>
-            {doc.lastSentAt ? (
-              <Tooltip title={fDateTime(doc.lastSentAt)}>
-                <Typography variant="body2">{fToNow(doc.lastSentAt)}</Typography>
-              </Tooltip>
-            ) : (
-              <Typography variant="caption" color="text.disabled">
-                Not sent yet
-              </Typography>
-            )}
+            <Tooltip
+              title={
+                doc.lastSentAt ? `Last sent ${fDateTime(doc.lastSentAt)}` : fDateTime(doc.updatedAt)
+              }
+            >
+              <Typography variant="body2">{fToNow(doc.updatedAt)}</Typography>
+            </Tooltip>
           </TableCell>
           <TableCell align="right" onClick={(e) => e.stopPropagation()}>
             <IconButton
@@ -300,6 +302,15 @@ export function DocumentListView() {
           { name: 'File', href: paths.dashboard.general.file },
           { name: 'Document Management' },
         ]}
+        action={
+          <Button
+            variant="contained"
+            startIcon={<Iconify icon="eva:cloud-upload-fill" />}
+            onClick={() => setAddOpen(true)}
+          >
+            Add document
+          </Button>
+        }
         sx={{ mb: 3 }}
       />
 
@@ -387,7 +398,7 @@ export function DocumentListView() {
                 <TableCell>Client</TableCell>
                 <TableCell align="center">Version</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Last sent</TableCell>
+                <TableCell>Updated</TableCell>
                 <TableCell />
               </TableRow>
             </TableHead>
@@ -407,7 +418,19 @@ export function DocumentListView() {
             description={
               debouncedSearch || status !== 'all'
                 ? 'Try another document ID, title or client, or clear the filter.'
-                : 'A proposal is given its document ID when it is prepared, and appears here.'
+                : 'Proposals appear here when they are prepared. A document prepared elsewhere can be added directly.'
+            }
+            action={
+              debouncedSearch || status !== 'all' ? null : (
+                <Button
+                  sx={{ mt: 3 }}
+                  variant="contained"
+                  startIcon={<Iconify icon="eva:cloud-upload-fill" />}
+                  onClick={() => setAddOpen(true)}
+                >
+                  Add document
+                </Button>
+              )
             }
           />
         )}
@@ -469,6 +492,7 @@ export function DocumentListView() {
           </MenuItem>
         )}
       </Menu>
+      <DocumentNewDialog open={addOpen} onClose={() => setAddOpen(false)} />
     </DashboardContent>
   );
 }
