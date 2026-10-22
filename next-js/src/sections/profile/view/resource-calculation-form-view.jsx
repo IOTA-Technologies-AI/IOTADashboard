@@ -70,6 +70,7 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import {
   saveBlob,
   fingerprintOf,
+  useDocumentCatalog,
   sendDocumentVersion,
   ensureProposalDocument,
 } from 'src/actions/document-management';
@@ -291,7 +292,21 @@ const IOTA_LOGO_WHITE_LOCAL = '/logo/iotaLogoWhite.png';
 // ── PDF Document styles ───────────────────────────────────────────────────────
 
 const pdfStyles = PdfStyleSheet.create({
-  page: { fontFamily: 'Aptos', padding: 40, fontSize: 10, color: '#111111' },
+  // The bottom margin leaves room for the Document Management stamp on page one.
+  page: { fontFamily: 'Aptos', padding: 40, paddingBottom: 72, fontSize: 10, color: '#111111' },
+
+  // Document Management stamp: bottom-right of the first page only.
+  dmsStampAnchor: { position: 'absolute', right: 40, bottom: 34 },
+  dmsStamp: {
+    paddingVertical: 4,
+    paddingHorizontal: 7,
+    border: '0.75 solid #0B5E41',
+    borderRadius: 3,
+    alignItems: 'flex-end',
+  },
+  dmsStampClass: { fontSize: 7, fontWeight: 700, color: '#B71D18', letterSpacing: 1 },
+  dmsStampId: { fontSize: 8, fontWeight: 700, color: '#0B5E41', marginTop: 1 },
+  dmsStampNote: { fontSize: 6.5, color: '#666666', marginTop: 1 },
   header: {
     backgroundColor: '#0B5E41',
     paddingHorizontal: 24,
@@ -527,23 +542,41 @@ export function ResourceCalculationFormView({ id }) {
   const [shareAnchor, setShareAnchor] = useState(null);
 
   // ── Document ID (Files → Document Management) ─────────────────────────────
-  // A saved proposal carries an IOTA document ID: the PDF prints it and is
-  // named after it. It is issued the first time the proposal is opened, so
-  // proposals older than Document Management get one too, and re-checked after
-  // every save so the library follows the proposal's title.
+  // A proposal carries an IOTA document ID: the PDF prints it and is named
+  // after it. The ID records the practice, so it is issued once the proposal is
+  // saved with its practice (on create, on the first save of an older proposal,
+  // or at the first download) and the practice is fixed from then on. Each
+  // load re-checks it so the library follows the proposal's title.
+  const { practices: practiceOptions } = useDocumentCatalog();
+  const [practice, setPractice] = useState(5);
   const [managedDoc, setManagedDoc] = useState(null);
   const [managedDocError, setManagedDocError] = useState('');
   const refreshManagedDoc = useCallback(async () => {
     if (!id) return;
     try {
       setManagedDoc(await ensureProposalDocument(id));
+    } catch (err) {
+      setManagedDocError(
+        err.response?.data?.message || err.message || 'The document ID could not be read.'
+      );
+    }
+  }, [id]);
+
+  /** The proposal's document, issuing its ID now if it has none. Null (with the reason shown) if it cannot. */
+  const issueManagedDoc = async (proposalId = id) => {
+    if (managedDoc) return managedDoc;
+    try {
+      const doc = await ensureProposalDocument(proposalId, { issue: true, practice });
+      setManagedDoc(doc);
       setManagedDocError('');
+      return doc;
     } catch (err) {
       setManagedDocError(
         err.response?.data?.message || err.message || 'The document ID could not be issued.'
       );
+      return null;
     }
-  }, [id]);
+  };
   useEffect(() => {
     if (isEdit && rcData?.data) refreshManagedDoc();
   }, [isEdit, rcData, refreshManagedDoc]);
@@ -1072,12 +1105,17 @@ export function ResourceCalculationFormView({ id }) {
       if (isEdit) {
         await updateResourceCalculation(id, payload);
         mutateRC();
+        // Saving with a practice issues the ID of a proposal that has none.
+        if (!managedDoc) await issueManagedDoc();
       } else {
         const result = await createResourceCalculation(payload);
         const newId = result?.data?.id;
         if (newId) {
           // Auto-submit for approval on create
           submitRCForApproval(newId).catch(console.error);
+          // A new proposal is given its document ID under the chosen practice.
+          // If that fails (e.g. no customer chosen) the proposal page says why.
+          await issueManagedDoc(newId);
           router.push(paths.dashboard.profile.resourceCalculation.details(newId));
         } else {
           router.push(paths.dashboard.profile.resourceCalculation.root);
@@ -1183,7 +1221,7 @@ export function ResourceCalculationFormView({ id }) {
    * the PDF metadata, the filename and the share messages all quote the same
    * values instead of each re-deriving them.
    */
-  const buildQuotationMeta = (countryMeta) => {
+  const buildQuotationMeta = (countryMeta, doc = managedDoc) => {
     const rc = rcData?.data;
     const customerObj = resolveCustomer(customerId);
     // Falls back to the stored string: a customer removed from the directory
@@ -1200,7 +1238,9 @@ export function ResourceCalculationFormView({ id }) {
       // The IOTA document ID. A record only has one once it has been saved;
       // say so rather than printing a blank reference a recipient might quote
       // back at us.
-      reference: managedDoc?.display || (id ? 'Document ID pending' : 'Draft — not yet saved'),
+      reference: doc?.display || (id ? 'Document ID pending' : 'Draft — not yet saved'),
+      documentId: doc?.display || '',
+      classification: doc?.classification || 'confidential',
       customerName,
       jdTitle,
       resourceName: fullName.trim() || candidateObj?.name || '',
@@ -1278,8 +1318,8 @@ export function ResourceCalculationFormView({ id }) {
           .join('-') + '.pdf';
 
   const buildPDFDoc = (countryMeta, subtotal, vatAmount, grandTotal, options = {}) => {
-    const { includeBreakdown = false, version } = options;
-    const meta = buildQuotationMeta(countryMeta);
+    const { includeBreakdown = false, version, doc } = options;
+    const meta = buildQuotationMeta(countryMeta, doc);
     const TAX_LABEL = meta.taxLabel;
     // Only a copy that was sent carries a version number; anything else says
     // what it is, so it cannot be mistaken for one the customer holds.
@@ -1333,6 +1373,30 @@ export function ResourceCalculationFormView({ id }) {
         creator="IOTA Dashboard"
       >
         <Page size="A4" style={pdfStyles.page}>
+          {/* Document Management stamp, bottom-right of page one. It must be
+              `fixed` and drawn only when pageNumber is 1: react-pdf puts a plain
+              absolute element on the LAST page of a flowing Page. */}
+          {meta.documentId ? (
+            <View
+              style={pdfStyles.dmsStampAnchor}
+              fixed
+              render={({ pageNumber }) =>
+                pageNumber === 1 ? (
+                  <View style={pdfStyles.dmsStamp}>
+                    <Text style={pdfStyles.dmsStampClass}>
+                      {meta.classification.toUpperCase()}
+                    </Text>
+                    <Text style={pdfStyles.dmsStampId}>
+                      {`${meta.documentId} · ${versionText}`}
+                    </Text>
+                    <Text style={pdfStyles.dmsStampNote}>
+                      Captured in IOTA Document Management System
+                    </Text>
+                  </View>
+                ) : null
+              }
+            />
+          ) : null}
           {/* ── Header band ───
               Deliberately NOT `fixed`: a fixed header renders at the same
               offset on every page while the content still flows from the top,
@@ -1610,8 +1674,8 @@ export function ResourceCalculationFormView({ id }) {
   };
 
   /** What the customer copy prints, so downloading it unchanged is the same version. */
-  const quotationFingerprint = (countryMeta, subtotal, vatAmount, grandTotal) => {
-    const meta = buildQuotationMeta(countryMeta);
+  const quotationFingerprint = (doc, countryMeta, subtotal, vatAmount, grandTotal) => {
+    const meta = buildQuotationMeta(countryMeta, doc);
     return fingerprintOf({
       meta: { ...meta, issuedOn: fPdfDate(meta.issuedOn), validUntil: fPdfDate(meta.validUntil) },
       resources: proposalResources,
@@ -1623,15 +1687,15 @@ export function ResourceCalculationFormView({ id }) {
     });
   };
 
-  /** A customer copy can only go out under a document ID. */
-  const requireManagedDoc = () => {
-    if (managedDoc) return true;
-    setError(
-      id
-        ? managedDocError || 'The document ID is still being issued. Try again in a moment.'
-        : 'Save the proposal first. Saving issues its document ID, which the PDF prints.'
-    );
-    return false;
+  /** A customer copy can only go out under a document ID: issue it now if needed. */
+  const requireManagedDoc = async () => {
+    if (!id) {
+      setError('Save the proposal first. Saving issues its document ID, which the PDF prints.');
+      return null;
+    }
+    const doc = await issueManagedDoc();
+    if (!doc) setError('The proposal has no document ID yet — see the note above the quotation.');
+    return doc;
   };
 
   /**
@@ -1639,11 +1703,11 @@ export function ResourceCalculationFormView({ id }) {
    * kept in OneDrive: as the next version when anything printed has changed
    * since the last one sent, or as that same version when nothing has.
    */
-  const sendQuotation = async (countryMeta, subtotal, vatAmount, grandTotal) => {
-    const sent = await sendDocumentVersion(managedDoc.documentId, {
-      fingerprint: await quotationFingerprint(countryMeta, subtotal, vatAmount, grandTotal),
+  const sendQuotation = async (doc, countryMeta, subtotal, vatAmount, grandTotal) => {
+    const sent = await sendDocumentVersion(doc.documentId, {
+      fingerprint: await quotationFingerprint(doc, countryMeta, subtotal, vatAmount, grandTotal),
       render: (version) =>
-        pdf(buildPDFDoc(countryMeta, subtotal, vatAmount, grandTotal, { version })).toBlob(),
+        pdf(buildPDFDoc(countryMeta, subtotal, vatAmount, grandTotal, { version, doc })).toBlob(),
     });
     setManagedDoc((prev) =>
       prev
@@ -1681,10 +1745,11 @@ export function ResourceCalculationFormView({ id }) {
       return;
     }
 
-    if (!requireManagedDoc()) return;
     setPdfGenerating(true);
     try {
-      const sent = await sendQuotation(countryMeta, subtotal, vatAmount, grandTotal);
+      const doc = await requireManagedDoc();
+      if (!doc) return;
+      const sent = await sendQuotation(doc, countryMeta, subtotal, vatAmount, grandTotal);
       saveBlob(sent.blob, sent.fileName);
     } catch (err) {
       console.error('PDF send failed:', err);
@@ -1751,10 +1816,11 @@ export function ResourceCalculationFormView({ id }) {
       navigator.canShare &&
       navigator.canShare({ files: [new File([''], 'probe.pdf', { type: 'application/pdf' })] });
     if (canShareFiles) {
-      if (!requireManagedDoc()) return;
       setPdfGenerating(true);
       try {
-        const sent = await sendQuotation(countryMeta, subtotal, vatAmount, grandTotal);
+        const doc = await requireManagedDoc();
+        if (!doc) return;
+        const sent = await sendQuotation(doc, countryMeta, subtotal, vatAmount, grandTotal);
         await navigator.share({
           title: `Resource Quotation — ${meta.documentTitle}`,
           text: `${meta.documentTitle} (${meta.reference} v${sent.version}) — resource quotation from IOTA Technologies.`,
@@ -1984,6 +2050,26 @@ export function ResourceCalculationFormView({ id }) {
                     </MenuItem>
                   ))}
                 </Select>
+              </FormControl>
+
+              <FormControl fullWidth required disabled={Boolean(managedDoc)}>
+                <InputLabel>Practice</InputLabel>
+                <Select
+                  value={practiceOptions.length ? (managedDoc?.practice ?? practice) : ''}
+                  label="Practice"
+                  onChange={(e) => setPractice(Number(e.target.value))}
+                >
+                  {practiceOptions.map((p) => (
+                    <MenuItem key={p.id} value={p.id}>
+                      {p.id}. {p.name}
+                    </MenuItem>
+                  ))}
+                </Select>
+                <FormHelperText>
+                  {managedDoc
+                    ? `Fixed by document ID ${managedDoc.display}.`
+                    : 'Recorded in the document ID when the proposal is saved.'}
+                </FormHelperText>
               </FormControl>
 
               <FormControl fullWidth required>
@@ -2640,9 +2726,10 @@ export function ResourceCalculationFormView({ id }) {
               </Stack>
             </Box>
 
-            {isEdit && managedDocError && (
-              <Alert severity="info" sx={{ borderRadius: 0 }}>
-                {managedDocError}
+            {isEdit && (managedDocError || !managedDoc) && (
+              <Alert severity={managedDocError ? 'warning' : 'info'} sx={{ borderRadius: 0 }}>
+                {managedDocError ||
+                  'No document ID yet. It is issued under the chosen practice when you save or download the customer copy.'}
               </Alert>
             )}
 

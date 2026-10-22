@@ -38,6 +38,7 @@ import {
   mimeOf,
   saveBlob,
   base64ToBlob,
+  useDocumentCatalog,
   useManagedDocuments,
   getDocumentVersionFile,
 } from 'src/actions/document-management';
@@ -50,7 +51,7 @@ import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { varFade, varContainer, AnimateCountUp } from 'src/components/animate';
 
 import { DocumentNewDialog } from '../document-new-dialog';
-import { statusOf, STATUS_ORDER } from '../document-labels';
+import { statusOf, STATUS_ORDER, classificationOf } from '../document-labels';
 
 // ----------------------------------------------------------------------
 
@@ -162,6 +163,8 @@ export function DocumentListView() {
   const router = useRouter();
 
   const [status, setStatus] = useState('all');
+  const [practice, setPractice] = useState(0);
+  const { practices } = useDocumentCatalog();
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(25);
@@ -174,6 +177,7 @@ export function DocumentListView() {
   const { documents, total, counts, error, loading, validating } = useManagedDocuments({
     q: debouncedSearch || undefined,
     status: status === 'all' ? undefined : status,
+    practice: practice || undefined,
     limit: rowsPerPage,
     offset: page * rowsPerPage,
   });
@@ -238,6 +242,7 @@ export function DocumentListView() {
                   {doc.title}
                 </Typography>
                 <Typography variant="caption" color="text.secondary" noWrap component="div">
+                  {doc.practiceName ? `${doc.practiceName} · ` : ''}
                   {doc.docTypeName}
                   {doc.subjectName ? ` · ${doc.subjectName}` : ''}
                 </Typography>
@@ -246,6 +251,16 @@ export function DocumentListView() {
           </TableCell>
           <TableCell>
             <DocumentIdChip display={doc.display} />
+            {doc.internalNumber && (
+              <Typography
+                variant="caption"
+                color="text.disabled"
+                component="div"
+                sx={{ fontFamily: 'monospace', mt: 0.5, whiteSpace: 'nowrap' }}
+              >
+                {doc.internalNumber}
+              </Typography>
+            )}
           </TableCell>
           <TableCell sx={{ maxWidth: 200 }}>
             <Typography variant="body2" noWrap>
@@ -266,6 +281,11 @@ export function DocumentListView() {
           <TableCell>
             <Label variant="soft" color={st.color} startIcon={<Iconify icon={st.icon} />}>
               {st.label}
+            </Label>
+          </TableCell>
+          <TableCell>
+            <Label variant="outlined" color={classificationOf(doc.classification).color}>
+              {classificationOf(doc.classification).label}
             </Label>
           </TableCell>
           <TableCell>
@@ -360,7 +380,7 @@ export function DocumentListView() {
               setSearch(e.target.value);
               setPage(0);
             }}
-            placeholder="Search by document ID, title, client or resource…"
+            placeholder="Search by document ID, internal number, title, client or person…"
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
@@ -376,6 +396,23 @@ export function DocumentListView() {
               ) : null,
             }}
           />
+          <TextField
+            select
+            label="Practice"
+            value={practice}
+            onChange={(e) => {
+              setPractice(Number(e.target.value));
+              setPage(0);
+            }}
+            sx={{ minWidth: { md: 260 } }}
+          >
+            <MenuItem value={0}>All practices</MenuItem>
+            {practices.map((p) => (
+              <MenuItem key={p.id} value={p.id}>
+                {p.id}. {p.name}
+              </MenuItem>
+            ))}
+          </TextField>
           <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
             {total} {total === 1 ? 'document' : 'documents'}
           </Typography>
@@ -390,7 +427,7 @@ export function DocumentListView() {
         )}
 
         <TableContainer sx={{ overflowX: 'auto' }}>
-          <Table sx={{ minWidth: 960 }}>
+          <Table sx={{ minWidth: 1100 }}>
             <TableHead>
               <TableRow>
                 <TableCell>Document</TableCell>
@@ -398,6 +435,7 @@ export function DocumentListView() {
                 <TableCell>Client</TableCell>
                 <TableCell align="center">Version</TableCell>
                 <TableCell>Status</TableCell>
+                <TableCell>Classification</TableCell>
                 <TableCell>Updated</TableCell>
                 <TableCell />
               </TableRow>
@@ -413,15 +451,17 @@ export function DocumentListView() {
             filled
             sx={{ m: 2.5, py: 8 }}
             title={
-              debouncedSearch || status !== 'all' ? 'No matching documents' : 'No documents yet'
+              debouncedSearch || status !== 'all' || practice
+                ? 'No matching documents'
+                : 'No documents yet'
             }
             description={
-              debouncedSearch || status !== 'all'
+              debouncedSearch || status !== 'all' || practice
                 ? 'Try another document ID, title or client, or clear the filter.'
                 : 'Proposals appear here when they are prepared. A document prepared elsewhere can be added directly.'
             }
             action={
-              debouncedSearch || status !== 'all' ? null : (
+              debouncedSearch || status !== 'all' || practice ? null : (
                 <Button
                   sx={{ mt: 3 }}
                   variant="contained"

@@ -16,6 +16,7 @@ import Tooltip from '@mui/material/Tooltip';
 import MenuItem from '@mui/material/MenuItem';
 import Skeleton from '@mui/material/Skeleton';
 import TextField from '@mui/material/TextField';
+import IconButton from '@mui/material/IconButton';
 import ButtonBase from '@mui/material/ButtonBase';
 import Typography from '@mui/material/Typography';
 import CardHeader from '@mui/material/CardHeader';
@@ -48,8 +49,14 @@ import { EmptyContent } from 'src/components/empty-content';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 import { DocumentIdChip } from './document-list-view';
-import { statusOf, SOURCE_LABEL } from '../document-labels';
 import { DocumentRevisionDialog } from '../document-revision-dialog';
+import {
+  statusOf,
+  SOURCE_LABEL,
+  CLASSIFICATION,
+  classificationOf,
+  CLASSIFICATION_ORDER,
+} from '../document-labels';
 
 // ----------------------------------------------------------------------
 
@@ -66,6 +73,9 @@ const STATUS_ACTION = {
 };
 
 function auditText(entry) {
+  if (entry.action.startsWith('classified_')) {
+    return `Classified ${classificationOf(entry.action.slice(11)).label.toLowerCase()}`;
+  }
   if (entry.action === 'id_issued') return 'Document ID issued';
   if (entry.action === 'version_sent') return `Version ${entry.version} sent`;
   if (entry.action === 'revision_uploaded' || entry.action === 'version_uploaded') {
@@ -239,6 +249,7 @@ export function DocumentDetailsView({ documentId }) {
   const [fresh, setFresh] = useState(null);
   const [preview, setPreview] = useState({ version: null, url: '', error: '' });
   const [statusMenu, setStatusMenu] = useState(null);
+  const [classMenu, setClassMenu] = useState(null);
   const [savingStatus, setSavingStatus] = useState(false);
   const [revisionOpen, setRevisionOpen] = useState(false);
   const [notes, setNotes] = useState('');
@@ -348,6 +359,21 @@ export function DocumentDetailsView({ documentId }) {
   const selectedVersion = versions.find((v) => v.version === selected) ?? null;
   const notesDirty = (notes ?? '') !== (doc.notes ?? '');
 
+  const handleClassification = async (classification) => {
+    setClassMenu(null);
+    setSavingStatus(true);
+    try {
+      await updateManagedDocument(doc.documentId, { classification });
+      toast.success(`${doc.display}: ${classificationOf(classification).label.toLowerCase()}`);
+    } catch (err) {
+      toast.error(
+        err.response?.data?.message || err.message || 'Could not change the classification.'
+      );
+    } finally {
+      setSavingStatus(false);
+    }
+  };
+
   const handleStatus = async (status) => {
     setStatusMenu(null);
     setSavingStatus(true);
@@ -417,6 +443,7 @@ export function DocumentDetailsView({ documentId }) {
       >
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="overline" color="text.secondary">
+            {doc.practiceName ? `${doc.practiceName} · ` : ''}
             {doc.docTypeName}
           </Typography>
           <Typography variant="h4" sx={{ mb: 1.5, wordBreak: 'break-word' }}>
@@ -442,7 +469,46 @@ export function DocumentDetailsView({ documentId }) {
                 v{doc.currentVersion}
               </Label>
             )}
+            <Tooltip title={`${classificationOf(doc.classification).help} Click to change.`}>
+              <Box
+                component={m.span}
+                key={doc.classification}
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                onClick={(e) => setClassMenu(e.currentTarget)}
+                sx={{ cursor: 'pointer', display: 'inline-flex' }}
+              >
+                <Label
+                  variant="filled"
+                  color={classificationOf(doc.classification).color}
+                  startIcon={<Iconify icon={classificationOf(doc.classification).icon} />}
+                >
+                  {classificationOf(doc.classification).label}
+                </Label>
+              </Box>
+            </Tooltip>
           </Stack>
+          {doc.internalNumber && (
+            <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 1.25 }}>
+              <Typography variant="caption" color="text.secondary">
+                Internal number
+              </Typography>
+              <Typography variant="body2" sx={{ fontFamily: 'monospace', letterSpacing: 0.5 }}>
+                {doc.internalNumber}
+              </Typography>
+              <Tooltip title="Copy internal number">
+                <IconButton
+                  size="small"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(doc.internalNumber);
+                    toast.success(`Copied ${doc.internalNumber}`);
+                  }}
+                >
+                  <Iconify icon="solar:copy-bold" width={14} />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+          )}
         </Box>
 
         <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ flexShrink: 0 }}>
@@ -488,7 +554,7 @@ export function DocumentDetailsView({ documentId }) {
         }}
       >
         <MetaItem icon="solar:users-group-rounded-bold" label="Client" value={doc.clientName} />
-        <MetaItem icon="solar:user-rounded-bold" label="Resource" value={doc.subjectName} />
+        <MetaItem icon="solar:user-rounded-bold" label="Person" value={doc.subjectName} />
         <MetaItem icon="solar:case-minimalistic-bold" label="IOTA office" value={doc.iotaOffice} />
         <MetaItem icon="solar:calendar-date-bold" label="ID issued" value={fDate(doc.issuedAt)} />
         <MetaItem
@@ -806,6 +872,35 @@ export function DocumentDetailsView({ documentId }) {
               {STATUS_ACTION[s]}
             </MenuItem>
           ))}
+      </Menu>
+
+      <Menu
+        anchorEl={classMenu}
+        open={Boolean(classMenu)}
+        onClose={() => setClassMenu(null)}
+        transformOrigin={{ horizontal: 'left', vertical: 'top' }}
+        anchorOrigin={{ horizontal: 'left', vertical: 'bottom' }}
+      >
+        {CLASSIFICATION_ORDER.map((value) => (
+          <MenuItem
+            key={value}
+            selected={value === doc.classification}
+            onClick={() => handleClassification(value)}
+          >
+            <ListItemIcon>
+              <Iconify
+                icon={CLASSIFICATION[value].icon}
+                sx={{ color: `${CLASSIFICATION[value].color}.main` }}
+              />
+            </ListItemIcon>
+            <Stack>
+              <Typography variant="body2">{CLASSIFICATION[value].label}</Typography>
+              <Typography variant="caption" color="text.secondary">
+                {CLASSIFICATION[value].help}
+              </Typography>
+            </Stack>
+          </MenuItem>
+        ))}
       </Menu>
 
       <DocumentRevisionDialog

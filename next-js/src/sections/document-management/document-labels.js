@@ -33,3 +33,35 @@ export const statusOf = (status) => DOCUMENT_STATUS[status] ?? DOCUMENT_STATUS.i
 export const SOURCE_LABEL = {
   resource_calculation: 'Proposal',
 };
+
+/** Information classification. Every document is confidential unless chosen otherwise. */
+export const CLASSIFICATION = {
+  public: {
+    label: 'Public',
+    color: 'success',
+    icon: 'eva:eye-fill',
+    help: 'May be shared with anyone.',
+  },
+  internal: {
+    label: 'Internal',
+    color: 'info',
+    icon: 'solar:users-group-rounded-bold',
+    help: 'IOTA staff only.',
+  },
+  confidential: {
+    label: 'Confidential',
+    color: 'warning',
+    icon: 'solar:shield-check-bold',
+    help: 'IOTA and the named client only.',
+  },
+  restricted: {
+    label: 'Restricted',
+    color: 'error',
+    icon: 'solar:forbidden-circle-bold',
+    help: 'Named people only; handle with care.',
+  },
+};
+
+export const CLASSIFICATION_ORDER = ['public', 'internal', 'confidential', 'restricted'];
+
+export const classificationOf = (value) => CLASSIFICATION[value] ?? CLASSIFICATION.confidential;

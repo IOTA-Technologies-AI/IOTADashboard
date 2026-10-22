@@ -26,12 +26,16 @@ import { listCustomers } from 'src/actions/documents';
 import {
   isAcceptedFile,
   DOCUMENT_ACCEPT,
-  useDocumentTypes,
+  useDocumentCatalog,
   createManagedDocument,
 } from 'src/actions/document-management';
 
+import { Label } from 'src/components/label';
 import { Upload } from 'src/components/upload';
 import { toast } from 'src/components/snackbar';
+import { Iconify } from 'src/components/iconify';
+
+import { CLASSIFICATION, CLASSIFICATION_ORDER } from './document-labels';
 
 // ----------------------------------------------------------------------
 
@@ -50,7 +54,7 @@ const titleFromFileName = (name) =>
  */
 export function DocumentNewDialog({ open, onClose }) {
   const router = useRouter();
-  const types = useDocumentTypes(open);
+  const { practices } = useDocumentCatalog(open);
   const { data: customers = [] } = useSWR(
     open ? 'document-management/customers' : null,
     listCustomers,
@@ -61,7 +65,9 @@ export function DocumentNewDialog({ open, onClose }) {
 
   const [file, setFile] = useState(null);
   const [title, setTitle] = useState('');
+  const [practice, setPractice] = useState(5);
   const [docType, setDocType] = useState('GEN');
+  const [classification, setClassification] = useState('confidential');
   const [client, setClient] = useState(INTERNAL);
   const [subjectName, setSubjectName] = useState('');
   const [office, setOffice] = useState('KSA');
@@ -72,7 +78,9 @@ export function DocumentNewDialog({ open, onClose }) {
   const reset = () => {
     setFile(null);
     setTitle('');
+    setPractice(5);
     setDocType('GEN');
+    setClassification('confidential');
     setClient(INTERNAL);
     setSubjectName('');
     setOffice('KSA');
@@ -85,6 +93,8 @@ export function DocumentNewDialog({ open, onClose }) {
     reset();
     onClose();
   };
+
+  const types = practices.find((p) => p.id === practice)?.types ?? [];
 
   const handleDrop = (accepted) => {
     const picked = accepted[0];
@@ -106,7 +116,9 @@ export function DocumentNewDialog({ open, onClose }) {
       const document = await createManagedDocument(
         {
           title: title.trim(),
+          practice,
           docType,
+          classification,
           customerId: client?.id ?? null,
           subjectName: subjectName.trim() || undefined,
           iotaOffice: office,
@@ -166,6 +178,27 @@ export function DocumentNewDialog({ open, onClose }) {
                     <TextField
                       select
                       fullWidth
+                      label="Practice"
+                      value={practices.length ? practice : ''}
+                      onChange={(e) => {
+                        const next = Number(e.target.value);
+                        setPractice(next);
+                        // Types belong to a practice: keep the choice only if the new one has it.
+                        const nextTypes = practices.find((p) => p.id === next)?.types ?? [];
+                        if (!nextTypes.some((t) => t.code === docType)) setDocType('GEN');
+                      }}
+                      disabled={busy}
+                    >
+                      {practices.map((p) => (
+                        <MenuItem key={p.id} value={p.id}>
+                          {p.id}. {p.name}
+                        </MenuItem>
+                      ))}
+                    </TextField>
+
+                    <TextField
+                      select
+                      fullWidth
                       label="Document type"
                       value={types.some((t) => t.code === docType) ? docType : ''}
                       onChange={(e) => setDocType(e.target.value)}
@@ -177,7 +210,9 @@ export function DocumentNewDialog({ open, onClose }) {
                         </MenuItem>
                       ))}
                     </TextField>
+                  </Stack>
 
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                     <Autocomplete
                       fullWidth
                       value={client}
@@ -188,6 +223,39 @@ export function DocumentNewDialog({ open, onClose }) {
                       disabled={busy}
                       renderInput={(params) => <TextField {...params} label="Client" />}
                     />
+
+                    <TextField
+                      select
+                      fullWidth
+                      label="Classification"
+                      value={classification}
+                      onChange={(e) => setClassification(e.target.value)}
+                      disabled={busy}
+                      SelectProps={{
+                        renderValue: (value) => (
+                          <Label
+                            variant="soft"
+                            color={CLASSIFICATION[value].color}
+                            startIcon={<Iconify icon={CLASSIFICATION[value].icon} />}
+                          >
+                            {CLASSIFICATION[value].label}
+                          </Label>
+                        ),
+                      }}
+                    >
+                      {CLASSIFICATION_ORDER.map((value) => (
+                        <MenuItem key={value} value={value}>
+                          <Stack>
+                            <Typography variant="subtitle2">
+                              {CLASSIFICATION[value].label}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              {CLASSIFICATION[value].help}
+                            </Typography>
+                          </Stack>
+                        </MenuItem>
+                      ))}
+                    </TextField>
                   </Stack>
 
                   <Stack

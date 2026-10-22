@@ -44,8 +44,24 @@ is running.
   person and office; it is given a document ID and kept in OneDrive as v1,
   and each later revision is uploaded as the next version. An uploaded file is
   filed, not marked sent — mark it sent when it goes out. Office files open in
-  OneDrive or download; PDFs and images preview on the page. Needs
-  `sql/20261022_document_management.sql` in the API repo, and the API
+  OneDrive or download; PDFs and images preview on the page.
+  **Document IDs record the practice.** Each document belongs to one of IOTA's
+  five practices (Data & AI, Cybersecurity, Digital Engineering, Cloud, Infra
+  & DevOps, Talent & Managed Services), and its type is chosen from that
+  practice's own list. A document has two forms of its ID: a 12-character
+  short code shared externally (e.g. `IOVQ-TIYT-QLIY`, with check characters
+  that catch a mistyped code) and a 24-digit internal number,
+  `4682-572-052747-1-1792665000` — IOTA, office, the client's keypad digits
+  (JARIR → 052747; a clash bumps the last digit), practice, and UTC epoch.
+  Either one can be searched, or looked up in the ID decoder; offer-letter IDs
+  are unchanged. Proposals get a Practice field (default Talent & Managed
+  Services), fixed once the ID is issued on save.
+  **Classification.** Every document is Public, Internal, Confidential
+  (default) or Restricted, chosen on upload and changeable on its page.
+  **Proposal stamp.** The bottom-right of the proposal PDF's first page carries
+  the classification, the document ID and version, and "Captured in IOTA
+  Document Management System".
+  Needs `sql/20261022_document_management.sql` in the API repo, and the API
   deployed.
 - **NDAs: take a partner's revised document against the one IOTA reviewed.**
   When a partner answers IOTA's review with a new document, choose "Partner

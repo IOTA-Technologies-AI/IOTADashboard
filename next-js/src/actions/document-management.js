@@ -47,14 +47,17 @@ export function useManagedDocument(documentId) {
   };
 }
 
-/** The document types an ID can carry: [{ code, name }]. */
-export function useDocumentTypes(enabled = true) {
+/**
+ * IOTA's practices, each with its document types, and the classifications:
+ * { practices: [{ id, code, name, types: [{ code, name }] }], classifications }.
+ */
+export function useDocumentCatalog(enabled = true) {
   const { data } = useSWR(
     enabled ? ['/document-management/doc-types', {}] : null,
     fetcher,
     options
   );
-  return data?.types ?? [];
+  return { practices: data?.practices ?? [], classifications: data?.classifications ?? [] };
 }
 
 /**
@@ -74,9 +77,15 @@ export async function createManagedDocument(payload, file, note) {
   return document;
 }
 
-/** The proposal's document, issuing its ID the first time. Idempotent. */
-export async function ensureProposalDocument(proposalId) {
-  const res = await iotaApi.post(`/document-management/proposals/${proposalId}/ensure`, {});
+/**
+ * The proposal's document, or null when it has none. With `issue`, its ID is
+ * issued the first time, under `practice`. Idempotent.
+ */
+export async function ensureProposalDocument(proposalId, { issue = false, practice } = {}) {
+  const res = await iotaApi.post(`/document-management/proposals/${proposalId}/ensure`, {
+    issue,
+    practice,
+  });
   if (res.data?.issued) refreshAll();
   return res.data.document;
 }

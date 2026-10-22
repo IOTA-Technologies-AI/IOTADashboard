@@ -80,7 +80,7 @@ export function DocumentIdLookup({ open, onClose, initialId = '' }) {
             autoFocus
             fullWidth
             size="small"
-            label="Document ID"
+            label="Document ID or internal number"
             placeholder="9XDE-9BFB-3K7L"
             value={id}
             onChange={(e) => setId(e.target.value)}
@@ -101,7 +101,24 @@ export function DocumentIdLookup({ open, onClose, initialId = '' }) {
             <Row label="Document" value={`${result.docType.name} (${result.docType.code})`} />
             <Row label="Issued by" value={`${result.company.name} (${result.company.code})`} />
             <Row label="Country" value={`${result.country.name} (${result.country.code})`} />
-            <Row label="Client" value={`${result.client.name} (${result.client.code})`} />
+            {result.practice && (
+              <Row label="Practice" value={`${result.practice.id}. ${result.practice.name}`} />
+            )}
+            <Row
+              label="Client"
+              value={`${result.client.name} (${result.client.code})`}
+              hint={result.client.keypad ? `Keypad ${result.client.keypad}` : undefined}
+            />
+            {result.internalNumber && (
+              <Row
+                label="Internal number"
+                value={
+                  <Typography component="span" variant="body2" sx={{ fontFamily: 'monospace' }}>
+                    {result.internalNumber}
+                  </Typography>
+                }
+              />
+            )}
             {result.candidate && (
               <Row
                 label="Candidate"
