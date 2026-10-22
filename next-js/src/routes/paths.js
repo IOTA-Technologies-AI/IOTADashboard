@@ -137,6 +137,10 @@ export const paths = {
       company: `${ROOTS.DASHBOARD}/company`,
       account: `${ROOTS.DASHBOARD}/accounts`,
       file: `${ROOTS.DASHBOARD}/file`,
+      documentManagement: {
+        root: `${ROOTS.DASHBOARD}/file/document-management`,
+        details: (documentId) => `${ROOTS.DASHBOARD}/file/document-management/${documentId}`,
+      },
       course: `${ROOTS.DASHBOARD}/course`,
       reports: {
         root: `${ROOTS.DASHBOARD}/reports`,

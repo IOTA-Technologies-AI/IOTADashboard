@@ -102,12 +102,37 @@ export function DocumentIdLookup({ open, onClose, initialId = '' }) {
             <Row label="Issued by" value={`${result.company.name} (${result.company.code})`} />
             <Row label="Country" value={`${result.country.name} (${result.country.code})`} />
             <Row label="Client" value={`${result.client.name} (${result.client.code})`} />
-            <Row
-              label="Candidate"
-              value={result.candidate.name}
-              hint={`Candidate number ${result.candidate.id}`}
-            />
+            {result.candidate && (
+              <Row
+                label="Candidate"
+                value={result.candidate.name}
+                hint={`Candidate number ${result.candidate.id}`}
+              />
+            )}
             <Row label="Issued" value={result.issuedAtKsa} hint={result.issuedAt} />
+            {result.managedDocument && (
+              <Row
+                label="Document Management"
+                value={
+                  <Stack direction="row" spacing={1} alignItems="center" component="span">
+                    <Button
+                      size="small"
+                      component={RouterLink}
+                      href={paths.dashboard.general.documentManagement.details(
+                        result.managedDocument.documentId
+                      )}
+                      onClick={close}
+                      sx={{ px: 0, minWidth: 0 }}
+                    >
+                      Open the document
+                    </Button>
+                    {result.managedDocument.currentVersion > 0 && (
+                      <Label>v{result.managedDocument.currentVersion}</Label>
+                    )}
+                  </Stack>
+                }
+              />
+            )}
             {result.offer ? (
               <Row
                 label="Offer"
@@ -126,7 +151,7 @@ export function DocumentIdLookup({ open, onClose, initialId = '' }) {
                   </Stack>
                 }
               />
-            ) : (
+            ) : result.managedDocument ? null : (
               <Row label="Offer" value="No offer in the ERP carries this ID." />
             )}
           </Box>

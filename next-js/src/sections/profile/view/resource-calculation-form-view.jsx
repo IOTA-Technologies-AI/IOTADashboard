@@ -67,7 +67,14 @@ import {
 } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
+import {
+  saveBlob,
+  fingerprintOf,
+  sendDocumentVersion,
+  ensureProposalDocument,
+} from 'src/actions/document-management';
 
+import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 
 import { normalizeResource } from '../resource-calculation-payload';
@@ -518,6 +525,28 @@ export function ResourceCalculationFormView({ id }) {
   // ── PDF / Share state ─────────────────────────────────────────────────────
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const [shareAnchor, setShareAnchor] = useState(null);
+
+  // ── Document ID (Files → Document Management) ─────────────────────────────
+  // A saved proposal carries an IOTA document ID: the PDF prints it and is
+  // named after it. It is issued the first time the proposal is opened, so
+  // proposals older than Document Management get one too, and re-checked after
+  // every save so the library follows the proposal's title.
+  const [managedDoc, setManagedDoc] = useState(null);
+  const [managedDocError, setManagedDocError] = useState('');
+  const refreshManagedDoc = useCallback(async () => {
+    if (!id) return;
+    try {
+      setManagedDoc(await ensureProposalDocument(id));
+      setManagedDocError('');
+    } catch (err) {
+      setManagedDocError(
+        err.response?.data?.message || err.message || 'The document ID could not be issued.'
+      );
+    }
+  }, [id]);
+  useEffect(() => {
+    if (isEdit && rcData?.data) refreshManagedDoc();
+  }, [isEdit, rcData, refreshManagedDoc]);
 
   // ── Refs so callbacks always see the latest baseSalary / dependentsCount ─
   const baseSalaryRef = useRef(baseSalary);
@@ -1168,9 +1197,10 @@ export function ResourceCalculationFormView({ id }) {
 
     return {
       documentTitle: title.trim() || 'Resource Quotation',
-      // A record only has an id once it has been saved; say so rather than
-      // printing a blank reference a recipient might quote back at us.
-      reference: id ? `RQ-${id}` : 'Draft — not yet saved',
+      // The IOTA document ID. A record only has one once it has been saved;
+      // say so rather than printing a blank reference a recipient might quote
+      // back at us.
+      reference: managedDoc?.display || (id ? 'Document ID pending' : 'Draft — not yet saved'),
       customerName,
       jdTitle,
       resourceName: fullName.trim() || candidateObj?.name || '',
@@ -1230,21 +1260,34 @@ export function ResourceCalculationFormView({ id }) {
     return { name: String(resource?.fullName || '').trim(), role, jdTitle: jd };
   };
 
-  /** The download/share filename — identifiable without opening the file. */
-  const buildPDFFileName = (meta) =>
-    [
+  /**
+   * The download/share filename: the document ID and version (`label`, e.g.
+   * v2), exactly as the file is kept in OneDrive. Before an ID exists, a
+   * descriptive name that is identifiable without opening the file.
+   */
+  const buildPDFFileName = (meta, label) =>
+    managedDoc
+      ? `${managedDoc.display}_${label}.pdf`
+      : [
       'IOTA-Resource-Quotation',
       slugify(meta.documentTitle),
       slugify(meta.customerName),
       id ? String(id) : new Date().toISOString().slice(0, 10),
     ]
-      .filter(Boolean)
-      .join('-') + '.pdf';
+          .filter(Boolean)
+          .join('-') + '.pdf';
 
   const buildPDFDoc = (countryMeta, subtotal, vatAmount, grandTotal, options = {}) => {
-    const { includeBreakdown = false } = options;
+    const { includeBreakdown = false, version } = options;
     const meta = buildQuotationMeta(countryMeta);
     const TAX_LABEL = meta.taxLabel;
+    // Only a copy that was sent carries a version number; anything else says
+    // what it is, so it cannot be mistaken for one the customer holds.
+    const versionText = version
+      ? `v${version}`
+      : includeBreakdown
+        ? 'Internal — not for the customer'
+        : 'Preview — not sent';
 
     // Rendered as a grid so the quotation carries the same context the page
     // does — who it is for, which entity issues it, and how long it stands.
@@ -1254,6 +1297,7 @@ export function ResourceCalculationFormView({ id }) {
     // printed against each resource instead, where they are actually true.
     const metaFields = [
       ['Quotation Ref', meta.reference],
+      ['Version', versionText],
       ['Date of Issue', fPdfDate(meta.issuedOn)],
       ['Valid Until', fPdfDate(meta.validUntil)],
       ['Prepared For', meta.customerName || '—'],
@@ -1276,7 +1320,7 @@ export function ResourceCalculationFormView({ id }) {
 
     return (
       <Document
-        title={`${meta.documentTitle} — Resource Quotation (${meta.reference})`}
+        title={`${meta.documentTitle} — Resource Quotation (${meta.reference} ${versionText})`}
         author="IOTA Technologies"
         subject={
           meta.customerName
@@ -1322,7 +1366,7 @@ export function ResourceCalculationFormView({ id }) {
             {/* Reference — right */}
             <View style={pdfStyles.headerLeft}>
               <Text style={pdfStyles.headerTitle}>Quotation Summary</Text>
-              <Text style={pdfStyles.headerSub}>{meta.reference}</Text>
+              <Text style={pdfStyles.headerSub}>{`${meta.reference} · ${versionText}`}</Text>
             </View>
           </View>
 
@@ -1565,20 +1609,90 @@ export function ResourceCalculationFormView({ id }) {
     );
   };
 
+  /** What the customer copy prints, so downloading it unchanged is the same version. */
+  const quotationFingerprint = (countryMeta, subtotal, vatAmount, grandTotal) => {
+    const meta = buildQuotationMeta(countryMeta);
+    return fingerprintOf({
+      meta: { ...meta, issuedOn: fPdfDate(meta.issuedOn), validUntil: fPdfDate(meta.validUntil) },
+      resources: proposalResources,
+      notes: notes.trim(),
+      currency,
+      nationality,
+      insurancePremiumFactor,
+      totals: [subtotal, vatAmount, grandTotal, totalMonthly, totalAnnual],
+    });
+  };
+
+  /** A customer copy can only go out under a document ID. */
+  const requireManagedDoc = () => {
+    if (managedDoc) return true;
+    setError(
+      id
+        ? managedDocError || 'The document ID is still being issued. Try again in a moment.'
+        : 'Save the proposal first. Saving issues its document ID, which the PDF prints.'
+    );
+    return false;
+  };
+
+  /**
+   * Send the customer copy. A download is what goes to the customer, so it is
+   * kept in OneDrive: as the next version when anything printed has changed
+   * since the last one sent, or as that same version when nothing has.
+   */
+  const sendQuotation = async (countryMeta, subtotal, vatAmount, grandTotal) => {
+    const sent = await sendDocumentVersion(managedDoc.documentId, {
+      fingerprint: await quotationFingerprint(countryMeta, subtotal, vatAmount, grandTotal),
+      render: (version) =>
+        pdf(buildPDFDoc(countryMeta, subtotal, vatAmount, grandTotal, { version })).toBlob(),
+    });
+    setManagedDoc((prev) =>
+      prev
+        ? {
+            ...prev,
+            currentVersion: Math.max(prev.currentVersion, sent.version),
+            status: sent.reused ? prev.status : 'sent',
+          }
+        : prev
+    );
+    if (sent.reused) {
+      toast.info(`Unchanged since version ${sent.version}, so it was downloaded as ${sent.fileName}.`);
+    } else {
+      toast.success(`Version ${sent.version} saved to OneDrive as ${sent.fileName}.`);
+    }
+    return sent;
+  };
+
   const handleDownloadPDF = async (countryMeta, subtotal, vatAmount, grandTotal, options = {}) => {
+    // The internal copy (with the cost breakdown) is never sent, so it is not a version.
+    if (options.includeBreakdown) {
+      setPdfGenerating(true);
+      try {
+        const doc = buildPDFDoc(countryMeta, subtotal, vatAmount, grandTotal, options);
+        saveBlob(
+          await pdf(doc).toBlob(),
+          buildPDFFileName(buildQuotationMeta(countryMeta), 'INTERNAL')
+        );
+      } catch (err) {
+        console.error('PDF generation failed:', err);
+        setError('Could not generate the quotation PDF. Please try again.');
+      } finally {
+        setPdfGenerating(false);
+      }
+      return;
+    }
+
+    if (!requireManagedDoc()) return;
     setPdfGenerating(true);
     try {
-      const doc = buildPDFDoc(countryMeta, subtotal, vatAmount, grandTotal, options);
-      const blob = await pdf(doc).toBlob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = buildPDFFileName(buildQuotationMeta(countryMeta));
-      a.click();
-      URL.revokeObjectURL(url);
+      const sent = await sendQuotation(countryMeta, subtotal, vatAmount, grandTotal);
+      saveBlob(sent.blob, sent.fileName);
     } catch (err) {
-      console.error('PDF generation failed:', err);
-      setError('Could not generate the quotation PDF. Please try again.');
+      console.error('PDF send failed:', err);
+      setError(
+        err.response?.data?.message ||
+          err.message ||
+          'Could not generate the quotation PDF. Please try again.'
+      );
     } finally {
       setPdfGenerating(false);
     }
@@ -1629,30 +1743,33 @@ export function ResourceCalculationFormView({ id }) {
 
   const handleShareWhatsApp = async (countryMeta, subtotal, vatAmount, grandTotal) => {
     const meta = buildQuotationMeta(countryMeta);
-    const fileName = buildPDFFileName(meta);
 
     // ── Mobile: share the actual PDF file via Web Share API ──────────────
-    if (typeof navigator !== 'undefined' && navigator.canShare) {
+    // Sharing the file sends it, so it goes out as a version like a download.
+    const canShareFiles =
+      typeof navigator !== 'undefined' &&
+      navigator.canShare &&
+      navigator.canShare({ files: [new File([''], 'probe.pdf', { type: 'application/pdf' })] });
+    if (canShareFiles) {
+      if (!requireManagedDoc()) return;
       setPdfGenerating(true);
       try {
-        const doc = buildPDFDoc(countryMeta, subtotal, vatAmount, grandTotal);
-        const blob = await pdf(doc).toBlob();
-        const file = new File([blob], fileName, { type: 'application/pdf' });
-        if (navigator.canShare({ files: [file] })) {
-          await navigator.share({
-            title: `Resource Quotation — ${meta.documentTitle}`,
-            text: `${meta.documentTitle} (${meta.reference}) — resource quotation from IOTA Technologies.`,
-            files: [file],
-          });
-          return;
-        }
+        const sent = await sendQuotation(countryMeta, subtotal, vatAmount, grandTotal);
+        await navigator.share({
+          title: `Resource Quotation — ${meta.documentTitle}`,
+          text: `${meta.documentTitle} (${meta.reference} v${sent.version}) — resource quotation from IOTA Technologies.`,
+          files: [new File([sent.blob], sent.fileName, { type: 'application/pdf' })],
+        });
       } catch (err) {
         // AbortError = user dismissed the share sheet — not an error
-        if (err?.name !== 'AbortError') console.error('WhatsApp share failed:', err);
-        return;
+        if (err?.name !== 'AbortError') {
+          console.error('WhatsApp share failed:', err);
+          setError(err.response?.data?.message || err.message || 'Could not share the PDF.');
+        }
       } finally {
         setPdfGenerating(false);
       }
+      return;
     }
 
     // ── Desktop fallback: open WhatsApp with text summary ─────────────────
@@ -2409,7 +2526,39 @@ export function ResourceCalculationFormView({ id }) {
 
               {/* Share / Export buttons */}
               <Stack direction="row" spacing={0.5} alignItems="center">
-                <Tooltip title="Download PDF">
+                {managedDoc && (
+                  <Tooltip title="Every version sent, in Document Management">
+                    <Chip
+                      size="small"
+                      clickable
+                      onClick={() =>
+                        router.push(
+                          paths.dashboard.general.documentManagement.details(managedDoc.documentId)
+                        )
+                      }
+                      icon={<Iconify icon="solar:notes-bold-duotone" width={16} />}
+                      label={
+                        managedDoc.currentVersion
+                          ? `v${managedDoc.currentVersion} sent`
+                          : 'Not sent yet'
+                      }
+                      sx={{
+                        mr: 0.5,
+                        color: 'white',
+                        bgcolor: 'rgba(255,255,255,0.16)',
+                        '& .MuiChip-icon': { color: 'inherit' },
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.28)' },
+                      }}
+                    />
+                  </Tooltip>
+                )}
+                <Tooltip
+                  title={
+                    managedDoc
+                      ? 'Download the customer copy — kept in OneDrive as the next version if it changed'
+                      : 'Download PDF'
+                  }
+                >
                   <IconButton
                     size="small"
                     sx={{ color: 'white' }}
@@ -2490,6 +2639,12 @@ export function ResourceCalculationFormView({ id }) {
                 </Menu>
               </Stack>
             </Box>
+
+            {isEdit && managedDocError && (
+              <Alert severity="info" sx={{ borderRadius: 0 }}>
+                {managedDocError}
+              </Alert>
+            )}
 
             {/* Quotation details — the same grid the PDF prints, so reviewing the
                 page is equivalent to reviewing the downloaded document. */}

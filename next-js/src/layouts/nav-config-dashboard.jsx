@@ -100,7 +100,18 @@ export const navData = [
         ],
       },
       { title: 'Accounts', path: paths.dashboard.general.account, icon: ICONS.dashboard },
-      { title: 'File', path: paths.dashboard.general.file, icon: ICONS.file },
+      {
+        title: 'File',
+        path: paths.dashboard.general.file,
+        icon: ICONS.file,
+        children: [
+          { title: 'Business Files', path: paths.dashboard.general.file },
+          {
+            title: 'Document Management',
+            path: paths.dashboard.general.documentManagement.root,
+          },
+        ],
+      },
       {
         title: 'Sales',
         path: paths.dashboard.sales.root,

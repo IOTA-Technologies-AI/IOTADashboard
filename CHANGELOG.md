@@ -25,6 +25,21 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Files → Document Management: proposal document IDs and versions.** The
+  File menu now has two pages, Business Files (the existing OneDrive browser)
+  and Document Management. Every proposal is given a 12-character IOTA
+  document ID (e.g. `9XDE-9BFB-3K7L`) when it is first opened after saving;
+  the quotation PDF prints the ID and its version, and the file is named after
+  them (`9XDE-9BFB-3K7L_v2.pdf`). Downloading the customer copy (or sharing
+  the PDF file) sends it: if anything printed has changed since the last
+  version, it is saved to OneDrive as the next version; if not, it is that
+  same version again. The internal cost-breakdown copy is never stored.
+  Document Management lists every document with search by ID, title, client
+  or resource, and status filters; a document's page previews any version,
+  downloads it, opens it in OneDrive, takes an uploaded revision as the next
+  version, and records status (sent, accepted, rejected, archived), notes and
+  activity. Needs `sql/20261022_document_management.sql` in the API repo, and
+  the API deployed.
 - **NDAs: take a partner's revised document against the one IOTA reviewed.**
   When a partner answers IOTA's review with a new document, choose "Partner
   sent a revised version" on the NDA, instead of creating a new NDA. The
