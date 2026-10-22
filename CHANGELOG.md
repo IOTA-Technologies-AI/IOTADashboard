@@ -839,6 +839,16 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Files no longer asks to "Connect to OneDrive" (ISS-0013).** The page used
+  a Microsoft token held in the browser: the sign-in token never carried a
+  OneDrive permission, Supabase does not refresh Microsoft tokens, and each
+  reload put the stale sign-in token back — so the page showed "OneDrive
+  session expired. Please reconnect your account.", and "Sign in with
+  Microsoft" failed with a 401 because that request went out without the IOTA
+  session. The API now opens the signed-in user's own OneDrive with the app's
+  credentials (`/onedrive/me/*`), as NDA, offer and expense uploads already
+  do: no Microsoft sign-in, nothing to expire. Uploads go straight to OneDrive
+  with no size limit. If loading fails, the page says why, with Retry.
 - **NDAs: uploading the ink-signed copy no longer fails with "length limit
   exceeded".** "Mark Fully Executed & Upload" sent the whole signed document
   inside one API request, and larger scans went over the API's size limit.

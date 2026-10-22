@@ -1,6 +1,5 @@
 'use client';
 
-import { useSearchParams } from 'next/navigation';
 import { useBoolean } from 'minimal-shared/hooks';
 import { useState, useEffect, useCallback } from 'react';
 
@@ -9,26 +8,14 @@ import Tab from '@mui/material/Tab';
 import Tabs from '@mui/material/Tabs';
 import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
+import Alert from '@mui/material/Alert';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import CircularProgress from '@mui/material/CircularProgress';
 
-import { paths } from 'src/routes/paths';
-
-import {
-  getOneDriveToken,
-  setOneDriveToken,
-  listOneDriveFiles,
-  listSharedWithMe,
-  clearOneDriveToken,
-  getMicrosoftAuthUrl,
-  exchangeCodeForToken,
-  seedOneDriveToken,
-  uploadOneDriveFiles,
-} from 'src/utils/onedrive-helper';
-
 import { CONFIG } from 'src/global-config';
 import { DashboardContent } from 'src/layouts/dashboard';
+import { uploadToMyDrive, listMyDriveFiles, listMySharedItems } from 'src/actions/my-drive';
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
@@ -41,7 +28,6 @@ import { FileStorageOverview } from 'src/sections/file-manager/file-storage-over
 import { FileManagerFolderItem } from 'src/sections/file-manager/file-manager-folder-item';
 import { FileManagerCreateFolderDialog } from 'src/sections/file-manager/file-manager-create-folder-dialog';
 
-import { useAuthContext } from 'src/auth/hooks';
 
 // ----------------------------------------------------------------------
 
@@ -58,12 +44,8 @@ const FILE_TYPE_OPTIONS = [
 ];
 
 export default function FilePage() {
-  const searchParams = useSearchParams();
-  const { user } = useAuthContext();
-
   const [loading, setLoading] = useState(false);
-  const [authenticated, setAuthenticated] = useState(false);
-  const [allItems, setAllItems] = useState([]);
+  const [loadError, setLoadError] = useState('');
   const [folders, setFolders] = useState([]);
   const [allFiles, setAllFiles] = useState([]);
   const [sharedFolders, setSharedFolders] = useState([]);
@@ -80,87 +62,16 @@ export default function FilePage() {
   const newFilesDialog = useBoolean();
   const newFolderDialog = useBoolean();
 
-  // Check if already authenticated (reuse provider token first if available)
+  // The API opens the signed-in user's own OneDrive with the app's
+  // credentials, so there is no Microsoft sign-in or token to keep alive here.
   useEffect(() => {
-    const stored = getOneDriveToken();
-    const providerToken = user?.provider_token || user?.providerToken;
-    const providerRefresh = user?.provider_refresh_token || user?.providerRefreshToken;
+    loadFiles(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    // 1) Stored token wins
-    if (stored.accessToken) {
-      setAuthenticated(true);
-      loadFiles(null, { accessToken: stored.accessToken, refreshToken: stored.refreshToken });
-      return;
-    }
-
-    // 2) Seed from the existing login token so we avoid re-prompting OneDrive sign-in
-    if (providerToken) {
-      seedOneDriveToken(providerToken, providerRefresh);
-      setAuthenticated(true);
-      loadFiles(null, { accessToken: providerToken, refreshToken: providerRefresh });
-      return;
-    }
-  }, [user]);
-
-  // Handle OAuth callback
-  useEffect(() => {
-    const code = searchParams.get('code');
-    const error = searchParams.get('error');
-
-    if (error) {
-      toast.error(`Authentication error: ${error}`);
-      return;
-    }
-
-    if (code && !authenticated) {
-      handleTokenExchange(code);
-    }
-  }, [searchParams, authenticated]);
-
-  // Get the OneDrive redirect URI based on current origin
-  const getOneDriveRedirectUri = () => {
-    if (typeof window === 'undefined') return '';
-    return `${window.location.origin}/dashboard/file`;
-  };
-
-  const handleTokenExchange = async (code) => {
+  const loadSharedFiles = async () => {
     try {
-      setLoading(true);
-      const redirectUri = getOneDriveRedirectUri();
-      const tokenData = await exchangeCodeForToken(code, redirectUri);
-      setOneDriveToken(tokenData.access_token, tokenData.refresh_token);
-      // Store the redirect URI for later refresh calls
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('onedrive_redirect_uri', redirectUri);
-      }
-      setAuthenticated(true);
-      toast.success('Successfully connected to OneDrive!');
-      await loadFiles(null);
-      window.history.replaceState({}, '', '/dashboard/file');
-    } catch (error) {
-      console.error('Token exchange error:', error);
-      toast.error('Failed to authenticate with OneDrive');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSignIn = async () => {
-    try {
-      const redirectUri = getOneDriveRedirectUri();
-      const authUrl = await getMicrosoftAuthUrl(redirectUri);
-      window.location.href = authUrl;
-    } catch (error) {
-      console.error('Sign in error:', error);
-      toast.error('Failed to initiate sign in');
-    }
-  };
-
-  // Note: We intentionally keep users signed in with their login token; no explicit sign-out control here.
-
-  const loadSharedFiles = async (tokenHints = {}) => {
-    try {
-      const sharedItems = await listSharedWithMe(tokenHints);
+      const sharedItems = await listMySharedItems();
 
       // For shared items, use remoteItem if available (contains actual item details)
       const sharedFolderItems = sharedItems
@@ -216,10 +127,11 @@ export default function FilePage() {
     }
   };
 
-  const loadFiles = async (folderId, tokenHints = {}) => {
+  const loadFiles = async (folderId) => {
     try {
       setLoading(true);
-      const items = await listOneDriveFiles(folderId, tokenHints);
+      setLoadError('');
+      const items = await listMyDriveFiles(folderId);
 
       // Separate folders and files - OneDrive has 'folder' property for folders, 'file' property for files
       const folderItems = items
@@ -252,7 +164,6 @@ export default function FilePage() {
           downloadUrl: item['@microsoft.graph.downloadUrl'],
         }));
 
-      setAllItems(items);
       setFolders(folderItems);
       setAllFiles(fileItems);
 
@@ -261,25 +172,13 @@ export default function FilePage() {
         const totalSize = items.reduce((sum, item) => sum + (item.size || 0), 0);
         setStorageUsed(totalSize);
         // Also load shared files when at root
-        loadSharedFiles(tokenHints);
+        loadSharedFiles();
       }
     } catch (error) {
       console.error('Load files error:', error);
-      const errorMessage = error?.message || '';
-
-      // Check if it's an authentication error that requires reconnection
-      if (
-        errorMessage.includes('session expired') ||
-        errorMessage.includes('re-authenticate') ||
-        errorMessage.includes('reconnect') ||
-        error?.response?.status === 401
-      ) {
-        clearOneDriveToken();
-        setAuthenticated(false);
-        toast.error('OneDrive session expired. Please reconnect your account.');
-      } else {
-        toast.error('Failed to load files');
-      }
+      setLoadError(
+        error?.response?.data?.message || error?.message || 'Could not load your OneDrive files.'
+      );
     } finally {
       setLoading(false);
     }
@@ -327,17 +226,7 @@ export default function FilePage() {
 
         toast.info(`Uploading ${acceptedFiles.length} file(s) to OneDrive...`);
 
-        const tokenHints = getOneDriveToken();
-        const uploadResults = await uploadOneDriveFiles(acceptedFiles, {
-          folderPath: pathFromBreadcrumbs,
-          userId:
-            user?.email ||
-            user?.user_metadata?.email ||
-            user?.user_metadata?.preferred_username ||
-            user?.id,
-          accessToken: tokenHints.accessToken,
-          refreshToken: tokenHints.refreshToken,
-        });
+        const uploadResults = await uploadToMyDrive(acceptedFiles, pathFromBreadcrumbs);
 
         const successes = uploadResults.filter((res) => !res.error).length;
         const failures = uploadResults.length - successes;
@@ -350,7 +239,7 @@ export default function FilePage() {
           toast.error('Failed to upload files');
         }
 
-        await loadFiles(currentFolderId, tokenHints);
+        await loadFiles(currentFolderId);
       } catch (error) {
         console.error('Upload error:', error);
         toast.error('Failed to upload files');
@@ -358,7 +247,7 @@ export default function FilePage() {
         setUploadProgress(false);
       }
     },
-    [breadcrumbs, currentFolderId, user]
+    [breadcrumbs, currentFolderId]
   );
 
   const handleFileClick = useCallback((file) => {
@@ -491,34 +380,6 @@ export default function FilePage() {
     />
   );
 
-  // Unauthenticated state
-  if (!authenticated) {
-    return (
-      <DashboardContent maxWidth="xl">
-        <Card sx={{ p: 5, textAlign: 'center', maxWidth: 600, mx: 'auto', mt: 10 }}>
-          <Box sx={{ mb: 3 }}>
-            <Iconify icon="logos:microsoft-onedrive" width={80} />
-          </Box>
-          <Typography variant="h4" gutterBottom>
-            Connect to Microsoft OneDrive
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-            Access your OneDrive files and folders from IOTA Dashboard
-          </Typography>
-          <Button
-            variant="contained"
-            size="large"
-            startIcon={<Iconify icon="logos:microsoft-icon" />}
-            onClick={handleSignIn}
-            disabled={loading}
-          >
-            {loading ? 'Connecting...' : 'Sign in with Microsoft'}
-          </Button>
-        </Card>
-      </DashboardContent>
-    );
-  }
-
   const filteredFiles = getFilteredFiles();
 
   // Authenticated state
@@ -528,6 +389,20 @@ export default function FilePage() {
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
           <Typography variant="h4">Business Files</Typography>
         </Box>
+
+        {loadError && (
+          <Alert
+            severity="error"
+            sx={{ mb: 3 }}
+            action={
+              <Button color="inherit" size="small" onClick={() => loadFiles(currentFolderId)}>
+                Retry
+              </Button>
+            }
+          >
+            {loadError}
+          </Alert>
+        )}
 
         {/* Breadcrumbs */}
         {breadcrumbs.length > 1 && (
