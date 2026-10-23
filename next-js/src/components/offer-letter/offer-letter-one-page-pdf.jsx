@@ -45,15 +45,11 @@ const ENTITY = {
   name: 'IOTA Technologies Company',
   nameAr: 'شركة آي أو تي إيه تيكنالوجيز',
   cr: '7050457477',
-  address: '2885, Office #9, 1st Floor, Jarir Street, Al Malaz, Riyadh - 12836, Saudi Arabia',
-  // Ordered for react-pdf, not copied from the invoice: a line led by the
-  // building number prints it on the wrong side, and "الأول" right after the
-  // numbers is drawn with a doubled letter. Checked by reading the PDF back.
-  addressAr:
-    'الدور الأول، مكتب رقم 9، مبنى 2885، شارع جرير، الملز، الرياض 12836، المملكة العربية السعودية',
-  phone: '+966 50534 0573',
-  email: 'hr@iotatechnologies.ai',
-  website: 'iotatechnologies.ai',
+  // The footer's address, the same facts in both languages and short enough
+  // for one line each. The Arabic is ordered for react-pdf: a line led by a
+  // number prints it on the wrong side (checked by reading the PDF back).
+  address: 'Office 9, Building 2885, Jarir Street, Al Malaz, Riyadh 12836',
+  addressAr: 'مكتب رقم 9، مبنى 2885، شارع جرير، الملز، الرياض 12836',
 };
 
 const s = StyleSheet.create({
@@ -126,10 +122,24 @@ const s = StyleSheet.create({
     borderBottomWidth: 1.2,
     borderBottomColor: RULE,
   },
-  footer: { position: 'absolute', bottom: 34, left: 54, right: 54 },
+  // Under the rule: English left, Arabic right, line for line. Both scripts
+  // get the same explicit line height so each pair stays level — a fixed row
+  // height is not enough: react-pdf drops text taller than its box, and
+  // Cairo's natural line is taller than Plex's.
+  footer: { position: 'absolute', bottom: 36, left: 54, right: 54 },
   footRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  footEn: { fontSize: 7.5, color: MUTED },
-  footAr: { fontSize: 7.5, color: MUTED, fontFamily: 'Cairo', textAlign: 'right' },
+  footEn: { width: '50%', fontSize: 7.5, lineHeight: 1.75, color: MUTED },
+  footAr: {
+    width: '50%',
+    fontSize: 7.5,
+    lineHeight: 1.75,
+    color: MUTED,
+    fontFamily: 'Cairo',
+    textAlign: 'right',
+    // Cairo sits lower on the line than Plex; lift it level with its English pair.
+    marginTop: -3,
+  },
+  footName: { color: INK, fontWeight: 700 },
 });
 
 /** 14-01-2025 — the one-pager's date style. */
@@ -303,23 +313,20 @@ export function OfferLetterOnePagePDF({ offer, data }) {
           ))}
         </View>
 
-        {/* The template's rule, then the company — each address on its own
-            full-width line, so neither wraps. */}
+        {/* The template's rule, then the company in matched English and
+            Arabic lines. */}
         <View style={s.rule} fixed />
         <View style={s.footer} fixed>
-          <View style={s.footRow}>
-            <Text style={[s.footEn, s.bold]}>
-              {ENTITY.name} · CR {ENTITY.cr}
-            </Text>
-            <Text style={[s.footAr, s.bold]}>
-              {ENTITY.nameAr} · سجل تجاري {ENTITY.cr}
-            </Text>
-          </View>
-          <Text style={s.footEn}>{ENTITY.address}</Text>
-          <Text style={s.footAr}>{ENTITY.addressAr}</Text>
-          <Text style={[s.footEn, { textAlign: 'center', marginTop: 2 }]}>
-            {ENTITY.phone} · {ENTITY.email} · {ENTITY.website}
-          </Text>
+          {[
+            [ENTITY.name, ENTITY.nameAr, true],
+            [ENTITY.address, ENTITY.addressAr],
+            [`CR ${ENTITY.cr}`, `سجل تجاري ${ENTITY.cr}`],
+          ].map(([en, ar, isName]) => (
+            <View key={en} style={s.footRow}>
+              <Text style={[s.footEn, isName ? s.footName : null]}>{en}</Text>
+              <Text style={[s.footAr, isName ? s.footName : null]}>{ar}</Text>
+            </View>
+          ))}
         </View>
       </Page>
     </Document>
