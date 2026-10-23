@@ -136,6 +136,7 @@ export async function getHandoutFile(document, version) {
       documentId: document.display,
       version,
       classification: document.classification,
+      positions: document.stampPositions,
     });
     return { blob: stamped, fileName: file.fileName, stamped: true };
   } catch (err) {

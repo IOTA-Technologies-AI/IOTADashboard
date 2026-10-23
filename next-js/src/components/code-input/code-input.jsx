@@ -1,7 +1,7 @@
 'use client';
 
 import { keyframes } from '@emotion/react';
-import { useState, useEffect } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { MuiOtpInput } from 'mui-one-time-password-input';
 
 import Box from '@mui/material/Box';
@@ -42,6 +42,33 @@ export function codeFromText(text) {
   return run ? run[1] : '';
 }
 
+const isTouch = () =>
+  typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
+
+/**
+ * The clipboard's text. Uses clipboard.read() where the browser has it: it also
+ * returns a code copied as rich text (an email, a web page), which readText()
+ * can refuse on iPhone. Only one clipboard call per tap — a second one would
+ * ask the phone's permission again ("Paste" bubble) and lose the tap.
+ */
+async function readClipboardText() {
+  const cb = navigator.clipboard;
+  if (cb?.read) {
+    const items = await cb.read();
+    for (const item of items) {
+      const type = ['text/plain', 'text/html'].find((t) => item.types.includes(t));
+      if (type) {
+        const text = await (await item.getType(type)).text();
+        // Strip tags from rich text; the code is in the words.
+        return type === 'text/html' ? text.replace(/<[^>]*>/g, ' ') : text;
+      }
+    }
+    return '';
+  }
+  if (cb?.readText) return cb.readText();
+  throw new Error('This browser does not allow reading the clipboard.');
+}
+
 /**
  * Six boxes for a one-time code, with a "Paste code" button. Typing moves
  * box to box; pasting (the button, or Ctrl/⌘+V into any box) fills all six
@@ -64,6 +91,7 @@ export function CodeInput({
   sx,
 }) {
   const [hint, setHint] = useState('');
+  const boxesRef = useRef(null);
   const [shaking, setShaking] = useState(false);
   const small = size === 'small';
 
@@ -73,6 +101,21 @@ export function CodeInput({
     const t = setTimeout(() => setShaking(false), 450);
     return () => clearTimeout(t);
   }, [error]);
+
+  /** Put the cursor in the first box, so the phone's own Paste is one long-press away. */
+  const focusFirstBox = () => {
+    const first = boxesRef.current?.querySelector('input');
+    if (first) {
+      first.focus();
+      first.select?.();
+    }
+  };
+
+  const manualPasteHint = () => {
+    if (isTouch()) return 'Tap and hold the first box, then tap Paste.';
+    const mac = typeof navigator !== 'undefined' && /Mac/.test(navigator.userAgent);
+    return `Click a box and press ${mac ? '⌘V' : 'Ctrl+V'} to paste.`;
+  };
 
   const fill = (text) => {
     const code = codeFromText(text);
@@ -86,13 +129,24 @@ export function CodeInput({
   };
 
   const pasteFromClipboard = async () => {
+    let text = '';
     try {
-      fill(await navigator.clipboard.readText());
-    } catch {
-      // The browser refused clipboard access; keyboard paste still works.
-      const mac = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.userAgent);
-      setHint(`Click a box and press ${mac ? '⌘V' : 'Ctrl+V'} to paste.`);
+      text = await readClipboardText();
+    } catch (err) {
+      // Refused, dismissed, or not supported (some in-app browsers). Logged so
+      // an issue report filed afterwards shows why; a paste into a box still works.
+      console.warn('[CodeInput] clipboard read failed:', err?.name, err?.message);
+      setHint(manualPasteHint());
+      focusFirstBox();
+      return;
     }
+    if (!codeFromText(text)) {
+      console.warn('[CodeInput] clipboard holds no 6-digit code (length', String(text).length, ')');
+      setHint(`There is no ${LENGTH}-digit code on the clipboard. ${manualPasteHint()}`);
+      focusFirstBox();
+      return;
+    }
+    fill(text);
   };
 
   const boxSize = small ? 40 : 52;
@@ -101,6 +155,7 @@ export function CodeInput({
   return (
     <Stack spacing={1} alignItems={align === 'center' ? 'center' : 'flex-start'} sx={sx}>
       <Box
+        ref={boxesRef}
         // Handle paste here, before the library's handler, which rejects
         // "123 456" and text around the code.
         onPasteCapture={(e) => {

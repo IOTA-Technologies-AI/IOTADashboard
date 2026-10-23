@@ -47,6 +47,7 @@ import { EmptyContent } from 'src/components/empty-content';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 import { DocumentIdChip } from './document-list-view';
+import { DocumentStampCard } from '../document-stamp-card';
 import { DocumentRevisionDialog } from '../document-revision-dialog';
 import {
   statusOf,
@@ -277,8 +278,8 @@ export function DocumentDetailsView({ documentId }) {
   useEffect(() => {
     if (!selected || !doc) return undefined;
     let cancelled = false;
-    // Keyed by classification too: the stamp shows the current one.
-    const cacheKey = `${selected}:${doc.classification}`;
+    // Keyed by classification and stamp position too: the stamp shows the current ones.
+    const cacheKey = `${selected}:${doc.classification}:${JSON.stringify(doc.stampPositions)}`;
     const cached = files.current.get(cacheKey);
     if (cached) {
       setPreview({ version: selected, url: cached.url, error: '' });
@@ -402,7 +403,7 @@ export function DocumentDetailsView({ documentId }) {
     if (!selected) return;
     setDownloading(true);
     try {
-      const cacheKey = `${selected}:${doc.classification}`;
+      const cacheKey = `${selected}:${doc.classification}:${JSON.stringify(doc.stampPositions)}`;
       let entry = files.current.get(cacheKey);
       if (!entry) {
         const file = await getHandoutFile(doc, selected);
@@ -850,6 +851,9 @@ export function DocumentDetailsView({ documentId }) {
         <Grid size={{ xs: 12, md: 4 }}>
           <Stack spacing={3}>
             {renderVersions()}
+            <m.div {...fadeUp(0.21)}>
+              <DocumentStampCard document={doc} />
+            </m.div>
             {renderNotes()}
             {renderActivity()}
           </Stack>

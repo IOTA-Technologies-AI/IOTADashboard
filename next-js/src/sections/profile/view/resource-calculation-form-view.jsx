@@ -52,6 +52,7 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
+import { STAMP_NOTE, STAMP_CORNERS, STAMP_FONT_URL, DEFAULT_STAMP_POSITIONS } from 'src/utils/document-stamp';
 import {
   forwardRC,
   approveRC,
@@ -286,6 +287,9 @@ Font.register({
   fonts: [{ src: '/fonts/Aptos-Regular.ttf' }, { src: '/fonts/Aptos-Bold.ttf', fontWeight: 700 }],
 });
 
+// The Document Management stamp's face (public/fonts, OFL).
+Font.register({ family: 'IBM Plex Sans Condensed', src: STAMP_FONT_URL });
+
 // Local copy of the white logo — avoids CORS block on Azure Blob URLs
 const IOTA_LOGO_WHITE_LOCAL = '/logo/iotaLogoWhite.png';
 
@@ -295,18 +299,13 @@ const pdfStyles = PdfStyleSheet.create({
   // The bottom margin leaves room for the Document Management stamp on page one.
   page: { fontFamily: 'Aptos', padding: 40, paddingBottom: 72, fontSize: 10, color: '#111111' },
 
-  // Document Management stamp: bottom-right of the first page only.
-  dmsStampAnchor: { position: 'absolute', right: 40, bottom: 34 },
-  dmsStamp: {
-    paddingVertical: 4,
-    paddingHorizontal: 7,
-    border: '0.75 solid #0B5E41',
-    borderRadius: 3,
-    alignItems: 'flex-end',
-  },
-  dmsStampClass: { fontSize: 7, fontWeight: 700, color: '#B71D18', letterSpacing: 1 },
-  dmsStampId: { fontSize: 8, fontWeight: 700, color: '#0B5E41', marginTop: 1 },
-  dmsStampNote: { fontSize: 6.5, color: '#666666', marginTop: 1 },
+  // Document Management stamp: plain text on the first page only, in the
+  // corners chosen for the document. Top corners sit in the top margin, above
+  // the header band; bottom corners just above the page footer.
+  dmsStampText: { fontFamily: 'IBM Plex Sans Condensed' },
+  dmsStampClass: { fontSize: 8, color: '#B71D18' },
+  dmsStampId: { fontSize: 8.5, color: '#0B5E41' },
+  dmsStampNote: { fontSize: 6.5, color: '#666666' },
   header: {
     backgroundColor: '#0B5E41',
     paddingHorizontal: 24,
@@ -1241,6 +1240,7 @@ export function ResourceCalculationFormView({ id }) {
       reference: doc?.display || (id ? 'Document ID pending' : 'Draft — not yet saved'),
       documentId: doc?.display || '',
       classification: doc?.classification || 'confidential',
+      stampPositions: { ...DEFAULT_STAMP_POSITIONS, ...doc?.stampPositions },
       customerName,
       jdTitle,
       resourceName: fullName.trim() || candidateObj?.name || '',
@@ -1373,30 +1373,53 @@ export function ResourceCalculationFormView({ id }) {
         creator="IOTA Dashboard"
       >
         <Page size="A4" style={pdfStyles.page}>
-          {/* Document Management stamp, bottom-right of page one. It must be
-              `fixed` and drawn only when pageNumber is 1: react-pdf puts a plain
-              absolute element on the LAST page of a flowing Page. */}
-          {meta.documentId ? (
-            <View
-              style={pdfStyles.dmsStampAnchor}
-              fixed
-              render={({ pageNumber }) =>
-                pageNumber === 1 ? (
-                  <View style={pdfStyles.dmsStamp}>
-                    <Text style={pdfStyles.dmsStampClass}>
-                      {meta.classification.toUpperCase()}
-                    </Text>
-                    <Text style={pdfStyles.dmsStampId}>
-                      {`${meta.documentId} · ${versionText}`}
-                    </Text>
-                    <Text style={pdfStyles.dmsStampNote}>
-                      Captured in IOTA Document Management System
-                    </Text>
-                  </View>
-                ) : null
-              }
-            />
-          ) : null}
+          {/* Document Management stamp, page one only, in the document's
+              corners (parts sharing a corner stack, classification first). It
+              must be `fixed` and drawn only when pageNumber is 1: react-pdf puts
+              a plain absolute element on the LAST page of a flowing Page. */}
+          {meta.documentId
+            ? STAMP_CORNERS.map((corner) => {
+                const parts = ['classification', 'documentId'].filter(
+                  (part) => meta.stampPositions[part] === corner
+                );
+                if (!parts.length) return null;
+                const top = corner.startsWith('top');
+                const right = corner.endsWith('right');
+                return (
+                  <View
+                    key={corner}
+                    fixed
+                    style={{
+                      position: 'absolute',
+                      ...(top ? { top: 8 } : { bottom: 34 }),
+                      ...(right ? { right: 40 } : { left: 40 }),
+                      alignItems: right ? 'flex-end' : 'flex-start',
+                    }}
+                    render={({ pageNumber }) =>
+                      pageNumber === 1 ? (
+                        <View style={{ alignItems: right ? 'flex-end' : 'flex-start' }}>
+                          {parts.includes('classification') ? (
+                            <Text style={[pdfStyles.dmsStampText, pdfStyles.dmsStampClass]}>
+                              {meta.classification.toUpperCase()}
+                            </Text>
+                          ) : null}
+                          {parts.includes('documentId') ? (
+                            <>
+                              <Text style={[pdfStyles.dmsStampText, pdfStyles.dmsStampId]}>
+                                {`${meta.documentId} · ${versionText}`}
+                              </Text>
+                              <Text style={[pdfStyles.dmsStampText, pdfStyles.dmsStampNote]}>
+                                {STAMP_NOTE}
+                              </Text>
+                            </>
+                          ) : null}
+                        </View>
+                      ) : null
+                    }
+                  />
+                );
+              })
+            : null}
           {/* ── Header band ───
               Deliberately NOT `fixed`: a fixed header renders at the same
               offset on every page while the content still flows from the top,

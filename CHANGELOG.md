@@ -66,10 +66,12 @@ is running.
   under it (up to 15 types).
   **Classification.** Every document is Public, Internal, Confidential
   (default) or Restricted, chosen on upload and changeable on its page.
-  **Proposal stamp.** The bottom-right of the proposal PDF's first page carries
-  the classification, the document ID and version, and "Captured in IOTA
-  Document Management System". An uploaded PDF gets the same stamp on its
-  first page whenever it is downloaded or previewed; the original in OneDrive
+  **Stamp.** Page one of the proposal PDF carries the classification, the
+  document ID and version, and "Captured in IOTA Document Management System",
+  as plain text in IBM Plex Sans Condensed (no box). Each document chooses
+  where: the classification and the ID line each go in any corner, top-right
+  by default, set on the document's page (Stamp card). An uploaded PDF gets
+  the same stamp on its first page whenever it is downloaded or previewed; the original in OneDrive
   is untouched, and the stamp always shows the current classification. Word,
   Excel and PowerPoint files are handed out unstamped.
   Needs `sql/20261022_document_management.sql` in the API repo, and the API
@@ -876,6 +878,11 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **"Paste code" on the authenticator (TOTP) screen works on phones.** It now
+  reads a code copied as rich text too, and if the phone refuses clipboard
+  access it puts the cursor in the first box so the phone's own Paste is one
+  long-press away, with a hint that fits a phone instead of "⌘V". The reason
+  for any refusal is logged, so an issue report filed afterwards shows it.
 - **Files no longer asks to "Connect to OneDrive" (ISS-0013).** The page used
   a Microsoft token held in the browser: the sign-in token never carried a
   OneDrive permission, Supabase does not refresh Microsoft tokens, and each
