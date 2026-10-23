@@ -1,5 +1,6 @@
 import useSWR, { mutate } from 'swr';
 
+import { stampPdf } from 'src/utils/document-stamp';
 import { putToUploadSession } from 'src/utils/onedrive-upload';
 
 import iotaApi from 'src/lib/iota-api';
@@ -12,6 +13,8 @@ import iotaApi from 'src/lib/iota-api';
 
 const fetcher = ([url, params]) => iotaApi.get(url, { params }).then((res) => res.data);
 const options = { revalidateOnFocus: false, keepPreviousData: true };
+// A stable empty list, so effects keyed on a list do not re-run on every render while loading.
+const EMPTY = [];
 
 const refreshAll = () =>
   mutate((key) => Array.isArray(key) && String(key[0]).startsWith('/document-management'));
@@ -48,16 +51,36 @@ export function useManagedDocument(documentId) {
 }
 
 /**
- * IOTA's practices, each with its document types, and the classifications:
- * { practices: [{ id, code, name, types: [{ code, name }] }], classifications }.
+ * Practices, document types and classifications. Types are one list kept in
+ * appConfig, each tagged to the practices it applies to:
+ * { practices: [{ id, name }], types: [{ id, code, name, practices, active }],
+ *   classifications, canEditTypes, error, loading }.
  */
 export function useDocumentCatalog(enabled = true) {
-  const { data } = useSWR(
+  const { data, error, isLoading } = useSWR(
     enabled ? ['/document-management/doc-types', {}] : null,
     fetcher,
     options
   );
-  return { practices: data?.practices ?? [], classifications: data?.classifications ?? [] };
+  return {
+    practices: data?.practices ?? EMPTY,
+    types: data?.types ?? EMPTY,
+    classifications: data?.classifications ?? EMPTY,
+    canEditTypes: Boolean(data?.canEditTypes),
+    error,
+    loading: isLoading,
+  };
+}
+
+/** The active types a practice uses. */
+export const typesForPractice = (types, practice) =>
+  types.filter((t) => t.active && t.practices.includes(Number(practice)));
+
+/** Save the document types (super-admins). Resolves to the saved catalog. */
+export async function saveDocumentTypes(types) {
+  const res = await iotaApi.put('/document-management/doc-types', { types });
+  await mutate(['/document-management/doc-types', {}], res.data, false);
+  return res.data;
 }
 
 /**
@@ -94,6 +117,32 @@ export async function updateManagedDocument(documentId, payload) {
   const res = await iotaApi.patch(`/document-management/documents/${documentId}`, payload);
   await refreshAll();
   return res.data.document;
+}
+
+/**
+ * A version's file as handed out: an uploaded PDF gets the Document Management
+ * stamp (ID, version, current classification) on its first page; a generated
+ * proposal already carries it; other file types are returned as they are.
+ * Resolves to { blob, fileName, stamped }.
+ */
+export async function getHandoutFile(document, version) {
+  const file = await getDocumentVersionFile(document.documentId, version);
+  const blob = base64ToBlob(file.base64, mimeOf(file.fileName));
+  if (extensionOf(file.fileName) !== 'pdf' || file.origin === 'generated') {
+    return { blob, fileName: file.fileName, stamped: false };
+  }
+  try {
+    const stamped = await stampPdf(blob, {
+      documentId: document.display,
+      version,
+      classification: document.classification,
+    });
+    return { blob: stamped, fileName: file.fileName, stamped: true };
+  } catch (err) {
+    // A PDF pdf-lib cannot rewrite (e.g. encrypted) is handed out unstamped.
+    console.error('Document stamp failed:', err);
+    return { blob, fileName: file.fileName, stamped: false, stampError: true };
+  }
 }
 
 /** A version's file, read back from OneDrive. */

@@ -56,11 +56,22 @@ is running.
   Either one can be searched, or looked up in the ID decoder; offer-letter IDs
   are unchanged. Proposals get a Practice field (default Talent & Managed
   Services), fixed once the ID is issued on save.
+  **Document types are configurable.** One list kept in appConfig
+  (`documentManagement` / `documentTypes`): Proposal, Quotation, Purchase
+  Order, Statement of Work, Agreement / Contract, Change Request, Invoice,
+  Report and General Document to start. Super-admins edit it in Document
+  Management → Document types: add a type, rename it, tick the practices it
+  applies to, or switch it off. A saved type cannot be removed and its code
+  is fixed, because its number is written into every document ID issued
+  under it (up to 15 types).
   **Classification.** Every document is Public, Internal, Confidential
   (default) or Restricted, chosen on upload and changeable on its page.
   **Proposal stamp.** The bottom-right of the proposal PDF's first page carries
   the classification, the document ID and version, and "Captured in IOTA
-  Document Management System".
+  Document Management System". An uploaded PDF gets the same stamp on its
+  first page whenever it is downloaded or previewed; the original in OneDrive
+  is untouched, and the stamp always shows the current classification. Word,
+  Excel and PowerPoint files are handed out unstamped.
   Needs `sql/20261022_document_management.sql` in the API repo, and the API
   deployed.
 - **NDAs: take a partner's revised document against the one IOTA reviewed.**

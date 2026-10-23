@@ -6,6 +6,8 @@ import { m, AnimatePresence } from 'framer-motion';
 import { useDebounce } from 'minimal-shared/hooks';
 
 import Box from '@mui/material/Box';
+import Tab from '@mui/material/Tab';
+import Tabs from '@mui/material/Tabs';
 import Card from '@mui/material/Card';
 import Menu from '@mui/material/Menu';
 import Alert from '@mui/material/Alert';
@@ -35,12 +37,10 @@ import { fToNow, fDateTime } from 'src/utils/format-time';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
-  mimeOf,
   saveBlob,
-  base64ToBlob,
+  getHandoutFile,
   useDocumentCatalog,
   useManagedDocuments,
-  getDocumentVersionFile,
 } from 'src/actions/document-management';
 
 import { Label } from 'src/components/label';
@@ -51,6 +51,7 @@ import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import { varFade, varContainer, AnimateCountUp } from 'src/components/animate';
 
 import { DocumentNewDialog } from '../document-new-dialog';
+import { DocumentTypesPanel } from '../document-types-panel';
 import { statusOf, STATUS_ORDER, classificationOf } from '../document-labels';
 
 // ----------------------------------------------------------------------
@@ -171,6 +172,7 @@ export function DocumentListView() {
   const [menu, setMenu] = useState(null);
   const [downloading, setDownloading] = useState('');
   const [addOpen, setAddOpen] = useState(false);
+  const [tab, setTab] = useState('documents');
 
   const debouncedSearch = useDebounce(search.trim(), 300);
 
@@ -190,8 +192,10 @@ export function DocumentListView() {
     if (!doc.currentVersion) return;
     setDownloading(doc.documentId);
     try {
-      const file = await getDocumentVersionFile(doc.documentId, doc.currentVersion);
-      saveBlob(base64ToBlob(file.base64, mimeOf(file.fileName)), file.fileName);
+      const file = await getHandoutFile(doc, doc.currentVersion);
+      if (file.stampError)
+        toast.warning('This PDF could not be stamped, so it was downloaded as stored.');
+      saveBlob(file.blob, file.fileName);
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'The download failed.');
     } finally {
@@ -331,163 +335,184 @@ export function DocumentListView() {
             Add document
           </Button>
         }
-        sx={{ mb: 3 }}
+        sx={{ mb: 2 }}
       />
 
-      <Box
-        component={m.div}
-        initial="initial"
-        animate="animate"
-        variants={varContainer({ transitionIn: { staggerChildren: 0.06 } })}
-        sx={{
-          gap: 2,
-          mb: 3,
-          display: 'grid',
-          gridTemplateColumns: {
-            xs: 'repeat(2, 1fr)',
-            sm: 'repeat(3, 1fr)',
-            lg: 'repeat(6, 1fr)',
-          },
-        }}
-      >
-        {FILTERS.map((filter) => (
-          <StatusCard
-            key={filter.value}
-            filter={filter}
-            count={counts[filter.value] ?? 0}
-            active={status === filter.value}
-            onClick={() => handleFilter(filter.value)}
-          />
-        ))}
-      </Box>
-
-      <Card
-        component={m.div}
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-      >
-        <Stack
-          direction={{ xs: 'column', md: 'row' }}
-          spacing={2}
-          alignItems={{ md: 'center' }}
-          sx={{ p: 2.5 }}
-        >
-          <TextField
-            fullWidth
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(0);
-            }}
-            placeholder="Search by document ID, internal number, title, client or person…"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Iconify icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
-                </InputAdornment>
-              ),
-              endAdornment: search ? (
-                <InputAdornment position="end">
-                  <IconButton size="small" onClick={() => setSearch('')}>
-                    <Iconify icon="mingcute:close-line" width={18} />
-                  </IconButton>
-                </InputAdornment>
-              ) : null,
-            }}
-          />
-          <TextField
-            select
-            label="Practice"
-            value={practice}
-            onChange={(e) => {
-              setPractice(Number(e.target.value));
-              setPage(0);
-            }}
-            sx={{ minWidth: { md: 260 } }}
-          >
-            <MenuItem value={0}>All practices</MenuItem>
-            {practices.map((p) => (
-              <MenuItem key={p.id} value={p.id}>
-                {p.id}. {p.name}
-              </MenuItem>
-            ))}
-          </TextField>
-          <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
-            {total} {total === 1 ? 'document' : 'documents'}
-          </Typography>
-        </Stack>
-
-        <Box sx={{ height: 2 }}>{(loading || validating) && <LinearProgress />}</Box>
-
-        {error && (
-          <Alert severity="error" sx={{ mx: 2.5, my: 2 }}>
-            {error.response?.data?.message || error.message || 'Could not load documents.'}
-          </Alert>
-        )}
-
-        <TableContainer sx={{ overflowX: 'auto' }}>
-          <Table sx={{ minWidth: 1100 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>Document</TableCell>
-                <TableCell>Document ID</TableCell>
-                <TableCell>Client</TableCell>
-                <TableCell align="center">Version</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Classification</TableCell>
-                <TableCell>Updated</TableCell>
-                <TableCell />
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              <AnimatePresence initial={false}>{renderRows()}</AnimatePresence>
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        {!loading && !documents.length && !error && (
-          <EmptyContent
-            filled
-            sx={{ m: 2.5, py: 8 }}
-            title={
-              debouncedSearch || status !== 'all' || practice
-                ? 'No matching documents'
-                : 'No documents yet'
-            }
-            description={
-              debouncedSearch || status !== 'all' || practice
-                ? 'Try another document ID, title or client, or clear the filter.'
-                : 'Proposals appear here when they are prepared. A document prepared elsewhere can be added directly.'
-            }
-            action={
-              debouncedSearch || status !== 'all' || practice ? null : (
-                <Button
-                  sx={{ mt: 3 }}
-                  variant="contained"
-                  startIcon={<Iconify icon="eva:cloud-upload-fill" />}
-                  onClick={() => setAddOpen(true)}
-                >
-                  Add document
-                </Button>
-              )
-            }
-          />
-        )}
-
-        <TablePagination
-          component="div"
-          count={total}
-          page={page}
-          rowsPerPage={rowsPerPage}
-          rowsPerPageOptions={[10, 25, 50, 100]}
-          onPageChange={(e, p) => setPage(p)}
-          onRowsPerPageChange={(e) => {
-            setRowsPerPage(Number(e.target.value));
-            setPage(0);
-          }}
+      <Tabs value={tab} onChange={(e, value) => setTab(value)} sx={{ mb: 3 }}>
+        <Tab
+          value="documents"
+          label="Documents"
+          icon={<Iconify icon="solar:file-text-bold" width={20} />}
+          iconPosition="start"
         />
-      </Card>
+        <Tab
+          value="types"
+          label="Document types"
+          icon={<Iconify icon="solar:list-bold" width={20} />}
+          iconPosition="start"
+        />
+      </Tabs>
+
+      {tab === 'types' ? (
+        <DocumentTypesPanel />
+      ) : (
+        <>
+          <Box
+            component={m.div}
+            initial="initial"
+            animate="animate"
+            variants={varContainer({ transitionIn: { staggerChildren: 0.06 } })}
+            sx={{
+              gap: 2,
+              mb: 3,
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: 'repeat(2, 1fr)',
+                sm: 'repeat(3, 1fr)',
+                lg: 'repeat(6, 1fr)',
+              },
+            }}
+          >
+            {FILTERS.map((filter) => (
+              <StatusCard
+                key={filter.value}
+                filter={filter}
+                count={counts[filter.value] ?? 0}
+                active={status === filter.value}
+                onClick={() => handleFilter(filter.value)}
+              />
+            ))}
+          </Box>
+
+          <Card
+            component={m.div}
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              spacing={2}
+              alignItems={{ md: 'center' }}
+              sx={{ p: 2.5 }}
+            >
+              <TextField
+                fullWidth
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(0);
+                }}
+                placeholder="Search by document ID, internal number, title, client or person…"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Iconify icon="eva:search-fill" sx={{ color: 'text.disabled' }} />
+                    </InputAdornment>
+                  ),
+                  endAdornment: search ? (
+                    <InputAdornment position="end">
+                      <IconButton size="small" onClick={() => setSearch('')}>
+                        <Iconify icon="mingcute:close-line" width={18} />
+                      </IconButton>
+                    </InputAdornment>
+                  ) : null,
+                }}
+              />
+              <TextField
+                select
+                label="Practice"
+                value={practice}
+                onChange={(e) => {
+                  setPractice(Number(e.target.value));
+                  setPage(0);
+                }}
+                sx={{ minWidth: { md: 260 } }}
+              >
+                <MenuItem value={0}>All practices</MenuItem>
+                {practices.map((p) => (
+                  <MenuItem key={p.id} value={p.id}>
+                    {p.id}. {p.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+              <Typography variant="body2" color="text.secondary" sx={{ whiteSpace: 'nowrap' }}>
+                {total} {total === 1 ? 'document' : 'documents'}
+              </Typography>
+            </Stack>
+
+            <Box sx={{ height: 2 }}>{(loading || validating) && <LinearProgress />}</Box>
+
+            {error && (
+              <Alert severity="error" sx={{ mx: 2.5, my: 2 }}>
+                {error.response?.data?.message || error.message || 'Could not load documents.'}
+              </Alert>
+            )}
+
+            <TableContainer sx={{ overflowX: 'auto' }}>
+              <Table sx={{ minWidth: 1100 }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Document</TableCell>
+                    <TableCell>Document ID</TableCell>
+                    <TableCell>Client</TableCell>
+                    <TableCell align="center">Version</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Classification</TableCell>
+                    <TableCell>Updated</TableCell>
+                    <TableCell />
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  <AnimatePresence initial={false}>{renderRows()}</AnimatePresence>
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            {!loading && !documents.length && !error && (
+              <EmptyContent
+                filled
+                sx={{ m: 2.5, py: 8 }}
+                title={
+                  debouncedSearch || status !== 'all' || practice
+                    ? 'No matching documents'
+                    : 'No documents yet'
+                }
+                description={
+                  debouncedSearch || status !== 'all' || practice
+                    ? 'Try another document ID, title or client, or clear the filter.'
+                    : 'Proposals appear here when they are prepared. A document prepared elsewhere can be added directly.'
+                }
+                action={
+                  debouncedSearch || status !== 'all' || practice ? null : (
+                    <Button
+                      sx={{ mt: 3 }}
+                      variant="contained"
+                      startIcon={<Iconify icon="eva:cloud-upload-fill" />}
+                      onClick={() => setAddOpen(true)}
+                    >
+                      Add document
+                    </Button>
+                  )
+                }
+              />
+            )}
+
+            <TablePagination
+              component="div"
+              count={total}
+              page={page}
+              rowsPerPage={rowsPerPage}
+              rowsPerPageOptions={[10, 25, 50, 100]}
+              onPageChange={(e, p) => setPage(p)}
+              onRowsPerPageChange={(e) => {
+                setRowsPerPage(Number(e.target.value));
+                setPage(0);
+              }}
+            />
+          </Card>
+        </>
+      )}
 
       <Menu
         anchorEl={menu?.anchor}

@@ -26,6 +26,7 @@ import { listCustomers } from 'src/actions/documents';
 import {
   isAcceptedFile,
   DOCUMENT_ACCEPT,
+  typesForPractice,
   useDocumentCatalog,
   createManagedDocument,
 } from 'src/actions/document-management';
@@ -54,7 +55,12 @@ const titleFromFileName = (name) =>
  */
 export function DocumentNewDialog({ open, onClose }) {
   const router = useRouter();
-  const { practices } = useDocumentCatalog(open);
+  const {
+    practices,
+    types: allTypes,
+    error: catalogError,
+    loading: catalogLoading,
+  } = useDocumentCatalog(open);
   const { data: customers = [] } = useSWR(
     open ? 'document-management/customers' : null,
     listCustomers,
@@ -94,7 +100,7 @@ export function DocumentNewDialog({ open, onClose }) {
     onClose();
   };
 
-  const types = practices.find((p) => p.id === practice)?.types ?? [];
+  const types = typesForPractice(allTypes, practice);
 
   const handleDrop = (accepted) => {
     const picked = accepted[0];
@@ -184,8 +190,10 @@ export function DocumentNewDialog({ open, onClose }) {
                         const next = Number(e.target.value);
                         setPractice(next);
                         // Types belong to a practice: keep the choice only if the new one has it.
-                        const nextTypes = practices.find((p) => p.id === next)?.types ?? [];
-                        if (!nextTypes.some((t) => t.code === docType)) setDocType('GEN');
+                        const nextTypes = typesForPractice(allTypes, next);
+                        if (!nextTypes.some((t) => t.code === docType)) {
+                          setDocType(nextTypes[0]?.code ?? '');
+                        }
                       }}
                       disabled={busy}
                     >
@@ -202,7 +210,14 @@ export function DocumentNewDialog({ open, onClose }) {
                       label="Document type"
                       value={types.some((t) => t.code === docType) ? docType : ''}
                       onChange={(e) => setDocType(e.target.value)}
-                      disabled={busy}
+                      disabled={busy || catalogLoading}
+                      helperText={
+                        catalogLoading
+                          ? 'Loading…'
+                          : !catalogError && !types.length
+                            ? 'No active document types for this practice.'
+                            : undefined
+                      }
                     >
                       {types.map((t) => (
                         <MenuItem key={t.code} value={t.code}>
@@ -298,6 +313,12 @@ export function DocumentNewDialog({ open, onClose }) {
             )}
           </AnimatePresence>
 
+          {catalogError && (
+            <Alert severity="error">
+              Could not load the practices and document types:{' '}
+              {catalogError.response?.data?.message || catalogError.message}
+            </Alert>
+          )}
           {error && <Alert severity="error">{error}</Alert>}
         </Stack>
       </DialogContent>

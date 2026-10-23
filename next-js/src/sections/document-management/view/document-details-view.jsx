@@ -32,13 +32,11 @@ import { fDate, fToNow, fDateTime } from 'src/utils/format-time';
 
 import { DashboardContent } from 'src/layouts/dashboard';
 import {
-  mimeOf,
   saveBlob,
   extensionOf,
-  base64ToBlob,
+  getHandoutFile,
   useManagedDocument,
   updateManagedDocument,
-  getDocumentVersionFile,
 } from 'src/actions/document-management';
 
 import { Label } from 'src/components/label';
@@ -279,7 +277,9 @@ export function DocumentDetailsView({ documentId }) {
   useEffect(() => {
     if (!selected || !doc) return undefined;
     let cancelled = false;
-    const cached = files.current.get(selected);
+    // Keyed by classification too: the stamp shows the current one.
+    const cacheKey = `${selected}:${doc.classification}`;
+    const cached = files.current.get(cacheKey);
     if (cached) {
       setPreview({ version: selected, url: cached.url, error: '' });
       return undefined;
@@ -291,11 +291,10 @@ export function DocumentDetailsView({ documentId }) {
       return undefined;
     }
     setPreview({ version: selected, url: '', error: '' });
-    getDocumentVersionFile(doc.documentId, selected)
+    getHandoutFile(doc, selected)
       .then((file) => {
-        const blob = base64ToBlob(file.base64, mimeOf(file.fileName));
-        const entry = { blob, url: URL.createObjectURL(blob), fileName: file.fileName };
-        files.current.set(selected, entry);
+        const entry = { ...file, url: URL.createObjectURL(file.blob) };
+        files.current.set(cacheKey, entry);
         if (!cancelled) setPreview({ version: selected, url: entry.url, error: '' });
       })
       .catch((err) => {
@@ -403,13 +402,15 @@ export function DocumentDetailsView({ documentId }) {
     if (!selected) return;
     setDownloading(true);
     try {
-      let entry = files.current.get(selected);
+      const cacheKey = `${selected}:${doc.classification}`;
+      let entry = files.current.get(cacheKey);
       if (!entry) {
-        const file = await getDocumentVersionFile(doc.documentId, selected);
-        const blob = base64ToBlob(file.base64, mimeOf(file.fileName));
-        entry = { blob, url: URL.createObjectURL(blob), fileName: file.fileName };
-        files.current.set(selected, entry);
+        const file = await getHandoutFile(doc, selected);
+        entry = { ...file, url: URL.createObjectURL(file.blob) };
+        files.current.set(cacheKey, entry);
       }
+      if (entry.stampError)
+        toast.warning('This PDF could not be stamped, so it was downloaded as stored.');
       saveBlob(entry.blob, entry.fileName);
     } catch (err) {
       toast.error(err.response?.data?.message || err.message || 'The download failed.');
