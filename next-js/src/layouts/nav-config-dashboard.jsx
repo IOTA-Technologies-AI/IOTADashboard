@@ -140,6 +140,31 @@ export const navData = [
     ],
   },
   /**
+   * Finance: the Financial Accounting Hub (general ledger)
+   */
+  {
+    subheader: 'Finance',
+    items: [
+      {
+        title: 'Accounting',
+        path: paths.dashboard.finance.accounting.root,
+        icon: <Iconify icon="solar:notebook-bold-duotone" width={24} />,
+        caption: 'Financial Accounting Hub',
+        children: [
+          { title: 'Overview', path: paths.dashboard.finance.accounting.root },
+          { title: 'Journals', path: paths.dashboard.finance.accounting.journals },
+          { title: 'Chart of Accounts', path: paths.dashboard.finance.accounting.accounts },
+          { title: 'Trial Balance', path: paths.dashboard.finance.accounting.trialBalance },
+          { title: 'General Ledger', path: paths.dashboard.finance.accounting.ledger },
+          { title: 'Periods', path: paths.dashboard.finance.accounting.periods },
+          { title: 'Dimensions', path: paths.dashboard.finance.accounting.dimensions },
+          { title: 'Exchange Rates', path: paths.dashboard.finance.accounting.rates },
+          { title: 'Access', path: paths.dashboard.finance.accounting.access },
+        ],
+      },
+    ],
+  },
+  /**
    * Management
    */
   {

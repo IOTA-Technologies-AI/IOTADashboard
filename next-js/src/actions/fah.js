@@ -1,0 +1,289 @@
+import useSWR, { mutate } from 'swr';
+
+import iotaApi from 'src/lib/iota-api';
+
+/**
+ * Finance → Accounting: the Financial Accounting Hub (general ledger). Every
+ * call goes to the `fah` service in the API (fah/*.ts), which checks the
+ * caller's finance role on each request.
+ */
+
+const fetcher = ([url, params]) => iotaApi.get(url, { params }).then((res) => res.data);
+const options = { revalidateOnFocus: false, keepPreviousData: true };
+// Stable empty lists, so effects keyed on a list do not re-run while loading.
+const EMPTY = [];
+const DEFAULT_THRESHOLDS = { controller: 50000, cfo: 500000 };
+
+/** Refetch every FAH screen's data after a change. */
+export const refreshFah = () =>
+  mutate((key) => Array.isArray(key) && String(key[0]).startsWith('/fah'));
+
+/** The message to show for a failed call. */
+export const fahError = (err) =>
+  err?.response?.data?.message || err?.message || 'Something went wrong. Try again.';
+
+const send = async (method, url, body) => {
+  const res = await iotaApi.request({ method, url, data: body });
+  await refreshFah();
+  return res.data;
+};
+
+// ----------------------------------------------------------------------
+// Who am I, and the catalogue every screen needs
+
+/** { me: { email, roles, rank, canPrepare, canControl, isCfo }, loading, error } */
+export function useFahMe() {
+  const { data, error, isLoading } = useSWR(['/fah/me', {}], fetcher, options);
+  return { me: data ?? null, error, loading: isLoading };
+}
+
+export function useFahCatalog(enabled = true) {
+  const { data, error, isLoading } = useSWR(
+    enabled ? ['/fah/catalog', {}] : null,
+    fetcher,
+    options
+  );
+  return {
+    entities: data?.entities ?? EMPTY,
+    practices: data?.practices ?? EMPTY,
+    costCentres: data?.costCentres ?? EMPTY,
+    locations: data?.locations ?? EMPTY,
+    engagements: data?.engagements ?? EMPTY,
+    accounts: data?.accounts ?? EMPTY,
+    currencies: data?.currencies ?? EMPTY,
+    thresholds: data?.thresholds ?? DEFAULT_THRESHOLDS,
+    maxOpenPeriods: data?.maxOpenPeriods ?? 2,
+    error,
+    loading: isLoading,
+  };
+}
+
+// ----------------------------------------------------------------------
+// Journals
+
+export function useJournals(params) {
+  const { data, error, isLoading, isValidating } = useSWR(
+    ['/fah/journals', params],
+    fetcher,
+    options
+  );
+  return {
+    journals: data?.journals ?? EMPTY,
+    total: data?.total ?? 0,
+    counts: data?.counts ?? EMPTY,
+    error,
+    loading: isLoading,
+    validating: isValidating,
+  };
+}
+
+/** { journal, lines, audit, problems, needsOverride, overrideAccounts, actions } */
+export function useJournal(id) {
+  const { data, error, isLoading } = useSWR(
+    id ? [`/fah/journals/${id}`, {}] : null,
+    fetcher,
+    options
+  );
+  return {
+    journal: data?.journal ?? null,
+    lines: data?.lines ?? EMPTY,
+    audit: data?.audit ?? EMPTY,
+    problems: data?.problems ?? EMPTY,
+    needsOverride: data?.needsOverride ?? false,
+    overrideAccounts: data?.overrideAccounts ?? EMPTY,
+    actions: data?.actions ?? EMPTY,
+    error,
+    loading: isLoading,
+  };
+}
+
+/** Create (no id) or replace a draft and its lines. Returns the journal detail. */
+export const saveJournal = (payload) => send('post', '/fah/journals', payload);
+
+/** A draft from a CSV of lines: { detail, problems, importedLines }. */
+export const importJournal = (payload) => send('post', '/fah/journal-imports', payload);
+
+/** { detail, problems }: problems non-empty means it was not submitted. */
+export const submitJournal = (id, controlOverrideReason) =>
+  send('post', `/fah/journals/${id}/submit`, { controlOverrideReason });
+
+export const withdrawJournal = (id) => send('post', `/fah/journals/${id}/withdraw`, {});
+export const approveJournal = (id) => send('post', `/fah/journals/${id}/approve`, {});
+export const rejectJournal = (id, reason) => send('post', `/fah/journals/${id}/reject`, { reason });
+export const postJournal = (id) => send('post', `/fah/journals/${id}/post`, {});
+/** Returns the detail of the reversal journal. */
+export const reverseJournal = (id, { date, reason }) =>
+  send('post', `/fah/journals/${id}/reverse`, { date, reason });
+export const deleteJournal = (id) => send('delete', `/fah/journals/${id}`);
+
+// ----------------------------------------------------------------------
+// Chart of accounts
+
+export const createAccount = (payload) => send('post', '/fah/accounts', payload);
+export const updateAccount = (id, patch) => send('patch', `/fah/accounts/${id}`, patch);
+/** { rows, created, updated, problems }; apply false only checks. */
+export const importChart = (csv, apply) => send('post', '/fah/account-imports', { csv, apply });
+export const exportChart = () => iotaApi.get('/fah/account-export').then((res) => res.data.csv);
+
+// ----------------------------------------------------------------------
+// Dimensions
+
+export const createPractice = (payload) => send('post', '/fah/practices', payload);
+export const updatePractice = (id, patch) => send('patch', `/fah/practices/${id}`, patch);
+export const createCostCentre = (payload) => send('post', '/fah/cost-centres', payload);
+export const updateCostCentre = (id, patch) => send('patch', `/fah/cost-centres/${id}`, patch);
+export const createEngagement = (payload) => send('post', '/fah/engagements', payload);
+export const updateEngagement = (id, patch) => send('patch', `/fah/engagements/${id}`, patch);
+
+export function useEmployeePractice(enabled = true) {
+  const { data, error, isLoading } = useSWR(
+    enabled ? ['/fah/employee-practice', {}] : null,
+    fetcher,
+    options
+  );
+  return { assignments: data?.assignments ?? EMPTY, error, loading: isLoading };
+}
+
+export const createEmployeePractice = (payload) => send('post', '/fah/employee-practice', payload);
+export const updateEmployeePractice = (id, patch) =>
+  send('patch', `/fah/employee-practice/${id}`, patch);
+
+/** ERP employees, read-only: [{ id, employeeCode, name, department, employmentStatus }] */
+export function useErpEmployees(enabled = true) {
+  const { data, error, isLoading } = useSWR(
+    enabled ? ['/fah/erp/employees', {}] : null,
+    fetcher,
+    options
+  );
+  return { employees: data?.employees ?? EMPTY, error, loading: isLoading };
+}
+
+/** ERP customers, read-only: [{ id, name }] */
+export function useErpCustomers(enabled = true) {
+  const { data, error, isLoading } = useSWR(
+    enabled ? ['/fah/erp/customers', {}] : null,
+    fetcher,
+    options
+  );
+  return { customers: data?.customers ?? EMPTY, error, loading: isLoading };
+}
+
+// ----------------------------------------------------------------------
+// Periods
+
+/** { periods: [... , journalCount], years } */
+export function usePeriods(legalEntityId, year) {
+  const { data, error, isLoading } = useSWR(
+    legalEntityId && year ? ['/fah/periods', { legalEntityId, year }] : null,
+    fetcher,
+    options
+  );
+  return {
+    periods: data?.periods ?? EMPTY,
+    years: data?.years ?? EMPTY,
+    error,
+    loading: isLoading,
+  };
+}
+
+export const setPeriodStatus = (id, status) =>
+  send('post', `/fah/periods/${id}/status`, { status });
+export const ensureFiscalYear = (legalEntityId, year) =>
+  send('post', '/fah/fiscal-years', { legalEntityId, year });
+
+// ----------------------------------------------------------------------
+// Exchange rates
+
+export function useRates(currency) {
+  const { data, error, isLoading } = useSWR(
+    ['/fah/rates', currency ? { currency } : {}],
+    fetcher,
+    options
+  );
+  return { rates: data?.rates ?? EMPTY, error, loading: isLoading };
+}
+
+export const createRate = (payload) => send('post', '/fah/rates', payload);
+
+// ----------------------------------------------------------------------
+// Finance roles
+
+export function useFahRoles(enabled = true) {
+  const { data, error, isLoading } = useSWR(enabled ? ['/fah/roles', {}] : null, fetcher, options);
+  return {
+    assignments: data?.assignments ?? EMPTY,
+    roles: data?.roles ?? EMPTY,
+    error,
+    loading: isLoading,
+  };
+}
+
+export const grantRole = (payload) => send('post', '/fah/roles', payload);
+export const revokeRole = (id) => send('delete', `/fah/roles/${id}`);
+
+// ----------------------------------------------------------------------
+// Reports
+
+/** params: { legalEntityId?, year, fromPeriod, toPeriod, by } */
+export function useTrialBalance(params, enabled = true) {
+  const { data, error, isLoading, isValidating } = useSWR(
+    enabled && params?.year ? ['/fah/trial-balance', params] : null,
+    fetcher,
+    options
+  );
+  return {
+    rows: data?.rows ?? EMPTY,
+    totals: data?.totals ?? null,
+    balanced: data?.balanced ?? true,
+    error,
+    loading: isLoading,
+    validating: isValidating,
+  };
+}
+
+export const trialBalanceCsv = (params) =>
+  iotaApi
+    .get('/fah/trial-balance', { params: { ...params, format: 'csv' } })
+    .then((res) => res.data.csv);
+
+/** GL inquiry over posted lines. */
+export function useLedger(params, enabled = true) {
+  const { data, error, isLoading, isValidating } = useSWR(
+    enabled ? ['/fah/ledger', params] : null,
+    fetcher,
+    options
+  );
+  return {
+    lines: data?.lines ?? EMPTY,
+    total: data?.total ?? 0,
+    error,
+    loading: isLoading,
+    validating: isValidating,
+  };
+}
+
+export function useFahAudit(params, enabled = true) {
+  const { data, error, isLoading } = useSWR(
+    enabled ? ['/fah/audit', params] : null,
+    fetcher,
+    options
+  );
+  return { entries: data?.entries ?? EMPTY, total: data?.total ?? 0, error, loading: isLoading };
+}
+
+/** { driftRows, applied }; apply (CFO) rebuilds the cache from the lines. */
+export const verifyBalances = (apply = false) => send('post', '/fah/balances/verify', { apply });
+
+// ----------------------------------------------------------------------
+// Files
+
+export function downloadText(text, fileName, type = 'text/csv;charset=utf-8') {
+  const url = URL.createObjectURL(new Blob([text], { type }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}

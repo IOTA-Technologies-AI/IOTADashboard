@@ -25,6 +25,23 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Finance → Accounting: the general ledger (Financial Accounting Hub,
+  phase 1).** A chart of accounts by class (assets 1000 to statistical 9000)
+  with the dimensions each account requires; a book per legal entity (KSA and
+  UAE active, India ready for when it bills), all in SAR; practices as revenue
+  centres, shared and practice cost centres, engagements, and employees by
+  practice. Journals are prepared, submitted, approved and posted with
+  segregation of duties (whoever prepares a journal cannot approve it;
+  SAR 50,000 and above needs a controller, SAR 500,000 and above also the CFO),
+  with an authenticator check to approve, post or reverse. Posted journals are
+  numbered without gaps per book and year (JNL-KSA-2026-000001), cannot be
+  edited, and are corrected by reversal. Also: opening balances and journal
+  lines imported from CSV, monthly periods opened and soft-closed per book,
+  exchange rates (USD and AED pegged), a trial balance per book or consolidated
+  (by account, practice or cost centre), general-ledger inquiry, and finance
+  roles (viewer, accountant, controller, CFO, practice lead, auditor) given in
+  Accounting → Access. English and Arabic labels. Invoicing, expenses, payroll,
+  VAT and banking are unchanged; their postings arrive in phase 2.
 - **One-page bilingual offer letter for signature.** New offers are signed on a
   one-page Employment Offer / عرض وظيفي, laid out like the iHR offer: an
   English | value | Arabic table (candidate, job title, probation, basic,
