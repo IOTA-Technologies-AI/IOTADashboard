@@ -1040,15 +1040,23 @@ export default function OfferManagementNewPage() {
                 fileName={`Offer_Letter_${formData.candidateName?.replace(/\s+/g, '_')}_${previewKind === 'one_page' ? 'draft' : 'GOSI_draft'}.pdf`}
                 style={{ textDecoration: 'none' }}
               >
-                {({ loading: pdfLoading }) => (
-                  <Button
-                    variant="contained"
-                    startIcon={<Iconify icon="eva:download-fill" />}
-                    disabled={pdfLoading}
-                  >
-                    {pdfLoading ? 'Generating...' : 'Download PDF'}
-                  </Button>
-                )}
+                {({ loading: pdfLoading, error: pdfError }) =>
+                  // The viewer below shows a blank page when the letter cannot
+                  // be laid out; this says why instead.
+                  pdfError ? (
+                    <Typography variant="body2" color="error.main" sx={{ maxWidth: 420 }}>
+                      The letter could not be generated: {pdfError.message || String(pdfError)}
+                    </Typography>
+                  ) : (
+                    <Button
+                      variant="contained"
+                      startIcon={<Iconify icon="eva:download-fill" />}
+                      disabled={pdfLoading}
+                    >
+                      {pdfLoading ? 'Generating...' : 'Download PDF'}
+                    </Button>
+                  )
+                }
               </PDFDownloadLink>
             )}
           </Box>

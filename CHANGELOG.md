@@ -33,7 +33,8 @@ is running.
   candidate acceptance, IOTA signatory) and bilingual instructions, on the
   IOTA letter template (US Letter, warm paper, the IOTA mark top-left and a
   short centred rule above the company details: three matched lines each in
-  English and Arabic — name, address, CR number). The
+  English and Arabic — name, address, CR number), with room to sign between
+  each name and its signature caption. The
   detailed offer letter is unchanged and kept for GOSI records: preview it
   from New Offer ("Detailed (GOSI)") or download it on the offer page.
   Offers created before this keep the detailed letter for signature, since
@@ -892,6 +893,14 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Offer letter preview no longer comes out blank in the browser.** An
+  earlier one-page letter used Arabic text that react-pdf's browser build
+  cannot lay out (a sentence ending in a full stop after "لا", and the
+  footer's "·" separator next to digits): it threw "undefined is not an
+  object (evaluating 'a.id')" and the viewer stayed empty. The current
+  letter avoids both, and was rendered in Chrome and Safari across validity
+  dates and Arabic names. If a letter ever cannot be generated, the preview
+  now says why next to the download button instead of showing a blank page.
 - **"Paste code" on the authenticator (TOTP) screen works on phones.** It now
   reads a code copied as rich text too, and if the phone refuses clipboard
   access it puts the cursor in the first box so the phone's own Paste is one

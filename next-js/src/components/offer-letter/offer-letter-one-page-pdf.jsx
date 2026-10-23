@@ -75,8 +75,8 @@ const s = StyleSheet.create({
   titleEn: { fontSize: 13.5, fontWeight: 700, textDecoration: 'underline', marginTop: 2 },
 
   table: { borderWidth: BORDER, borderColor: INK },
-  row: { flexDirection: 'row', minHeight: 25, borderTopWidth: BORDER, borderColor: INK },
-  cell: { justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 3 },
+  row: { flexDirection: 'row', minHeight: 23, borderTopWidth: BORDER, borderColor: INK },
+  cell: { justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 1.5 },
   labelEn: { width: '29%', alignItems: 'center' },
   value: {
     width: '42%',
@@ -95,7 +95,8 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
   },
   signTable: { borderWidth: BORDER, borderColor: INK, flexDirection: 'row' },
-  signCell: { padding: 8, minHeight: 84 },
+  // Tall enough to sign comfortably between the name and the caption.
+  signCell: { padding: 8, minHeight: 108 },
   signLabel: { fontSize: 9, color: MUTED },
   signLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
