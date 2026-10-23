@@ -40,8 +40,8 @@ import {
 
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
-import { OfferLetterPDF } from 'src/components/offer-letter';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
+import { OfferLetterPDF, OfferLetterOnePagePDF } from 'src/components/offer-letter';
 
 import { OfferClauses } from 'src/sections/offer/offer-clauses';
 import { SignatoryPicker } from 'src/sections/offer/signatory-picker';
@@ -96,6 +96,9 @@ function letterTermsFrom(data) {
     trainingCostRecovery: num(t.trainingCostRecovery) ?? 0,
     offerValidUntil: t.offerValidUntil || '',
     governmentId: (t.governmentId || '').trim(),
+    // New offers are signed on the one-page bilingual offer; the detailed
+    // letter is still generated for GOSI records.
+    letterFormat: 'one_page',
   };
 }
 
@@ -105,6 +108,8 @@ export default function OfferManagementNewPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  // The one-page offer is what the employee signs; the detailed letter is for GOSI.
+  const [previewKind, setPreviewKind] = useState('one_page');
   const [formData, setFormData] = useState(null);
 
   // IOTA Signatories
@@ -1010,11 +1015,29 @@ export default function OfferManagementNewPage() {
       <Dialog open={previewOpen} onClose={handleClosePreview} maxWidth="lg" fullWidth>
         <DialogTitle>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Typography variant="h6">Offer Letter Preview</Typography>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Typography variant="h6">Offer Letter Preview</Typography>
+              <ToggleButtonGroup
+                exclusive
+                size="small"
+                value={previewKind}
+                onChange={(e, v) => v && setPreviewKind(v)}
+              >
+                <ToggleButton value="one_page">For signature (one page)</ToggleButton>
+                <ToggleButton value="detailed">Detailed (GOSI)</ToggleButton>
+              </ToggleButtonGroup>
+            </Stack>
             {formData && (
               <PDFDownloadLink
-                document={<OfferLetterPDF offer={formData} />}
-                fileName={`Offer_Letter_${formData.candidateName?.replace(/\s+/g, '_')}_draft.pdf`}
+                key={previewKind}
+                document={
+                  previewKind === 'one_page' ? (
+                    <OfferLetterOnePagePDF offer={formData} />
+                  ) : (
+                    <OfferLetterPDF offer={formData} />
+                  )
+                }
+                fileName={`Offer_Letter_${formData.candidateName?.replace(/\s+/g, '_')}_${previewKind === 'one_page' ? 'draft' : 'GOSI_draft'}.pdf`}
                 style={{ textDecoration: 'none' }}
               >
                 {({ loading: pdfLoading }) => (
@@ -1033,8 +1056,12 @@ export default function OfferManagementNewPage() {
         <DialogContent>
           {formData && (
             <Box sx={{ height: '70vh', width: '100%' }}>
-              <PDFViewer width="100%" height="100%">
-                <OfferLetterPDF offer={formData} />
+              <PDFViewer key={previewKind} width="100%" height="100%">
+                {previewKind === 'one_page' ? (
+                  <OfferLetterOnePagePDF offer={formData} />
+                ) : (
+                  <OfferLetterPDF offer={formData} />
+                )}
               </PDFViewer>
             </Box>
           )}

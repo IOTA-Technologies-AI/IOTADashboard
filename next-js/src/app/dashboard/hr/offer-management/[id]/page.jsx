@@ -52,7 +52,7 @@ import { Iconify } from 'src/components/iconify';
 import { NdaSignatureCanvas } from 'src/components/nda';
 import { celebrate } from 'src/components/success-moment';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
-import { OfferLetterPDF } from 'src/components/offer-letter/offer-letter-pdf';
+import { OfferLetterPDF, SigningLetterPDF } from 'src/components/offer-letter';
 
 import { SignatureLog } from 'src/sections/signatures/signature-log';
 import { SignatoryPicker } from 'src/sections/offer/signatory-picker';
@@ -247,7 +247,7 @@ export default function OfferManagementDetailsPage({ params }) {
         return;
       }
       try {
-        const blob = await pdf(<OfferLetterPDF offer={offer} />).toBlob();
+        const blob = await pdf(<SigningLetterPDF offer={offer} />).toBlob();
         if (cancelled) return;
         const url = URL.createObjectURL(blob);
         setOfferPdfBlobUrl(url);
@@ -574,7 +574,7 @@ export default function OfferManagementDetailsPage({ params }) {
     if (offer.documentSource === 'uploaded') {
       fileBase64 = (await getOfferDocument(offer.id)).base64;
     } else {
-      const blob = await pdf(<OfferLetterPDF offer={offer} />).toBlob();
+      const blob = await pdf(<SigningLetterPDF offer={offer} />).toBlob();
       fileBase64 = uint8ToBase64(new Uint8Array(await blob.arrayBuffer()));
     }
 
@@ -606,6 +606,26 @@ export default function OfferManagementDetailsPage({ params }) {
       }));
     }
     return fileBase64;
+  };
+
+  /** The detailed letter, for GOSI records — not the one sent for signature. */
+  const [downloadingGosi, setDownloadingGosi] = useState(false);
+  const handleDownloadGosi = async () => {
+    try {
+      setDownloadingGosi(true);
+      const blob = await pdf(<OfferLetterPDF offer={offer} />).toBlob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${offer.contractNumber}-${offer.candidateName.replace(/\s+/g, '_')}_GOSI.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to generate the detailed letter');
+    } finally {
+      setDownloadingGosi(false);
+    }
   };
 
   const handleDownloadProcessed = async () => {
@@ -767,6 +787,19 @@ export default function OfferManagementDetailsPage({ params }) {
             >
               Download PDF
             </LoadingButton>
+            {offer.letterTerms?.letterFormat === 'one_page' && (
+              <Tooltip title="The full offer letter, for GOSI records. The one-page offer is what the employee signs.">
+                <LoadingButton
+                  variant="outlined"
+                  color="inherit"
+                  loading={downloadingGosi}
+                  startIcon={<Iconify icon="solar:file-text-bold" />}
+                  onClick={handleDownloadGosi}
+                >
+                  Detailed letter (GOSI)
+                </LoadingButton>
+              </Tooltip>
+            )}
             {offer.status === 'fully_signed' && (
               <LoadingButton
                 variant="contained"

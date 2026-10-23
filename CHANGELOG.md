@@ -25,6 +25,17 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **One-page bilingual offer letter for signature.** New offers are signed on a
+  one-page Employment Offer / عرض وظيفي, laid out like the iHR offer: an
+  English | value | Arabic table (candidate, job title, probation, basic,
+  housing and transport allowances, total monthly salary, annual vacation,
+  medical insurance, contract duration), a signature block (joining date,
+  candidate acceptance, IOTA signatory) and bilingual instructions. The
+  detailed offer letter is unchanged and kept for GOSI records: preview it
+  from New Offer ("Detailed (GOSI)") or download it on the offer page.
+  Offers created before this keep the detailed letter for signature, since
+  their signature zones were placed on it. Arabic wording needs HR/legal
+  sign-off before go-live.
 - **Files → Document Management: proposal document IDs and versions.** The
   File menu now has two pages, Business Files (the existing OneDrive browser)
   and Document Management. Every proposal is given a 12-character IOTA

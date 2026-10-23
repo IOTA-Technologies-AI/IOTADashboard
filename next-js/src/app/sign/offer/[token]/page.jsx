@@ -24,7 +24,7 @@ import { base64ToBlobUrl, getOfferDocumentByToken } from 'src/actions/offer-docu
 import { Iconify } from 'src/components/iconify';
 import { NdaSignatureCanvas } from 'src/components/nda';
 import { celebrate } from 'src/components/success-moment';
-import { OfferLetterPDF } from 'src/components/offer-letter/offer-letter-pdf';
+import { SigningLetterPDF } from 'src/components/offer-letter';
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -79,7 +79,7 @@ export default function SignOfferPage({ params }) {
         return;
       }
       try {
-        const blob = await pdf(<OfferLetterPDF offer={offer} />).toBlob();
+        const blob = await pdf(<SigningLetterPDF offer={offer} />).toBlob();
         if (cancelled) return;
         const url = URL.createObjectURL(blob);
         setOfferPdfBlobUrl(url);
