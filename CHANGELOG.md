@@ -30,7 +30,9 @@ is running.
   English | value | Arabic table (candidate, job title, probation, basic,
   housing and transport allowances, total monthly salary, annual vacation,
   medical insurance, contract duration), a signature block (joining date,
-  candidate acceptance, IOTA signatory) and bilingual instructions. The
+  candidate acceptance, IOTA signatory) and bilingual instructions, on the
+  IOTA letter template (US Letter, warm paper, the IOTA mark top-left and a
+  short centred rule above the company details). The
   detailed offer letter is unchanged and kept for GOSI records: preview it
   from New Offer ("Detailed (GOSI)") or download it on the offer page.
   Offers created before this keep the detailed letter for signature, since

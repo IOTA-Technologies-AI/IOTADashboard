@@ -31,7 +31,11 @@ Font.register({
 Font.registerHyphenationCallback((word) => [word]);
 
 const INK = '#141414';
-const BLUE = '#0067FF';
+// The IOTA letter template (IOTA Offer Letter Template.pdf, US Letter): warm
+// paper, the mark top-left and a short centred rule near the foot — the same
+// paper as the detailed letter (offer-letter-pdf.jsx).
+const PAPER = '#F1F0EE';
+const RULE = '#8A8A8A';
 const MUTED = '#5B5B5B';
 const BORDER = 1.4;
 
@@ -57,27 +61,26 @@ const s = StyleSheet.create({
     fontFamily: 'IBMPlexSansCondensed',
     fontSize: 10,
     color: INK,
-    paddingTop: 36,
-    paddingBottom: 96,
-    paddingHorizontal: 44,
+    backgroundColor: PAPER,
+    paddingTop: 58,
+    // Content may run to just above the template's rule (95pt from the foot).
+    paddingBottom: 104,
+    paddingHorizontal: 54,
   },
   ar: { fontFamily: 'Cairo', textAlign: 'right' },
   bold: { fontWeight: 700 },
 
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' },
-  brand: { flexDirection: 'row', alignItems: 'center' },
-  mark: { width: 16, height: 48, marginRight: 10 },
-  brandName: { fontSize: 15, fontWeight: 700, letterSpacing: 0.5 },
-  brandSub: { fontSize: 8, color: MUTED, letterSpacing: 1.5 },
+  mark: { width: 16, height: 50 },
   headerRight: { alignItems: 'flex-end' },
 
-  titles: { alignItems: 'center', marginTop: 22, marginBottom: 18 },
+  titles: { alignItems: 'center', marginTop: 4, marginBottom: 12 },
   titleAr: { fontFamily: 'Cairo', fontSize: 15, fontWeight: 700, textDecoration: 'underline' },
   titleEn: { fontSize: 13.5, fontWeight: 700, textDecoration: 'underline', marginTop: 2 },
 
   table: { borderWidth: BORDER, borderColor: INK },
-  row: { flexDirection: 'row', minHeight: 30, borderTopWidth: BORDER, borderColor: INK },
-  cell: { justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 5 },
+  row: { flexDirection: 'row', minHeight: 25, borderTopWidth: BORDER, borderColor: INK },
+  cell: { justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 3 },
   labelEn: { width: '29%', alignItems: 'center' },
   value: {
     width: '42%',
@@ -87,36 +90,43 @@ const s = StyleSheet.create({
     borderColor: INK,
   },
   labelAr: { width: '29%', alignItems: 'center' },
-  totalRow: { backgroundColor: '#F2F6FF' },
+  totalRow: { backgroundColor: '#E6E4DF' },
 
   pleaseSign: {
-    marginTop: 16,
+    marginTop: 10,
     marginBottom: 6,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   signTable: { borderWidth: BORDER, borderColor: INK, flexDirection: 'row' },
-  signCell: { padding: 8, minHeight: 92 },
+  signCell: { padding: 8, minHeight: 84 },
   signLabel: { fontSize: 9, color: MUTED },
   signLine: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 
-  instructions: { marginTop: 14 },
+  instructions: { marginTop: 10 },
   instrHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   instrRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 2 },
-  instrEn: { width: '49%', fontSize: 8.5, color: INK },
+  instrEn: { width: '49%', fontSize: 8.5, color: INK, lineHeight: 1.35 },
   instrArRow: { width: '49%', flexDirection: 'row', justifyContent: 'flex-end' },
-  instrArText: { fontSize: 8.5, fontFamily: 'Cairo', textAlign: 'right', flexShrink: 1 },
+  instrArText: {
+    fontSize: 8.5,
+    fontFamily: 'Cairo',
+    textAlign: 'right',
+    flexShrink: 1,
+    lineHeight: 1.35,
+  },
   instrArNum: { fontSize: 8.5, fontFamily: 'Cairo', marginLeft: 4 },
 
-  footer: {
+  // The template's rule: centred, 244pt wide, 95pt from the foot.
+  rule: {
     position: 'absolute',
-    bottom: 28,
-    left: 44,
-    right: 44,
-    paddingTop: 7,
-    borderTopWidth: 1,
-    borderColor: '#D0D0D0',
+    bottom: 95,
+    left: 184,
+    width: 244,
+    borderBottomWidth: 1.2,
+    borderBottomColor: RULE,
   },
+  footer: { position: 'absolute', bottom: 34, left: 54, right: 54 },
   footRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   footEn: { fontSize: 7.5, color: MUTED },
   footAr: { fontSize: 7.5, color: MUTED, fontFamily: 'Cairo', textAlign: 'right' },
@@ -203,16 +213,10 @@ export function OfferLetterOnePagePDF({ offer, data }) {
       author="IOTA Technologies"
       subject={d.documentNumber ? `Document ${d.documentNumber}` : 'Employment Offer'}
     >
-      <Page size="A4" style={s.page}>
+      <Page size="LETTER" style={s.page}>
         {/* Header */}
         <View style={s.header}>
-          <View style={s.brand}>
-            <Image src="/logo/iota-mark.png" style={s.mark} />
-            <View>
-              <Text style={[s.brandName, { color: BLUE }]}>IOTA</Text>
-              <Text style={s.brandSub}>TECHNOLOGIES</Text>
-            </View>
-          </View>
+          <Image src="/logo/iota-mark.png" style={s.mark} />
           <View style={s.headerRight}>
             <Text style={s.bold}>Date: {dmy(d.issuedAt)}</Text>
             {d.documentNumber ? (
@@ -299,7 +303,9 @@ export function OfferLetterOnePagePDF({ offer, data }) {
           ))}
         </View>
 
-        {/* Company — each address on its own full-width line, so neither wraps. */}
+        {/* The template's rule, then the company — each address on its own
+            full-width line, so neither wraps. */}
+        <View style={s.rule} fixed />
         <View style={s.footer} fixed>
           <View style={s.footRow}>
             <Text style={[s.footEn, s.bold]}>
