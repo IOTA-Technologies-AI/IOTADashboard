@@ -756,6 +756,9 @@ is running.
   to the API; they previously called it anonymously.
 
 ### Changed
+- **Sign-in page: the template's JWT, Firebase, Amplify, Auth0 and Supabase
+  logos are gone.** IOTA signs in with Microsoft only; the logos were left
+  over from the Minimal template and suggested other ways in.
 - **NDA page: actions no longer float over the page.** The floating "Actions"
   panel covered buttons and content on the right of the NDA page. Actions
   now sit in two places. The title row has the one action the NDA needs now
