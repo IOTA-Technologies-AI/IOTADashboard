@@ -230,8 +230,8 @@ function Overview({ me }) {
 
       <Alert severity="info" component={m.div} variants={varFade('inUp')}>
         {t(
-          'overview.phase',
-          'Phase 1: the ledger, manual journals, opening balances and the trial balance. Journals from invoices, expenses, payroll and banking arrive in Phase 2, without changing those modules.'
+          'overview.phase2',
+          'Invoices, expenses, payroll, wallets, bank lines, VAT and commissions post here automatically within a minute of being approved in the ERP; see ERP Postings for anything that needs attention. Those modules work exactly as before.'
         )}
       </Alert>
 

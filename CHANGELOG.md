@@ -25,6 +25,27 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Accounting: the ERP posts to the general ledger by itself (Financial
+  Accounting Hub, phase 2).** Within a minute of an invoice being approved or
+  paid, an expense approved, an AP bill paid, a payroll run approved or
+  processed, a wallet topped up, a bank statement imported, VAT posted or a
+  commission completed, the matching journal is in the ledger; an amended,
+  unapproved or deleted record is reversed and reposted. Nothing changes in
+  those modules. New screens:
+  - **ERP Postings**: every event and its journal, with retry and ignore for
+    the few that need attention; the tagging queue for revenue and costs
+    without a practice; customer default practices; the accounts each posting
+    rule uses; expense and invoice type mappings; and a one-time backfill that
+    loads everything since 1 January 2025 into its own months.
+  - **Reconciliation**: each control account (receivables, payables, employee
+    reimbursements, wallets, payroll, VAT, banks, commissions) against the
+    ERP, and the ledger P&L bridged to the existing P&L report.
+  - **Reimbursements**: what is owed to each employee for out-of-pocket
+    expenses, and recording a cash or bank reimbursement.
+  - Invoice and expense pages show "Posted to GL" with a link to the journal,
+    and let finance set the practice.
+  - Periods: a reviewed month of history can be soft-closed without opening
+    it, and all history up to a date in one step.
 - **Finance → Accounting: the general ledger (Financial Accounting Hub,
   phase 1).** A chart of accounts by class (assets 1000 to statistical 9000)
   with the dimensions each account requires; a book per legal entity (KSA and

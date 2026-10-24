@@ -7,6 +7,8 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { EditAuditTimeline } from 'src/components/edit-audit';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
+import { FahGlChip } from 'src/sections/fah/fah-gl-chip';
+
 import { ExpenseDetails } from '../expense-details';
 
 // ----------------------------------------------------------------------
@@ -21,6 +23,7 @@ export function ExpenseDetailsView({ expense }) {
           { name: 'Expense', href: paths.dashboard.expense.root },
           { name: expense?.expenseTypeDesc || 'Details' },
         ]}
+        action={<FahGlChip sourceTable="expenses" sourceId={expense?.referenceId} />}
         sx={{ mb: { xs: 3, md: 5 } }}
       />
 
@@ -28,11 +31,7 @@ export function ExpenseDetailsView({ expense }) {
 
       {/* Only rendered once this expense has actually been edited under
           Record Edit Mode — otherwise it stays out of the way. */}
-      <EditAuditTimeline
-        entityType="expense"
-        entityId={expense?.referenceId}
-        sx={{ mt: 3 }}
-      />
+      <EditAuditTimeline entityType="expense" entityId={expense?.referenceId} sx={{ mt: 3 }} />
     </DashboardContent>
   );
 }

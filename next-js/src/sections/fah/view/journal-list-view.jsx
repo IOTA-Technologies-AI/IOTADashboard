@@ -257,7 +257,7 @@ function JournalList() {
           title={t('journals.empty', 'No journals here yet')}
           description={t(
             'journals.emptyHelp',
-            'Manual journals, opening balances and reversals appear here. Journals from invoices, expenses and payroll arrive in the next phase.'
+            'Manual journals, opening balances, reversals and the journals posted from the ERP appear here.'
           )}
           sx={{ py: 8 }}
         />

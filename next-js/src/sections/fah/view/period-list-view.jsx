@@ -24,6 +24,7 @@ import {
   useFahCatalog,
   setPeriodStatus,
   ensureFiscalYear,
+  softCloseHistory,
 } from 'src/actions/fah';
 
 import { Label } from 'src/components/label';
@@ -38,9 +39,21 @@ import { useFahT, FahGate } from '../fah-gate';
 
 // ----------------------------------------------------------------------
 
-/** The moves a controller can make from each status (Phase 1: no hard close). */
+/**
+ * The moves a controller can make from each status (hard close arrives with
+ * the period close). A future month can be soft-closed directly: that is how
+ * reviewed, backfilled history is closed without opening it.
+ */
 const MOVES = {
-  FUTURE: [{ to: 'OPEN', key: 'open', label: 'Open', icon: 'solar:check-circle-bold' }],
+  FUTURE: [
+    { to: 'OPEN', key: 'open', label: 'Open', icon: 'solar:check-circle-bold' },
+    {
+      to: 'SOFT_CLOSED',
+      key: 'softClose',
+      label: 'Soft-close',
+      icon: 'solar:lock-password-outline',
+    },
+  ],
   OPEN: [
     {
       to: 'SOFT_CLOSED',
@@ -99,6 +112,8 @@ function PeriodBoard({ me }) {
   const [pending, setPending] = useState(null); // { period, move }
   const [busy, setBusy] = useState(false);
   const [addingYear, setAddingYear] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyUpTo, setHistoryUpTo] = useState('');
 
   useEffect(() => {
     if (!bookId && books.length) setBookId(books[0].id);
@@ -129,6 +144,19 @@ function PeriodBoard({ me }) {
         })
       );
       setPending(null);
+    } catch (err) {
+      toast.error(fahError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleSoftCloseHistory = async () => {
+    setBusy(true);
+    try {
+      const { closed } = await softCloseHistory(bookId, historyUpTo);
+      toast.success(t('periods.historyClosed', '{{n}} months soft-closed', { n: closed }));
+      setHistoryOpen(false);
     } catch (err) {
       toast.error(fahError(err));
     } finally {
@@ -203,6 +231,23 @@ function PeriodBoard({ me }) {
           </Typography>
 
           {me.canControl && (
+            <Button
+              variant="outlined"
+              color="inherit"
+              disabled={!bookId}
+              startIcon={<Iconify icon="solar:lock-password-outline" />}
+              onClick={() => {
+                const d = new Date();
+                d.setDate(0);
+                setHistoryUpTo(d.toISOString().slice(0, 10));
+                setHistoryOpen(true);
+              }}
+            >
+              {t('periods.closeHistory', 'Soft-close history')}
+            </Button>
+          )}
+
+          {me.canControl && (
             <LoadingButton
               variant="outlined"
               color="inherit"
@@ -250,6 +295,40 @@ function PeriodBoard({ me }) {
           />
         ))}
       </Box>
+
+      <ConfirmDialog
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        title={t('periods.closeHistoryTitle', 'Soft-close reviewed history')}
+        content={
+          <Stack spacing={2} sx={{ pt: 1 }}>
+            <Typography variant="body2" color="text.secondary">
+              {t(
+                'periods.closeHistoryHelp',
+                'Every future or open month of this book that ends on or before the date becomes soft-closed. The posting engine and accountants can still post to soft-closed months; nothing else changes. Use it once the backfilled months are reviewed.'
+              )}
+            </Typography>
+            <TextField
+              size="small"
+              type="date"
+              label={t('periods.upTo', 'Up to')}
+              value={historyUpTo}
+              onChange={(e) => setHistoryUpTo(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Stack>
+        }
+        action={
+          <LoadingButton
+            variant="contained"
+            loading={busy}
+            disabled={!historyUpTo}
+            onClick={handleSoftCloseHistory}
+          >
+            {t('periods.closeHistory', 'Soft-close history')}
+          </LoadingButton>
+        }
+      />
 
       <ConfirmDialog
         open={!!pending}

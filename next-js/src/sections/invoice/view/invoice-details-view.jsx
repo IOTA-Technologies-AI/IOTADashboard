@@ -7,6 +7,8 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { EditAuditTimeline } from 'src/components/edit-audit';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
+import { FahGlChip } from 'src/sections/fah/fah-gl-chip';
+
 import { InvoiceDetails } from '../invoice-details';
 
 // ----------------------------------------------------------------------
@@ -22,6 +24,7 @@ export function InvoiceDetailsView({ invoice }) {
           { name: 'Invoice', href: paths.dashboard.invoice.root },
           { name: invoice?.invoiceNumber },
         ]}
+        action={<FahGlChip sourceTable="invoices" sourceId={invoice?.id} />}
         sx={{ mb: 3 }}
       />
 

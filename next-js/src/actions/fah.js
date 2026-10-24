@@ -287,3 +287,158 @@ export function downloadText(text, fileName, type = 'text/csv;charset=utf-8') {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+
+// ----------------------------------------------------------------------
+// Phase 2: ERP postings (events, exceptions, rules, backfill, tagging)
+
+/** params: { status?: 'PROBLEMS'|status, sourceTable?, eventType?, offset, limit } */
+export function useFahEvents(params, enabled = true) {
+  const { data, error, isLoading, isValidating } = useSWR(
+    enabled ? ['/fah/events', params] : null,
+    fetcher,
+    options
+  );
+  return {
+    events: data?.events ?? EMPTY,
+    total: data?.total ?? 0,
+    counts: data?.counts ?? EMPTY,
+    error,
+    loading: isLoading,
+    validating: isValidating,
+  };
+}
+
+/** { event, snapshot, payload, simulation, journals } */
+export function useFahEvent(id) {
+  const { data, error, isLoading } = useSWR(
+    id ? [`/fah/events/${id}`, {}] : null,
+    fetcher,
+    options
+  );
+  return { detail: data ?? null, error, loading: isLoading };
+}
+
+export const retryEvent = (id) => send('post', `/fah/events/${id}/retry`, {});
+export const ignoreEvent = (id, reason) => send('post', `/fah/events/${id}/ignore`, { reason });
+/** { processed, posted, ignored, waiting, failed, superseded } */
+export const runEngine = (untilDone = false) => send('post', '/fah/engine/run', { untilDone });
+
+export function usePostingRules() {
+  const { data, error, isLoading } = useSWR(['/fah/posting-rules', {}], fetcher, options);
+  return { rules: data?.rules ?? EMPTY, error, loading: isLoading };
+}
+export const updatePostingRule = (eventType, patch) =>
+  send('patch', `/fah/posting-rules/${eventType}`, patch);
+
+/** { invoiceTypes, expenseTypes, unmappedExpenseTypes, unmappedInvoiceTypes } */
+export function useTypeMaps(enabled = true) {
+  const { data, error, isLoading } = useSWR(
+    enabled ? ['/fah/type-maps', {}] : null,
+    fetcher,
+    options
+  );
+  return {
+    invoiceTypes: data?.invoiceTypes ?? EMPTY,
+    expenseTypes: data?.expenseTypes ?? EMPTY,
+    unmappedExpenseTypes: data?.unmappedExpenseTypes ?? EMPTY,
+    unmappedInvoiceTypes: data?.unmappedInvoiceTypes ?? EMPTY,
+    error,
+    loading: isLoading,
+  };
+}
+export const saveExpenseTypeMap = (id, body) => send('put', `/fah/type-maps/expense/${id}`, body);
+export const saveInvoiceTypeMap = (id, body) => send('put', `/fah/type-maps/invoice/${id}`, body);
+
+/** dryRun true counts only (controller); false queues and posts (CFO). */
+export const backfill = (from, dryRun = true) => send('post', '/fah/backfill', { from, dryRun });
+
+/** params: { review?, sourceTable?, offset, limit } */
+export function useFahTags(params, enabled = true) {
+  const { data, error, isLoading, isValidating } = useSWR(
+    enabled ? ['/fah/tags', params] : null,
+    fetcher,
+    options
+  );
+  return {
+    tags: data?.tags ?? EMPTY,
+    total: data?.total ?? 0,
+    error,
+    loading: isLoading,
+    validating: isValidating,
+  };
+}
+/** Tag an invoice/expense/payroll run by hand; it is reposted if already posted. */
+export const setTag = (payload) => send('put', '/fah/tags', payload);
+
+export function useCustomerDefaults(enabled = true) {
+  const { data, error, isLoading } = useSWR(
+    enabled ? ['/fah/customer-defaults', {}] : null,
+    fetcher,
+    options
+  );
+  return { defaults: data?.defaults ?? EMPTY, error, loading: isLoading };
+}
+export const setCustomerDefault = (customerId, body) =>
+  send('put', `/fah/customer-defaults/${customerId}`, body);
+export const deleteCustomerDefault = (customerId) =>
+  send('delete', `/fah/customer-defaults/${customerId}`);
+
+/** The ledger side of one ERP row: { journals, tag, pending, problems }. */
+export function useSourceLedger(sourceTable, sourceId, enabled = true) {
+  const { data, error, isLoading } = useSWR(
+    enabled && sourceTable && sourceId ? [`/fah/sources/${sourceTable}/${sourceId}`, {}] : null,
+    fetcher,
+    options
+  );
+  return { ledger: data ?? null, error, loading: isLoading };
+}
+
+// Reimbursements (D-17)
+export function useReimbursementsOwed(enabled = true) {
+  const { data, error, isLoading } = useSWR(
+    enabled ? ['/fah/reimbursements/owed', {}] : null,
+    fetcher,
+    options
+  );
+  return { employees: data?.employees ?? EMPTY, error, loading: isLoading };
+}
+export function useReimbursements(enabled = true) {
+  const { data, error, isLoading } = useSWR(
+    enabled ? ['/fah/reimbursements', {}] : null,
+    fetcher,
+    options
+  );
+  return { reimbursements: data?.reimbursements ?? EMPTY, error, loading: isLoading };
+}
+/** { reimbursement, problems } */
+export const recordReimbursement = (payload) => send('post', '/fah/reimbursements', payload);
+
+// Reconciliations
+/** { cutover, rows: [{ key, accounts, label, gl, erp, difference, note }] } */
+export function useReconciliation(enabled = true) {
+  const { data, error, isLoading, isValidating } = useSWR(
+    enabled ? ['/fah/reconciliation', {}] : null,
+    fetcher,
+    options
+  );
+  return {
+    cutover: data?.cutover ?? null,
+    rows: data?.rows ?? EMPTY,
+    error,
+    loading: isLoading,
+    validating: isValidating,
+  };
+}
+/** { year, sections: [{ key, label, erp, bridge: [{label, amount}], expectedGl, gl, unexplained }] } */
+export function usePlBridge(year, enabled = true) {
+  const { data, error, isLoading } = useSWR(
+    enabled && year ? ['/fah/pl-bridge', { year }] : null,
+    fetcher,
+    options
+  );
+  return { sections: data?.sections ?? EMPTY, error, loading: isLoading };
+}
+
+/** Soft-close every future or open month of a book up to a date (reviewed history). */
+export const softCloseHistory = (legalEntityId, upTo) =>
+  send('post', '/fah/periods/soft-close-history', { legalEntityId, upTo });
