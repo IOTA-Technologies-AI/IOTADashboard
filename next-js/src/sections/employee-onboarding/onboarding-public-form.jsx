@@ -1516,8 +1516,8 @@ export function OnboardingPublicForm() {
         </Typography>
         <Typography variant="body2" color="text.secondary">
           Please contact{' '}
-          <a href="mailto:hr@iotatechnologies.io" style={{ color: '#1a237e' }}>
-            hr@iotatechnologies.io
+          <a href="mailto:hr@iotatechnologies.ai" style={{ color: '#1a237e' }}>
+            hr@iotatechnologies.ai
           </a>{' '}
           if you believe this is an error.
         </Typography>
@@ -1534,8 +1534,8 @@ export function OnboardingPublicForm() {
         </Typography>
         <Typography variant="body1" color="text.secondary">
           Your onboarding form has already been submitted using this link. Please contact{' '}
-          <a href="mailto:hr@iotatechnologies.io" style={{ color: '#1a237e' }}>
-            hr@iotatechnologies.io
+          <a href="mailto:hr@iotatechnologies.ai" style={{ color: '#1a237e' }}>
+            hr@iotatechnologies.ai
           </a>{' '}
           if you need to change anything.
         </Typography>

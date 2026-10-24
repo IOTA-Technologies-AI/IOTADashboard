@@ -1035,8 +1035,8 @@ export default function CandidateIntakePage() {
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Please contact{' '}
-            <a href="mailto:hr@iotatechnologies.io" style={{ color: '#1a237e' }}>
-              hr@iotatechnologies.io
+            <a href="mailto:hr@iotatechnologies.ai" style={{ color: '#1a237e' }}>
+              hr@iotatechnologies.ai
             </a>{' '}
             if you believe this is an error.
           </Typography>
@@ -1065,8 +1065,8 @@ export default function CandidateIntakePage() {
           <Typography variant="body1" color="text.secondary">
             Your information has already been submitted using this link. Each link can only be used
             once. Please contact{' '}
-            <a href="mailto:hr@iotatechnologies.io" style={{ color: '#1a237e' }}>
-              hr@iotatechnologies.io
+            <a href="mailto:hr@iotatechnologies.ai" style={{ color: '#1a237e' }}>
+              hr@iotatechnologies.ai
             </a>{' '}
             if you need to make any changes.
           </Typography>

@@ -185,9 +185,9 @@ export default function CandidateIntakePage() {
   const createdBy = (() => {
     try {
       const u = JSON.parse(localStorage.getItem('user') || '{}');
-      return u.email || 'hr@iotatechnologies.io';
+      return u.email || 'hr@iotatechnologies.ai';
     } catch {
-      return 'hr@iotatechnologies.io';
+      return 'hr@iotatechnologies.ai';
     }
   })();
 

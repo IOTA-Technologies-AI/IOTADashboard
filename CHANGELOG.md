@@ -963,6 +963,11 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Candidates and employees are pointed to hr@iotatechnologies.ai.** Offer,
+  signing, candidate intake and onboarding pages and emails gave
+  hr@iotatechnologies.io. The documents site's fallback page now gives
+  accounts@iotatechnologies.ai, and an address it doesn't serve shows
+  "Document Not Found" instead of claiming the document expired.
 - **Offer letter preview no longer comes out blank in the browser.** An
   earlier one-page letter used Arabic text that react-pdf's browser build
   cannot lay out (a sentence ending in a full stop after "لا", and the
