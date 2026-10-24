@@ -1,0 +1,7 @@
+# Reviewed false positives (fingerprint = file:rule:line, as gitleaks prints it).
+# A fingerprint stops matching if its line moves; re-check and update it then.
+
+# Placeholder in an example curl command: "apikey: your-supabase-key".
+SECURITY_ANALYSIS.md:curl-auth-header:99
+# Made-up JWT ({"sub":"1234567890"}) used to test that issue reports redact tokens.
+next-js/src/utils/diagnostics-recorder.test.js:jwt:7
