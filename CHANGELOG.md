@@ -25,6 +25,12 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Candidates can sign their offer on their phone.** On a computer, the
+  signing page on docs.iotatechnologies.io offers "Sign on my phone": a QR code
+  opens the phone signing page, the candidate draws there, and the signature
+  comes back to the computer to check before signing — as IOTA signatories
+  and NDA partners already could. Starting it needs the candidate's
+  emailed-code session, like signing itself.
 - **Named people can approve offer letters at the manager stage.** Besides
   managers, anyone on appConfig offers › managerApprovers (initially Mohammed
   Zakiuddin and Jaffar Meeran) can approve or reject an offer waiting for
