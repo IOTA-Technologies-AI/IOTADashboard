@@ -47,6 +47,7 @@ import {
 } from 'src/utils/apiHelper';
 
 import { DashboardContent } from 'src/layouts/dashboard';
+import { useManagerApprovers } from 'src/actions/offer-settings';
 import {
   base64ToBlobUrl,
   getOfferDocument,
@@ -222,11 +223,15 @@ export default function OfferManagementDetailsPage({ params }) {
     offer?.status === 'pending_employee_signature' &&
     !offer?.employeeSignedAt;
 
+  // People on appConfig offers › managerApprovers can act at the manager stage too.
+  // The API re-checks the stage and the caller.
+  const { isApprover: isManagerApprover } = useManagerApprovers();
   const canAct =
     offer?.status === 'pending_approval' &&
     offer?.currentApprovalStage &&
     (offer.currentApprovalStage === user?.role ||
-      (offer.currentApprovalStage === 'admin' && user?.role === 'superAdmin'));
+      (offer.currentApprovalStage === 'admin' && user?.role === 'superAdmin') ||
+      (offer.currentApprovalStage === 'manager' && isManagerApprover));
 
   // A super admin can send an IOTA signature back until the employee has signed.
   // The API re-checks both the role and the state.

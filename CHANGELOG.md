@@ -25,6 +25,13 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Named people can approve offer letters at the manager stage.** Besides
+  managers, anyone on appConfig offers › managerApprovers (initially Mohammed
+  Zakiuddin and Jaffar Meeran) can approve or reject an offer waiting for
+  manager approval, and is emailed when one arrives. Their approval completes
+  the manager step; the offer still goes on to admin approval. The API now
+  checks who is approving or rejecting at each stage, instead of trusting the
+  page to hide the buttons.
 - **Candidates sign on docs.iotatechnologies.io, with a code and a way to ask.**
   The signing link now opens on the documents site, not the dashboard (old
   dashboard links forward there). Before the offer opens, a 6-digit code is

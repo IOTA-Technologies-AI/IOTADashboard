@@ -21,6 +21,20 @@ export function useOfferSignatories() {
   };
 }
 
+/**
+ * Who may approve at the manager stage besides managers (appConfig offers ›
+ * managerApprovers), and whether the signed-in user is one of them.
+ */
+export function useManagerApprovers() {
+  const { data, error, isLoading } = useSWR('/offers/manager-approvers', fetcher, options);
+  return {
+    approvers: data?.approvers ?? [],
+    isApprover: !!data?.isApprover,
+    error,
+    loading: isLoading,
+  };
+}
+
 /** Clauses saved for reuse on any offer. */
 export function useSavedClauses() {
   const { data, error, isLoading } = useSWR('/offers/clause-library', fetcher, options);
