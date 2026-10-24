@@ -179,7 +179,39 @@ function Row({ en, ar, value, highlight }) {
   );
 }
 
-export function OfferLetterOnePagePDF({ offer, data }) {
+/** A drawn signature in its box, with the date it was given. */
+function SignatureMark({ sig }) {
+  // Drawn inside the signing space, so the page never grows.
+  return (
+    <View style={{ flexGrow: 1 }}>
+      {sig?.data && (
+        <Image
+          src={sig.data}
+          style={{
+            position: 'absolute',
+            top: 2,
+            left: 0,
+            height: 34,
+            width: 110,
+            objectFit: 'contain',
+          }}
+        />
+      )}
+      {sig?.date && (
+        <Text style={{ position: 'absolute', top: 14, left: 114, fontSize: 6.5, color: '#555555' }}>
+          {sig.date}
+        </Text>
+      )}
+    </View>
+  );
+}
+
+/**
+ * The bilingual one-page offer. `signatures` ({ employee, iota }: { data,
+ * name, date }) draws the signatures into the signature block, for the copy
+ * that is filed once everyone has signed.
+ */
+export function OfferLetterOnePagePDF({ offer, data, signatures }) {
   const d = letterDataFromOffer(offer || data);
   const cur = d.currency;
   const days = validityDays(d.issuedAt, d.offerValidUntil);
@@ -270,7 +302,7 @@ export function OfferLetterOnePagePDF({ offer, data }) {
               <Text style={[s.ar, s.bold]}>قبلت العرض أعلاه</Text>
             </View>
             <Text style={{ fontSize: 9, marginTop: 2 }}>{d.name}</Text>
-            <View style={{ flexGrow: 1 }} />
+            <SignatureMark sig={signatures?.employee} />
             <View style={s.signLine}>
               <Text style={s.signLabel}>Candidate Signature</Text>
               <Text style={[s.ar, s.signLabel]}>توقيع المرشح</Text>
@@ -281,8 +313,10 @@ export function OfferLetterOnePagePDF({ offer, data }) {
               <Text style={s.bold}>For IOTA</Text>
               <Text style={[s.ar, s.bold]}>عن الشركة</Text>
             </View>
-            <Text style={{ fontSize: 9, marginTop: 2 }}>{d.signatoryName}</Text>
-            <View style={{ flexGrow: 1 }} />
+            <Text style={{ fontSize: 9, marginTop: 2 }}>
+              {signatures?.iota?.name || d.signatoryName}
+            </Text>
+            <SignatureMark sig={signatures?.iota} />
             <View style={s.signLine}>
               <Text style={s.signLabel}>Authorised Signatory</Text>
               <Text style={[s.ar, s.signLabel]}>المفوض بالتوقيع</Text>

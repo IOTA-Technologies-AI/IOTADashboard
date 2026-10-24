@@ -67,9 +67,6 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
   },
   mark: { width: 14, height: 42 },
-  contact: { fontSize: 8.5, lineHeight: 1.9 },
-  contactRow: { flexDirection: 'row' },
-  contactKey: { width: 12 },
   footerRule: {
     position: 'absolute',
     bottom: 38,
@@ -120,22 +117,11 @@ const s = StyleSheet.create({
   backValue: { fontSize: 14, fontWeight: 600 },
 });
 
+/** The mark on every page after the cover; the office contact details are on the cover's footer only. */
 function Header() {
   return (
     <View style={s.header} fixed>
       <Image src="/logo/iota-mark.png" style={s.mark} />
-      <View style={s.contact}>
-        {[
-          ['P.', OFFICE.phone],
-          ['E.', OFFICE.email],
-          ['A.', OFFICE.address],
-        ].map(([k, v]) => (
-          <View key={k} style={s.contactRow}>
-            <Text style={s.contactKey}>{k}</Text>
-            <Text>{v}</Text>
-          </View>
-        ))}
-      </View>
     </View>
   );
 }
@@ -165,7 +151,22 @@ function Section({ n, title, children, wrap = true }) {
 
 // ----------------------------------------------------------------------
 
-export function OfferLetterPDF({ offer, data }) {
+/** A drawn signature on the acceptance page, or the line to sign on. */
+function SignedLine({ sig }) {
+  if (!sig?.data) return <Text style={s.signCol}>SIGNED _______________________________</Text>;
+  return (
+    <View style={{ ...s.signCol, flexDirection: 'row', alignItems: 'flex-end' }}>
+      <Text>SIGNED </Text>
+      <Image src={sig.data} style={{ height: 34, width: 140, objectFit: 'contain' }} />
+    </View>
+  );
+}
+
+/**
+ * The detailed letter. `signatures` ({ employee, iota }: { data, name, date })
+ * fills the acceptance page, for the copy filed once everyone has signed.
+ */
+export function OfferLetterPDF({ offer, data, signatures }) {
   const d = letterDataFromOffer(offer || data);
   const customer = d.client ? 'the Customer' : null;
   const cur = d.currency;
@@ -665,10 +666,10 @@ export function OfferLetterPDF({ offer, data }) {
         </Text>
         <View style={s.acceptRule} />
         {[
-          ['Date', ''],
+          ['Date', signatures?.iota?.date || signatures?.employee?.date || ''],
           ['Contract No.', d.documentNumber, true],
           ['Between', `IOTA Technologies and\n${d.name}`, true],
-          ['Authorised Signatory of IOTA Technologies', ''],
+          ['Authorised Signatory of IOTA Technologies', signatures?.iota?.name || ''],
           [
             'Passport / Government Doc #',
             [d.passportNumber, d.governmentId].filter(Boolean).join(' / '),
@@ -684,22 +685,26 @@ export function OfferLetterPDF({ offer, data }) {
           <Text style={s.aVal}>{d.name.toUpperCase()}</Text>
         </View>
         <View style={s.signRow}>
-          <Text style={s.signCol}>SIGNED _______________________________</Text>
-          <Text style={s.signCol}>SIGNED _______________________________</Text>
+          <SignedLine sig={signatures?.iota} />
+          <SignedLine sig={signatures?.employee} />
         </View>
-        <View style={{ ...s.signRow, marginTop: 34 }}>
+        <View style={{ ...s.signRow, marginTop: signatures ? 22 : 34 }}>
           <View style={s.signCol}>
-            <Text>NAME: ________________________________</Text>
+            <Text>NAME: {signatures?.iota?.name || '________________________________'}</Text>
             <Text>(for and on behalf of IOTA Technologies)</Text>
           </View>
           <View style={s.signCol}>
-            <Text>NAME: ________________________________</Text>
+            <Text>NAME: {signatures?.employee?.name || '________________________________'}</Text>
             <Text>(Employee)</Text>
           </View>
         </View>
-        <View style={{ ...s.signRow, marginTop: 34 }}>
-          <Text style={s.signCol}>DATE: __________________________________</Text>
-          <Text style={s.signCol}>DATE: __________________________________</Text>
+        <View style={{ ...s.signRow, marginTop: signatures ? 22 : 34 }}>
+          <Text style={s.signCol}>
+            DATE: {signatures?.iota?.date || '__________________________________'}
+          </Text>
+          <Text style={s.signCol}>
+            DATE: {signatures?.employee?.date || '__________________________________'}
+          </Text>
         </View>
       </Section>
 

@@ -25,6 +25,28 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Candidates sign on docs.iotatechnologies.io, with a code and a way to ask.**
+  The signing link now opens on the documents site, not the dashboard (old
+  dashboard links forward there). Before the offer opens, a 6-digit code is
+  emailed to the candidate (10 minutes, five tries; the session lasts two
+  hours). On the page they can ask a question about their offer: it is emailed
+  to the recipients in appConfig (offers › queryRecipients, default
+  hr@iotatechnologies.ai) and the offer's creator, and signing waits until
+  someone replies from the offer page. Admins can amend an offer still waiting
+  for the candidate: it goes back to draft, the link is withdrawn, it is edited
+  and approved again, then sent again. The signing link lasts 30 days
+  (offers › signingLinkDays). Saved clauses can be tagged by nationality,
+  country of work and contract type, and matching ones are suggested on new
+  offers; clauses print in the detailed letter only.
+- **Offer signing: the employee signs first, on one letter or both.** When
+  sending an offer for signature, HR ticks the one-page offer, the detailed
+  letter, or both. The employee is emailed first and signs once for every
+  letter chosen; IOTA's signatories are then emailed in order. When the last
+  IOTA signature is given, each signed letter is filed in Document Management
+  on its own document ID, its first page stamped with the classification
+  (Confidential) and the ID, and kept in OneDrive; the offer links to them.
+  Signatures are drawn into each letter's signature block. Offers already on
+  their way under the old order finish the old way.
 - **Accounting: the ERP posts to the general ledger by itself (Financial
   Accounting Hub, phase 2).** Within a minute of an invoice being approved or
   paid, an expense approved, an AP bill paid, a payroll run approved or
@@ -811,6 +833,9 @@ is running.
   to the API; they previously called it anonymously.
 
 ### Changed
+- **Detailed offer letter: contact details on the cover only.** The office phone,
+  e-mail and address now appear once, in the cover page footer; the following
+  pages keep only the IOTA mark at the top.
 - **Sign-in page: the template's JWT, Firebase, Amplify, Auth0 and Supabase
   logos are gone.** IOTA signs in with Microsoft only; the logos were left
   over from the Minimal template and suggested other ways in.

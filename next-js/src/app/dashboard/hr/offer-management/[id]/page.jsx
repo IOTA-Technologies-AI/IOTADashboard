@@ -13,25 +13,31 @@ import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Divider from '@mui/material/Divider';
 import Tooltip from '@mui/material/Tooltip';
+import Checkbox from '@mui/material/Checkbox';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import DialogTitle from '@mui/material/DialogTitle';
+import ToggleButton from '@mui/material/ToggleButton';
 import DialogContent from '@mui/material/DialogContent';
 import DialogActions from '@mui/material/DialogActions';
 import CircularProgress from '@mui/material/CircularProgress';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { paths } from 'src/routes/paths';
+import { useRouter } from 'src/routes/hooks';
 
 import { stampNdaPdf } from 'src/utils/nda-pdf';
 import { stampForOffice, DEFAULT_IOTA_OFFICE } from 'src/utils/iota-offices';
 import {
   getOffer,
+  amendOffer,
   rejectOffer,
   approveOffer,
+  resubmitOffer,
   iotaSignOffer,
-  finalizeOffer,
   commentOnOffer,
   sendOfferForSigning,
   remindEmployeeToSign,
@@ -52,11 +58,20 @@ import { Iconify } from 'src/components/iconify';
 import { NdaSignatureCanvas } from 'src/components/nda';
 import { celebrate } from 'src/components/success-moment';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
-import { OfferLetterPDF, SigningLetterPDF } from 'src/components/offer-letter';
+import {
+  LETTERS,
+  OfferLetterPDF,
+  offerSignatures,
+  drawsSignatures,
+  SigningLetterPDF,
+  signingLettersOf,
+} from 'src/components/offer-letter';
 
+import { OfferQuestions } from 'src/sections/offer/offer-questions';
 import { SignatureLog } from 'src/sections/signatures/signature-log';
 import { SignatoryPicker } from 'src/sections/offer/signatory-picker';
 import { OfferLetterCheck } from 'src/sections/offer/offer-letter-check';
+import { fileSignedLetters } from 'src/sections/offer/file-signed-letters';
 import { SignatoryThumbnail, ResignRequestDialog } from 'src/sections/signatures/signature-review';
 
 import { useAuthContext } from 'src/auth/hooks';
@@ -92,10 +107,17 @@ const APPROVAL_CHAIN = ['manager', 'admin'];
 
 const ACTION_LABEL = {
   sent_for_iota_signing: 'Sent for IOTA Signing',
+  sent_to_employee: 'Sent to the Employee to Sign',
+  filed_in_document_management: 'Filed in Document Management',
   iota_signed: 'IOTA Signed',
   employee_signed: 'Employee Signed',
   employee_reminder_sent: 'Employee Reminder Sent',
   pdf_uploaded_to_onedrive: 'PDF Uploaded to OneDrive',
+  employee_email_verified: 'Employee verified their email',
+  employee_question: 'Employee asked a question',
+  iota_replied: 'IOTA replied',
+  amendment_started: 'Amendment started',
+  resubmitted_for_approval: 'Resubmitted for approval',
 };
 
 const formatAction = (action) =>
@@ -132,6 +154,7 @@ function DetailRow({ label, value }) {
 export default function OfferManagementDetailsPage({ params }) {
   const { id } = use(params);
   const { user } = useAuthContext();
+  const router = useRouter();
 
   const [offer, setOffer] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -147,6 +170,10 @@ export default function OfferManagementDetailsPage({ params }) {
 
   // Send for signing dialog
   const [sendForSigningOpen, setSendForSigningOpen] = useState(false);
+  // The generated letters the employee signs (HR ticks one or both when sending).
+  const [sendLetters, setSendLetters] = useState([]);
+  // Which letter the preview shows.
+  const [previewLetter, setPreviewLetter] = useState(null);
   const [newIotaSignatories, setNewIotaSignatories] = useState([
     { name: '', email: '', title: '' },
   ]);
@@ -179,9 +206,21 @@ export default function OfferManagementDetailsPage({ params }) {
   const [downloadProcessing, setDownloadProcessing] = useState(false);
   const [remindLoading, setRemindLoading] = useState(false);
 
+  // Amendment: back to draft, edited, approved again
+  const [amendOpen, setAmendOpen] = useState(false);
+  const [amendReason, setAmendReason] = useState('');
+  const [amending, setAmending] = useState(false);
+  const [resubmitting, setResubmitting] = useState(false);
+
   const userEmail = user?.email || '';
 
   const isAdminOrSuperAdmin = user?.role === 'admin' || user?.role === 'superAdmin';
+
+  // The API re-checks the role (admin or super admin) and the status.
+  const canAmend =
+    isAdminOrSuperAdmin &&
+    offer?.status === 'pending_employee_signature' &&
+    !offer?.employeeSignedAt;
 
   const canAct =
     offer?.status === 'pending_approval' &&
@@ -220,6 +259,34 @@ export default function OfferManagementDetailsPage({ params }) {
     fetchOffer();
   }, [fetchOffer]);
 
+  const handleAmend = async () => {
+    const reason = amendReason.trim();
+    if (!reason) return;
+    setAmending(true);
+    try {
+      await amendOffer(id, reason);
+      toast.success('The offer is back in draft. Edit it, then submit it for approval again.');
+      setAmendOpen(false);
+      router.push(paths.dashboard.hr.offerManagement.edit(id));
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'The amendment could not be started.');
+    } finally {
+      setAmending(false);
+    }
+  };
+
+  const handleResubmit = async () => {
+    setResubmitting(true);
+    try {
+      setOffer(await resubmitOffer(id));
+      toast.success('Submitted for approval again.');
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'The offer could not be submitted.');
+    } finally {
+      setResubmitting(false);
+    }
+  };
+
   // Sync signature zones from offer
   useEffect(() => {
     if (offer?.signatureZones) setSignatureZones(offer.signatureZones);
@@ -247,7 +314,14 @@ export default function OfferManagementDetailsPage({ params }) {
         return;
       }
       try {
-        const blob = await pdf(<SigningLetterPDF offer={offer} />).toBlob();
+        const letter = previewLetter || signingLettersOf(offer)[0];
+        const blob = await pdf(
+          <SigningLetterPDF
+            offer={offer}
+            letter={letter}
+            signatures={drawsSignatures(offer, letter) ? offerSignatures(offer) : null}
+          />
+        ).toBlob();
         if (cancelled) return;
         const url = URL.createObjectURL(blob);
         setOfferPdfBlobUrl(url);
@@ -259,7 +333,7 @@ export default function OfferManagementDetailsPage({ params }) {
     return () => {
       cancelled = true;
     };
-  }, [offer?.id, offer?.sourceDocumentFileId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [offer?.id, offer?.sourceDocumentFileId, offer?.updatedAt, previewLetter]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Revoke blob URL on unmount
   useEffect(
@@ -477,16 +551,25 @@ export default function OfferManagementDetailsPage({ params }) {
     }
     try {
       setActionLoading(true);
-      const updated = await sendOfferForSigning(id, valid, userEmail);
+      if (!isUploaded && sendLetters.length === 0) {
+        toast.error('Choose the letter, or both letters, to send.');
+        return;
+      }
+      const updated = await sendOfferForSigning(
+        id,
+        valid,
+        userEmail,
+        isUploaded ? undefined : sendLetters
+      );
       setOffer(updated);
       setSendForSigningOpen(false);
       setNewIotaSignatories([{ name: '', email: '', title: '' }]);
       celebrate({
         kind: 'sent',
-        chip: 'Sent for signing',
+        chip: 'Sent for signature',
         documentId: offer?.contractNumber,
-        title: 'Offer sent for IOTA signatures',
-        description: 'The first signatory has been emailed.',
+        title: `Offer sent to ${offer?.candidateName || 'the employee'}`,
+        description: "They sign first; IOTA's signatories are emailed as soon as they have.",
       });
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Failed to send for signing');
@@ -505,7 +588,10 @@ export default function OfferManagementDetailsPage({ params }) {
       const updated = await iotaSignOffer(id, signatureData, userEmail, '', signatureMeta || {});
       setOffer(updated);
       setSignatureData('');
-      if (updated.status === 'pending_employee_signature') {
+      if (updated.status === 'fully_signed') {
+        toast.success('Signed by everyone. Filing the letters in Document Management…');
+        await handleFinalize(updated);
+      } else if (updated.status === 'pending_employee_signature') {
         celebrate({
           kind: 'sent',
           chip: 'Sent for signature',
@@ -569,14 +655,22 @@ export default function OfferManagementDetailsPage({ params }) {
     return btoa(binary);
   };
 
-  const buildProcessedPdf = async () => {
+  /** One signed letter (or the uploaded letter) as base64, with its signatures. */
+  const buildProcessedPdf = async (letter, current = offer) => {
     let fileBase64;
-    if (offer.documentSource === 'uploaded') {
-      fileBase64 = (await getOfferDocument(offer.id)).base64;
+    if (current.documentSource === 'uploaded') {
+      fileBase64 = (await getOfferDocument(current.id)).base64;
+    } else if (drawsSignatures(current, letter)) {
+      // The letter draws its signatures into its own signature block.
+      const blob = await pdf(
+        <SigningLetterPDF offer={current} letter={letter} signatures={offerSignatures(current)} />
+      ).toBlob();
+      return uint8ToBase64(new Uint8Array(await blob.arrayBuffer()));
     } else {
-      const blob = await pdf(<SigningLetterPDF offer={offer} />).toBlob();
+      const blob = await pdf(<SigningLetterPDF offer={current} letter={letter} />).toBlob();
       fileBase64 = uint8ToBase64(new Uint8Array(await blob.arrayBuffer()));
     }
+    const offer = current; // eslint-disable-line no-shadow
 
     // Signatures (with each signer's name and date) and stamps, through the
     // same code the NDAs use. The employee is the "partner" side.
@@ -631,15 +725,18 @@ export default function OfferManagementDetailsPage({ params }) {
   const handleDownloadProcessed = async () => {
     try {
       setDownloadProcessing(true);
-      const fileBase64 = await buildProcessedPdf();
-      const bytes = Uint8Array.from(atob(fileBase64), (c) => c.charCodeAt(0));
-      const blobOut = new Blob([bytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blobOut);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${offer.contractNumber}-${offer.candidateName.replace(/\s+/g, '_')}_Offer.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
+      const letters = isUploaded ? ['uploaded'] : signingLettersOf(offer);
+      for (const letter of letters) {
+        const fileBase64 = await buildProcessedPdf(letter);
+        const bytes = Uint8Array.from(atob(fileBase64), (c) => c.charCodeAt(0));
+        const blobOut = new Blob([bytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blobOut);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${offer.contractNumber}-${offer.candidateName.replace(/\s+/g, '_')}_${letter === 'detailed' ? 'Detailed_' : ''}Offer.pdf`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
     } catch (err) {
       console.error(err);
       toast.error('Failed to generate PDF');
@@ -648,18 +745,28 @@ export default function OfferManagementDetailsPage({ params }) {
     }
   };
 
-  const handleFinalize = async () => {
+  /**
+   * File the signed letters in Document Management: each is stamped with its
+   * classification and document ID, kept in OneDrive, and linked here.
+   */
+  const handleFinalize = async (current = offer) => {
     try {
       setDownloadProcessing(true);
-      const fileBase64 = await buildProcessedPdf();
-      const updated = await finalizeOffer(id, fileBase64);
+      const letters =
+        current.documentSource === 'uploaded' ? ['uploaded'] : signingLettersOf(current);
+      const updated = await fileSignedLetters(current, letters, async (letter) => {
+        const base64 = await buildProcessedPdf(letter, current);
+        return new Blob([Uint8Array.from(atob(base64), (c) => c.charCodeAt(0))], {
+          type: 'application/pdf',
+        });
+      });
       setOffer(updated);
       celebrate({
         kind: 'signed',
         chip: 'Signed by all parties',
         documentId: offer?.contractNumber,
-        title: 'Offer letter filed',
-        description: 'The signed letter is in OneDrive.',
+        title: letters.length > 1 ? 'Offer letters filed' : 'Offer letter filed',
+        description: 'Stamped with its classification and document ID, and kept in OneDrive.',
       });
     } catch (err) {
       console.error(err);
@@ -766,10 +873,24 @@ export default function OfferManagementDetailsPage({ params }) {
                   } else {
                     setNewIotaSignatories([{ name: '', email: '', title: '' }]);
                   }
+                  setSendLetters(signingLettersOf(offer));
                   setSendForSigningOpen(true);
                 }}
               >
-                Set Up Signing
+                Send for Signing
+              </Button>
+            )}
+            {canAmend && (
+              <Button
+                variant="outlined"
+                color="warning"
+                startIcon={<Iconify icon="solar:pen-new-square-bold" />}
+                onClick={() => {
+                  setAmendReason('');
+                  setAmendOpen(true);
+                }}
+              >
+                Amend offer
               </Button>
             )}
             <Button
@@ -806,9 +927,11 @@ export default function OfferManagementDetailsPage({ params }) {
                 color="success"
                 loading={downloadProcessing}
                 startIcon={<Iconify icon="solar:cloud-upload-bold" />}
-                onClick={handleFinalize}
+                onClick={() => handleFinalize()}
               >
-                {offer.onedriveWebUrl ? 'Re-upload to OneDrive' : 'Upload to OneDrive'}
+                {offer.letterTerms?.signedDocuments?.length
+                  ? 'File again'
+                  : 'File in Document Management'}
               </LoadingButton>
             )}
           </Stack>
@@ -864,8 +987,76 @@ export default function OfferManagementDetailsPage({ params }) {
               </Stack>
             </Alert>
 
-            {/* OneDrive link */}
-            {offer.onedriveWebUrl && (
+            {offer.status === 'draft' && (
+              <Alert
+                severity="warning"
+                action={
+                  <Stack direction="row" spacing={1}>
+                    <Button
+                      size="small"
+                      color="inherit"
+                      variant="outlined"
+                      onClick={() => router.push(paths.dashboard.hr.offerManagement.edit(id))}
+                    >
+                      Edit offer
+                    </Button>
+                    <LoadingButton
+                      size="small"
+                      color="inherit"
+                      variant="contained"
+                      loading={resubmitting}
+                      onClick={handleResubmit}
+                    >
+                      Submit for approval
+                    </LoadingButton>
+                  </Stack>
+                }
+              >
+                This offer is being amended. Edit it, then submit it for approval again.
+              </Alert>
+            )}
+
+            <OfferQuestions offer={offer} />
+
+            {/* The signed letters in Document Management */}
+            {offer.letterTerms?.signedDocuments?.length > 0 && (
+              <Alert severity="success" icon={<Iconify icon="solar:shield-check-bold" />}>
+                <Typography variant="body2" sx={{ mb: 1 }}>
+                  Signed letters filed in Document Management, stamped with their classification and
+                  document ID.
+                </Typography>
+                <Stack spacing={1}>
+                  {offer.letterTerms.signedDocuments.map((d) => (
+                    <Stack
+                      key={d.documentId}
+                      direction="row"
+                      alignItems="center"
+                      spacing={1}
+                      flexWrap="wrap"
+                    >
+                      <Typography variant="subtitle2">
+                        {LETTERS[d.letter]?.label ?? 'Offer letter'}
+                      </Typography>
+                      <Chip size="small" label={d.documentId} sx={{ fontFamily: 'monospace' }} />
+                      {d.webUrl && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          href={d.webUrl}
+                          target="_blank"
+                          rel="noopener"
+                        >
+                          Open in OneDrive
+                        </Button>
+                      )}
+                    </Stack>
+                  ))}
+                </Stack>
+              </Alert>
+            )}
+
+            {/* OneDrive link (offers filed before Document Management) */}
+            {offer.onedriveWebUrl && !offer.letterTerms?.signedDocuments?.length && (
               <Alert severity="success" icon={<Iconify icon="solar:cloud-check-bold" />}>
                 <Stack direction="row" alignItems="center" spacing={1}>
                   <Typography variant="body2">Signed offer uploaded to OneDrive.</Typography>
@@ -912,6 +1103,24 @@ export default function OfferManagementDetailsPage({ params }) {
                   <Tooltip title="The letter exactly as it will be signed. Print opens it on its own.">
                     <Iconify icon="solar:info-circle-bold" color="text.secondary" />
                   </Tooltip>
+                  <Box sx={{ flexGrow: 1 }} />
+                  <ToggleButtonGroup
+                    exclusive
+                    size="small"
+                    value={previewLetter || signingLettersOf(offer)[0]}
+                    onChange={(e, v) => v && setPreviewLetter(v)}
+                  >
+                    {(offer.status === 'approved' ||
+                    offer.status === 'draft' ||
+                    offer.status === 'pending_approval'
+                      ? Object.keys(LETTERS)
+                      : signingLettersOf(offer)
+                    ).map((l) => (
+                      <ToggleButton key={l} value={l}>
+                        {LETTERS[l].short}
+                      </ToggleButton>
+                    ))}
+                  </ToggleButtonGroup>
                 </Box>
                 {offerPdfBlobUrl ? (
                   <Box
@@ -1660,6 +1869,37 @@ export default function OfferManagementDetailsPage({ params }) {
         onSubmit={handleRequestResign}
       />
 
+      {/* ── Amend Dialog ───────────────────────────────────────────────── */}
+      <Dialog open={amendOpen} onClose={() => setAmendOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Amend offer</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            The offer goes back to draft and the candidate&apos;s signing link stops working. Once
+            edited, it is approved again from the manager stage and sent to the candidate afresh.
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label="Reason for the amendment"
+            value={amendReason}
+            onChange={(e) => setAmendReason(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAmendOpen(false)}>Cancel</Button>
+          <LoadingButton
+            variant="contained"
+            color="warning"
+            loading={amending}
+            disabled={!amendReason.trim()}
+            onClick={handleAmend}
+          >
+            Amend offer
+          </LoadingButton>
+        </DialogActions>
+      </Dialog>
+
       <Dialog open={approveOpen} onClose={() => setApproveOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>Approve Offer Letter</DialogTitle>
         <DialogContent>
@@ -1752,10 +1992,54 @@ export default function OfferManagementDetailsPage({ params }) {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Set Up IOTA Signing</DialogTitle>
+        <DialogTitle>Send for Signing</DialogTitle>
         <DialogContent>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Choose who signs this offer letter for IOTA. They are emailed in order.
+            {offer.candidateName || 'The employee'} is emailed first to sign. As soon as they have,
+            IOTA&apos;s signatories below are emailed in order. Once everyone has signed, the
+            letters are stamped and filed in Document Management.
+          </Typography>
+          {!isUploaded && (
+            <Box sx={{ mb: 2.5 }}>
+              <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
+                Letters to sign
+              </Typography>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ sm: 2 }}>
+                {Object.entries(LETTERS).map(([key, l]) => (
+                  <FormControlLabel
+                    key={key}
+                    control={
+                      <Checkbox
+                        checked={sendLetters.includes(key)}
+                        onChange={(e) =>
+                          setSendLetters((prev) =>
+                            e.target.checked
+                              ? Object.keys(LETTERS).filter((k) => k === key || prev.includes(k))
+                              : prev.filter((k) => k !== key)
+                          )
+                        }
+                      />
+                    }
+                    label={
+                      <Box>
+                        <Typography variant="body2">{l.label}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {l.help}
+                        </Typography>
+                      </Box>
+                    }
+                  />
+                ))}
+              </Stack>
+              {sendLetters.length === 0 && (
+                <Typography variant="caption" color="error.main">
+                  Choose at least one letter.
+                </Typography>
+              )}
+            </Box>
+          )}
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            Signing for IOTA
           </Typography>
           <SignatoryPicker value={newIotaSignatories} onChange={setNewIotaSignatories} />
         </DialogContent>

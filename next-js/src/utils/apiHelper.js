@@ -3969,12 +3969,14 @@ export async function deleteOffer(id) {
  * @param {string} requestedBy - Email of the user triggering the send.
  * @returns {Promise<object>} The updated offer object with signing status.
  */
-export async function sendOfferForSigning(id, iotaSignatories, requestedBy) {
+export async function sendOfferForSigning(id, iotaSignatories, requestedBy, letters) {
   try {
     const response = await axios.post(`${API_BASE_URL}/offers/${id}/send-for-signing`, {
       id,
       iotaSignatories,
       requestedBy,
+      // one_page, detailed or both: the letters the employee signs first.
+      letters,
     });
     return response.data.offer;
   } catch (error) {
@@ -4171,6 +4173,84 @@ export async function remindEmployeeToSign(id, requestedBy) {
 }
 
 /**
+ * @summary Lists the questions a candidate asked on their offer and IOTA's replies.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-10-24
+ * @modified 2026-10-24
+ * @param {string|number} id - The offer ID.
+ * @returns {Promise<{queries: object[], open: boolean}>} The thread, oldest first; `open` while the last message is the candidate's.
+ */
+export async function listOfferQueries(id) {
+  try {
+    const response = await axios.get(`${API_BASE_URL}/offers/${id}/queries`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching offer questions:', error);
+    throw error;
+  }
+}
+
+/**
+ * @summary Replies to a candidate's question on their offer; the candidate is emailed.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-10-24
+ * @modified 2026-10-24
+ * @param {string|number} id - The offer ID.
+ * @param {string} body - The reply.
+ * @returns {Promise<{queries: object[], open: boolean}>} The updated thread.
+ */
+export async function replyToOfferQuestion(id, body) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/offers/${id}/queries`, { body });
+    return response.data;
+  } catch (error) {
+    console.error('Error replying to offer question:', error);
+    throw error;
+  }
+}
+
+/**
+ * @summary Takes an offer awaiting the employee's signature back to draft so it can be amended.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-10-24
+ * @modified 2026-10-24
+ * @param {string|number} id - The offer ID.
+ * @param {string} reason - Why the offer is being amended (kept in the audit trail).
+ * @returns {Promise<object>} The updated offer object.
+ */
+export async function amendOffer(id, reason) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/offers/${id}/amend`, { reason });
+    return response.data.offer;
+  } catch (error) {
+    console.error('Error amending offer:', error);
+    throw error;
+  }
+}
+
+/**
+ * @summary Submits an amended (draft) offer for approval again, from the manager stage.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-10-24
+ * @modified 2026-10-24
+ * @param {string|number} id - The offer ID.
+ * @returns {Promise<object>} The updated offer object.
+ */
+export async function resubmitOffer(id) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/offers/${id}/resubmit`, {});
+    return response.data.offer;
+  } catch (error) {
+    console.error('Error resubmitting offer:', error);
+    throw error;
+  }
+}
+
+/**
  * @summary Finalizes an offer by embedding all signatures into the PDF and storing it.
  * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
  * @version 1.0.0
@@ -4180,11 +4260,13 @@ export async function remindEmployeeToSign(id, requestedBy) {
  * @param {string} pdfBase64 - The unsigned PDF as a Base64-encoded string (signatures will be embedded server-side).
  * @returns {Promise<object>} The finalized offer object with the signed document URL.
  */
-export async function finalizeOffer(id, pdfBase64) {
+export async function finalizeOffer(id, pdfBase64OrDocuments) {
   try {
+    // An array: the signed letters already filed in Document Management.
+    const filed = Array.isArray(pdfBase64OrDocuments);
     const response = await axios.post(`${API_BASE_URL}/offers/${id}/finalize`, {
       id,
-      pdfBase64,
+      ...(filed ? { documents: pdfBase64OrDocuments } : { pdfBase64: pdfBase64OrDocuments }),
     });
     return response.data.offer;
   } catch (error) {
@@ -5481,6 +5563,10 @@ export const apiHelper = {
   rejectOffer,
   commentOnOffer,
   deleteOffer,
+  listOfferQueries,
+  replyToOfferQuestion,
+  amendOffer,
+  resubmitOffer,
   // Webhook events
   getWebhookEvents,
   getLogDrainStatus,
