@@ -25,6 +25,19 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Reword clauses of the detailed letter for one offer.** On the new-offer
+  form (and on a draft), "Detailed letter wording" lets HR change any numbered
+  clause of the detailed (GOSI) letter for that offer only; the one-page offer
+  is never changed. The offer page lists every changed clause, with who
+  changed it, for approvers. The API refuses wording changes once the offer
+  is in approval, and any other edit made during approval now sends it back
+  to the manager stage, so the final approval covers what everyone saw.
+- **The employee signs the one-page offer and reads the detailed letter.**
+  Sending for signing now signs the offer's main letter (the one-page offer)
+  and, unless HR unticks it, shows the detailed GOSI letter beside it to read —
+  it is not signed. The signing page marks each letter "to sign" or "to read".
+  Signature zones are placed on the one-page offer only; previewing the
+  detailed letter no longer shows them.
 - **Offers can be voided, amended at more stages, and are locked once signed.**
   Admins and Super Admins can void any offer short of fully signed, with a
   reason: it stays listed as Void, its links stop working, the employee

@@ -126,16 +126,89 @@ function Header() {
   );
 }
 
-/** A numbered clause: bold "1.1 Title." then the text. */
-function Clause({ n, title, children }) {
-  return (
-    <Text style={s.p}>
-      <Text style={s.b}>
-        {n} {title}.
-      </Text>{' '}
-      {children}
-    </Text>
-  );
+/**
+ * The numbered clause for one letter: bold "1.1 Title." then the text — or,
+ * where this offer rewords the clause (letterTerms.clauseOverrides, by
+ * number), its own text, paragraphs split on blank lines. Made per letter
+ * rather than read from React context, which the server-side PDF route
+ * (app/api/generate-offer-pdf) cannot use.
+ */
+function makeClause(overrides = {}) {
+  function Clause({ n, title, children }) {
+    const own = overrides?.[n];
+    if (own?.text) {
+      const [first, ...rest] = String(own.text).split(/\n\s*\n/);
+      return (
+        <>
+          <Text style={s.p}>
+            <Text style={s.b}>
+              {n} {own.title || title}.
+            </Text>{' '}
+            {first}
+          </Text>
+          {rest.map((para, i) => (
+            <Text key={i} style={s.p}>
+              {para}
+            </Text>
+          ))}
+        </>
+      );
+    }
+    return (
+      <Text style={s.p}>
+        <Text style={s.b}>
+          {n} {title}.
+        </Text>{' '}
+        {children}
+      </Text>
+    );
+  }
+  Clause.isClause = true;
+  return Clause;
+}
+
+/** The text of a clause's children, as the letter prints it. */
+function plainText(node) {
+  if (node === null || node === undefined || typeof node === 'boolean') return '';
+  if (typeof node === 'string' || typeof node === 'number') return String(node);
+  if (Array.isArray(node)) return node.map(plainText).join('');
+  return plainText(node.props?.children);
+}
+
+/**
+ * Every numbered clause of this offer's detailed letter with its standard
+ * wording: [{ n, title, text }], in order. For the clause editor on the offer
+ * form. Walks the letter without rendering it.
+ */
+export function listClauses(offer) {
+  const out = [];
+  const walk = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    if (node.type?.isClause) {
+      out.push({
+        n: String(node.props.n),
+        title: node.props.title,
+        text: plainText(node.props.children).replace(/\s+/g, ' ').trim(),
+      });
+      return;
+    }
+    // Section, Header and the like: plain functions of their props.
+    if (typeof node.type === 'function') {
+      walk(node.type(node.props));
+      return;
+    }
+    walk(node.props?.children);
+  };
+  const standard = {
+    ...offer,
+    letterTerms: { ...(offer?.letterTerms || {}), clauseOverrides: {} },
+  };
+  walk(OfferLetterPDF({ offer: standard }));
+  return out;
 }
 
 /** A child's air ticket, as a percentage of the adult fare and cap (clause 2.6). */
@@ -171,6 +244,7 @@ function SignedLine({ sig }) {
  */
 export function OfferLetterPDF({ offer, data, signatures }) {
   const d = letterDataFromOffer(offer || data);
+  const Clause = makeClause(d.clauseOverrides);
   const customer = d.client ? 'the Customer' : null;
   const cur = d.currency;
   const housingPct = d.salary.basic ? Math.round((d.salary.housing / d.salary.basic) * 100) : 0;

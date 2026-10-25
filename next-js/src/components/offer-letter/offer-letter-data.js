@@ -157,5 +157,7 @@ export function letterDataFromOffer(offer = {}) {
     offerValidUntil: terms.offerValidUntil,
     signatoryName: terms.signatoryName || signatory?.name || 'Abdul Raheem Syed',
     clauses: (offer.clauses || []).filter((c) => c && (c.title || c.content)),
+    // This offer's own wording of detailed-letter clauses, by number ("2.6").
+    clauseOverrides: terms.clauseOverrides || {},
   };
 }

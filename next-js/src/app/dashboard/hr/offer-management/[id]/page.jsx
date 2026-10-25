@@ -62,11 +62,13 @@ import { celebrate } from 'src/components/success-moment';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import {
   LETTERS,
+  mainLetterOf,
   OfferLetterPDF,
   offerSignatures,
   drawsSignatures,
   SigningLetterPDF,
   signingLettersOf,
+  readingLettersOf,
 } from 'src/components/offer-letter';
 
 import { OfferQuestions } from 'src/sections/offer/offer-questions';
@@ -176,7 +178,8 @@ export default function OfferManagementDetailsPage({ params }) {
   // Send for signing dialog
   const [sendForSigningOpen, setSendForSigningOpen] = useState(false);
   // The generated letters the employee signs (HR ticks one or both when sending).
-  const [sendLetters, setSendLetters] = useState([]);
+  // Send the other letter (the detailed GOSI letter) for the employee to read too.
+  const [sendReading, setSendReading] = useState(true);
   // Which letter the preview shows.
   const [previewLetter, setPreviewLetter] = useState(null);
   const [newIotaSignatories, setNewIotaSignatories] = useState([
@@ -342,6 +345,9 @@ export default function OfferManagementDetailsPage({ params }) {
   }, [offer?.stampPlacements]);
 
   const isUploaded = offer?.documentSource === 'uploaded';
+  // Zones belong to the main letter (the one-page offer); the other letter is only read.
+  const zonesOnPreview =
+    isUploaded || (previewLetter || signingLettersOf(offer)[0]) === mainLetterOf(offer);
 
   // Generate PDF blob for zone preview — or, for an uploaded letter, the letter itself
   useEffect(() => {
@@ -596,15 +602,14 @@ export default function OfferManagementDetailsPage({ params }) {
     }
     try {
       setActionLoading(true);
-      if (!isUploaded && sendLetters.length === 0) {
-        toast.error('Choose the letter, or both letters, to send.');
-        return;
-      }
+      const main = mainLetterOf(offer);
+      const other = main === 'one_page' ? 'detailed' : 'one_page';
       const updated = await sendOfferForSigning(
         id,
         valid,
         userEmail,
-        isUploaded ? undefined : sendLetters
+        isUploaded ? undefined : [main],
+        isUploaded ? undefined : sendReading ? [other] : []
       );
       setOffer(updated);
       setSendForSigningOpen(false);
@@ -918,7 +923,7 @@ export default function OfferManagementDetailsPage({ params }) {
                   } else {
                     setNewIotaSignatories([{ name: '', email: '', title: '' }]);
                   }
-                  setSendLetters(signingLettersOf(offer));
+                  setSendReading(true);
                   setSendForSigningOpen(true);
                 }}
               >
@@ -1087,6 +1092,34 @@ export default function OfferManagementDetailsPage({ params }) {
               </Alert>
             )}
 
+            {Object.keys(offer.letterTerms?.clauseOverrides || {}).length > 0 && (
+              <Alert severity="warning" icon={<Iconify icon="solar:pen-new-square-bold" />}>
+                <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                  This offer changes the wording of the detailed letter
+                </Typography>
+                <Stack spacing={1.5}>
+                  {Object.entries(offer.letterTerms.clauseOverrides)
+                    .sort(([a], [b]) => a.localeCompare(b, undefined, { numeric: true }))
+                    .map(([n, c]) => (
+                      <Box key={n}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                          {n} {c.title}
+                          {c.editedBy ? (
+                            <Typography component="span" variant="caption" color="text.secondary">
+                              {' '}
+                              · changed by {c.editedBy}
+                            </Typography>
+                          ) : null}
+                        </Typography>
+                        <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
+                          {c.text}
+                        </Typography>
+                      </Box>
+                    ))}
+                </Stack>
+              </Alert>
+            )}
+
             <OfferQuestions offer={offer} />
 
             {/* The signed letters in Document Management */}
@@ -1185,7 +1218,7 @@ export default function OfferManagementDetailsPage({ params }) {
                     offer.status === 'draft' ||
                     offer.status === 'pending_approval'
                       ? Object.keys(LETTERS)
-                      : signingLettersOf(offer)
+                      : [...signingLettersOf(offer), ...readingLettersOf(offer)]
                     ).map((l) => (
                       <ToggleButton key={l} value={l}>
                         {LETTERS[l].short}
@@ -1405,9 +1438,22 @@ export default function OfferManagementDetailsPage({ params }) {
               </Card>
             )}
 
+            {/* Signature zones go on the main letter only; the other is for reading. */}
+            {(offer.status === 'pending_iota_signatures' || offer.status === 'approved') &&
+              isAdminOrSuperAdmin &&
+              !isUploaded &&
+              !zonesOnPreview && (
+                <Alert severity="info">
+                  The {LETTERS[previewLetter]?.label.toLowerCase() ?? 'letter'} is for the employee
+                  to read and is not signed. Switch to the{' '}
+                  {LETTERS[mainLetterOf(offer)].label.toLowerCase()} to place signatures.
+                </Alert>
+              )}
+
             {/* Signature zones drag-to-place */}
             {(offer.status === 'pending_iota_signatures' || offer.status === 'approved') &&
               isAdminOrSuperAdmin &&
+              zonesOnPreview &&
               pdfJsDoc && (
                 <Card sx={{ p: 3 }}>
                   <Stack
@@ -2111,40 +2157,34 @@ export default function OfferManagementDetailsPage({ params }) {
           {!isUploaded && (
             <Box sx={{ mb: 2.5 }}>
               <Typography variant="subtitle2" sx={{ mb: 0.5 }}>
-                Letters to sign
+                Letters
               </Typography>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={{ sm: 2 }}>
-                {Object.entries(LETTERS).map(([key, l]) => (
-                  <FormControlLabel
-                    key={key}
-                    control={
-                      <Checkbox
-                        checked={sendLetters.includes(key)}
-                        onChange={(e) =>
-                          setSendLetters((prev) =>
-                            e.target.checked
-                              ? Object.keys(LETTERS).filter((k) => k === key || prev.includes(k))
-                              : prev.filter((k) => k !== key)
-                          )
-                        }
-                      />
-                    }
-                    label={
-                      <Box>
-                        <Typography variant="body2">{l.label}</Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {l.help}
-                        </Typography>
-                      </Box>
-                    }
+              <Typography variant="body2" sx={{ mb: 0.5 }}>
+                The employee signs the{' '}
+                <strong>{LETTERS[mainLetterOf(offer)].label.toLowerCase()}</strong>.
+              </Typography>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={sendReading}
+                    onChange={(e) => setSendReading(e.target.checked)}
                   />
-                ))}
-              </Stack>
-              {sendLetters.length === 0 && (
-                <Typography variant="caption" color="error.main">
-                  Choose at least one letter.
-                </Typography>
-              )}
+                }
+                label={
+                  <Box>
+                    <Typography variant="body2">
+                      Include the{' '}
+                      {LETTERS[
+                        mainLetterOf(offer) === 'one_page' ? 'detailed' : 'one_page'
+                      ].label.toLowerCase()}{' '}
+                      for them to read
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Shown beside the letter they sign; it is not signed.
+                    </Typography>
+                  </Box>
+                }
+              />
             </Box>
           )}
           <Typography variant="subtitle2" sx={{ mb: 1 }}>

@@ -26,6 +26,20 @@ export function signingLettersOf(offer) {
   return [isOnePageOffer(offer) ? 'one_page' : 'detailed'];
 }
 
+/**
+ * Generated letters the employee is shown to read, never signs
+ * (letterTerms.readingLetters) — the detailed GOSI letter beside a one-page offer.
+ */
+export function readingLettersOf(offer) {
+  const signing = signingLettersOf(offer);
+  return (offer?.letterTerms?.readingLetters ?? []).filter(
+    (l) => LETTERS[l] && !signing.includes(l)
+  );
+}
+
+/** The letter signature zones belong to: the offer's main letter. */
+export const mainLetterOf = (offer) => (isOnePageOffer(offer) ? 'one_page' : 'detailed');
+
 const dateOf = (iso) => (iso ? new Date(iso).toISOString().slice(0, 10) : null);
 
 /**

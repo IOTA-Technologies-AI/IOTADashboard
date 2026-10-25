@@ -46,6 +46,7 @@ import { OfferLetterPDF, OfferLetterOnePagePDF } from 'src/components/offer-lett
 
 import { OfferClauses } from 'src/sections/offer/offer-clauses';
 import { SignatoryPicker } from 'src/sections/offer/signatory-picker';
+import { OfferClauseEdits } from 'src/sections/offer/offer-clause-edits';
 
 // ----------------------------------------------------------------------
 
@@ -78,7 +79,7 @@ const CURRENCIES = [
 ];
 
 /** The form's letter terms as stored on the offer (offers.letterTerms). */
-function letterTermsFrom(data) {
+function letterTermsFrom(data, clauseOverrides = {}) {
   const t = data.terms || {};
   const num = (v) => (v === '' || v === null || v === undefined ? undefined : Number(v));
   return {
@@ -100,6 +101,8 @@ function letterTermsFrom(data) {
     // New offers are signed on the one-page bilingual offer; the detailed
     // letter is still generated for GOSI records.
     letterFormat: 'one_page',
+    // Detailed-letter clauses reworded for this offer (OfferClauseEdits).
+    clauseOverrides,
   };
 }
 
@@ -179,6 +182,8 @@ export function OfferFormView({ editId }) {
 
   // Additional clauses
   const [clauses, setClauses] = useState([]);
+  // Detailed-letter clauses reworded for this offer, by number
+  const [clauseOverrides, setClauseOverrides] = useState({});
 
   // Onboarded employee this offer is for (vetting approved by a Super Admin)
   const [eligible, setEligible] = useState([]);
@@ -263,6 +268,7 @@ export function OfferFormView({ editId }) {
         setEditOffer(offer);
         if (offer.status !== 'draft') return;
         reset(formValuesFrom(offer));
+        setClauseOverrides(offer.letterTerms?.clauseOverrides || {});
         setClauses(
           (offer.clauses ?? []).map((c) => ({
             ...c,
@@ -413,7 +419,7 @@ export function OfferFormView({ editId }) {
         probationPeriod: data.probationPeriod
           ? Math.round(Number(data.probationPeriod) / 30)
           : undefined,
-        letterTerms: letterTermsFrom(data),
+        letterTerms: letterTermsFrom(data, clauseOverrides),
         currency: data.currency || 'SAR',
         basicSalary: Number(data.basicSalary) || 0,
         housingAllowance: Number(data.housingAllowance) || 0,
@@ -530,9 +536,9 @@ export function OfferFormView({ editId }) {
       totalSalary,
       iotaSignatories: iotaSignatories.filter((x) => x.name.trim()),
       clauses: clauses.filter((c) => c.title.trim() || c.content.trim()),
-      letterTerms: letterTermsFrom(data),
+      letterTerms: letterTermsFrom(data, clauseOverrides),
     }),
-    [client, totalSalary, iotaSignatories, clauses, editOffer]
+    [client, totalSalary, iotaSignatories, clauses, clauseOverrides, editOffer]
   );
 
   const handlePreviewPDF = useCallback(() => {
@@ -1126,6 +1132,15 @@ export function OfferFormView({ editId }) {
                   Signature zones are placed after approval, on the offer&apos;s page — on the
                   actual pages of the letter that will be signed.
                 </Alert>
+              )}
+
+              {/* ── Detailed letter wording ──────────────────────────────── */}
+              {letterSource === 'generated' && (
+                <OfferClauseEdits
+                  getLetterOffer={() => toLetterOffer(getValues())}
+                  overrides={clauseOverrides}
+                  setOverrides={setClauseOverrides}
+                />
               )}
 
               {/* ── Addendum clauses ─────────────────────────────────────── */}

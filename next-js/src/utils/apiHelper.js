@@ -3969,14 +3969,15 @@ export async function deleteOffer(id) {
  * @param {string} requestedBy - Email of the user triggering the send.
  * @returns {Promise<object>} The updated offer object with signing status.
  */
-export async function sendOfferForSigning(id, iotaSignatories, requestedBy, letters) {
+export async function sendOfferForSigning(id, iotaSignatories, requestedBy, letters, readingLetters) {
   try {
     const response = await axios.post(`${API_BASE_URL}/offers/${id}/send-for-signing`, {
       id,
       iotaSignatories,
       requestedBy,
-      // one_page, detailed or both: the letters the employee signs first.
+      // The letters the employee signs (the one-page offer), and those they only read.
       letters,
+      readingLetters,
     });
     return response.data.offer;
   } catch (error) {
