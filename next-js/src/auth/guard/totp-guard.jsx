@@ -20,6 +20,7 @@ import { useRouter, usePathname } from 'src/routes/hooks';
 
 import { getLiveSessionId } from 'src/utils/jwt-auth';
 import { totpVerify, totpStatus } from 'src/utils/apiHelper';
+import { TOTP_REQUIRED_EVENT } from 'src/utils/session-expiry';
 import {
   REAUTH_MS,
   setTotpVerifiedAt,
@@ -254,6 +255,30 @@ export function TotpGuard({ children }) {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, authenticated, email, isBypassPath]);
+
+  // Ask for the code again, keeping the session: when the gateway says the
+  // second factor has lapsed, and when the tab comes back after the re-auth
+  // window (a sleeping laptop pauses the timer above, so it can fire late).
+  useEffect(() => {
+    if (authLoading || !authenticated || isBypassPath) return undefined;
+    const prompt = () => {
+      clearTotpVerifiedAt(sessionIdRef.current);
+      setState((s) => (s === 'verified' ? 'otp_required' : s));
+      setOtp('');
+      setError('');
+    };
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && isTotpStampExpired(sessionIdRef.current)) {
+        setState((s) => (s === 'verified' ? 'otp_required' : s));
+      }
+    };
+    window.addEventListener(TOTP_REQUIRED_EVENT, prompt);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener(TOTP_REQUIRED_EVENT, prompt);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [authLoading, authenticated, isBypassPath]);
 
   const handleVerify = async (code = otp) => {
     const trimmed = code.replace(/\s/g, '');

@@ -50,14 +50,16 @@ export const signUp = async ({ email, password, firstName, lastName }) => {
 /** **************************************
  * Sign out
  *************************************** */
-export const signOut = async () => {
+export const signOut = async ({ scope } = {}) => {
   // Drop every TOTP stamp this tab holds. sessionStorage survives a sign-out,
   // so a stamp left behind would vouch for the NEXT session — which has not
   // cleared the second factor — and the gateway would reject every call while
   // the dashboard rendered as if all were well.
   clearAllTotpStamps();
 
-  const { error } = await supabase.auth.signOut();
+  // Supabase's default scope is 'global': it ends the user's sessions on every
+  // device. Pass { scope: 'local' } to end only this browser's.
+  const { error } = await supabase.auth.signOut(scope ? { scope } : undefined);
 
   if (error) {
     console.error(error);

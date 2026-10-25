@@ -1,16 +1,13 @@
 'use client';
 
 import { keyframes } from '@emotion/react';
-import { useRef, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { MuiOtpInput } from 'mui-one-time-password-input';
 
 import Box from '@mui/material/Box';
 import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
 import { inputBaseClasses } from '@mui/material/InputBase';
-
-import { Iconify } from 'src/components/iconify';
 
 // ----------------------------------------------------------------------
 
@@ -46,34 +43,14 @@ const isTouch = () =>
   typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
 
 /**
- * The clipboard's text. Uses clipboard.read() where the browser has it: it also
- * returns a code copied as rich text (an email, a web page), which readText()
- * can refuse on iPhone. Only one clipboard call per tap — a second one would
- * ask the phone's permission again ("Paste" bubble) and lose the tap.
- */
-async function readClipboardText() {
-  const cb = navigator.clipboard;
-  if (cb?.read) {
-    const items = await cb.read();
-    for (const item of items) {
-      const type = ['text/plain', 'text/html'].find((t) => item.types.includes(t));
-      if (type) {
-        const text = await (await item.getType(type)).text();
-        // Strip tags from rich text; the code is in the words.
-        return type === 'text/html' ? text.replace(/<[^>]*>/g, ' ') : text;
-      }
-    }
-    return '';
-  }
-  if (cb?.readText) return cb.readText();
-  throw new Error('This browser does not allow reading the clipboard.');
-}
-
-/**
- * Six boxes for a one-time code, with a "Paste code" button. Typing moves
- * box to box; pasting (the button, or Ctrl/⌘+V into any box) fills all six
- * and calls onComplete so the caller can verify straight away. The boxes
- * shake when `error` becomes set.
+ * Six boxes for a one-time code. Typing moves box to box; pasting (Ctrl/⌘+V,
+ * or long-press → Paste on a phone, into any box) fills all six and calls
+ * onComplete so the caller can verify straight away. The boxes shake when
+ * `error` becomes set.
+ *
+ * There is no "Paste code" button: reading the clipboard from a button needs
+ * the browser's permission, which several browsers refuse or hide, so it
+ * failed for people while the keyboard paste always works.
  *
  * value: string of digits; onChange(code); onComplete?(code);
  * error: message or boolean; size: 'medium' | 'small'.
@@ -91,7 +68,6 @@ export function CodeInput({
   sx,
 }) {
   const [hint, setHint] = useState('');
-  const boxesRef = useRef(null);
   const [shaking, setShaking] = useState(false);
   const small = size === 'small';
 
@@ -102,51 +78,26 @@ export function CodeInput({
     return () => clearTimeout(t);
   }, [error]);
 
-  /** Put the cursor in the first box, so the phone's own Paste is one long-press away. */
-  const focusFirstBox = () => {
-    const first = boxesRef.current?.querySelector('input');
-    if (first) {
-      first.focus();
-      first.select?.();
-    }
-  };
-
-  const manualPasteHint = () => {
-    if (isTouch()) return 'Tap and hold the first box, then tap Paste.';
-    const mac = typeof navigator !== 'undefined' && /Mac/.test(navigator.userAgent);
-    return `Click a box and press ${mac ? '⌘V' : 'Ctrl+V'} to paste.`;
-  };
+  // Worked out after mounting: the server can't know the device, and a
+  // different first render would not match the page it sent.
+  const [pasteHint, setPasteHint] = useState('');
+  useEffect(() => {
+    if (isTouch()) setPasteHint('To paste, tap and hold the first box, then tap Paste.');
+    else
+      setPasteHint(
+        `To paste, click a box and press ${/Mac/.test(navigator.userAgent) ? '⌘V' : 'Ctrl+V'}.`
+      );
+  }, []);
 
   const fill = (text) => {
     const code = codeFromText(text);
     if (!code) {
-      setHint(`There is no ${LENGTH}-digit code on the clipboard.`);
+      setHint(`There is no ${LENGTH}-digit code in what you pasted.`);
       return;
     }
     setHint('');
     onChange(code);
     onComplete?.(code);
-  };
-
-  const pasteFromClipboard = async () => {
-    let text = '';
-    try {
-      text = await readClipboardText();
-    } catch (err) {
-      // Refused, dismissed, or not supported (some in-app browsers). Logged so
-      // an issue report filed afterwards shows why; a paste into a box still works.
-      console.warn('[CodeInput] clipboard read failed:', err?.name, err?.message);
-      setHint(manualPasteHint());
-      focusFirstBox();
-      return;
-    }
-    if (!codeFromText(text)) {
-      console.warn('[CodeInput] clipboard holds no 6-digit code (length', String(text).length, ')');
-      setHint(`There is no ${LENGTH}-digit code on the clipboard. ${manualPasteHint()}`);
-      focusFirstBox();
-      return;
-    }
-    fill(text);
   };
 
   const boxSize = small ? 40 : 52;
@@ -155,7 +106,6 @@ export function CodeInput({
   return (
     <Stack spacing={1} alignItems={align === 'center' ? 'center' : 'flex-start'} sx={sx}>
       <Box
-        ref={boxesRef}
         // Handle paste here, before the library's handler, which rejects
         // "123 456" and text around the code.
         onPasteCapture={(e) => {
@@ -219,23 +169,13 @@ export function CodeInput({
         />
       </Box>
 
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ minHeight: 30 }}>
-        <Button
-          size="small"
-          color="inherit"
-          variant="soft"
-          disabled={disabled}
-          onClick={pasteFromClipboard}
-          startIcon={<Iconify icon="solar:clipboard-text-bold" width={16} />}
-        >
-          Paste code
-        </Button>
-        {hint || helperText ? (
-          <Typography variant="caption" color={hint ? 'warning.main' : 'text.secondary'}>
-            {hint || helperText}
-          </Typography>
-        ) : null}
-      </Stack>
+      <Typography
+        variant="caption"
+        color={hint ? 'warning.main' : 'text.secondary'}
+        sx={{ minHeight: 20 }}
+      >
+        {hint || helperText || pasteHint}
+      </Typography>
     </Stack>
   );
 }

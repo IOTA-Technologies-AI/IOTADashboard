@@ -25,6 +25,9 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Offer salary splits itself.** Entering the Monthly Salary on an offer fills
+  Basic (50% of it), Housing (25% of Basic) and Other Allowances (the rest,
+  after any transportation allowance). Each part can still be edited.
 - **Candidates can sign their offer on their phone.** On a computer, the
   signing page on docs.iotatechnologies.io offers "Sign on my phone": a QR code
   opens the phone signing page, the candidate draws there, and the signature
@@ -969,6 +972,17 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **A lapsed TOTP check asks for a code instead of signing you out.** The
+  API wants the authenticator code again after 12 hours. When that happened
+  in a tab left open (a laptop asleep overnight pauses the 8-hour prompt), the
+  dashboard treated it as an expired session and sent you back through
+  Microsoft sign-in. It now asks for the code and keeps you signed in, and
+  checks the 8 hours again whenever the tab comes back into view. A session
+  that has really expired now signs out only this browser, not your other
+  devices.
+- **The "Paste code" button is gone from code entry.** Browsers often refused
+  it permission to read the clipboard, so it did nothing. Paste with ⌘V /
+  Ctrl+V into the boxes (or long-press → Paste on a phone), as the hint says.
 - **Foreign-currency ERP postings no longer fail over a cent.** Each journal
   line is converted to SAR and rounded on its own, so an invoice or expense in
   USD or AED could come out 0.01 unbalanced and fail to post. The engine now

@@ -14,11 +14,17 @@ import { signOut } from 'src/auth/context/supabase/action';
  * endpoint throws itself, such as OneDrive's "Unauthorized: …" for a bad
  * Microsoft token.
  */
-const SESSION_ENDED = [
-  'missing bearer token',
-  'invalid or expired token',
-  'second factor required',
-];
+const SESSION_ENDED = ['missing bearer token', 'invalid or expired token'];
+
+/**
+ * The gateway's 401 when the session is fine but its TOTP check has lapsed
+ * (12 hours, auth/sessions.ts in the API). Signing in again is not needed —
+ * a new code is — so TotpGuard is asked to prompt instead.
+ */
+const SECOND_FACTOR = 'second factor required';
+
+/** Window event TotpGuard listens for to ask for the code again. */
+export const TOTP_REQUIRED_EVENT = 'iota:totp-required';
 
 export const SESSION_EXPIRED_REASON = 'session-expired';
 
@@ -29,6 +35,21 @@ export function isSessionExpiredError(error) {
   if (error?.response?.status !== 401) return false;
   const message = String(error.response.data?.message || '').toLowerCase();
   return SESSION_ENDED.some((m) => message.includes(m));
+}
+
+/** True when an axios error is the gateway asking for the TOTP code again. */
+export function isSecondFactorError(error) {
+  if (error?.response?.status !== 401) return false;
+  return String(error.response.data?.message || '')
+    .toLowerCase()
+    .includes(SECOND_FACTOR);
+}
+
+/** Asks TotpGuard for a new code (dashboard only; public pages have no session). */
+export function requireSecondFactor() {
+  if (typeof window === 'undefined') return;
+  if (!window.location.pathname.startsWith(paths.dashboard.root)) return;
+  window.dispatchEvent(new Event(TOTP_REQUIRED_EVENT));
 }
 
 /**
@@ -43,7 +64,9 @@ export async function endExpiredSession() {
   ending = true;
 
   try {
-    await signOut();
+    // Only this browser: the session here is already dead, and a global
+    // sign-out would also end the user's sessions on their other devices.
+    await signOut({ scope: 'local' });
   } catch (err) {
     // The session is already unusable; go to sign-in regardless.
     console.warn('[session] sign-out after expiry failed:', err?.message || err);
@@ -63,6 +86,7 @@ export function watchSessionExpiry(instance) {
     (response) => response,
     (error) => {
       if (isSessionExpiredError(error)) endExpiredSession();
+      else if (isSecondFactorError(error)) requireSecondFactor();
       return Promise.reject(error);
     }
   );

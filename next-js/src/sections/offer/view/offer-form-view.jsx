@@ -146,6 +146,7 @@ function formValuesFrom(offer) {
       governmentId: t.governmentId || '',
     },
     currency: offer.currency || 'SAR',
+    monthlySalary: str(offer.totalSalary),
     basicSalary: str(offer.basicSalary),
     housingAllowance: str(offer.housingAllowance),
     transportationAllowance: str(offer.transportationAllowance),
@@ -240,6 +241,7 @@ export function OfferFormView({ editId }) {
 
       // Salary Information
       currency: 'SAR',
+      monthlySalary: '',
       basicSalary: '',
       housingAllowance: '',
       transportationAllowance: '',
@@ -345,6 +347,32 @@ export function OfferFormView({ editId }) {
           .toLowerCase()
     );
     if (dept) fill('department', dept);
+  };
+
+  // Entering the monthly salary splits it: basic is half of it, housing a
+  // quarter of basic, and other allowances whatever is left after
+  // transportation. Each part can still be changed by hand afterwards.
+  const splitSalary = (monthly, transportation) => {
+    const total = parseFloat(monthly);
+    if (!Number.isFinite(total) || total <= 0) return;
+    const cents = (n) => Math.round(n * 100) / 100;
+    const basic = cents(total * 0.5);
+    const housing = cents(basic * 0.25);
+    const other = cents(total - basic - housing - (parseFloat(transportation) || 0));
+    setValue('basicSalary', String(basic), { shouldDirty: true, shouldValidate: true });
+    setValue('housingAllowance', String(housing), { shouldDirty: true });
+    setValue('otherAllowances', String(Math.max(other, 0)), { shouldDirty: true });
+  };
+
+  // Transportation comes out of the remainder, leaving basic and housing as they are.
+  const rebalanceOther = (transportation) => {
+    const total = parseFloat(getValues('monthlySalary'));
+    if (!Number.isFinite(total) || total <= 0) return;
+    const fixed =
+      (parseFloat(getValues('basicSalary')) || 0) +
+      (parseFloat(getValues('housingAllowance')) || 0);
+    const other = Math.round((total - fixed - (parseFloat(transportation) || 0)) * 100) / 100;
+    setValue('otherAllowances', String(Math.max(other, 0)), { shouldDirty: true });
   };
 
   // Calculate total salary
@@ -994,11 +1022,24 @@ export function OfferFormView({ editId }) {
                       ))}
                     </TextField>
                   </Grid>
+                  <Grid size={{ xs: 12 }}>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      label={`Monthly Salary (${currency})`}
+                      helperText="Fills Basic (50%), Housing (25% of Basic) and Other Allowances (the rest). You can change each one below."
+                      {...register('monthlySalary', {
+                        onChange: (e) =>
+                          splitSalary(e.target.value, getValues('transportationAllowance')),
+                      })}
+                    />
+                  </Grid>
                   <Grid size={{ xs: 12, md: 6 }}>
                     <TextField
                       fullWidth
                       type="number"
                       label={`Basic Salary (${currency})`}
+                      InputLabelProps={filledLabel('basicSalary')}
                       {...register('basicSalary', { required: 'Basic salary is required' })}
                       error={!!errors.basicSalary}
                       helperText={errors.basicSalary?.message}
@@ -1009,6 +1050,7 @@ export function OfferFormView({ editId }) {
                       fullWidth
                       type="number"
                       label={`Housing Allowance (${currency})`}
+                      InputLabelProps={filledLabel('housingAllowance')}
                       {...register('housingAllowance')}
                     />
                   </Grid>
@@ -1017,7 +1059,9 @@ export function OfferFormView({ editId }) {
                       fullWidth
                       type="number"
                       label={`Transportation Allowance (${currency})`}
-                      {...register('transportationAllowance')}
+                      {...register('transportationAllowance', {
+                        onChange: (e) => rebalanceOther(e.target.value),
+                      })}
                     />
                   </Grid>
                   <Grid size={{ xs: 12, md: 6 }}>
@@ -1025,6 +1069,7 @@ export function OfferFormView({ editId }) {
                       fullWidth
                       type="number"
                       label={`Other Allowances (${currency})`}
+                      InputLabelProps={filledLabel('otherAllowances')}
                       {...register('otherAllowances')}
                     />
                   </Grid>
