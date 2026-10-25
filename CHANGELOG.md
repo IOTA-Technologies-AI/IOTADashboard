@@ -984,6 +984,12 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Offer letters: children's air tickets at 75%, and no empty Transportation
+  row.** Clause 2.6 now covers you and your spouse up to the ticket cap, and
+  up to the covered number of children at 75% of the ticket cost, capped at
+  75% of the cap (SAR 1,500 against SAR 2,000). The one-page letter leaves out
+  Transportation Allowance when there is none, as the detailed letter already
+  did.
 - **Offers can be archived.** An archived offer is withdrawn but kept: it is
   no longer listed, its signing and view links stop working, and the employee
   can be given a new offer (`sql/20261025_archive_offers.sql`, which can also

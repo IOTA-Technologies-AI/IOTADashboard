@@ -222,7 +222,9 @@ export function OfferLetterOnePagePDF({ offer, data, signatures }) {
     ['Probation', 'فترة التجربة', d.probationDays ? `${d.probationDays} days` : ''],
     ['Basic Salary', 'الراتب الأساسي', money(d.salary.basic, cur)],
     ['Housing Allowance', 'بدل السكن', money(d.salary.housing, cur)],
-    ['Transportation Allowance', 'بدل النقل', money(d.salary.transport, cur)],
+    ...(d.salary.transport
+      ? [['Transportation Allowance', 'بدل النقل', money(d.salary.transport, cur)]]
+      : []),
     ...(d.salary.other ? [['Other Allowances', 'بدلات أخرى', money(d.salary.other, cur)]] : []),
     ['Total Monthly Salary', 'إجمالي الراتب الشهري', money(d.salary.total, cur), true],
     ['Annual Vacation', 'الإجازة السنوية', `${d.annualLeaveDays} days`],

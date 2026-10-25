@@ -138,6 +138,9 @@ function Clause({ n, title, children }) {
   );
 }
 
+/** A child's air ticket, as a percentage of the adult fare and cap (clause 2.6). */
+const CHILD_TICKET_PCT = 75;
+
 function Section({ n, title, children, wrap = true }) {
   return (
     <Page size="A4" style={s.page} wrap={wrap}>
@@ -171,6 +174,8 @@ export function OfferLetterPDF({ offer, data, signatures }) {
   const customer = d.client ? 'the Customer' : null;
   const cur = d.currency;
   const housingPct = d.salary.basic ? Math.round((d.salary.housing / d.salary.basic) * 100) : 0;
+  // Children's tickets are quoted at 75% of the fare, so their cap is 75% of the adult cap.
+  const childTicketCap = Math.round((d.airTicketCap * CHILD_TICKET_PCT) / 100);
   const salaryRows = [
     ['Basic Salary', d.salary.basic, 'Base for GOSI, overtime and end-of-service'],
     ['Housing allowance', d.salary.housing, housingPct ? `${housingPct}% of Basic Salary` : ''],
@@ -353,13 +358,14 @@ export function OfferLetterPDF({ offer, data, signatures }) {
           <Clause n="2.6" title="Air tickets">
             The Company will provide one economy-class return air ticket per year of service to your
             home country for you
+            {d.dependantsCovered ? ' and your spouse' : ''}, capped at{' '}
+            {money(d.airTicketCap, cur).replace(/\.00$/, '')} per person per year
             {d.dependantsCovered
-              ? `, your spouse and up to ${inWords(d.dependantsCovered)} dependants residing with you in the Kingdom`
+              ? `, and for up to ${inWords(d.dependantsCovered)} children residing with you in the Kingdom at ${CHILD_TICKET_PCT}% of the ticket cost, capped at ${money(childTicketCap, cur).replace(/\.00$/, '')} per child per year`
               : ''}
-            , capped at {money(d.airTicketCap, cur).replace(/\.00$/, '')} per person per year. The
-            ticket entitlement becomes payable after completion of eleven (11) months of service in
-            each contract year, and unused entitlement is not carried forward or encashed. A one-way
-            ticket on final exit is provided in accordance with the Labor Law.
+            . The ticket entitlement becomes payable after completion of eleven (11) months of
+            service in each contract year, and unused entitlement is not carried forward or
+            encashed. A one-way ticket on final exit is provided in accordance with the Labor Law.
           </Clause>
         ) : null}
         <Clause n="2.7" title="Overtime and on-call">
