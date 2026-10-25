@@ -969,6 +969,11 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Foreign-currency ERP postings no longer fail over a cent.** Each journal
+  line is converted to SAR and rounded on its own, so an invoice or expense in
+  USD or AED could come out 0.01 unbalanced and fail to post. The engine now
+  adds that rounding (at most half a cent per line) to the largest line on the
+  short side, noted in its memo; a larger difference is still refused.
 - **Candidates and employees are pointed to hr@iotatechnologies.ai.** Offer,
   signing, candidate intake and onboarding pages and emails gave
   hr@iotatechnologies.io. The documents site's fallback page now gives
