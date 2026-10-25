@@ -97,6 +97,7 @@ const STATUS_LABEL = {
   pending_iota_signatures: 'Pending IOTA Signatures',
   pending_employee_signature: 'Pending Employee Signature',
   fully_signed: 'Fully Signed',
+  archived: 'Archived',
 };
 
 const STAGE_LABEL = {

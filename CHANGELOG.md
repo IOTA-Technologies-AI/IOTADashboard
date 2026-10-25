@@ -972,6 +972,11 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Offers can be archived.** An archived offer is withdrawn but kept: it is
+  no longer listed, its signing and view links stop working, and the employee
+  can be given a new offer (`sql/20261025_archive_offers.sql`, which can also
+  restore them). A signing link now also stops working once its offer has
+  been amended back to draft — the API checked only the link before.
 - **A lapsed TOTP check asks for a code instead of signing you out.** The
   API wants the authenticator code again after 12 hours. When that happened
   in a tab left open (a laptop asleep overnight pauses the 8-hour prompt), the
