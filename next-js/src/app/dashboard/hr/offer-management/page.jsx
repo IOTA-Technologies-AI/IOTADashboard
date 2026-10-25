@@ -28,6 +28,10 @@ const STATUS_COLOR = {
   pending_approval: 'warning',
   approved: 'success',
   rejected: 'error',
+  pending_iota_signatures: 'warning',
+  pending_employee_signature: 'info',
+  fully_signed: 'success',
+  void: 'error',
 };
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -117,7 +121,7 @@ export default function OfferManagementPage() {
         <Chip
           size="small"
           label={(params.value || 'draft')
-            .replace('_', ' ')
+            .replace(/_/g, ' ')
             .replace(/\b\w/g, (c) => c.toUpperCase())}
           color={STATUS_COLOR[params.value] || 'default'}
         />

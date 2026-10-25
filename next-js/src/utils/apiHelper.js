@@ -4251,6 +4251,26 @@ export async function resubmitOffer(id) {
 }
 
 /**
+ * @summary Voids an offer with a reason; the employee can then be given a new one.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-10-25
+ * @modified 2026-10-25
+ * @param {string|number} id - The offer ID.
+ * @param {string} reason - Why; emailed to a candidate who has heard about the offer.
+ * @returns {Promise<object>} The updated offer object.
+ */
+export async function voidOffer(id, reason) {
+  try {
+    const response = await axios.post(`${API_BASE_URL}/offers/${id}/void`, { reason });
+    return response.data.offer;
+  } catch (error) {
+    console.error('Error voiding offer:', error);
+    throw error;
+  }
+}
+
+/**
  * @summary Finalizes an offer by embedding all signatures into the PDF and storing it.
  * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
  * @version 1.0.0
@@ -5567,6 +5587,7 @@ export const apiHelper = {
   replyToOfferQuestion,
   amendOffer,
   resubmitOffer,
+  voidOffer,
   // Webhook events
   getWebhookEvents,
   getLogDrainStatus,

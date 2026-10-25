@@ -33,6 +33,7 @@ import { stampNdaPdf } from 'src/utils/nda-pdf';
 import { stampForOffice, DEFAULT_IOTA_OFFICE } from 'src/utils/iota-offices';
 import {
   getOffer,
+  voidOffer,
   amendOffer,
   rejectOffer,
   approveOffer,
@@ -87,6 +88,7 @@ const STATUS_COLOR = {
   pending_iota_signatures: 'warning',
   pending_employee_signature: 'info',
   fully_signed: 'success',
+  void: 'error',
 };
 
 const STATUS_LABEL = {
@@ -98,6 +100,7 @@ const STATUS_LABEL = {
   pending_employee_signature: 'Pending Employee Signature',
   fully_signed: 'Fully Signed',
   archived: 'Archived',
+  void: 'Void',
 };
 
 const STAGE_LABEL = {
@@ -214,6 +217,11 @@ export default function OfferManagementDetailsPage({ params }) {
   const [amending, setAmending] = useState(false);
   const [resubmitting, setResubmitting] = useState(false);
 
+  // Void: withdrawn for good, with a reason; the employee can get a new offer
+  const [voidOpen, setVoidOpen] = useState(false);
+  const [voidReason, setVoidReason] = useState('');
+  const [voiding, setVoiding] = useState(false);
+
   const userEmail = user?.email || '';
 
   const isAdminOrSuperAdmin = user?.role === 'admin' || user?.role === 'superAdmin';
@@ -221,8 +229,20 @@ export default function OfferManagementDetailsPage({ params }) {
   // The API re-checks the role (admin or super admin) and the status.
   const canAmend =
     isAdminOrSuperAdmin &&
-    offer?.status === 'pending_employee_signature' &&
+    ['approved', 'rejected', 'pending_employee_signature'].includes(offer?.status) &&
     !offer?.employeeSignedAt;
+
+  // Any offer short of fully signed; the API re-checks the role and the status.
+  const canVoid =
+    isAdminOrSuperAdmin &&
+    !!offer?.status &&
+    !['fully_signed', 'void', 'archived'].includes(offer.status);
+  // Approval emails the candidate, so from then on they are told why.
+  const voidEmailsCandidate = [
+    'approved',
+    'pending_employee_signature',
+    'pending_iota_signatures',
+  ].includes(offer?.status);
 
   // People on appConfig offers › managerApprovers can act at the manager stage too.
   // The API re-checks the stage and the caller.
@@ -278,6 +298,25 @@ export default function OfferManagementDetailsPage({ params }) {
       toast.error(err?.response?.data?.message || 'The amendment could not be started.');
     } finally {
       setAmending(false);
+    }
+  };
+
+  const handleVoid = async () => {
+    const reason = voidReason.trim();
+    if (!reason) return;
+    setVoiding(true);
+    try {
+      setOffer(await voidOffer(id, reason));
+      setVoidOpen(false);
+      toast.success(
+        voidEmailsCandidate
+          ? 'Offer voided. The candidate has been emailed the reason.'
+          : 'Offer voided. The employee can now be given a new offer.'
+      );
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'The offer could not be voided.');
+    } finally {
+      setVoiding(false);
     }
   };
 
@@ -899,6 +938,19 @@ export default function OfferManagementDetailsPage({ params }) {
                 Amend offer
               </Button>
             )}
+            {canVoid && (
+              <Button
+                variant="outlined"
+                color="error"
+                startIcon={<Iconify icon="solar:close-circle-bold" />}
+                onClick={() => {
+                  setVoidReason('');
+                  setVoidOpen(true);
+                }}
+              >
+                Void offer
+              </Button>
+            )}
             <Button
               variant="outlined"
               startIcon={<Iconify icon="solar:printer-bold" />}
@@ -954,7 +1006,7 @@ export default function OfferManagementDetailsPage({ params }) {
               severity={
                 ['approved', 'fully_signed'].includes(offer.status)
                   ? 'success'
-                  : offer.status === 'rejected'
+                  : ['rejected', 'void'].includes(offer.status)
                     ? 'error'
                     : ['pending_approval', 'pending_iota_signatures'].includes(offer.status)
                       ? 'warning'
@@ -971,6 +1023,19 @@ export default function OfferManagementDetailsPage({ params }) {
                 {offer.status === 'approved' && offer.approvedBy && (
                   <Typography variant="body2">
                     Approved by <strong>{offer.approvedBy}</strong>
+                  </Typography>
+                )}
+                {offer.status === 'void' && (
+                  <Typography variant="body2">
+                    Voided by <strong>{offer.voidedBy}</strong>
+                    {offer.voidedAt
+                      ? ` on ${new Date(offer.voidedAt).toLocaleDateString('en-GB', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })}`
+                      : ''}
+                    : {offer.voidReason}
                   </Typography>
                 )}
                 {offer.status === 'rejected' && offer.rejectedBy && (
@@ -1902,6 +1967,44 @@ export default function OfferManagementDetailsPage({ params }) {
             onClick={handleAmend}
           >
             Amend offer
+          </LoadingButton>
+        </DialogActions>
+      </Dialog>
+
+      {/* ── Void Dialog ────────────────────────────────────────────────── */}
+      <Dialog open={voidOpen} onClose={() => setVoidOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Void offer</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            The offer is withdrawn for good and kept on record as Void. Its links stop working, and
+            the employee appears again among onboarded employees, ready for a new offer.
+            {offer.employeeSignedAt ? ' The candidate has signed it; that signature lapses.' : ''}
+          </Typography>
+          {voidEmailsCandidate ? (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              {offer.candidateName} will be emailed this reason and told a new offer letter is on
+              its way. Write it for them to read.
+            </Alert>
+          ) : null}
+          <TextField
+            fullWidth
+            multiline
+            rows={3}
+            label="Reason"
+            value={voidReason}
+            onChange={(e) => setVoidReason(e.target.value)}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setVoidOpen(false)}>Cancel</Button>
+          <LoadingButton
+            variant="contained"
+            color="error"
+            loading={voiding}
+            disabled={voidReason.trim().length < 3}
+            onClick={handleVoid}
+          >
+            Void offer
           </LoadingButton>
         </DialogActions>
       </Dialog>

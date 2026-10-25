@@ -25,6 +25,18 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Offers can be voided, amended at more stages, and are locked once signed.**
+  Admins and Super Admins can void any offer short of fully signed, with a
+  reason: it stays listed as Void, its links stop working, the employee
+  appears again among onboarded employees for a new offer, and a candidate
+  who had already been told about the offer is emailed the reason and that a
+  new letter is coming. Amend (back to draft, edit, approve again) now works
+  for approved and rejected offers as well as those awaiting the candidate's
+  signature. A fully signed offer can be neither voided, amended, edited nor
+  deleted, and only drafts, pending and rejected offers can be deleted at all.
+  Each onboarded employee can have one live offer, enforced by the database
+  (`sql/20261025_offer_void.sql`) — which also replaces the index that stopped
+  an employee whose offer was archived from being offered again.
 - **Offer salary splits itself.** Entering the Monthly Salary on an offer fills
   Basic (50% of it), Housing (25% of Basic) and Other Allowances (the rest,
   after any transportation allowance). Each part can still be edited.
