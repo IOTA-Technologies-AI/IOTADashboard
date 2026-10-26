@@ -188,6 +188,32 @@ async function replaceQuotationNumbers(pdf, bytes, face, quotationNumber) {
   return count;
 }
 
+/**
+ * The PDF with every typed quotation number reprinted as `quotationNumber`,
+ * and nothing else changed: used on upload, so the copy kept in OneDrive
+ * reads the same as the one handed out. A PDF without one, or one that cannot
+ * be rewritten, comes back as it was. Resolves to { blob, replaced }.
+ */
+export async function setQuotationNumber(blob, quotationNumber, { font } = {}) {
+  try {
+    const bytes = await blob.arrayBuffer();
+    const pdf = await PDFDocument.load(bytes, { ignoreEncryption: true });
+    pdf.registerFontkit(fontkit);
+    const face = await pdf.embedFont(font ?? (await loadFont()), { subset: true });
+    const replaced = await replaceQuotationNumbers(
+      pdf,
+      new Uint8Array(bytes.slice(0)),
+      face,
+      quotationNumber
+    );
+    if (!replaced) return { blob, replaced: 0 };
+    return { blob: new Blob([await pdf.save()], { type: 'application/pdf' }), replaced };
+  } catch (err) {
+    console.error('Quotation number not replaced:', err);
+    return { blob, replaced: 0 };
+  }
+}
+
 export async function stampPdf(
   blob,
   { documentId, version, classification, positions, font, quotationNumber }

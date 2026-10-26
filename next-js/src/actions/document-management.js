@@ -1,7 +1,7 @@
 import useSWR, { mutate } from 'swr';
 
-import { stampPdf } from 'src/utils/document-stamp';
 import { putToUploadSession } from 'src/utils/onedrive-upload';
+import { stampPdf, setQuotationNumber } from 'src/utils/document-stamp';
 
 import iotaApi from 'src/lib/iota-api';
 
@@ -92,13 +92,24 @@ export async function createManagedDocument(payload, file, note) {
   const res = await iotaApi.post('/document-management/documents', payload);
   const { document } = res.data;
   await sendDocumentVersion(document.documentId, {
-    render: async () => file,
+    render: uploadedFile(file, document),
     origin: 'uploaded',
     extension: extensionOf(file.name),
     note,
   });
   return document;
 }
+
+/**
+ * `render` for an uploaded file: a PDF has any "Quotation #…" in it reprinted
+ * as `<ID>-v<version>` before it is kept in OneDrive, so the stored copy reads
+ * the same as the one handed out. Other files are kept as they are.
+ */
+export const uploadedFile = (file, document) => async (version) => {
+  if (extensionOf(file.name) !== 'pdf') return file;
+  const { blob } = await setQuotationNumber(file, `${document.display}-v${version}`);
+  return blob;
+};
 
 /**
  * The proposal's document, or null when it has none. With `issue`, its ID is

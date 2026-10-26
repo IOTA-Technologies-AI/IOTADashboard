@@ -15,6 +15,7 @@ import DialogActions from '@mui/material/DialogActions';
 
 import {
   extensionOf,
+  uploadedFile,
   isAcceptedFile,
   DOCUMENT_ACCEPT,
   sendDocumentVersion,
@@ -65,7 +66,7 @@ export function DocumentRevisionDialog({ open, onClose, document, onUploaded }) 
     setBusy(true);
     try {
       const sent = await sendDocumentVersion(document.documentId, {
-        render: async () => file,
+        render: uploadedFile(file, document),
         origin: 'uploaded',
         extension: extensionOf(file.name),
         note: note.trim() || undefined,

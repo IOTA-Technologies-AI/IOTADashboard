@@ -1003,6 +1003,13 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **The copy kept in OneDrive carries the right quotation number too.** When
+  a PDF is added to Document Management or uploaded as a new version, any
+  "Quotation #XXXX-XXXX-XXXX" in it is reprinted as the document's ID and
+  that version (`Quotation #IP87-LZLL-PNCN-v3`) before it is saved, so
+  OneDrive, the preview and downloads all read the same. Versions uploaded
+  before this keep their file in OneDrive; their preview and download already
+  show the right number.
 - **Uploaded proposals always show their own quotation number.** When an
   uploaded PDF is downloaded or previewed from Document Management, any
   "Quotation #XXXX-XXXX-XXXX" typed into it is reprinted, wherever it sits, as
