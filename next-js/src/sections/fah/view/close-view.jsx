@@ -68,6 +68,7 @@ const LINK = (a) => ({
   trialBalance: a.trialBalance,
   reconciliation: a.reconciliation,
   reimbursements: a.reimbursements,
+  monthEnd: a.monthEnd,
 });
 
 /**

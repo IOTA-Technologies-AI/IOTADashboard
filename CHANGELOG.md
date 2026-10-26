@@ -25,6 +25,14 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Month-end: deferred revenue and FX revaluation (Financial Accounting
+  Hub, phase 5).** Retainer, recurring/subscription and per-user invoices now
+  book their revenue as deferred (2300). Accounting → Month-end lets finance
+  give each one its service period and release the share earned each month
+  to revenue. The same page revalues open foreign-currency balances at the
+  month-end rate (unrealised FX, reversed on the 1st). Both are part of the
+  close checklist. Needs `sql/20261026_fah_05d_fx_deferral.sql` in the API
+  repo.
 - **Month-end close and year-end close (Financial Accounting Hub, phase 5).**
   Accounting → Close lists each month of a book with its status. A month's
   checklist is worked out live: ERP events posted, journals posted, tagging

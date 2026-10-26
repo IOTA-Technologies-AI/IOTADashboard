@@ -164,6 +164,7 @@ export const navData = [
           { title: 'Allocations', path: paths.dashboard.finance.accounting.allocations },
           { title: 'Inter-practice', path: paths.dashboard.finance.accounting.interPractice },
           { title: 'Periods', path: paths.dashboard.finance.accounting.periods },
+          { title: 'Month-end', path: paths.dashboard.finance.accounting.monthEnd },
           { title: 'Close', path: paths.dashboard.finance.accounting.close },
           { title: 'Dimensions', path: paths.dashboard.finance.accounting.dimensions },
           { title: 'Exchange Rates', path: paths.dashboard.finance.accounting.rates },

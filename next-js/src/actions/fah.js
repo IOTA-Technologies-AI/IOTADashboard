@@ -647,3 +647,29 @@ export const requestReopen = (id, reason) =>
 export const approveReopen = (id) => send('post', `/fah/close/${id}/approve-reopen`, {});
 export const postYearEnd = (legalEntityId, year) =>
   send('post', '/fah/close/year-end', { legalEntityId, year });
+
+// Month-end: deferred revenue and FX revaluation (Phase 5d)
+/** { schedules, unscheduled, period, total } */
+export function useDeferredRevenue(legalEntityId, periodId) {
+  const { data, error, isLoading } = useSWR(
+    legalEntityId
+      ? ['/fah/deferred-revenue', { legalEntityId, ...(periodId ? { periodId } : {}) }]
+      : null,
+    fetcher,
+    options
+  );
+  return { data: data ?? null, error, loading: isLoading };
+}
+export const createRevenueSchedule = (payload) => send('post', '/fah/revenue-schedules', payload);
+export const postRevenueRelease = (legalEntityId, periodId) =>
+  send('post', '/fah/revenue-release', { legalEntityId, periodId });
+export function useFxPreview(legalEntityId, periodId) {
+  const { data, error, isLoading } = useSWR(
+    legalEntityId && periodId ? ['/fah/fx-revaluation', { legalEntityId, periodId }] : null,
+    fetcher,
+    options
+  );
+  return { preview: data ?? null, error, loading: isLoading };
+}
+export const postFxRevaluation = (legalEntityId, periodId) =>
+  send('post', '/fah/fx-revaluation', { legalEntityId, periodId });
