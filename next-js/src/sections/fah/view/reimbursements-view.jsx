@@ -36,6 +36,7 @@ import {
   useReimbursements,
   recordReimbursement,
   useReimbursementsOwed,
+  repostCompanyPaidExpenses,
 } from 'src/actions/fah';
 
 import { Label } from 'src/components/label';
@@ -86,9 +87,11 @@ function Reimbursements({ me }) {
       <Alert severity="info">
         {t(
           'reimb.info',
-          'Approved out-of-pocket expenses are owed to the employee (2105) until reimbursed. Cash payments credit cash on hand (1010); bank transfers go through receipts and payments clearing (1025) until the bank line matches.'
+          'IOTA pays expenses directly: an approved expense credits payments clearing (1025) until its bank payment matches. This page is for the rare expense an employee paid themselves (2105): cash reimbursements credit cash on hand (1010), bank transfers 1025.'
         )}
       </Alert>
+
+      {me.canControl && owed.employees.some((o) => o.owed > 0) && <CompanyPaidCard />}
 
       <Card component={m.div} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
         <Stack
@@ -228,6 +231,152 @@ function Reimbursements({ me }) {
 }
 
 // ----------------------------------------------------------------------
+
+/**
+ * Expenses posted before "paid by the company" still show as owed to the
+ * employee. Review them, then re-post them as paid by the company.
+ */
+function CompanyPaidCard() {
+  const { t } = useFahT();
+  const [preview, setPreview] = useState(null);
+  const [busy, setBusy] = useState(false);
+
+  const handleReview = async () => {
+    setBusy(true);
+    try {
+      setPreview(await repostCompanyPaidExpenses(true));
+    } catch (err) {
+      toast.error(fahError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRepost = async () => {
+    setBusy(true);
+    try {
+      const done = await repostCompanyPaidExpenses(false);
+      const failed = (done.engine?.failed ?? 0) + (done.engine?.waiting ?? 0);
+      if (failed) {
+        toast.warning(
+          t(
+            'reimb.cp.partial',
+            '{{n}} expenses could not be re-posted yet: see ERP Postings → Events → Problems.',
+            {
+              n: failed,
+            }
+          )
+        );
+      } else {
+        toast.success(
+          t('reimb.cp.done', '{{n}} expenses re-posted as paid by the company', {
+            n: done.expenses,
+          })
+        );
+      }
+      setPreview(null);
+    } catch (err) {
+      toast.error(fahError(err));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const todo = preview?.employees.filter((e) => !e.skipped) ?? [];
+  const skipped = preview?.employees.filter((e) => e.skipped) ?? [];
+
+  return (
+    <Card sx={{ p: 2.5 }}>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={2}
+        alignItems={{ sm: 'center' }}
+        justifyContent="space-between"
+      >
+        <Box>
+          <Typography variant="subtitle1">
+            {t('reimb.cp.title', 'Expenses paid by the company')}
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            {t(
+              'reimb.cp.help',
+              'Expenses posted before this rule show as owed to the employee although IOTA paid them (GOSI, iqama…). Re-posting moves each one to payments clearing (1025); nothing is paid to anyone.'
+            )}
+          </Typography>
+        </Box>
+        <LoadingButton variant="outlined" loading={busy && !preview} onClick={handleReview}>
+          {t('reimb.cp.review', 'Review')}
+        </LoadingButton>
+      </Stack>
+
+      <Dialog
+        open={Boolean(preview)}
+        onClose={() => !busy && setPreview(null)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>{t('reimb.cp.title', 'Expenses paid by the company')}</DialogTitle>
+        <DialogContent>
+          {preview && !preview.expenses ? (
+            <Typography variant="body2">
+              {t('reimb.cp.none', 'Nothing to re-post: no expense is still owed to an employee.')}
+            </Typography>
+          ) : (
+            <Stack spacing={2.5}>
+              <Typography variant="body2">
+                {t(
+                  'reimb.cp.body',
+                  '{{n}} expenses, SAR {{total}}, are reversed and posted again as paid by the company. The employees drop off the owed list.',
+                  { n: preview?.expenses, total: fAmount(preview?.total) }
+                )}
+              </Typography>
+              {todo.map((e) => (
+                <Box key={e.employeeId}>
+                  <Typography variant="subtitle2">
+                    {e.employeeName || e.employeeId} · SAR {fAmount(e.total)}
+                  </Typography>
+                  <Table size="small">
+                    <TableBody>
+                      {e.expenses.map((x) => (
+                        <TableRow key={x.expenseId}>
+                          <TableCell sx={num}>{x.journalDate}</TableCell>
+                          <TableCell>{x.reference}</TableCell>
+                          <TableCell>{x.description.replace(/^Expense · /, '')}</TableCell>
+                          <TableCell align="right" sx={num}>
+                            {fAmount(x.amount)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Box>
+              ))}
+              {skipped.length > 0 && (
+                <Alert severity="warning">
+                  {t(
+                    'reimb.cp.skipped',
+                    'Left as they are, because a reimbursement is already recorded for them: {{names}}. Review these by hand.',
+                    { names: skipped.map((e) => e.employeeName || e.employeeId).join(', ') }
+                  )}
+                </Alert>
+              )}
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button color="inherit" onClick={() => setPreview(null)} disabled={busy}>
+            {t('common.cancel', 'Cancel')}
+          </Button>
+          {preview?.expenses > 0 && (
+            <LoadingButton variant="contained" loading={busy} onClick={handleRepost}>
+              {t('reimb.cp.confirm', 'Re-post as paid by the company')}
+            </LoadingButton>
+          )}
+        </DialogActions>
+      </Dialog>
+    </Card>
+  );
+}
 
 function RecordDialog({ open, initial, owed, entities, onClose }) {
   const { t, nameOf } = useFahT();

@@ -1019,6 +1019,16 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Expenses are booked as paid by the company, not owed to the employee.**
+  IOTA pays expenses directly (wallets are no longer used), but the ERP marks
+  every expense "out of pocket", so the ledger listed GOSI, iqama and similar
+  charges as owed back to employees (e.g. SAR 6,945 for Fajer AlShehri). An
+  approved expense without an AP row now credits payments clearing (1025),
+  which the bank payment clears. Accounting → Reimbursements → "Expenses paid
+  by the company" re-posts the ones booked before this (a controller reviews
+  the list first); nothing is paid to anyone. Optional
+  `sql/20261026_fah_02b_expenses_company_paid.sql` records the rule and its
+  setting in the database.
 - **The copy kept in OneDrive carries the right quotation number too.** When
   a PDF is added to Document Management or uploaded as a new version, any
   "Quotation #XXXX-XXXX-XXXX" in it is reprinted as the document's ID and

@@ -515,3 +515,12 @@ export function useCostCentreReport(params, enabled = true) {
   );
   return { rows: data?.rows ?? EMPTY, error, loading: isLoading };
 }
+
+/**
+ * Expenses still crediting an employee (2105) re-posted as paid by the company
+ * (1025). dryRun lists them: { employees: [{ employeeName, total, expenses, skipped }], expenses, total }.
+ */
+export const repostCompanyPaidExpenses = (dryRun = true) =>
+  dryRun
+    ? iotaApi.post('/fah/expenses/company-paid', { dryRun }).then((res) => res.data)
+    : send('post', '/fah/expenses/company-paid', { dryRun });
