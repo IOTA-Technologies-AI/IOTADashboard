@@ -239,6 +239,7 @@ function Reimbursements({ me }) {
 function CompanyPaidCard() {
   const { t } = useFahT();
   const [preview, setPreview] = useState(null);
+  const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
 
   const handleReview = async () => {
@@ -256,25 +257,15 @@ function CompanyPaidCard() {
     setBusy(true);
     try {
       const done = await repostCompanyPaidExpenses(false);
-      const failed = (done.engine?.failed ?? 0) + (done.engine?.waiting ?? 0);
-      if (failed) {
-        toast.warning(
-          t(
-            'reimb.cp.partial',
-            '{{n}} expenses could not be re-posted yet: see ERP Postings → Events → Problems.',
-            {
-              n: failed,
-            }
-          )
-        );
-      } else {
-        toast.success(
-          t('reimb.cp.done', '{{n}} expenses re-posted as paid by the company', {
-            n: done.expenses,
-          })
-        );
-      }
+      const stuck = (done.problems ?? []).reduce((n, p) => n + p.count, 0);
       setPreview(null);
+      if (stuck) {
+        setResult(done);
+        return;
+      }
+      toast.success(
+        t('reimb.cp.done', '{{n}} expenses re-posted as paid by the company', { n: done.expenses })
+      );
     } catch (err) {
       toast.error(fahError(err));
     } finally {
@@ -308,6 +299,32 @@ function CompanyPaidCard() {
           {t('reimb.cp.review', 'Review')}
         </LoadingButton>
       </Stack>
+
+      <Dialog open={Boolean(result)} onClose={() => setResult(null)} maxWidth="sm" fullWidth>
+        <DialogTitle>{t('reimb.cp.partialTitle', 'Some expenses were not re-posted')}</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            {t(
+              'reimb.cp.partialBody',
+              '{{ok}} of {{n}} expenses were re-posted. The rest, and why:',
+              {
+                ok: result?.engine?.posted ?? 0,
+                n: result?.expenses ?? 0,
+              }
+            )}
+          </Typography>
+          <Stack spacing={1}>
+            {(result?.problems ?? []).map((p) => (
+              <Alert key={p.reason} severity="warning">
+                <b>{p.count}</b> · {p.reason}
+              </Alert>
+            ))}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setResult(null)}>{t('common.close', 'Close')}</Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={Boolean(preview)}

@@ -1019,6 +1019,10 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Re-posting expenses as paid by the company works for every month.**
+  Expenses in months that were never opened waited "until finance opens
+  it" instead of re-posting. They now re-post in their own month, as the
+  history load did; if any still cannot, the dialog says why.
 - **Expenses are booked as paid by the company, not owed to the employee.**
   IOTA pays expenses directly (wallets are no longer used), but the ERP marks
   every expense "out of pocket", so the ledger listed GOSI, iqama and similar
