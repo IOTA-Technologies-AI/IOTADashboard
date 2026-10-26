@@ -22,6 +22,14 @@ export async function POST(request) {
     if (!file) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
+    // No guessing: reading a SAIB statement as Emirates NBD finds nothing and
+    // blames the wrong bank (ISS-0014).
+    if (!bankId) {
+      return NextResponse.json(
+        { error: 'Choose the bank this statement is from.' },
+        { status: 400 }
+      );
+    }
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
@@ -30,7 +38,7 @@ export async function POST(request) {
     // is gone (ISS-0011). See src/utils/bank-statements.
     let parsedStatement;
     try {
-      parsedStatement = await parseBankStatement(buffer, bankId || 'emirates_nbd', password);
+      parsedStatement = await parseBankStatement(buffer, bankId, password);
       const r = parsedStatement.reconciliation;
       console.log(
         `[banking] ${parsedStatement.bankId}: ${parsedStatement.transactions.length} transactions; ` +
@@ -47,7 +55,7 @@ export async function POST(request) {
       );
     }
 
-    const detectedBankId = bankId || parsedStatement.bankId || 'emirates_nbd';
+    const detectedBankId = bankId;
 
     let finalAccountId = accountId;
 

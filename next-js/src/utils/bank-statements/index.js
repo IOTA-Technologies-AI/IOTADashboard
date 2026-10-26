@@ -34,7 +34,7 @@ export async function parseBankStatement(buffer, bankId, password = '') {
 
   if (!result.transactions.length) {
     throw new StatementReadError(
-      `No transactions were found. Check that this is a ${result.bankName} statement and the right bank account is selected.`
+      `No transactions were found. Check that this statement is from ${result.bankName} and the right bank account is selected. If it is, the bank may have changed its statement layout — report an issue with the statement attached.`
     );
   }
   return { ...result, reconciliation: reconcile(result.statementInfo, result.transactions) };

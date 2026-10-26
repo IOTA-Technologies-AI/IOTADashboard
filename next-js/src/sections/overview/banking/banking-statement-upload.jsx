@@ -24,7 +24,7 @@ import LinearProgress from '@mui/material/LinearProgress';
 import CircularProgress from '@mui/material/CircularProgress';
 
 import { getLiveAccessToken } from 'src/utils/jwt-auth';
-import { BANK_REGIONS, SUPPORTED_BANKS } from 'src/utils/constants/banking';
+import { BANK_REGIONS, SUPPORTED_BANKS, getBankIdByName } from 'src/utils/constants/banking';
 
 import { Iconify } from 'src/components/iconify';
 
@@ -49,7 +49,7 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
     setFile(null);
     setPassword('');
     setSelectedAccount('');
-    setSelectedBank('');
+    setSelectedBank(SUPPORTED_BANKS[selectedRegion]?.[0]?.id || '');
     setError('');
     setProgress(0);
     setParseResult(null);
@@ -76,6 +76,20 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
       return;
     }
 
+    // An existing account reads as its own bank; the Bank picker only shows
+    // for a new account. (It used to send the picker's value, which was empty
+    // after reopening the dialog, and the parser then assumed Emirates NBD.)
+    const account = accounts.find((acc) => acc.id === selectedAccount);
+    const bankId = isNewAccount || !account ? selectedBank : getBankIdByName(account.bankName);
+    if (!bankId) {
+      setError(
+        account
+          ? `Statements from ${account.bankName || 'this bank'} cannot be read yet.`
+          : 'Please choose the bank'
+      );
+      return;
+    }
+
     setLoading(true);
     setProgress(10);
     setError('');
@@ -85,7 +99,7 @@ export function BankingStatementUpload({ onUploadComplete, accounts = [], sx, ..
       formData.append('file', file);
       formData.append('password', password);
       formData.append('accountId', selectedAccount);
-      formData.append('bankId', selectedBank);
+      formData.append('bankId', bankId);
       formData.append('region', selectedRegion);
       formData.append('isNewAccount', isNewAccount.toString());
 

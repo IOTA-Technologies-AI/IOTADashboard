@@ -997,6 +997,11 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Bank statement upload reads the statement as the selected account's bank
+  (ISS-0014).** Uploading to an existing account used the hidden Bank picker,
+  which was empty after the dialog had been closed once, so the statement was
+  read as Emirates NBD whatever the account. It now uses the account's own
+  bank, and the server refuses an upload with no bank instead of guessing.
 - **Offer letters: children's air tickets at 75%, and no empty Transportation
   row.** Clause 2.6 now covers you and your spouse up to the ticket cap, and
   up to the covered number of children at 75% of the ticket cost, capped at

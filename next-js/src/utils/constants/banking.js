@@ -72,6 +72,17 @@ export function getBankById(bankId, region = null) {
   return null;
 }
 
+// Bank id for an account's stored bank name ("Saudi Investment Bank" → 'saib')
+export function getBankIdByName(bankName) {
+  const name = (bankName || '').trim().toLowerCase();
+  if (!name) return null;
+  for (const banks of Object.values(SUPPORTED_BANKS)) {
+    const found = banks.find((bank) => bank.name.toLowerCase() === name);
+    if (found) return found.id;
+  }
+  return null;
+}
+
 // Get all banks as flat array
 export function getAllBanks() {
   return [
@@ -114,7 +125,11 @@ export function detectCategory(description) {
   if (desc.includes('transfer') && desc.includes('out')) {
     return 'transfer_out';
   }
-  if (desc.includes('ipp') || desc.includes('customer credit') || desc.includes('payment received')) {
+  if (
+    desc.includes('ipp') ||
+    desc.includes('customer credit') ||
+    desc.includes('payment received')
+  ) {
     return 'customer_payment';
   }
   if (desc.includes('refund')) {
