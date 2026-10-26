@@ -26,6 +26,7 @@ import { listCustomers } from 'src/actions/documents';
 import {
   isAcceptedFile,
   DOCUMENT_ACCEPT,
+  correctionsNote,
   typesForPractice,
   useDocumentCatalog,
   createManagedDocument,
@@ -36,11 +37,13 @@ import { Upload } from 'src/components/upload';
 import { toast } from 'src/components/snackbar';
 import { Iconify } from 'src/components/iconify';
 
+import { DocumentCheckPanel } from './document-check-panel';
 import { CLASSIFICATION, CLASSIFICATION_ORDER } from './document-labels';
 
 // ----------------------------------------------------------------------
 
 const INTERNAL = { id: null, name: 'Internal (IOTA office)' };
+const UNCHECKED = { ready: true, corrections: [], checking: false };
 
 const titleFromFileName = (name) =>
   String(name || '')
@@ -80,6 +83,7 @@ export function DocumentNewDialog({ open, onClose }) {
   const [notes, setNotes] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [check, setCheck] = useState(UNCHECKED);
 
   const reset = () => {
     setFile(null);
@@ -92,6 +96,7 @@ export function DocumentNewDialog({ open, onClose }) {
     setOffice('KSA');
     setNotes('');
     setError('');
+    setCheck(UNCHECKED);
   };
 
   const handleClose = () => {
@@ -118,6 +123,7 @@ export function DocumentNewDialog({ open, onClose }) {
     if (!file || !title.trim()) return;
     setBusy(true);
     setError('');
+    let rewritten = null;
     try {
       const document = await createManagedDocument(
         {
@@ -131,9 +137,22 @@ export function DocumentNewDialog({ open, onClose }) {
           notes: notes.trim() || undefined,
         },
         file,
-        'Uploaded to Document Management'
+        ['Uploaded to Document Management', correctionsNote(check.corrections)]
+          .filter(Boolean)
+          .join('. '),
+        {
+          corrections: check.corrections,
+          onRewritten: (result) => {
+            rewritten = result;
+          },
+        }
       );
       toast.success(`Filed as ${document.display} — version 1 is in OneDrive.`);
+      if (rewritten?.missed?.length) {
+        toast.warning(
+          `${rewritten.missed.length} correction(s) could not be placed in the file; check the document.`
+        );
+      }
       reset();
       onClose();
       router.push(paths.dashboard.general.documentManagement.details(document.documentId));
@@ -299,6 +318,14 @@ export function DocumentNewDialog({ open, onClose }) {
                     </ToggleButtonGroup>
                   </Stack>
 
+                  <DocumentCheckPanel
+                    file={file}
+                    customerId={client?.id ?? null}
+                    office={office}
+                    disabled={busy}
+                    onChange={setCheck}
+                  />
+
                   <TextField
                     label="Notes"
                     placeholder="Who prepared it, where it came from, next steps…"
@@ -330,9 +357,9 @@ export function DocumentNewDialog({ open, onClose }) {
           variant="contained"
           onClick={handleSubmit}
           loading={busy}
-          disabled={!file || !title.trim() || !docType}
+          disabled={!file || !title.trim() || !docType || !check.ready}
         >
-          Add document
+          {check.checking ? 'Checking…' : 'Add document'}
         </LoadingButton>
       </DialogActions>
     </Dialog>

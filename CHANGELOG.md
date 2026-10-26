@@ -25,6 +25,13 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Document check on upload (Document Management).** When a PDF is added or
+  uploaded as a new version, it is checked before it is filed: is it addressed
+  to the client it is filed under (a proposal for one customer naming another
+  is flagged), and do its prices add up (quantity × unit price, the lines to the
+  subtotal and total, VAT at 15%)? Each finding shows green, amber or red; a
+  fix can be ticked and edited, and is printed into the filed copy together with
+  the document ID. Rounding differences are noted, not corrected by default.
 - **Audit & exports, consolidation and auditor access (Financial Accounting
   Hub, phase 6).** Accounting → Audit & exports creates a month's audit pack
   (trial balances, journals, ledger, statements, rules, close and audit log,

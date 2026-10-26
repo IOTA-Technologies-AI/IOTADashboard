@@ -17,12 +17,17 @@ import {
   extensionOf,
   uploadedFile,
   isAcceptedFile,
+  correctionsNote,
   DOCUMENT_ACCEPT,
   sendDocumentVersion,
 } from 'src/actions/document-management';
 
 import { Upload } from 'src/components/upload';
 import { toast } from 'src/components/snackbar';
+
+import { DocumentCheckPanel } from './document-check-panel';
+
+const UNCHECKED = { ready: true, corrections: [], checking: false };
 
 // ----------------------------------------------------------------------
 
@@ -35,6 +40,7 @@ export function DocumentRevisionDialog({ open, onClose, document, onUploaded }) 
   const [note, setNote] = useState('');
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
+  const [check, setCheck] = useState(UNCHECKED);
 
   const nextVersion = (document?.currentVersion ?? 0) + 1;
 
@@ -42,6 +48,7 @@ export function DocumentRevisionDialog({ open, onClose, document, onUploaded }) 
     setFile(null);
     setNote('');
     setError('');
+    setCheck(UNCHECKED);
   };
 
   const handleClose = () => {
@@ -64,14 +71,26 @@ export function DocumentRevisionDialog({ open, onClose, document, onUploaded }) 
   const handleUpload = async () => {
     if (!file) return;
     setBusy(true);
+    let rewritten = null;
     try {
       const sent = await sendDocumentVersion(document.documentId, {
-        render: uploadedFile(file, document),
+        render: uploadedFile(file, document, {
+          corrections: check.corrections,
+          onRewritten: (result) => {
+            rewritten = result;
+          },
+        }),
         origin: 'uploaded',
         extension: extensionOf(file.name),
-        note: note.trim() || undefined,
+        note:
+          [note.trim(), correctionsNote(check.corrections)].filter(Boolean).join('. ') || undefined,
       });
       toast.success(`Version ${sent.version} saved to OneDrive as ${sent.fileName}.`);
+      if (rewritten?.missed?.length) {
+        toast.warning(
+          `${rewritten.missed.length} correction(s) could not be placed in the file; check the document.`
+        );
+      }
       reset();
       onUploaded?.(sent.version);
       onClose();
@@ -105,6 +124,14 @@ export function DocumentRevisionDialog({ open, onClose, document, onUploaded }) 
             disabled={busy}
           />
 
+          <DocumentCheckPanel
+            file={file}
+            customerId={document?.clientCustomerId ?? null}
+            office={document?.iotaOffice ?? 'KSA'}
+            disabled={busy}
+            onChange={setCheck}
+          />
+
           <TextField
             label="What changed"
             placeholder="e.g. Customer asked for a 24-month term"
@@ -122,8 +149,13 @@ export function DocumentRevisionDialog({ open, onClose, document, onUploaded }) 
         <Button onClick={handleClose} disabled={busy}>
           Cancel
         </Button>
-        <LoadingButton variant="contained" onClick={handleUpload} loading={busy} disabled={!file}>
-          Save as v{nextVersion}
+        <LoadingButton
+          variant="contained"
+          onClick={handleUpload}
+          loading={busy}
+          disabled={!file || !check.ready}
+        >
+          {check.checking ? 'Checking…' : `Save as v${nextVersion}`}
         </LoadingButton>
       </DialogActions>
     </Dialog>

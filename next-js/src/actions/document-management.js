@@ -1,7 +1,7 @@
 import useSWR, { mutate } from 'swr';
 
 import { putToUploadSession } from 'src/utils/onedrive-upload';
-import { stampPdf, setQuotationNumber } from 'src/utils/document-stamp';
+import { stampPdf, rewritePdf, readPdfLines } from 'src/utils/document-stamp';
 
 import iotaApi from 'src/lib/iota-api';
 
@@ -88,11 +88,16 @@ export async function saveDocumentTypes(types) {
  * Resolves to the document. If the upload fails the document still exists,
  * with no version, and the file can be uploaded again from its page.
  */
-export async function createManagedDocument(payload, file, note) {
+export async function createManagedDocument(
+  payload,
+  file,
+  note,
+  { corrections, onRewritten } = {}
+) {
   const res = await iotaApi.post('/document-management/documents', payload);
   const { document } = res.data;
   await sendDocumentVersion(document.documentId, {
-    render: uploadedFile(file, document),
+    render: uploadedFile(file, document, { corrections, onRewritten }),
     origin: 'uploaded',
     extension: extensionOf(file.name),
     note,
@@ -101,15 +106,46 @@ export async function createManagedDocument(payload, file, note) {
 }
 
 /**
- * `render` for an uploaded file: a PDF has any "Quotation #…" in it reprinted
- * as `<ID>-v<version>` before it is kept in OneDrive, so the stored copy reads
+ * `render` for an uploaded file: a PDF has the corrections accepted in the
+ * document check printed in, and any "Quotation #…" reprinted as
+ * `<ID>-v<version>`, before it is kept in OneDrive, so the stored copy reads
  * the same as the one handed out. Other files are kept as they are.
+ * `onRewritten` gets { replaced, corrected, missed }.
  */
-export const uploadedFile = (file, document) => async (version) => {
-  if (extensionOf(file.name) !== 'pdf') return file;
-  const { blob } = await setQuotationNumber(file, `${document.display}-v${version}`);
-  return blob;
-};
+export const uploadedFile =
+  (file, document, { corrections = [], onRewritten } = {}) =>
+  async (version) => {
+    if (extensionOf(file.name) !== 'pdf') return file;
+    const { blob, ...result } = await rewritePdf(file, {
+      quotationNumber: `${document.display}-v${version}`,
+      corrections,
+    });
+    onRewritten?.(result);
+    return blob;
+  };
+
+/**
+ * The document check (POST /document-management/check): is the PDF addressed
+ * to `customerId` (null: internal, not checked) and do its prices add up?
+ * Resolves to { status, findings, clientName, tables, truncated }.
+ */
+export async function checkDocument(file, { customerId, office }) {
+  const pages = await readPdfLines(file);
+  const res = await iotaApi.post('/document-management/check', {
+    pages,
+    customerId: customerId ?? null,
+    office,
+  });
+  return res.data;
+}
+
+/** The version note's line for corrections applied on upload. */
+export const correctionsNote = (corrections) =>
+  corrections.length
+    ? `Corrected on upload: ${corrections
+        .map((c) => `"${c.find}" → "${c.replace}" (p. ${c.page})`)
+        .join('; ')}`
+    : '';
 
 /**
  * The proposal's document, or null when it has none. With `issue`, its ID is
