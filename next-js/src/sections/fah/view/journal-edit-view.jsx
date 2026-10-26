@@ -8,12 +8,14 @@ import Card from '@mui/material/Card';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Button from '@mui/material/Button';
+import Switch from '@mui/material/Switch';
 import Divider from '@mui/material/Divider';
 import MenuItem from '@mui/material/MenuItem';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import LoadingButton from '@mui/lab/LoadingButton';
 import ToggleButton from '@mui/material/ToggleButton';
+import FormControlLabel from '@mui/material/FormControlLabel';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
 import { paths } from 'src/routes/paths';
@@ -86,6 +88,7 @@ export function JournalEditor({ detail, onSaved, onCancel }) {
     journalType: journal?.journalType ?? 'GENERAL',
     description: journal?.description ?? '',
     reference: journal?.reference ?? '',
+    autoReverse: journal?.autoReverse ?? false,
   }));
   const [lines, setLines] = useState(() =>
     detail?.lines?.length ? detail.lines.map(lineFromSaved) : [newLine(), newLine()]
@@ -151,6 +154,7 @@ export function JournalEditor({ detail, onSaved, onCancel }) {
         journalType: header.journalType,
         description: header.description,
         reference: header.reference || null,
+        autoReverse: header.journalType === 'GENERAL' && header.autoReverse,
         lines: lines
           .filter((l) => l.accountId && (Number(l.debit) || Number(l.credit)))
           .map((l) => ({
@@ -303,6 +307,22 @@ export function JournalEditor({ detail, onSaved, onCancel }) {
               onChange={(e) => setHeader((h) => ({ ...h, reference: e.target.value }))}
               disabled={saving}
             />
+            {header.journalType === 'GENERAL' && (
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={header.autoReverse}
+                    onChange={(e) => setHeader((h) => ({ ...h, autoReverse: e.target.checked }))}
+                    disabled={saving}
+                  />
+                }
+                label={
+                  <Typography variant="body2">
+                    {t('je.autoReverse', 'Reverse on the 1st of next month (accrual)')}
+                  </Typography>
+                }
+              />
+            )}
           </Stack>
         </Card>
 

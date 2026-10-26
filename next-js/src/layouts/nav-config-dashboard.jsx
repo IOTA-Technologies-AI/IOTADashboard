@@ -153,6 +153,7 @@ export const navData = [
         children: [
           { title: 'Overview', path: paths.dashboard.finance.accounting.root },
           { title: 'Journals', path: paths.dashboard.finance.accounting.journals },
+          { title: 'Recurring Journals', path: paths.dashboard.finance.accounting.recurring },
           { title: 'Chart of Accounts', path: paths.dashboard.finance.accounting.accounts },
           { title: 'Trial Balance', path: paths.dashboard.finance.accounting.trialBalance },
           { title: 'Statements', path: paths.dashboard.finance.accounting.statements },

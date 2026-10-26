@@ -25,6 +25,15 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Recurring journals and automatic reversal of accruals (Financial
+  Accounting Hub, phase 5).** Accounting → Recurring journals holds
+  templates for journals that repeat (rent, amortisation, depreciation):
+  monthly, quarterly or yearly on a chosen day or the last day of the month.
+  A controller approves a template once (the CFO from SAR 500,000); each run
+  then posts, or prepares a draft for the usual approval. A journal can now
+  be marked "reverse on the 1st of next month" when it is prepared, and is
+  reversed automatically once that month is open. Needs
+  `sql/20261026_fah_05b_recurring.sql` in the API repo.
 - **Finance → Accounting → Statements: balance sheet, income statement,
   changes in equity and cash flows (Financial Accounting Hub, phase 5).** For
   a book or all books, any period range, with the same range a year earlier

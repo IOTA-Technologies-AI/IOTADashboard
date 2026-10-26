@@ -409,6 +409,16 @@ function JournalDetails({ id, t }) {
                         label={t('je.reference', 'Reference')}
                         value={journal.reference || '—'}
                       />
+                      {journal.autoReverse && (
+                        <Fact
+                          label={t('jd.autoReverse', 'Reverses')}
+                          value={
+                            journal.reversedByJournalId
+                              ? t('jd.reversedDone', 'Reversed')
+                              : t('jd.reversesNext', 'On the 1st of next month')
+                          }
+                        />
+                      )}
                       {journal.approvalLevel && (
                         <Fact
                           label={t('jd.approval', 'Approval')}

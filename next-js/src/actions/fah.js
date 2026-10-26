@@ -608,3 +608,14 @@ export function useStatements(params) {
   );
   return { data: data ?? null, error, loading: isLoading };
 }
+
+// Recurring and auto-reversing journals (Phase 5)
+export const useRecurringJournals = () => useList('/fah/recurring-journals', 'templates');
+export const createRecurringJournal = (payload) => send('post', '/fah/recurring-journals', payload);
+export const approveRecurringJournal = (id) =>
+  send('post', `/fah/recurring-journals/${id}/approve`, {});
+export const setRecurringStatus = (id, status) =>
+  send('post', `/fah/recurring-journals/${id}/status`, { status });
+/** Runs what is due now (and automatic reversals): { generated, posted, drafts, waiting, reversed, reversalsWaiting } */
+export const runRecurringJournals = (ids) => send('post', '/fah/recurring-journals/run', { ids });
+export const usePendingReversals = () => useList('/fah/auto-reversals', 'journals');

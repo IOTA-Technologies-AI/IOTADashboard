@@ -167,6 +167,7 @@ export const paths = {
         root: `${ROOTS.DASHBOARD}/finance/accounting`,
         journals: `${ROOTS.DASHBOARD}/finance/accounting/journals`,
         journalNew: `${ROOTS.DASHBOARD}/finance/accounting/journals/new`,
+        recurring: `${ROOTS.DASHBOARD}/finance/accounting/recurring`,
         journal: (id) => `${ROOTS.DASHBOARD}/finance/accounting/journals/${id}`,
         accounts: `${ROOTS.DASHBOARD}/finance/accounting/accounts`,
         trialBalance: `${ROOTS.DASHBOARD}/finance/accounting/trial-balance`,
