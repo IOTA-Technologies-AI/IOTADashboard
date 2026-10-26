@@ -442,3 +442,76 @@ export function usePlBridge(year, enabled = true) {
 /** Soft-close every future or open month of a book up to a date (reviewed history). */
 export const softCloseHistory = (legalEntityId, upTo) =>
   send('post', '/fah/periods/soft-close-history', { legalEntityId, upTo });
+
+// ----------------------------------------------------------------------
+// Cost centres and allocations (Phase 3)
+
+/** { period, preview, run, upToDate, snapshots, rules, canPost } for one book and month. */
+export function useAllocationMonth(legalEntityId, periodId) {
+  const { data, error, isLoading, isValidating } = useSWR(
+    legalEntityId && periodId ? ['/fah/allocations', { legalEntityId, periodId }] : null,
+    fetcher,
+    options
+  );
+  return { month: data ?? null, error, loading: isLoading, validating: isValidating };
+}
+
+/** Post the month's allocation; expectedRunId is the run the preview was shown against. */
+export const postAllocation = (payload) => send('post', '/fah/allocations/run', payload);
+export const reverseAllocation = (id) => send('post', `/fah/allocation-runs/${id}/reverse`, {});
+
+export function useAllocationRuns(legalEntityId) {
+  const { data, error, isLoading } = useSWR(
+    legalEntityId ? ['/fah/allocation-runs', { legalEntityId }] : null,
+    fetcher,
+    options
+  );
+  return { runs: data?.runs ?? EMPTY, error, loading: isLoading };
+}
+
+export function useAllocationRun(id) {
+  const { data, error, isLoading } = useSWR(
+    id ? [`/fah/allocation-runs/${id}`, {}] : null,
+    fetcher,
+    options
+  );
+  return { run: data ?? null, error, loading: isLoading };
+}
+
+export function useAllocationRules(enabled = true) {
+  const { data, error, isLoading } = useSWR(
+    enabled ? ['/fah/allocation-rules', {}] : null,
+    fetcher,
+    options
+  );
+  return { rules: data?.rules ?? EMPTY, error, loading: isLoading };
+}
+
+/** Saves a new version of a centre's rule, from its effective date. */
+export const saveAllocationRule = (payload) => send('post', '/fah/allocation-rules', payload);
+
+/** { current, alternative, practices } — nothing is posted. */
+export const allocationWhatIf = (payload) =>
+  iotaApi.post('/fah/allocations/what-if', payload).then((res) => res.data);
+
+export function useHeadcountPreview(legalEntityId, periodId) {
+  const { data, error, isLoading } = useSWR(
+    legalEntityId && periodId ? ['/fah/drivers/headcount', { legalEntityId, periodId }] : null,
+    fetcher,
+    options
+  );
+  return { headcount: data ?? null, error, loading: isLoading };
+}
+
+export const postHeadcount = (legalEntityId, periodId) =>
+  send('post', '/fah/drivers/headcount', { legalEntityId, periodId });
+export const postManualDrivers = (payload) => send('post', '/fah/drivers/manual', payload);
+
+export function useCostCentreReport(params, enabled = true) {
+  const { data, error, isLoading } = useSWR(
+    enabled && params?.legalEntityId ? ['/fah/cost-centre-report', params] : null,
+    fetcher,
+    options
+  );
+  return { rows: data?.rows ?? EMPTY, error, loading: isLoading };
+}

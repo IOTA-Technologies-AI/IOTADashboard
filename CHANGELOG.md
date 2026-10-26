@@ -25,6 +25,22 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Finance → Accounting → Allocations: shared costs spread to practices
+  (Financial Accounting Hub, phase 3).** Each month, headcount is posted from
+  Dimensions → Employees (by practice and location, weighted by FTE; billable
+  hours and square metres can be entered too), and the cost of the shared
+  centres (offices, IT, HR, Finance, Legal, Management, Sales & Marketing) is
+  allocated to the practices in step-down order: preview, post, and re-run
+  when costs or drivers change (the previous allocation is reversed first).
+  Each allocation is one journal per centre (Dr 6900 / Cr 6910), so company
+  costs are unchanged. Rules start from the agreed defaults (headcount;
+  offices by headcount at their location; Sales & Marketing by revenue year to
+  date). A controller can change a rule from a date as a new version, and
+  earlier months keep the rule they were allocated with. Also: what-if with
+  other rules (nothing posted), a cost-centre report (own cost, received,
+  allocated out, still carried) and the history of every run with how it was
+  computed. Needs `sql/20261026_fah_03_allocations.sql` in the API repo, and
+  the API deployed.
 - **Document Management: a light or dark document ID.** The Stamp card on a
   document's page now chooses the colour of the document ID line (and its
   "Captured in…" note): Dark (green, the default) for a light page, or Light

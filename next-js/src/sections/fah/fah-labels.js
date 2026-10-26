@@ -73,6 +73,33 @@ export const PERIOD_STATUS = {
   HARD_CLOSED: { label: 'Hard-closed', color: 'error', icon: 'solar:shield-check-bold' },
 };
 
+/** How a shared cost centre is spread (§8.2). */
+export const ALLOCATION_METHOD = {
+  STEP_DOWN: {
+    label: 'Step-down',
+    help: 'By the driver, to practices and to shared centres later in the order.',
+  },
+  DRIVER: { label: 'Driver', help: 'By the driver, to practices only.' },
+  FIXED_PERCENT: { label: 'Fixed %', help: 'By fixed percentages per practice.' },
+  DIRECT: { label: 'Not allocated', help: 'Its cost stays on the centre.' },
+};
+
+export const ALLOCATION_DRIVER = {
+  HEADCOUNT: { label: 'Headcount', account: '9100' },
+  HEADCOUNT_AT_LOCATION: { label: 'Headcount at its location', account: '9100' },
+  REVENUE: { label: 'Revenue', account: null },
+  BILLABLE_HOURS: { label: 'Billable hours', account: '9200' },
+  SQUARE_METRES: { label: 'Square metres', account: '9300' },
+  DIRECT_COST: { label: 'Direct cost', account: null },
+  CUSTOM: { label: 'Another statistical account', account: null },
+};
+
+export const DRIVER_BASIS = {
+  CURRENT: 'This month',
+  YTD: 'Year to date',
+  PRIOR_QUARTER: 'Previous quarter',
+};
+
 export const FAH_ROLE = {
   'finance.viewer': { label: 'Viewer', help: 'Reads the ledger and reports.' },
   'finance.accountant': { label: 'Accountant', help: 'Prepares, approves small journals, posts.' },
