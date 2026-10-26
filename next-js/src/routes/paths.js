@@ -176,6 +176,7 @@ export const paths = {
         periods: `${ROOTS.DASHBOARD}/finance/accounting/periods`,
         close: `${ROOTS.DASHBOARD}/finance/accounting/close`,
         monthEnd: `${ROOTS.DASHBOARD}/finance/accounting/month-end`,
+        audit: `${ROOTS.DASHBOARD}/finance/accounting/audit`,
         dimensions: `${ROOTS.DASHBOARD}/finance/accounting/dimensions`,
         rates: `${ROOTS.DASHBOARD}/finance/accounting/exchange-rates`,
         access: `${ROOTS.DASHBOARD}/finance/accounting/access`,

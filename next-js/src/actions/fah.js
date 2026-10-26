@@ -673,3 +673,27 @@ export function useFxPreview(legalEntityId, periodId) {
 }
 export const postFxRevaluation = (legalEntityId, periodId) =>
   send('post', '/fah/fx-revaluation', { legalEntityId, periodId });
+
+// ----------------------------------------------------------------------
+// Audit packs and exports (Phase 6)
+
+/** Builds and records the month's audit pack: { id, name, manifestHash, files: [{ name, content, sha256, bytes }], periodStatus } */
+export const createAuditPack = (legalEntityId, periodId) =>
+  send('post', '/fah/audit-packs', { legalEntityId, periodId });
+export const markAuditPackFiled = (id, documentId, documentVersion) =>
+  send('post', `/fah/audit-packs/${id}/filed`, { documentId, documentVersion });
+export function useAuditPacks(periodId) {
+  const { data, error, isLoading } = useSWR(
+    periodId ? ['/fah/audit-packs', { periodId }] : null,
+    fetcher,
+    options
+  );
+  return { packs: data?.packs ?? EMPTY, error, loading: isLoading };
+}
+
+/** { fileName, csv, lines, unmapped } */
+export const exportLedger = (params) =>
+  iotaApi.get('/fah/export/general-ledger', { params }).then((res) => res.data);
+export const useAccountMappings = () => useList('/fah/account-mappings', 'mappings');
+export const saveAccountMapping = (payload) => send('put', '/fah/account-mappings', payload);
+export const deleteAccountMapping = (id) => send('delete', `/fah/account-mappings/${id}`);

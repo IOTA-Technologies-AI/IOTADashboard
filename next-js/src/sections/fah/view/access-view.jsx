@@ -194,6 +194,19 @@ function AccessBoard() {
                       <Typography variant="caption" color="text.secondary">
                         {fDateTime(a.grantedAt)}
                       </Typography>
+                      {a.expiresAt && (
+                        <Typography
+                          variant="caption"
+                          component="div"
+                          color={new Date(a.expiresAt) < new Date() ? 'error.main' : 'warning.main'}
+                        >
+                          {new Date(a.expiresAt) < new Date()
+                            ? t('access.expired', 'Ended {{when}}', {
+                                when: fDateTime(a.expiresAt),
+                              })
+                            : t('access.until', 'Until {{when}}', { when: fDateTime(a.expiresAt) })}
+                        </Typography>
+                      )}
                     </TableCell>
                     <TableCell>
                       <Tooltip title={t('access.revoke', 'Revoke')}>
@@ -284,7 +297,7 @@ function AccessBoard() {
 
 function GrantDialog({ open, onClose, roles, practices }) {
   const { t, nameOf } = useFahT();
-  const blank = { email: '', role: 'finance.viewer', practiceId: '', note: '' };
+  const blank = { email: '', role: 'finance.viewer', practiceId: '', note: '', expiresOn: '' };
   const [form, setForm] = useState(blank);
   const [busy, setBusy] = useState(false);
 
@@ -306,6 +319,8 @@ function GrantDialog({ open, onClose, roles, practices }) {
         role: form.role,
         practiceId: isLead ? form.practiceId : null,
         note: form.note.trim() || null,
+        // The role ends at the end of that day (an auditor's window).
+        expiresAt: form.expiresOn ? new Date(`${form.expiresOn}T23:59:59`).toISOString() : null,
       });
       toast.success(t('access.grantedToast', 'Role given'));
       setForm(blank);
@@ -365,6 +380,21 @@ function GrantDialog({ open, onClose, roles, practices }) {
               ))}
             </TextField>
           )}
+          <TextField
+            type="date"
+            label={t('access.expiresOn', 'Access ends on (optional)')}
+            value={form.expiresOn}
+            onChange={set('expiresOn')}
+            InputLabelProps={{ shrink: true }}
+            helperText={
+              form.role === 'auditor'
+                ? t(
+                    'access.auditorWindow',
+                    'An auditor’s read-only window: the role stops working by itself after this day.'
+                  )
+                : t('access.expiresHelp', 'Leave empty to keep the role until it is revoked.')
+            }
+          />
           <TextField
             label={t('access.noteLabel', 'Note (optional)')}
             value={form.note}

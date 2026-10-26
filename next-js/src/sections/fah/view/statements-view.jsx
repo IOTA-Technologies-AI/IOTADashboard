@@ -164,7 +164,7 @@ function Statements() {
             onChange={(e) => setBook(e.target.value)}
             sx={{ minWidth: 240 }}
           >
-            <MenuItem value="">{t('st.all', 'All books (SAR, not consolidated)')}</MenuItem>
+            <MenuItem value="">{t('st.all', 'All books, consolidated (SAR)')}</MenuItem>
             {books.map((b) => (
               <MenuItem key={b.id} value={b.id}>
                 {nameOf(b)}
@@ -250,7 +250,7 @@ function Statements() {
           ledgerHref={ledgerHref}
           note={t(
             'st.bsNote',
-            'Results of earlier years stay as a separate equity line until the year-end closing journal moves them into retained earnings. Combining books does not eliminate inter-entity balances (1300/2400).'
+            'Results of earlier years stay as a separate equity line until the year-end closing journal moves them into retained earnings. All books together are consolidated: inter-entity balances (1300/2400) are eliminated, and any amount on which they disagree shows on its own line.'
           )}
         />
       )}

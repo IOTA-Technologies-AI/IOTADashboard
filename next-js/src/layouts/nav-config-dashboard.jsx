@@ -166,6 +166,7 @@ export const navData = [
           { title: 'Periods', path: paths.dashboard.finance.accounting.periods },
           { title: 'Month-end', path: paths.dashboard.finance.accounting.monthEnd },
           { title: 'Close', path: paths.dashboard.finance.accounting.close },
+          { title: 'Audit & Exports', path: paths.dashboard.finance.accounting.audit },
           { title: 'Dimensions', path: paths.dashboard.finance.accounting.dimensions },
           { title: 'Exchange Rates', path: paths.dashboard.finance.accounting.rates },
           { title: 'Access', path: paths.dashboard.finance.accounting.access },

@@ -25,6 +25,15 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Audit & exports, consolidation and auditor access (Financial Accounting
+  Hub, phase 6).** Accounting → Audit & exports creates a month's audit pack
+  (trial balances, journals, ledger, statements, rules, close and audit log,
+  with a SHA-256 manifest), downloads it as a ZIP and files it in Document
+  Management. The same page exports the general ledger as CSV (generic or Xero)
+  and keeps each account's code in the external system. Statements for all
+  books are now consolidated: inter-entity balances are eliminated and any
+  mismatch shows on its own line. A finance role can be given an end date, for
+  an auditor's read-only window.
 - **Month-end: deferred revenue and FX revaluation (Financial Accounting
   Hub, phase 5).** Retainer, recurring/subscription and per-user invoices now
   book their revenue as deferred (2300). Accounting → Month-end lets finance
