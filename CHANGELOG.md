@@ -25,6 +25,15 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Finance → Accounting → Statements: balance sheet, income statement,
+  changes in equity and cash flows (Financial Accounting Hub, phase 5).** For
+  a book or all books, any period range, with the same range a year earlier
+  beside it. The balance sheet splits current and non-current items and
+  shows that assets equal equity and liabilities; the income statement runs
+  from revenue to net result, leaving out inter-practice charges, profit
+  share and allocations, which cancel at company level; the cash flow
+  (indirect method) shows that it ties to the change in cash. Every line
+  opens its accounts, and every account its ledger. CSV export.
 - **Finance → Accounting → Inter-practice: charges between practices and
   profit share (Financial Accounting Hub, phase 4).** A practice charges
   another for work on an engagement under an agreement: cost plus 10 %
@@ -1035,6 +1044,9 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Ledger reports read every row.** Reconciliation, allocations and practice
+  results could under-count once a query returned more than 1,000 balance
+  rows; they now read them all.
 - **Re-posting expenses as paid by the company works for every month.**
   Expenses in months that were never opened waited "until finance opens
   it" instead of re-posting. They now re-post in their own month, as the

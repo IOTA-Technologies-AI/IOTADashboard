@@ -595,3 +595,16 @@ export function useProfitSharePreview(params) {
 }
 export const postProfitShare = (payload) => send('post', '/fah/profit-share/run', payload);
 export const useProfitShareRuns = () => useList('/fah/profit-share/runs', 'runs');
+
+// ----------------------------------------------------------------------
+// Financial statements (Phase 5)
+
+/** { current, comparative } — each { balanceSheet, incomeStatement, changesInEquity, cashFlow, … } */
+export function useStatements(params) {
+  const { data, error, isLoading } = useSWR(
+    params?.year ? ['/fah/statements', params] : null,
+    fetcher,
+    options
+  );
+  return { data: data ?? null, error, loading: isLoading };
+}

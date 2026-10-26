@@ -155,6 +155,7 @@ export const navData = [
           { title: 'Journals', path: paths.dashboard.finance.accounting.journals },
           { title: 'Chart of Accounts', path: paths.dashboard.finance.accounting.accounts },
           { title: 'Trial Balance', path: paths.dashboard.finance.accounting.trialBalance },
+          { title: 'Statements', path: paths.dashboard.finance.accounting.statements },
           { title: 'General Ledger', path: paths.dashboard.finance.accounting.ledger },
           { title: 'ERP Postings', path: paths.dashboard.finance.accounting.postings },
           { title: 'Reconciliation', path: paths.dashboard.finance.accounting.reconciliation },
