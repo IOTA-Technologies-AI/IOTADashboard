@@ -25,6 +25,22 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Finance → Accounting → Inter-practice: charges between practices and
+  profit share (Financial Accounting Hub, phase 4).** A practice charges
+  another for work on an engagement under an agreement: cost plus 10 %
+  (default), the provider's rate card, at cost, or a fixed price. Rate cards
+  are entered per practice and grade and approved by a controller. Charges
+  are entered or imported from CSV; each is approved by both practices (their
+  lead or a controller, never the person who entered it), can be disputed,
+  and once approved posts Dr 5900 to the consumer and Cr 4900 to the
+  provider with an internal invoice number (PDF on demand). Profit-share
+  agreements split an engagement's gross margin, contribution or revenue
+  between practices, by version, approved by the leads and a controller; each
+  run posts the change in a partner's share (Dr 4950 owner / Cr 4951
+  partner), so later credit memos correct themselves. Practice results show
+  each practice's revenue, internal charges, profit share, costs and result,
+  adding up to the company result, with the inter-practice matrix. Needs
+  `sql/20261026_fah_04_inter_practice.sql` in the API repo.
 - **Finance → Accounting → Allocations: shared costs spread to practices
   (Financial Accounting Hub, phase 3).** Each month, headcount is posted from
   Dimensions → Employees (by practice and location, weighted by FTE; billable

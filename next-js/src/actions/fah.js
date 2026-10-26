@@ -524,3 +524,74 @@ export const repostCompanyPaidExpenses = (dryRun = true) =>
   dryRun
     ? iotaApi.post('/fah/expenses/company-paid', { dryRun }).then((res) => res.data)
     : send('post', '/fah/expenses/company-paid', { dryRun });
+
+// ----------------------------------------------------------------------
+// Inter-practice charges and profit share (Phase 4)
+
+const useList = (url, key, params = {}, enabled = true) => {
+  const { data, error, isLoading } = useSWR(enabled ? [url, params] : null, fetcher, options);
+  return { [key]: data?.[key] ?? EMPTY, error, loading: isLoading };
+};
+
+export const useRateCards = () => useList('/fah/rate-cards', 'rateCards');
+export const createRateCard = (payload) => send('post', '/fah/rate-cards', payload);
+export const approveRateCard = (id) => send('post', `/fah/rate-cards/${id}/approve`, {});
+
+export const useIpAgreements = () => useList('/fah/ip-agreements', 'agreements');
+export const createIpAgreement = (payload) => send('post', '/fah/ip-agreements', payload);
+export const endIpAgreement = (id, effectiveTo) =>
+  send('post', `/fah/ip-agreements/${id}/end`, { effectiveTo });
+
+export const useIpTransactions = (status) =>
+  useList('/fah/ip-transactions', 'transactions', status ? { status } : {});
+export const createIpTransaction = (payload) => send('post', '/fah/ip-transactions', payload);
+/** { applied, rows: [{ line, agreementCode, amount, problem }], created } */
+export const importIpTransactions = (csv, apply) =>
+  send('post', '/fah/ip-transactions/import', { csv, apply });
+/** { transaction, problem } — the charge posts once both sides have approved. */
+export const approveIpTransaction = (id, side) =>
+  send('post', `/fah/ip-transactions/${id}/approve`, { side });
+export const postIpTransaction = (id) => send('post', `/fah/ip-transactions/${id}/post`, {});
+export const disputeIpTransaction = (id, reason) =>
+  send('post', `/fah/ip-transactions/${id}/dispute`, { reason });
+export const reopenIpTransaction = (id, patch) =>
+  send('post', `/fah/ip-transactions/${id}/reopen`, patch);
+export const cancelIpTransaction = (id) => send('post', `/fah/ip-transactions/${id}/cancel`, {});
+
+export function useIpMatrix(params) {
+  const { data, error, isLoading } = useSWR(
+    params?.legalEntityId ? ['/fah/ip-matrix', params] : null,
+    fetcher,
+    options
+  );
+  return { matrix: data ?? null, error, loading: isLoading };
+}
+
+export function usePracticeResults(params) {
+  const { data, error, isLoading } = useSWR(
+    params?.year ? ['/fah/practice-results', params] : null,
+    fetcher,
+    options
+  );
+  return { results: data ?? null, error, loading: isLoading };
+}
+
+export const useProfitShareAgreements = () => useList('/fah/profit-share-agreements', 'agreements');
+export const createProfitShareAgreement = (payload) =>
+  send('post', '/fah/profit-share-agreements', payload);
+/** as: 'controller' or the practice id the caller leads. */
+export const approveProfitShareAgreement = (id, as) =>
+  send('post', `/fah/profit-share-agreements/${id}/approve`, { as });
+
+export function useProfitSharePreview(params) {
+  const { data, error, isLoading, isValidating } = useSWR(
+    params?.engagementId && params?.legalEntityId && params?.periodId
+      ? ['/fah/profit-share/preview', params]
+      : null,
+    fetcher,
+    options
+  );
+  return { preview: data ?? null, error, loading: isLoading, validating: isValidating };
+}
+export const postProfitShare = (payload) => send('post', '/fah/profit-share/run', payload);
+export const useProfitShareRuns = () => useList('/fah/profit-share/runs', 'runs');

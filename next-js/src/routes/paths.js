@@ -179,6 +179,7 @@ export const paths = {
         reconciliation: `${ROOTS.DASHBOARD}/finance/accounting/reconciliation`,
         reimbursements: `${ROOTS.DASHBOARD}/finance/accounting/reimbursements`,
         allocations: `${ROOTS.DASHBOARD}/finance/accounting/allocations`,
+        interPractice: `${ROOTS.DASHBOARD}/finance/accounting/inter-practice`,
       },
       chartOfAccounts: `${ROOTS.DASHBOARD}/finance/chart-of-accounts`,
       generalLedger: `${ROOTS.DASHBOARD}/finance/general-ledger`,

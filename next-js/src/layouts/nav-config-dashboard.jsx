@@ -160,6 +160,7 @@ export const navData = [
           { title: 'Reconciliation', path: paths.dashboard.finance.accounting.reconciliation },
           { title: 'Reimbursements', path: paths.dashboard.finance.accounting.reimbursements },
           { title: 'Allocations', path: paths.dashboard.finance.accounting.allocations },
+          { title: 'Inter-practice', path: paths.dashboard.finance.accounting.interPractice },
           { title: 'Periods', path: paths.dashboard.finance.accounting.periods },
           { title: 'Dimensions', path: paths.dashboard.finance.accounting.dimensions },
           { title: 'Exchange Rates', path: paths.dashboard.finance.accounting.rates },
