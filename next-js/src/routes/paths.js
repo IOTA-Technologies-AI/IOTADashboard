@@ -174,6 +174,7 @@ export const paths = {
         statements: `${ROOTS.DASHBOARD}/finance/accounting/statements`,
         ledger: `${ROOTS.DASHBOARD}/finance/accounting/general-ledger`,
         periods: `${ROOTS.DASHBOARD}/finance/accounting/periods`,
+        close: `${ROOTS.DASHBOARD}/finance/accounting/close`,
         dimensions: `${ROOTS.DASHBOARD}/finance/accounting/dimensions`,
         rates: `${ROOTS.DASHBOARD}/finance/accounting/exchange-rates`,
         access: `${ROOTS.DASHBOARD}/finance/accounting/access`,

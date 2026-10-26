@@ -25,6 +25,18 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Month-end close and year-end close (Financial Accounting Hub, phase 5).**
+  Accounting → Close lists each month of a book with its status. A month's
+  checklist is worked out live: ERP events posted, journals posted, tagging
+  done, recurring journals and reversals run, inter-practice charges
+  settled, shared costs allocated, profit share run, clearing accounts and
+  reconciliations, the month balancing, earlier months closed. A red item
+  stops the hard close until it is fixed or a controller accepts it with a
+  comment. Hard close stores a SHA-256 of the month's balances, checked
+  every night; nothing can post into a hard-closed month. Reopening needs a
+  controller's request and a CFO's approval. The CFO closes the year with a
+  closing journal that moves the result into retained earnings. Needs
+  `sql/20261026_fah_05c_close.sql` in the API repo.
 - **Recurring journals and automatic reversal of accruals (Financial
   Accounting Hub, phase 5).** Accounting → Recurring journals holds
   templates for journals that repeat (rent, amortisation, depreciation):

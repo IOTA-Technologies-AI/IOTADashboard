@@ -619,3 +619,31 @@ export const setRecurringStatus = (id, status) =>
 /** Runs what is due now (and automatic reversals): { generated, posted, drafts, waiting, reversed, reversalsWaiting } */
 export const runRecurringJournals = (ids) => send('post', '/fah/recurring-journals/run', { ids });
 export const usePendingReversals = () => useList('/fah/auto-reversals', 'journals');
+
+// Close (Phase 5)
+/** { months: [{ period, close }], yearEnd } */
+export function useCloseYear(legalEntityId, year) {
+  const { data, error, isLoading } = useSWR(
+    legalEntityId && year ? ['/fah/close', { legalEntityId, year }] : null,
+    fetcher,
+    options
+  );
+  return { data: data ?? null, error, loading: isLoading };
+}
+/** { period, checks, canHardClose, closes } */
+export function useCloseChecks(periodId) {
+  const { data, error, isLoading, isValidating } = useSWR(
+    periodId ? ['/fah/close/checks', { periodId }] : null,
+    fetcher,
+    options
+  );
+  return { data: data ?? null, error, loading: isLoading, validating: isValidating };
+}
+export const waiveCheck = (periodId, checkKey, comment) =>
+  send('post', '/fah/close/waive', { periodId, checkKey, comment });
+export const hardClose = (periodId) => send('post', '/fah/close/hard-close', { periodId });
+export const requestReopen = (id, reason) =>
+  send('post', `/fah/close/${id}/request-reopen`, { reason });
+export const approveReopen = (id) => send('post', `/fah/close/${id}/approve-reopen`, {});
+export const postYearEnd = (legalEntityId, year) =>
+  send('post', '/fah/close/year-end', { legalEntityId, year });
