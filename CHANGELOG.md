@@ -25,6 +25,12 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Document Management: a light or dark document ID.** The Stamp card on a
+  document's page now chooses the colour of the document ID line (and its
+  "Captured in…" note): Dark (green, the default) for a light page, or Light
+  for one where page one is dark behind it, such as a cover image. It applies
+  to every PDF downloaded or previewed from there, and to a proposal's own
+  PDF. Needs the API deployed.
 - **Reword clauses of the detailed letter for one offer.** On the new-offer
   form (and on a draft), "Detailed letter wording" lets HR change any numbered
   clause of the detailed (GOSI) letter for that offer only; the one-page offer
@@ -997,6 +1003,13 @@ is running.
   have reset every user's saved theme and layout on every release.
 
 ### Fixed
+- **Uploaded proposals always show their own quotation number.** When an
+  uploaded PDF is downloaded or previewed from Document Management, any
+  "Quotation #XXXX-XXXX-XXXX" typed into it is reprinted, wherever it sits, as
+  the document's ID and version (`Quotation #IP87-LZLL-PNCN-v2`). A proposal
+  copied from an older one no longer goes out quoting that one's number. The
+  number keeps its place and size; at the top right it stays right-aligned.
+  The original in OneDrive is unchanged.
 - **Bank statement upload reads the statement as the selected account's bank
   (ISS-0014).** Uploading to an existing account used the hidden Bank picker,
   which was empty after the dialog had been closed once, so the statement was

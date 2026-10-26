@@ -10,9 +10,11 @@ import Stack from '@mui/material/Stack';
 import Tooltip from '@mui/material/Tooltip';
 import ButtonBase from '@mui/material/ButtonBase';
 import Typography from '@mui/material/Typography';
+import ToggleButton from '@mui/material/ToggleButton';
 import CircularProgress from '@mui/material/CircularProgress';
+import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
 
-import { STAMP_CORNERS, DEFAULT_STAMP_POSITIONS } from 'src/utils/document-stamp';
+import { STAMP_TONES, STAMP_CORNERS, DEFAULT_STAMP_POSITIONS } from 'src/utils/document-stamp';
 
 import { updateManagedDocument } from 'src/actions/document-management';
 
@@ -106,15 +108,16 @@ export function DocumentStampCard({ document, sx }) {
   const positions = { ...DEFAULT_STAMP_POSITIONS, ...document.stampPositions };
   const [saving, setSaving] = useState('');
 
-  const handlePick = async (key, corner) => {
-    if (positions[key] === corner) return;
+  // `key` is a part (its corner) or documentIdTone (the ID line's colour).
+  const handlePick = async (key, value) => {
+    if (!value || positions[key] === value) return;
     setSaving(key);
     try {
       await updateManagedDocument(document.documentId, {
-        stampPositions: { ...positions, [key]: corner },
+        stampPositions: { ...positions, [key]: value },
       });
     } catch (err) {
-      toast.error(err.response?.data?.message || err.message || 'Could not move the stamp.');
+      toast.error(err.response?.data?.message || err.message || 'Could not change the stamp.');
     } finally {
       setSaving('');
     }
@@ -125,7 +128,7 @@ export function DocumentStampCard({ document, sx }) {
       <Typography variant="subtitle1">Stamp</Typography>
       <Typography variant="caption" color="text.secondary" component="div" sx={{ mb: 2 }}>
         Printed as text on page one of every PDF downloaded or previewed here. Tap a corner to move
-        each part.
+        each part; pick a light document ID where page one is dark behind it.
       </Typography>
       <Stack direction="row" spacing={3} justifyContent="center">
         {PARTS.map((part) => (
@@ -149,6 +152,39 @@ export function DocumentStampCard({ document, sx }) {
             <Typography variant="caption" color="text.secondary">
               {CORNER_LABEL[positions[part.key]]}
             </Typography>
+            {part.key === 'documentId' && (
+              <ToggleButtonGroup
+                exclusive
+                size="small"
+                value={positions.documentIdTone}
+                disabled={Boolean(saving)}
+                onChange={(e, tone) => handlePick('documentIdTone', tone)}
+              >
+                {Object.entries(STAMP_TONES).map(([tone, colors]) => (
+                  <Tooltip
+                    key={tone}
+                    title={tone === 'dark' ? 'For a light background' : 'For a dark background'}
+                  >
+                    <ToggleButton value={tone} sx={{ px: 1, py: 0.25, gap: 0.75 }}>
+                      <Box
+                        sx={{
+                          width: 10,
+                          height: 10,
+                          borderRadius: '50%',
+                          bgcolor: colors.id,
+                          border: '1px solid',
+                          borderColor: 'divider',
+                        }}
+                      />
+                      <Typography variant="caption">{colors.label}</Typography>
+                    </ToggleButton>
+                  </Tooltip>
+                ))}
+              </ToggleButtonGroup>
+            )}
+            {saving === 'documentIdTone' && part.key === 'documentId' && (
+              <CircularProgress size={12} />
+            )}
           </Stack>
         ))}
       </Stack>

@@ -52,7 +52,13 @@ import FormControlLabel from '@mui/material/FormControlLabel';
 import { paths } from 'src/routes/paths';
 import { useRouter } from 'src/routes/hooks';
 
-import { STAMP_NOTE, STAMP_CORNERS, STAMP_FONT_URL, DEFAULT_STAMP_POSITIONS } from 'src/utils/document-stamp';
+import {
+  STAMP_NOTE,
+  STAMP_TONES,
+  STAMP_CORNERS,
+  STAMP_FONT_URL,
+  DEFAULT_STAMP_POSITIONS,
+} from 'src/utils/document-stamp';
 import {
   forwardRC,
   approveRC,
@@ -1385,6 +1391,7 @@ export function ResourceCalculationFormView({ id }) {
                 if (!parts.length) return null;
                 const top = corner.startsWith('top');
                 const right = corner.endsWith('right');
+                const tone = STAMP_TONES[meta.stampPositions.documentIdTone] ?? STAMP_TONES.dark;
                 return (
                   <View
                     key={corner}
@@ -1405,10 +1412,22 @@ export function ResourceCalculationFormView({ id }) {
                           ) : null}
                           {parts.includes('documentId') ? (
                             <>
-                              <Text style={[pdfStyles.dmsStampText, pdfStyles.dmsStampId]}>
+                              <Text
+                                style={[
+                                  pdfStyles.dmsStampText,
+                                  pdfStyles.dmsStampId,
+                                  { color: tone.id },
+                                ]}
+                              >
                                 {`${meta.documentId} · ${versionText}`}
                               </Text>
-                              <Text style={[pdfStyles.dmsStampText, pdfStyles.dmsStampNote]}>
+                              <Text
+                                style={[
+                                  pdfStyles.dmsStampText,
+                                  pdfStyles.dmsStampNote,
+                                  { color: tone.note },
+                                ]}
+                              >
                                 {STAMP_NOTE}
                               </Text>
                             </>

@@ -121,7 +121,8 @@ export async function updateManagedDocument(documentId, payload) {
 
 /**
  * A version's file as handed out: an uploaded PDF gets the Document Management
- * stamp (ID, version, current classification) on its first page; a generated
+ * stamp (ID, version, current classification) on its first page, and any
+ * "Quotation #…" in it reprinted as `<ID>-v<version>`; a generated
  * proposal already carries it; other file types are returned as they are.
  * Resolves to { blob, fileName, stamped }.
  */
@@ -137,6 +138,8 @@ export async function getHandoutFile(document, version) {
       version,
       classification: document.classification,
       positions: document.stampPositions,
+      // A quotation number typed into the file always reads as this version.
+      quotationNumber: `${document.display}-v${version}`,
     });
     return { blob: stamped, fileName: file.fileName, stamped: true };
   } catch (err) {
