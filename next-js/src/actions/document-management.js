@@ -245,6 +245,7 @@ export async function sendDocumentVersion(
     origin: origin || 'generated',
     extension,
     note,
+    driveId: plan.driveId ?? null,
   });
   await refreshAll();
   return { version: plan.version, fileName: plan.fileName, blob, reused: false };
@@ -292,4 +293,27 @@ export function saveBlob(blob, fileName) {
   a.download = fileName;
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+// ----------------------------------------------------------------------
+// Storage: the SharePoint library files are kept in
+
+export function useDocumentStorage(enabled = true) {
+  const { data, error, isLoading, mutate: refresh } = useSWR(
+    enabled ? ['/document-management/storage', {}] : null,
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+  return { storage: data ?? null, error, loading: isLoading, refresh };
+}
+
+export async function connectDocumentStorage(siteUrl, libraryName) {
+  const res = await iotaApi.put('/document-management/storage', { siteUrl, libraryName });
+  return res.data;
+}
+
+/** One batch of the copy into the library: { copied, failed, remaining }. */
+export async function copyDocumentsToLibrary(exclude = []) {
+  const res = await iotaApi.post('/document-management/storage/copy', { batch: 10, exclude });
+  return res.data;
 }

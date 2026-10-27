@@ -25,6 +25,11 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Document Management files on SharePoint.** Document Management → Storage
+  connects a SharePoint library; new versions are saved there instead of one
+  person's OneDrive, in the same Document Management / practice / type / client
+  / document ID folders. Files already saved can be copied across from the same
+  tab (originals are left in place). Super-admins only.
 - **Document check on upload (Document Management).** When a PDF is added or
   uploaded as a new version, it is checked before it is filed: is it addressed
   to the client it is filed under (a proposal for one customer naming another

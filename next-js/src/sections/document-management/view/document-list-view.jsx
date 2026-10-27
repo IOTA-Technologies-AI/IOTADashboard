@@ -52,6 +52,7 @@ import { varFade, varContainer, AnimateCountUp } from 'src/components/animate';
 
 import { DocumentNewDialog } from '../document-new-dialog';
 import { DocumentTypesPanel } from '../document-types-panel';
+import { DocumentStoragePanel } from '../document-storage-panel';
 import { statusOf, STATUS_ORDER, classificationOf } from '../document-labels';
 
 // ----------------------------------------------------------------------
@@ -351,9 +352,17 @@ export function DocumentListView() {
           icon={<Iconify icon="solar:list-bold" width={20} />}
           iconPosition="start"
         />
+        <Tab
+          value="storage"
+          label="Storage"
+          icon={<Iconify icon="solar:folder-cloud-bold" width={20} />}
+          iconPosition="start"
+        />
       </Tabs>
 
-      {tab === 'types' ? (
+      {tab === 'storage' ? (
+        <DocumentStoragePanel />
+      ) : tab === 'types' ? (
         <DocumentTypesPanel />
       ) : (
         <>
