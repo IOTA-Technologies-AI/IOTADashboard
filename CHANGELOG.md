@@ -25,6 +25,10 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Edit earnings on a payroll awaiting approval.** Each line of a pending
+  payroll has an Earnings button to correct basic, housing, transport and other
+  allowances; gross, net and the run totals are recalculated. It changes that
+  payroll only; the employee's profile keeps its salary (ISS-0015).
 - **Document Management files on SharePoint.** Document Management → Storage
   connects a SharePoint library; new versions are saved there instead of one
   person's OneDrive, in the same Document Management / practice / type / client

@@ -41,6 +41,7 @@ import {
   approvePayrollRun,
   postPayrollToBank,
   sendPayrollPayslips,
+  updatePayrollLineItemEarnings,
   updatePayrollLineItemDeductions,
 } from 'src/utils/apiHelper';
 
@@ -72,6 +73,13 @@ const DEDUCTION_REASONS = [
 ];
 
 const blankDeduction = () => ({ label: '', amount: '' });
+
+const EARNINGS = [
+  { key: 'basicSalary', label: 'Basic Salary' },
+  { key: 'housingAllowance', label: 'Housing Allowance' },
+  { key: 'transportAllowance', label: 'Transport Allowance' },
+  { key: 'otherAllowances', label: 'Other Allowances' },
+];
 
 const sar = (value) =>
   `SAR ${Number(value || 0).toLocaleString('en-US', {
@@ -124,6 +132,11 @@ export default function PayrollDetailPage({ params }) {
   const [adjustTarget, setAdjustTarget] = useState(null);
   const [adjustItems, setAdjustItems] = useState([]);
   const [adjusting, setAdjusting] = useState(false);
+
+  // Edit-earnings dialog state
+  const [earningsTarget, setEarningsTarget] = useState(null);
+  const [earnings, setEarnings] = useState({});
+  const [savingEarnings, setSavingEarnings] = useState(false);
 
   // Payslip button menu (View / Download) and the on-screen viewer
   const [payslipMenu, setPayslipMenu] = useState(null); // { anchorEl, item }
@@ -349,6 +362,37 @@ export default function PayrollDetailPage({ params }) {
       setAdjusting(false);
     }
   }, [adjustTarget, adjustItems, handleCloseAdjust]);
+
+  // ── Edit earnings ──────────────────────────────────────────────────────
+  const handleOpenEarnings = useCallback((item) => {
+    setEarningsTarget(item);
+    setEarnings(Object.fromEntries(EARNINGS.map(({ key }) => [key, String(item[key] ?? 0)])));
+  }, []);
+
+  const handleCloseEarnings = useCallback(() => {
+    setEarningsTarget(null);
+    setEarnings({});
+  }, []);
+
+  const handleSaveEarnings = useCallback(async () => {
+    if (!earningsTarget) return;
+    setSavingEarnings(true);
+    try {
+      const response = await updatePayrollLineItemEarnings(
+        earningsTarget.id,
+        Object.fromEntries(EARNINGS.map(({ key }) => [key, Number(earnings[key]) || 0]))
+      );
+      const saved = response?.lineItem;
+      if (saved) setLineItems((prev) => prev.map((li) => (li.id === saved.id ? saved : li)));
+      toast.success('Earnings updated');
+      handleCloseEarnings();
+    } catch (error) {
+      console.error('Failed to update earnings', error);
+      toast.error(error?.response?.data?.message || 'Failed to update earnings');
+    } finally {
+      setSavingEarnings(false);
+    }
+  }, [earningsTarget, earnings, handleCloseEarnings]);
 
   // ── Payslips ───────────────────────────────────────────────────────────
   // One renderer serves both the download and the email, so the PDF an
@@ -866,6 +910,16 @@ export default function PayrollDetailPage({ params }) {
                                   <Button
                                     size="small"
                                     variant="outlined"
+                                    startIcon={<Iconify icon="solar:pen-bold" />}
+                                    onClick={() => handleOpenEarnings(item)}
+                                  >
+                                    Earnings
+                                  </Button>
+                                )}
+                                {payroll?.status === 'pending_approval' && (
+                                  <Button
+                                    size="small"
+                                    variant="outlined"
                                     color="warning"
                                     startIcon={<Iconify icon="mdi:pencil-minus-outline" />}
                                     onClick={() => handleOpenAdjust(item)}
@@ -983,6 +1037,17 @@ export default function PayrollDetailPage({ params }) {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Edit-earnings dialog */}
+      <EditEarningsDialog
+        open={Boolean(earningsTarget)}
+        item={earningsTarget}
+        values={earnings}
+        saving={savingEarnings}
+        onChange={setEarnings}
+        onSave={handleSaveEarnings}
+        onClose={handleCloseEarnings}
+      />
 
       {/* Adjust-deduction dialog */}
       <AdjustDeductionDialog
@@ -1141,3 +1206,92 @@ function AdjustDeductionDialog({ open, item, items, saving, onItemsChange, onSav
     </Dialog>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Edit-Earnings Dialog
+// ---------------------------------------------------------------------------
+
+function EditEarningsDialog({ open, item, values, saving, onChange, onSave, onClose }) {
+  if (!item) return null;
+
+  const gross = EARNINGS.reduce((sum, { key }) => sum + (Number(values[key]) || 0), 0);
+  const deductions = Number(item.deductions || 0);
+  const net = gross - deductions;
+  const invalid = EARNINGS.some(({ key }) => Number(values[key]) < 0) || net < 0;
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
+      <DialogTitle>Edit Earnings — {item.employeeName}</DialogTitle>
+      <Divider />
+      <DialogContent sx={{ pt: 2.5 }}>
+        <Stack spacing={2}>
+          {EARNINGS.map(({ key, label }) => (
+            <TextField
+              key={key}
+              label={label}
+              type="number"
+              value={values[key] ?? ''}
+              onChange={(e) => onChange({ ...values, [key]: e.target.value })}
+              error={Number(values[key]) < 0}
+              InputProps={{
+                startAdornment: <InputAdornment position="start">SAR</InputAdornment>,
+                inputProps: { min: 0 },
+              }}
+            />
+          ))}
+
+          <Paper
+            variant="outlined"
+            sx={{ p: 1.5, borderRadius: 1.5, bgcolor: 'background.neutral' }}
+          >
+            <Stack direction="row" justifyContent="space-between">
+              <Typography variant="body2" color="text.secondary">
+                Gross
+              </Typography>
+              <Typography variant="body2">{sar(gross)}</Typography>
+            </Stack>
+            <Stack direction="row" justifyContent="space-between">
+              <Typography variant="body2" color="text.secondary">
+                Deductions
+              </Typography>
+              <Typography variant="body2">− {sar(deductions)}</Typography>
+            </Stack>
+            <Divider sx={{ my: 0.75 }} />
+            <Stack direction="row" justifyContent="space-between">
+              <Typography variant="subtitle2" color={net < 0 ? 'error' : 'success.main'}>
+                Net Pay
+              </Typography>
+              <Typography variant="subtitle2" color={net < 0 ? 'error' : 'success.main'}>
+                {sar(net)}
+              </Typography>
+            </Stack>
+          </Paper>
+
+          <Typography variant="caption" color="text.secondary">
+            This changes this payroll only. To pay the new salary in later months, change it on
+            the employee&apos;s profile too. GOSI stays at {sar(item.gosiDeduction)}; adjust it on
+            the profile if the new basic changes it.
+          </Typography>
+        </Stack>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button onClick={onClose} disabled={saving}>
+          Cancel
+        </Button>
+        <Button variant="contained" onClick={onSave} disabled={saving || invalid}>
+          {saving ? 'Saving…' : 'Save Earnings'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+}
+
+EditEarningsDialog.propTypes = {
+  item: PropTypes.object,
+  onChange: PropTypes.func,
+  onClose: PropTypes.func,
+  onSave: PropTypes.func,
+  open: PropTypes.bool,
+  saving: PropTypes.bool,
+  values: PropTypes.object,
+};

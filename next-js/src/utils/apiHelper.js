@@ -757,6 +757,24 @@ export async function updatePayrollLineItemDeductions(
 }
 
 /**
+ * @summary Corrects the earnings on one line of a payroll run awaiting approval.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-10-28
+ * @modified 2026-10-28
+ * @param {string|number} id - The payroll line item ID.
+ * @description Changes the run only; the employee record keeps its salary. Gross and net are
+ * recalculated, deductions are left as they are.
+ * @param {{ basicSalary: number, housingAllowance: number, transportAllowance: number, otherAllowances: number }} earnings
+ * @returns {Promise<object>} `{ lineItem }`, the updated line item.
+ */
+export async function updatePayrollLineItemEarnings(id, earnings) {
+  const url = `${API_BASE_URL}/payroll/line-items/${id}/earnings`;
+  const response = await axios.patch(url, earnings);
+  return response.data;
+}
+
+/**
  * @summary Updates an existing vendor record by ID.
  * @description Sends a PATCH request with the vendor ID both in the URL path and the request body
  * as required by the Encore backend.
