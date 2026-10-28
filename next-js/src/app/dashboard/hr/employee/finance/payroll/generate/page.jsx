@@ -5,6 +5,7 @@ import { useRef, useMemo, useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
+import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
@@ -33,13 +34,13 @@ import { DashboardContent } from 'src/layouts/dashboard';
 import { toast } from 'src/components/snackbar';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 import {
-  TableEmptyRows,
-  TableHeadCustom,
-  TablePaginationCustom,
-  TableSelectedAction,
+  useTable,
   emptyRows,
   rowInPage,
-  useTable,
+  TableEmptyRows,
+  TableHeadCustom,
+  TableSelectedAction,
+  TablePaginationCustom,
 } from 'src/components/table';
 
 // Calculate actual working days for employee based on joining date
@@ -155,71 +156,69 @@ const calculateLeaveDataForMonth = (employeeId, year, month, leaveRequests) => {
   };
 };
 
-// Calculate pro-rata salary
-const calculateProRataSalary = (employee, totalWorkingDaysInMonth, employeeWorkingDays) => {
-  const basicSalary = employee.basicSalary || 1500;
-  const housingAllowance = employee.housingAllowance || 1500;
-  const transportAllowance = employee.transportAllowance || 500;
-  const otherAllowances = employee.otherAllowances || 0;
+const num = (value) => Math.round((Number(value) || 0) * 100) / 100;
 
-  // Total leaves taken in THIS month (both paid and unpaid)
+/**
+ * Days and pay for one employee. The pay is what the API saves for the run:
+ * the employee record's basic and housing, the transport and other allowance
+ * (the record's unless HR enters different ones, with a reason), less GOSI
+ * and any extra deduction. Joining part-way through the month and unpaid
+ * leave are shown but not deducted automatically.
+ */
+const calculatePayrollRow = (employee, totalWorkingDaysInMonth, employeeWorkingDays) => {
   const totalLeavesTakenInMonth = employee.totalLeaveDaysInMonth || 0;
-
-  // Only unpaid leaves cause LOP deduction
-  const lopDays = employee.unpaidLeaveDaysInMonth || 0;
-
-  // Actual days worked = employee's eligible working days - ALL leaves
-  const actualDaysWorked = employeeWorkingDays - totalLeavesTakenInMonth;
-
-  // Calculate pro-rata salary based on eligible working days
-  // If employee joined mid-month, they get (employeeWorkingDays/totalWorkingDays) × monthly salary
-  const proRataRatio = employeeWorkingDays / totalWorkingDaysInMonth;
-
-  // Pro-rated monthly components
-  const proRatedBasic = basicSalary * proRataRatio;
-  const proRatedHousing = housingAllowance * proRataRatio;
-  const proRatedTransport = transportAllowance * proRataRatio;
-  const proRatedOther = otherAllowances * proRataRatio;
-
-  // Calculate per-day rates (based on total working days in month)
-  const perDayBasic = basicSalary / totalWorkingDaysInMonth;
-  const perDayHousing = housingAllowance / totalWorkingDaysInMonth;
-  const perDayTransport = transportAllowance / totalWorkingDaysInMonth;
-  const perDayOther = otherAllowances / totalWorkingDaysInMonth;
-
-  // LOP amount = ONLY unpaid leave days × daily rate
-  const lopAmount = lopDays * (perDayBasic + perDayHousing + perDayTransport + perDayOther);
-
-  // Final payable = Pro-rated amount - LOP
-  const payableBasic = proRatedBasic - lopDays * perDayBasic;
-  const payableHousing = proRatedHousing - lopDays * perDayHousing;
-  const payableTransport = proRatedTransport - lopDays * perDayTransport;
-  const payableOther = proRatedOther - lopDays * perDayOther;
-
-  // GOSI is a fixed monthly amount held on the employee record, not a
-  // pro-rated component: the contribution is assessed on the contractual wage
-  // and does not shrink with unpaid leave.
-  const gosiDeduction = Number(employee.gosiDeduction) || 0;
-
-  const grossSalary = payableBasic + payableHousing + payableTransport + payableOther;
-  const deductions = lopAmount + gosiDeduction;
-  const netSalary = grossSalary - gosiDeduction;
+  const unpaidLeaveDays = employee.unpaidLeaveDaysInMonth || 0;
+  const basicSalary = num(employee.basicSalary);
+  const housingAllowance = num(employee.housingAllowance);
+  const standardTransportAllowance = num(employee.transportAllowance);
+  const standardOtherAllowances = num(employee.otherAllowances);
+  const gosiDeduction = num(employee.gosiDeduction);
+  const grossSalary =
+    basicSalary + housingAllowance + standardTransportAllowance + standardOtherAllowances;
 
   return {
-    actualDaysWorked,
+    actualDaysWorked: employeeWorkingDays - totalLeavesTakenInMonth,
     eligibleWorkingDays: employeeWorkingDays,
-    lop: lopDays,
-    lopAmount,
+    partMonth: employeeWorkingDays < totalWorkingDaysInMonth,
+    lop: unpaidLeaveDays,
     gosiDeduction,
-    basicSalary: payableBasic,
-    housingAllowance: payableHousing,
-    transportAllowance: payableTransport,
-    otherAllowances: payableOther,
+    basicSalary,
+    housingAllowance,
+    standardTransportAllowance,
+    standardOtherAllowances,
+    transportAllowance: standardTransportAllowance,
+    otherAllowances: standardOtherAllowances,
+    earningsAdjustmentReason: '',
     grossSalary,
-    deductions,
-    netSalary,
+    deductions: gosiDeduction,
+    netSalary: grossSalary - gosiDeduction,
   };
 };
+
+/** The row's pay after HR edits the allowances or the extra deduction. */
+const recalculateRow = (row) => {
+  const transportAllowance = num(row.transportAllowance);
+  const otherAllowances = num(row.otherAllowances);
+  const manualDeductionAmount = num(row.manualDeductionAmount);
+  const grossSalary =
+    num(row.basicSalary) + num(row.housingAllowance) + transportAllowance + otherAllowances;
+  const deductions = num(row.gosiDeduction) + manualDeductionAmount;
+  return {
+    ...row,
+    transportAllowance,
+    otherAllowances,
+    manualDeductionAmount,
+    manualDeductionRemarks: row.manualDeductionRemarks || '',
+    earningsAdjustmentReason: row.earningsAdjustmentReason || '',
+    grossSalary,
+    deductions,
+    netSalary: grossSalary - deductions,
+  };
+};
+
+const isAdjusted = (row) =>
+  num(row.transportAllowance) !== num(row.standardTransportAllowance) ||
+  num(row.otherAllowances) !== num(row.standardOtherAllowances);
 
 export default function GeneratePayrollPage() {
   const router = useRouter();
@@ -315,11 +314,7 @@ export default function GeneratePayrollPage() {
             unpaidLeaveDaysInMonth: leaveData.unpaidLeaveDaysInMonth,
           };
 
-          const proRata = calculateProRataSalary(
-            employeeWithLeaves,
-            workingDays,
-            employeeWorkingDays
-          );
+          const pay = calculatePayrollRow(employeeWithLeaves, workingDays, employeeWorkingDays);
 
           const rowId = getRowId(employee);
 
@@ -334,20 +329,9 @@ export default function GeneratePayrollPage() {
             leavesTaken: leaveData.totalLeaveDaysInMonth,
             paidLeaves: leaveData.paidLeaveDaysInMonth,
             unpaidLeaves: leaveData.unpaidLeaveDaysInMonth,
-            actualDaysWorked: proRata.actualDaysWorked,
-            eligibleWorkingDays: proRata.eligibleWorkingDays,
-            lop: proRata.lop,
-            lopAmount: proRata.lopAmount,
-            gosiDeduction: proRata.gosiDeduction,
+            ...pay,
             workingDays: employeeWorkingDays,
             totalWorkingDays: workingDays,
-            basicSalary: proRata.basicSalary,
-            housingAllowance: proRata.housingAllowance,
-            transportAllowance: proRata.transportAllowance,
-            otherAllowances: proRata.otherAllowances,
-            grossSalary: proRata.grossSalary,
-            deductions: proRata.deductions,
-            netSalary: proRata.netSalary,
             manualDeductionAmount: 0,
             manualDeductionRemarks: '',
           };
@@ -399,17 +383,34 @@ export default function GeneratePayrollPage() {
       }
 
       // Build per-employee manual deduction overrides (keyed by DB id)
+      // An allowance paid differently from the employee record goes to the
+      // approver with the standard figure, so it has to say why.
+      const unjustified = selectedPayrollData.filter(
+        (row) => isAdjusted(row) && !String(row.earningsAdjustmentReason || '').trim()
+      );
+      if (unjustified.length) {
+        toast.error(
+          `Enter a justification for the adjusted allowances of: ${unjustified.map((row) => row.fullName).join(', ')}`
+        );
+        return;
+      }
+
       const lineItemOverrides = {};
       selectedPayrollData.forEach((row) => {
         const emp = employees.find((e) => getRowId(e) === row.id);
-        if (emp?.id && (row.manualDeductionAmount > 0 || row.manualDeductionRemarks)) {
-          lineItemOverrides[emp.id] = {
-            manualDeductionAmount: row.manualDeductionAmount || 0,
-            ...(row.manualDeductionRemarks
-              ? { manualDeductionRemarks: row.manualDeductionRemarks }
-              : {}),
-          };
+        if (!emp?.id) return;
+        const override = {};
+        if (row.manualDeductionAmount > 0 || row.manualDeductionRemarks) {
+          override.manualDeductionAmount = row.manualDeductionAmount || 0;
+          if (row.manualDeductionRemarks)
+            override.manualDeductionRemarks = row.manualDeductionRemarks;
         }
+        if (isAdjusted(row)) {
+          override.transportAllowance = num(row.transportAllowance);
+          override.otherAllowances = num(row.otherAllowances);
+          override.earningsAdjustmentReason = row.earningsAdjustmentReason.trim();
+        }
+        if (Object.keys(override).length) lineItemOverrides[emp.id] = override;
       });
 
       const response = await createPayrollRun({
@@ -513,9 +514,52 @@ export default function GeneratePayrollPage() {
     {
       field: 'transportAllowance',
       headerName: 'Transport',
-      flex: 1,
-      minWidth: 100,
-      valueFormatter: (value) => `SAR ${value?.toFixed(2) || 0}`,
+      minWidth: 130,
+      editable: true,
+      type: 'number',
+      renderHeader: () => (
+        <span title="From the employee record. Editable: a different amount needs a justification, and the approver sees the standard figure next to it.">
+          Transport ✎
+        </span>
+      ),
+      renderCell: ({ row }) => (
+        <AllowanceCell value={row.transportAllowance} standard={row.standardTransportAllowance} />
+      ),
+    },
+    {
+      field: 'otherAllowances',
+      headerName: 'Other',
+      minWidth: 130,
+      editable: true,
+      type: 'number',
+      renderHeader: () => (
+        <span title="From the employee record. Editable: a different amount needs a justification, and the approver sees the standard figure next to it.">
+          Other ✎
+        </span>
+      ),
+      renderCell: ({ row }) => (
+        <AllowanceCell value={row.otherAllowances} standard={row.standardOtherAllowances} />
+      ),
+    },
+    {
+      field: 'earningsAdjustmentReason',
+      headerName: 'Justification',
+      flex: 1.4,
+      minWidth: 200,
+      editable: true,
+      renderHeader: () => (
+        <span title="Required when the transport or other allowance differs from the employee record. The approver sees it. Editable.">
+          Justification ✎
+        </span>
+      ),
+      renderCell: ({ row, value }) =>
+        isAdjusted(row) && !String(value || '').trim() ? (
+          <Typography variant="caption" color="error">
+            Required: why is the allowance different?
+          </Typography>
+        ) : (
+          value || '—'
+        ),
     },
     {
       field: 'paidLeaves',
@@ -538,12 +582,11 @@ export default function GeneratePayrollPage() {
       field: 'lop',
       headerName: 'LOP Days',
       width: 100,
-    },
-    {
-      field: 'lopAmount',
-      headerName: 'LOP Amount',
-      width: 120,
-      valueFormatter: (value) => `${value?.toFixed(2) || '0.00'} SAR`,
+      renderHeader: () => (
+        <span title="Unpaid leave days this month. Not deducted automatically: add an extra deduction if they should be.">
+          LOP Days
+        </span>
+      ),
     },
     {
       field: 'grossSalary',
@@ -862,6 +905,13 @@ export default function GeneratePayrollPage() {
                   </Button>
                 }
               />
+              {payrollData.some((row) => row.partMonth || row.lop > 0) && (
+                <Alert severity="warning" sx={{ mx: 3, mb: 2 }}>
+                  Some employees joined part-way through the month or took unpaid leave. Pay is the
+                  full monthly salary from the employee record: add an extra deduction with its
+                  reason for any amount that should not be paid.
+                </Alert>
+              )}
               <Box sx={{ height: 600 }}>
                 <DataGrid
                   rows={payrollData}
@@ -874,37 +924,10 @@ export default function GeneratePayrollPage() {
                     },
                   }}
                   processRowUpdate={(newRow) => {
-                    const manualDeductionAmount =
-                      typeof newRow.manualDeductionAmount === 'number'
-                        ? newRow.manualDeductionAmount
-                        : Number(newRow.manualDeductionAmount) || 0;
-                    const manualDeductionRemarks = newRow.manualDeductionRemarks || '';
-
-                    // Recalculate LOP-based values from leave data
-                    const updated = calculateProRataSalary(
-                      newRow,
-                      newRow.totalWorkingDays || workingDays,
-                      newRow.eligibleWorkingDays || newRow.workingDays || workingDays
-                    );
-
-                    const recalculated = {
-                      ...newRow,
-                      actualDaysWorked: updated.actualDaysWorked,
-                      lop: updated.lop,
-                      lopAmount: updated.lopAmount,
-                      basicSalary: updated.basicSalary,
-                      housingAllowance: updated.housingAllowance,
-                      transportAllowance: updated.transportAllowance,
-                      otherAllowances: updated.otherAllowances,
-                      grossSalary: updated.grossSalary,
-                      // deductions = LOP + GOSI + manual deduction for display
-                      deductions: updated.deductions + manualDeductionAmount,
-                      // net = pro-rata net (already LOP- and GOSI-adjusted) minus any manual deduction
-                      netSalary: updated.netSalary - manualDeductionAmount,
-                      manualDeductionAmount,
-                      manualDeductionRemarks,
-                    };
-
+                    if (num(newRow.transportAllowance) < 0 || num(newRow.otherAllowances) < 0) {
+                      throw new Error('An allowance cannot be negative');
+                    }
+                    const recalculated = recalculateRow(newRow);
                     setPayrollData((prev) =>
                       prev.map((row) => (row.id === recalculated.id ? recalculated : row))
                     );
@@ -912,7 +935,7 @@ export default function GeneratePayrollPage() {
                   }}
                   onProcessRowUpdateError={(error) => {
                     console.error('Row update error:', error);
-                    toast.error('Failed to update row');
+                    toast.error(error?.message || 'Failed to update row');
                   }}
                 />
               </Box>
@@ -921,5 +944,22 @@ export default function GeneratePayrollPage() {
         )}
       </Stack>
     </DashboardContent>
+  );
+}
+
+function AllowanceCell({ value, standard }) {
+  const diff = num(value) - num(standard);
+  return (
+    <Stack spacing={0} sx={{ lineHeight: 1.2, py: 0.5 }}>
+      <Typography variant="body2" sx={{ fontWeight: diff ? 600 : 400 }}>
+        SAR {num(value).toFixed(2)}
+      </Typography>
+      {diff !== 0 && (
+        <Typography variant="caption" color={diff > 0 ? 'warning.main' : 'info.main'}>
+          {diff > 0 ? '+' : '−'}
+          {Math.abs(diff).toFixed(2)} vs {num(standard).toFixed(2)}
+        </Typography>
+      )}
+    </Stack>
   );
 }

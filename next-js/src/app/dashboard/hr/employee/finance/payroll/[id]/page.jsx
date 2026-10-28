@@ -8,6 +8,7 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Menu from '@mui/material/Menu';
 import Grid from '@mui/material/Grid';
+import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Paper from '@mui/material/Paper';
@@ -38,6 +39,7 @@ import { fCurrency } from 'src/utils/format-number';
 import {
   getEmployees,
   fetchPayrollRun,
+  refreshPayrollRun,
   approvePayrollRun,
   postPayrollToBank,
   sendPayrollPayslips,
@@ -74,12 +76,44 @@ const DEDUCTION_REASONS = [
 
 const blankDeduction = () => ({ label: '', amount: '' });
 
-const EARNINGS = [
-  { key: 'basicSalary', label: 'Basic Salary' },
-  { key: 'housingAllowance', label: 'Housing Allowance' },
-  { key: 'transportAllowance', label: 'Transport Allowance' },
-  { key: 'otherAllowances', label: 'Other Allowances' },
+// HR may pay a different transport or other allowance in a payroll, with a
+// reason; basic and housing always come from the employee record.
+const ADJUSTABLE = [
+  {
+    key: 'transportAllowance',
+    standard: 'standardTransportAllowance',
+    label: 'Transport Allowance',
+  },
+  { key: 'otherAllowances', standard: 'standardOtherAllowances', label: 'Other Allowances' },
 ];
+
+const num = (value) => Math.round((Number(value) || 0) * 100) / 100;
+
+/** The record's figure for an adjustable allowance; lines from before adjustments: what was paid. */
+const standardOf = (item, { key, standard }) => num(item[standard] ?? item[key]);
+
+/** The allowances paid differently from the employee record on this line. */
+const adjustmentsOf = (item) =>
+  ADJUSTABLE.map((field) => ({
+    ...field,
+    standardValue: standardOf(item, field),
+    paid: num(item[field.key]),
+  })).filter((a) => a.paid !== a.standardValue);
+
+/** What differs between a payroll line and the employee's record today. */
+const profileChanges = (item, employee) => {
+  if (!employee) return [];
+  const fields = [
+    ['basicSalary', 'Basic', num(item.basicSalary)],
+    ['housingAllowance', 'Housing', num(item.housingAllowance)],
+    ['transportAllowance', 'Transport', standardOf(item, ADJUSTABLE[0])],
+    ['otherAllowances', 'Other', standardOf(item, ADJUSTABLE[1])],
+    ['gosiDeduction', 'GOSI', num(item.gosiDeduction)],
+  ];
+  return fields
+    .filter(([key, , was]) => num(employee[key]) !== was)
+    .map(([key, label, was]) => ({ label, was, now: num(employee[key]) }));
+};
 
 const sar = (value) =>
   `SAR ${Number(value || 0).toLocaleString('en-US', {
@@ -137,6 +171,7 @@ export default function PayrollDetailPage({ params }) {
   const [earningsTarget, setEarningsTarget] = useState(null);
   const [earnings, setEarnings] = useState({});
   const [savingEarnings, setSavingEarnings] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   // Payslip button menu (View / Download) and the on-screen viewer
   const [payslipMenu, setPayslipMenu] = useState(null); // { anchorEl, item }
@@ -366,7 +401,10 @@ export default function PayrollDetailPage({ params }) {
   // ── Edit earnings ──────────────────────────────────────────────────────
   const handleOpenEarnings = useCallback((item) => {
     setEarningsTarget(item);
-    setEarnings(Object.fromEntries(EARNINGS.map(({ key }) => [key, String(item[key] ?? 0)])));
+    setEarnings({
+      ...Object.fromEntries(ADJUSTABLE.map(({ key }) => [key, String(item[key] ?? 0)])),
+      reason: item.earningsAdjustmentReason || '',
+    });
   }, []);
 
   const handleCloseEarnings = useCallback(() => {
@@ -378,13 +416,15 @@ export default function PayrollDetailPage({ params }) {
     if (!earningsTarget) return;
     setSavingEarnings(true);
     try {
-      const response = await updatePayrollLineItemEarnings(
-        earningsTarget.id,
-        Object.fromEntries(EARNINGS.map(({ key }) => [key, Number(earnings[key]) || 0]))
-      );
-      const saved = response?.lineItem;
-      if (saved) setLineItems((prev) => prev.map((li) => (li.id === saved.id ? saved : li)));
-      toast.success('Earnings updated');
+      await updatePayrollLineItemEarnings(earningsTarget.id, {
+        transportAllowance: Number(earnings.transportAllowance) || 0,
+        otherAllowances: Number(earnings.otherAllowances) || 0,
+        earningsAdjustmentReason: earnings.reason?.trim() || undefined,
+      });
+      const data = await fetchPayrollRun(payrollId);
+      setPayroll(data.payrollRun);
+      setLineItems(data.lineItems || []);
+      toast.success('Allowances updated');
       handleCloseEarnings();
     } catch (error) {
       console.error('Failed to update earnings', error);
@@ -392,7 +432,38 @@ export default function PayrollDetailPage({ params }) {
     } finally {
       setSavingEarnings(false);
     }
-  }, [earningsTarget, earnings, handleCloseEarnings]);
+  }, [earningsTarget, earnings, handleCloseEarnings, payrollId]);
+
+  const handleRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const [data, list] = await Promise.all([refreshPayrollRun(payrollId), getEmployees()]);
+      setPayroll(data.payrollRun);
+      setLineItems(data.lineItems || []);
+      setEmployees(Array.isArray(list) ? list : []);
+      toast.success(
+        data.updated
+          ? `${data.updated} employee${data.updated === 1 ? '' : 's'} updated from their records`
+          : 'Already up to date with the employee records'
+      );
+    } catch (error) {
+      console.error('Failed to refresh payroll', error);
+      toast.error(error?.response?.data?.message || 'Failed to refresh from employee records');
+    } finally {
+      setRefreshing(false);
+    }
+  }, [payrollId]);
+
+  const employeeById = new Map(employees.map((e) => [e.id, e]));
+  const isPending = payroll?.status === 'pending_approval';
+  const changedLines = isPending
+    ? lineItems.filter((li) => profileChanges(li, employeeById.get(li.employeeDbId)).length)
+    : [];
+  const adjustedLines = lineItems.filter((li) => adjustmentsOf(li).length);
+  const adjustmentTotal = adjustedLines.reduce(
+    (sum, li) => sum + adjustmentsOf(li).reduce((s, a) => s + a.paid - a.standardValue, 0),
+    0
+  );
 
   // ── Payslips ───────────────────────────────────────────────────────────
   // One renderer serves both the download and the email, so the PDF an
@@ -722,6 +793,37 @@ export default function PayrollDetailPage({ params }) {
               by {payroll.generatedBy}
             </Typography>
 
+            {changedLines.length > 0 && (
+              <Alert
+                severity="warning"
+                action={
+                  <Button
+                    color="inherit"
+                    size="small"
+                    onClick={handleRefresh}
+                    disabled={refreshing}
+                  >
+                    {refreshing ? 'Updating…' : 'Update from records'}
+                  </Button>
+                }
+              >
+                {changedLines.length === 1
+                  ? `${changedLines[0].employeeName}'s salary record has changed`
+                  : `${changedLines.length} employees' salary records have changed`}{' '}
+                since this payroll was generated. Update the payroll to pay the current figures;
+                allowances adjusted with a reason keep their amounts, and deductions are kept.
+              </Alert>
+            )}
+
+            {adjustedLines.length > 0 && (
+              <Alert severity="info">
+                {adjustedLines.length} employee{adjustedLines.length === 1 ? ' is' : 's are'} paid
+                allowances different from their record, {adjustmentTotal >= 0 ? '+' : '−'}
+                {sar(Math.abs(adjustmentTotal))} in total. Each one is shown below with the standard
+                figure and the reason.
+              </Alert>
+            )}
+
             <Box
               sx={{
                 display: 'grid',
@@ -816,6 +918,7 @@ export default function PayrollDetailPage({ params }) {
                           <TableCell>Employee</TableCell>
                           <TableCell>Designation / Dept</TableCell>
                           <TableCell align="right">Gross</TableCell>
+                          <TableCell>Allowance Adjustments</TableCell>
                           <TableCell align="right">LOP</TableCell>
                           <TableCell align="right" sx={{ color: 'error.main' }}>
                             Extra Deductions
@@ -850,6 +953,50 @@ export default function PayrollDetailPage({ params }) {
                                 minimumFractionDigits: 2,
                                 maximumFractionDigits: 2,
                               })}
+                              {isPending &&
+                                profileChanges(item, employeeById.get(item.employeeDbId)).length >
+                                  0 && (
+                                  <Tooltip
+                                    title={profileChanges(item, employeeById.get(item.employeeDbId))
+                                      .map((c) => `${c.label}: ${sar(c.was)} → ${sar(c.now)}`)
+                                      .join(' · ')}
+                                  >
+                                    <Box>
+                                      <Label variant="soft" color="warning" sx={{ mt: 0.5 }}>
+                                        Record changed
+                                      </Label>
+                                    </Box>
+                                  </Tooltip>
+                                )}
+                            </TableCell>
+                            <TableCell sx={{ minWidth: 200 }}>
+                              {adjustmentsOf(item).length ? (
+                                <>
+                                  {adjustmentsOf(item).map((a) => (
+                                    <Typography key={a.key} variant="caption" display="block">
+                                      {a.label.replace(' Allowance', '').replace(' Allowances', '')}
+                                      : {sar(a.standardValue)} → <b>{sar(a.paid)}</b> (
+                                      {a.paid > a.standardValue ? '+' : '−'}
+                                      {Math.abs(a.paid - a.standardValue).toLocaleString('en-US', {
+                                        minimumFractionDigits: 2,
+                                        maximumFractionDigits: 2,
+                                      })}
+                                      )
+                                    </Typography>
+                                  ))}
+                                  <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    display="block"
+                                  >
+                                    {item.earningsAdjustmentReason}
+                                  </Typography>
+                                </>
+                              ) : (
+                                <Typography variant="caption" color="text.secondary">
+                                  —
+                                </Typography>
+                              )}
                             </TableCell>
                             <TableCell
                               align="right"
@@ -913,7 +1060,7 @@ export default function PayrollDetailPage({ params }) {
                                     startIcon={<Iconify icon="solar:pen-bold" />}
                                     onClick={() => handleOpenEarnings(item)}
                                   >
-                                    Earnings
+                                    Allowances
                                   </Button>
                                 )}
                                 {payroll?.status === 'pending_approval' && (
@@ -1214,48 +1361,88 @@ function AdjustDeductionDialog({ open, item, items, saving, onItemsChange, onSav
 function EditEarningsDialog({ open, item, values, saving, onChange, onSave, onClose }) {
   if (!item) return null;
 
-  const gross = EARNINGS.reduce((sum, { key }) => sum + (Number(values[key]) || 0), 0);
-  const deductions = Number(item.deductions || 0);
+  const basic = num(item.basicSalary);
+  const housing = num(item.housingAllowance);
+  const paid = Object.fromEntries(ADJUSTABLE.map(({ key }) => [key, num(values[key])]));
+  const gross = basic + housing + paid.transportAllowance + paid.otherAllowances;
+  const deductions = num(item.deductions);
   const net = gross - deductions;
-  const invalid = EARNINGS.some(({ key }) => Number(values[key]) < 0) || net < 0;
+  const adjusted = ADJUSTABLE.some((field) => paid[field.key] !== standardOf(item, field));
+  const missingReason = adjusted && !values.reason?.trim();
+  const invalid = ADJUSTABLE.some(({ key }) => Number(values[key]) < 0) || net < 0 || missingReason;
+
+  const row = (label, value, color) => (
+    <Stack direction="row" justifyContent="space-between">
+      <Typography variant="body2" color={color || 'text.secondary'}>
+        {label}
+      </Typography>
+      <Typography variant="body2" color={color}>
+        {value}
+      </Typography>
+    </Stack>
+  );
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>Edit Earnings — {item.employeeName}</DialogTitle>
+      <DialogTitle>Adjust Allowances — {item.employeeName}</DialogTitle>
       <Divider />
       <DialogContent sx={{ pt: 2.5 }}>
         <Stack spacing={2}>
-          {EARNINGS.map(({ key, label }) => (
-            <TextField
-              key={key}
-              label={label}
-              type="number"
-              value={values[key] ?? ''}
-              onChange={(e) => onChange({ ...values, [key]: e.target.value })}
-              error={Number(values[key]) < 0}
-              InputProps={{
-                startAdornment: <InputAdornment position="start">SAR</InputAdornment>,
-                inputProps: { min: 0 },
-              }}
-            />
-          ))}
+          <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 1.5 }}>
+            {row('Basic Salary', sar(basic))}
+            {row('Housing Allowance', sar(housing))}
+            <Typography variant="caption" color="text.secondary">
+              From the employee record; not editable here.
+            </Typography>
+          </Paper>
+
+          {ADJUSTABLE.map((field) => {
+            const standardValue = standardOf(item, field);
+            const diff = paid[field.key] - standardValue;
+            return (
+              <TextField
+                key={field.key}
+                label={field.label}
+                type="number"
+                value={values[field.key] ?? ''}
+                onChange={(e) => onChange({ ...values, [field.key]: e.target.value })}
+                error={Number(values[field.key]) < 0}
+                helperText={
+                  diff
+                    ? `Standard ${sar(standardValue)} · ${diff > 0 ? '+' : '−'}${sar(Math.abs(diff))}`
+                    : `Standard ${sar(standardValue)}`
+                }
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">SAR</InputAdornment>,
+                  inputProps: { min: 0 },
+                }}
+              />
+            );
+          })}
+
+          <TextField
+            label="Justification"
+            multiline
+            minRows={2}
+            value={values.reason ?? ''}
+            onChange={(e) => onChange({ ...values, reason: e.target.value })}
+            disabled={!adjusted}
+            error={missingReason}
+            placeholder="e.g. Site allowance for the Riyadh client deployment"
+            helperText={
+              adjusted
+                ? 'Required: the approver sees it next to the standard figure.'
+                : 'Needed only when an allowance differs from the standard.'
+            }
+            inputProps={{ maxLength: 500 }}
+          />
 
           <Paper
             variant="outlined"
             sx={{ p: 1.5, borderRadius: 1.5, bgcolor: 'background.neutral' }}
           >
-            <Stack direction="row" justifyContent="space-between">
-              <Typography variant="body2" color="text.secondary">
-                Gross
-              </Typography>
-              <Typography variant="body2">{sar(gross)}</Typography>
-            </Stack>
-            <Stack direction="row" justifyContent="space-between">
-              <Typography variant="body2" color="text.secondary">
-                Deductions
-              </Typography>
-              <Typography variant="body2">− {sar(deductions)}</Typography>
-            </Stack>
+            {row('Gross', sar(gross))}
+            {row('Deductions', `− ${sar(deductions)}`)}
             <Divider sx={{ my: 0.75 }} />
             <Stack direction="row" justifyContent="space-between">
               <Typography variant="subtitle2" color={net < 0 ? 'error' : 'success.main'}>
@@ -1268,9 +1455,7 @@ function EditEarningsDialog({ open, item, values, saving, onChange, onSave, onCl
           </Paper>
 
           <Typography variant="caption" color="text.secondary">
-            This changes this payroll only. To pay the new salary in later months, change it on
-            the employee&apos;s profile too. GOSI stays at {sar(item.gosiDeduction)}; adjust it on
-            the profile if the new basic changes it.
+            This changes this payroll only; the employee record keeps its figures.
           </Typography>
         </Stack>
       </DialogContent>
@@ -1279,7 +1464,7 @@ function EditEarningsDialog({ open, item, values, saving, onChange, onSave, onCl
           Cancel
         </Button>
         <Button variant="contained" onClick={onSave} disabled={saving || invalid}>
-          {saving ? 'Saving…' : 'Save Earnings'}
+          {saving ? 'Saving…' : 'Save Allowances'}
         </Button>
       </DialogActions>
     </Dialog>

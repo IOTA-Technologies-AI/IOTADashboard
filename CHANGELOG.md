@@ -25,10 +25,25 @@ is running.
 ## [Unreleased]
 
 ### Added
-- **Edit earnings on a payroll awaiting approval.** Each line of a pending
-  payroll has an Earnings button to correct basic, housing, transport and other
-  allowances; gross, net and the run totals are recalculated. It changes that
-  payroll only; the employee's profile keeps its salary (ISS-0015).
+- **Adjusted allowances, with a justification, go to the approver.** When
+  generating a payroll, and on a payroll awaiting approval (Allowances), HR may
+  pay a different transport or other allowance than the employee record holds,
+  with a reason. Basic and housing always come from the record. The payroll
+  shows the standard figure, the amount paid, the difference and the reason,
+  and a total of the adjustments above the approval. Needs
+  `sql/20261028_payroll_earnings_adjustments.sql` in the API repo.
+- **Update a pending payroll from the employee records.** A payroll keeps its
+  own copy of each salary; when a profile changed after the payroll was
+  generated, the payroll now says so per employee and "Update from records"
+  re-reads basic, housing, allowances, GOSI and bank details (ISS-0015).
+
+### Fixed
+- **Generate Payroll showed figures the payroll did not pay.** A salary
+  component of 0 was shown as 1,500 basic, 1,500 housing or 500 transport, and
+  the pay was pro-rated for joining date and unpaid leave on screen while the
+  saved payroll paid the full month. The screen now shows the employee
+  record's figures, which is what is saved, and warns when someone joined
+  part-way through the month or took unpaid leave.
 - **Document Management files on SharePoint.** Document Management → Storage
   connects a SharePoint library; new versions are saved there instead of one
   person's OneDrive, in the same Document Management / practice / type / client

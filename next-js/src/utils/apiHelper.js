@@ -757,20 +757,38 @@ export async function updatePayrollLineItemDeductions(
 }
 
 /**
- * @summary Corrects the earnings on one line of a payroll run awaiting approval.
+ * @summary Sets the transport and other allowance paid on one line of a payroll awaiting approval.
  * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
- * @version 1.0.0
+ * @version 1.1.0
  * @since 2026-10-28
  * @modified 2026-10-28
  * @param {string|number} id - The payroll line item ID.
- * @description Changes the run only; the employee record keeps its salary. Gross and net are
- * recalculated, deductions are left as they are.
- * @param {{ basicSalary: number, housingAllowance: number, transportAllowance: number, otherAllowances: number }} earnings
+ * @description Basic and housing are not editable; they come from the employee record. An
+ * amount different from the record's needs `earningsAdjustmentReason`, which the approver sees.
+ * Changes the payroll only, not the employee record.
+ * @param {{ transportAllowance: number, otherAllowances: number, earningsAdjustmentReason?: string }} earnings
  * @returns {Promise<object>} `{ lineItem }`, the updated line item.
  */
 export async function updatePayrollLineItemEarnings(id, earnings) {
   const url = `${API_BASE_URL}/payroll/line-items/${id}/earnings`;
   const response = await axios.patch(url, earnings);
+  return response.data;
+}
+
+/**
+ * @summary Brings a payroll awaiting approval up to date with the employee records.
+ * @author Jaffar Meeran <jaffar@iotatechnologies.ai>
+ * @version 1.0.0
+ * @since 2026-10-28
+ * @modified 2026-10-28
+ * @param {string|number} id - The payroll run ID.
+ * @description Re-reads basic, housing, allowances, GOSI and bank details. Allowances adjusted
+ * with a reason keep their amounts; manual deductions are kept.
+ * @returns {Promise<{ payrollRun: object, lineItems: object[], updated: number }>}
+ */
+export async function refreshPayrollRun(id) {
+  const url = `${API_BASE_URL}/payroll/runs/${id}/refresh`;
+  const response = await axios.post(url, {});
   return response.data;
 }
 
