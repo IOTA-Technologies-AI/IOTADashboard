@@ -9,7 +9,6 @@ import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
 import Table from '@mui/material/Table';
 import Button from '@mui/material/Button';
-import { DataGrid } from '@mui/x-data-grid';
 import Checkbox from '@mui/material/Checkbox';
 import MenuItem from '@mui/material/MenuItem';
 import TableRow from '@mui/material/TableRow';
@@ -42,6 +41,9 @@ import {
   TableSelectedAction,
   TablePaginationCustom,
 } from 'src/components/table';
+
+import { PayrollReview } from 'src/sections/hr/payroll/payroll-review';
+import { num, isAdjusted, adjustmentOf } from 'src/sections/hr/payroll/payroll-pay';
 
 // Calculate actual working days for employee based on joining date
 const getEmployeeWorkingDays = (year, month, joiningDate) => {
@@ -156,8 +158,6 @@ const calculateLeaveDataForMonth = (employeeId, year, month, leaveRequests) => {
   };
 };
 
-const num = (value) => Math.round((Number(value) || 0) * 100) / 100;
-
 /**
  * Days and pay for one employee. The pay is what the API saves for the run:
  * the employee record's basic and housing, the transport and other allowance
@@ -194,31 +194,6 @@ const calculatePayrollRow = (employee, totalWorkingDaysInMonth, employeeWorkingD
     netSalary: grossSalary - gosiDeduction,
   };
 };
-
-/** The row's pay after HR edits the allowances or the extra deduction. */
-const recalculateRow = (row) => {
-  const transportAllowance = num(row.transportAllowance);
-  const otherAllowances = num(row.otherAllowances);
-  const manualDeductionAmount = num(row.manualDeductionAmount);
-  const grossSalary =
-    num(row.basicSalary) + num(row.housingAllowance) + transportAllowance + otherAllowances;
-  const deductions = num(row.gosiDeduction) + manualDeductionAmount;
-  return {
-    ...row,
-    transportAllowance,
-    otherAllowances,
-    manualDeductionAmount,
-    manualDeductionRemarks: row.manualDeductionRemarks || '',
-    earningsAdjustmentReason: row.earningsAdjustmentReason || '',
-    grossSalary,
-    deductions,
-    netSalary: grossSalary - deductions,
-  };
-};
-
-const isAdjusted = (row) =>
-  num(row.transportAllowance) !== num(row.standardTransportAllowance) ||
-  num(row.otherAllowances) !== num(row.standardOtherAllowances);
 
 export default function GeneratePayrollPage() {
   const router = useRouter();
@@ -450,204 +425,9 @@ export default function GeneratePayrollPage() {
     }
   };
 
-  const columns = [
-    { field: 'employeeId', headerName: 'Employee ID', flex: 1, minWidth: 120 },
-    { field: 'fullName', headerName: 'Name', flex: 1.5, minWidth: 180 },
-    { field: 'department', headerName: 'Department', flex: 1.2, minWidth: 150 },
-    {
-      field: 'joiningDate',
-      headerName: 'Joining Date',
-      flex: 1,
-      minWidth: 120,
-      valueFormatter: (value) => (value ? new Date(value).toLocaleDateString() : '-'),
-    },
-    {
-      field: 'eligibleWorkingDays',
-      headerName: 'Eligible Days',
-      flex: 0.8,
-      minWidth: 100,
-      renderCell: (params) => {
-        const row = params?.row || {};
-        const val = params?.value ?? 0;
-        const total = row.totalWorkingDays ?? 0;
-        return `${val}/${total}`;
-      },
-    },
-    {
-      field: 'leavesTaken',
-      headerName: 'Leaves',
-      flex: 0.6,
-      minWidth: 80,
-    },
-    {
-      field: 'actualDaysWorked',
-      headerName: 'Days Worked',
-      flex: 0.8,
-      minWidth: 100,
-    },
-    {
-      field: 'workingDays',
-      headerName: 'Working Days',
-      flex: 0.8,
-      minWidth: 100,
-      renderCell: (params) => {
-        const row = params?.row || {};
-        const val = params?.value ?? 0;
-        const total = row.totalWorkingDays ?? 0;
-        return `${val}/${total}`;
-      },
-    },
-    {
-      field: 'basicSalary',
-      headerName: 'Basic Salary',
-      flex: 1,
-      minWidth: 120,
-      valueFormatter: (value) => `SAR ${value?.toFixed(2) || 0}`,
-    },
-    {
-      field: 'housingAllowance',
-      headerName: 'Housing',
-      flex: 1,
-      minWidth: 100,
-      valueFormatter: (value) => `SAR ${value?.toFixed(2) || 0}`,
-    },
-    {
-      field: 'transportAllowance',
-      headerName: 'Transport',
-      minWidth: 130,
-      editable: true,
-      type: 'number',
-      renderHeader: () => (
-        <span title="From the employee record. Editable: a different amount needs a justification, and the approver sees the standard figure next to it.">
-          Transport ✎
-        </span>
-      ),
-      renderCell: ({ row }) => (
-        <AllowanceCell value={row.transportAllowance} standard={row.standardTransportAllowance} />
-      ),
-    },
-    {
-      field: 'otherAllowances',
-      headerName: 'Other',
-      minWidth: 130,
-      editable: true,
-      type: 'number',
-      renderHeader: () => (
-        <span title="From the employee record. Editable: a different amount needs a justification, and the approver sees the standard figure next to it.">
-          Other ✎
-        </span>
-      ),
-      renderCell: ({ row }) => (
-        <AllowanceCell value={row.otherAllowances} standard={row.standardOtherAllowances} />
-      ),
-    },
-    {
-      field: 'earningsAdjustmentReason',
-      headerName: 'Justification',
-      flex: 1.4,
-      minWidth: 200,
-      editable: true,
-      renderHeader: () => (
-        <span title="Required when the transport or other allowance differs from the employee record. The approver sees it. Editable.">
-          Justification ✎
-        </span>
-      ),
-      renderCell: ({ row, value }) =>
-        isAdjusted(row) && !String(value || '').trim() ? (
-          <Typography variant="caption" color="error">
-            Required: why is the allowance different?
-          </Typography>
-        ) : (
-          value || '—'
-        ),
-    },
-    {
-      field: 'paidLeaves',
-      headerName: 'Paid Leaves',
-      width: 120,
-    },
-    {
-      field: 'unpaidLeaves',
-      headerName: 'Unpaid Leaves',
-      width: 120,
-    },
-    {
-      field: 'leaveBalance',
-      headerName: 'Leave Balance',
-      width: 120,
-      editable: true,
-      type: 'number',
-    },
-    {
-      field: 'lop',
-      headerName: 'LOP Days',
-      width: 100,
-      renderHeader: () => (
-        <span title="Unpaid leave days this month. Not deducted automatically: add an extra deduction if they should be.">
-          LOP Days
-        </span>
-      ),
-    },
-    {
-      field: 'grossSalary',
-      headerName: 'Gross Salary',
-      flex: 1.2,
-      minWidth: 130,
-      valueFormatter: (value) => `SAR ${value?.toFixed(2) || 0}`,
-    },
-    {
-      field: 'gosiDeduction',
-      headerName: 'GOSI',
-      width: 120,
-      valueFormatter: (value) => (value > 0 ? `SAR ${Number(value).toFixed(2)}` : '—'),
-      renderHeader: () => (
-        <span title="GOSI employee contribution held on the employee record. Edit it on the employee profile.">
-          GOSI
-        </span>
-      ),
-    },
-    {
-      field: 'manualDeductionAmount',
-      headerName: 'Extra Deductions',
-      flex: 1,
-      minWidth: 140,
-      editable: true,
-      type: 'number',
-      valueFormatter: (value) => (value > 0 ? `SAR ${Number(value || 0).toFixed(2)}` : '—'),
-      renderHeader: () => (
-        <span title="Enter any additional deduction to apply on top of LOP (e.g. advance, loan repayment). Editable.">
-          Extra Deductions ✎
-        </span>
-      ),
-    },
-    {
-      field: 'manualDeductionRemarks',
-      headerName: 'Deduction Reason',
-      flex: 1.4,
-      minWidth: 170,
-      editable: true,
-      renderHeader: () => (
-        <span title="Required with an extra deduction — it is printed on the payslip (e.g. Salary advance recovery). Several deductions for one employee can be itemised with Adjust after the run is generated. Editable.">
-          Deduction Reason ✎
-        </span>
-      ),
-    },
-    {
-      field: 'netSalary',
-      headerName: 'Net Salary',
-      flex: 1.2,
-      minWidth: 130,
-      valueFormatter: (value) => `SAR ${value?.toFixed(2) || 0}`,
-      renderCell: (params) => (
-        <Typography variant="subtitle2" sx={{ color: 'success.main' }}>
-          SAR {params?.value?.toFixed(2) || 0}
-        </Typography>
-      ),
-    },
-  ];
-
   const totalGross =
     runMeta?.totalGross ?? payrollData.reduce((sum, row) => sum + (row.grossSalary || 0), 0);
+  const totalAdjustment = payrollData.reduce((sum, row) => sum + adjustmentOf(row), 0);
   const totalNet =
     runMeta?.totalNet ?? payrollData.reduce((sum, row) => sum + (row.netSalary || 0), 0);
 
@@ -878,6 +658,21 @@ export default function GeneratePayrollPage() {
 
               <Card sx={{ flex: 1 }}>
                 <CardContent>
+                  <Typography
+                    variant="h4"
+                    sx={{ color: totalAdjustment ? 'warning.main' : 'text.primary' }}
+                  >
+                    {totalAdjustment > 0 ? '+' : totalAdjustment < 0 ? '−' : ''}SAR{' '}
+                    {Math.abs(totalAdjustment).toFixed(2)}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Allowance adjustments ({payrollData.filter(isAdjusted).length})
+                  </Typography>
+                </CardContent>
+              </Card>
+
+              <Card sx={{ flex: 1 }}>
+                <CardContent>
                   <Typography variant="h4" sx={{ color: 'success.main' }}>
                     SAR {totalNet.toFixed(2)}
                   </Typography>
@@ -892,6 +687,7 @@ export default function GeneratePayrollPage() {
             <Card>
               <CardHeader
                 title="Payroll Details"
+                subheader="Select an employee to review attendance, adjust allowances or add a deduction"
                 action={
                   <Button
                     variant="contained"
@@ -912,54 +708,16 @@ export default function GeneratePayrollPage() {
                   reason for any amount that should not be paid.
                 </Alert>
               )}
-              <Box sx={{ height: 600 }}>
-                <DataGrid
-                  rows={payrollData}
-                  columns={columns}
-                  getRowId={getRowId}
-                  pageSizeOptions={[10, 25, 50]}
-                  initialState={{
-                    pagination: {
-                      paginationModel: { pageSize: 25 },
-                    },
-                  }}
-                  processRowUpdate={(newRow) => {
-                    if (num(newRow.transportAllowance) < 0 || num(newRow.otherAllowances) < 0) {
-                      throw new Error('An allowance cannot be negative');
-                    }
-                    const recalculated = recalculateRow(newRow);
-                    setPayrollData((prev) =>
-                      prev.map((row) => (row.id === recalculated.id ? recalculated : row))
-                    );
-                    return recalculated;
-                  }}
-                  onProcessRowUpdateError={(error) => {
-                    console.error('Row update error:', error);
-                    toast.error(error?.message || 'Failed to update row');
-                  }}
-                />
-              </Box>
+              <PayrollReview
+                rows={payrollData}
+                onRowChange={(next) =>
+                  setPayrollData((prev) => prev.map((row) => (row.id === next.id ? next : row)))
+                }
+              />
             </Card>
           </>
         )}
       </Stack>
     </DashboardContent>
-  );
-}
-
-function AllowanceCell({ value, standard }) {
-  const diff = num(value) - num(standard);
-  return (
-    <Stack spacing={0} sx={{ lineHeight: 1.2, py: 0.5 }}>
-      <Typography variant="body2" sx={{ fontWeight: diff ? 600 : 400 }}>
-        SAR {num(value).toFixed(2)}
-      </Typography>
-      {diff !== 0 && (
-        <Typography variant="caption" color={diff > 0 ? 'warning.main' : 'info.main'}>
-          {diff > 0 ? '+' : '−'}
-          {Math.abs(diff).toFixed(2)} vs {num(standard).toFixed(2)}
-        </Typography>
-      )}
-    </Stack>
   );
 }

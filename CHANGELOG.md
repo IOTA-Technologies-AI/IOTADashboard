@@ -25,6 +25,14 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Generate Payroll: review table and side panel instead of a wide grid.**
+  Payroll Details lists each employee on one row (days, earnings, adjustment,
+  deductions, net pay, status) with no sideways scrolling; filters for "Needs
+  attention" and "Adjusted" and a search. Selecting a row opens a panel with
+  attendance, earnings and deductions, where the transport and other
+  allowance, the justification and an extra deduction are edited; "Save &
+  next" moves to the next employee. A summary card shows the total allowance
+  adjustment.
 - **Adjusted allowances, with a justification, go to the approver.** When
   generating a payroll, and on a payroll awaiting approval (Allowances), HR may
   pay a different transport or other allowance than the employee record holds,
