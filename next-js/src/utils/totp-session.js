@@ -5,9 +5,13 @@ import { getLiveSessionId } from 'src/utils/jwt-auth';
 //
 // Keyed on the Supabase `session_id`, which is what the gateway binds the
 // second factor to (auth/auth.ts gate 4). An email-keyed stamp would outlive
-// the session it was made for — sessionStorage survives a sign-out within the
-// same tab — and vouch for a session that never cleared MFA. Keyed on the
-// session, the client and the server cannot disagree.
+// the session it was made for and vouch for a session that never cleared MFA.
+// Keyed on the session, the client and the server cannot disagree.
+//
+// Kept in localStorage, not sessionStorage: the Supabase session is shared by
+// every tab, so a code entered in one tab clears it for all of them. Held per
+// tab, each new tab (and each browser restart) asked for a code the server
+// still accepted. Sign-out drops every stamp.
 //
 // Used by the login callback (stamps after the code is accepted), TotpGuard
 // (reads it, re-stamps on re-verification) and AuthProvider (does not fetch
@@ -18,7 +22,7 @@ import { getLiveSessionId } from 'src/utils/jwt-auth';
 export const REAUTH_HOURS =
   Number(process.env.NEXT_PUBLIC_TOTP_REAUTH_HOURS) > 0
     ? Number(process.env.NEXT_PUBLIC_TOTP_REAUTH_HOURS)
-    : 8;
+    : 6;
 
 export const REAUTH_MS = REAUTH_HOURS * 60 * 60 * 1000;
 
@@ -30,7 +34,7 @@ export const totpSessionKey = (sessionId) => `${PREFIX}${sessionId}`;
 export function getTotpVerifiedAt(sessionId) {
   if (!sessionId) return null;
   try {
-    const raw = sessionStorage.getItem(totpSessionKey(sessionId));
+    const raw = localStorage.getItem(totpSessionKey(sessionId));
     return raw ? Number(raw) : null;
   } catch {
     return null;
@@ -40,27 +44,33 @@ export function getTotpVerifiedAt(sessionId) {
 export function setTotpVerifiedAt(sessionId) {
   if (!sessionId) return;
   try {
-    sessionStorage.setItem(totpSessionKey(sessionId), String(Date.now()));
+    // Stamps of sessions that were never signed out of would otherwise pile up.
+    Object.keys(localStorage)
+      .filter(
+        (k) => k.startsWith(PREFIX) && Date.now() - Number(localStorage.getItem(k)) > REAUTH_MS
+      )
+      .forEach((k) => localStorage.removeItem(k));
+    localStorage.setItem(totpSessionKey(sessionId), String(Date.now()));
   } catch {
-    // sessionStorage unavailable (SSR / private mode) — non-fatal
+    // localStorage unavailable (SSR / private mode) — non-fatal
   }
 }
 
 export function clearTotpVerifiedAt(sessionId) {
   if (!sessionId) return;
   try {
-    sessionStorage.removeItem(totpSessionKey(sessionId));
+    localStorage.removeItem(totpSessionKey(sessionId));
   } catch {
     // non-fatal
   }
 }
 
-/** Drop every stamp this tab holds — on sign-out, so none outlives its session. */
+/** Drop every stamp this browser holds — on sign-out, so none outlives its session. */
 export function clearAllTotpStamps() {
   try {
-    Object.keys(sessionStorage)
+    Object.keys(localStorage)
       .filter((k) => k.startsWith(PREFIX))
-      .forEach((k) => sessionStorage.removeItem(k));
+      .forEach((k) => localStorage.removeItem(k));
   } catch {
     // non-fatal
   }

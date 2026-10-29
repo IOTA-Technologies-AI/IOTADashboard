@@ -51,7 +51,7 @@ export const signUp = async ({ email, password, firstName, lastName }) => {
  * Sign out
  *************************************** */
 export const signOut = async ({ scope } = {}) => {
-  // Drop every TOTP stamp this tab holds. sessionStorage survives a sign-out,
+  // Drop every TOTP stamp this browser holds. localStorage survives a sign-out,
   // so a stamp left behind would vouch for the NEXT session — which has not
   // cleared the second factor — and the gateway would reject every call while
   // the dashboard rendered as if all were well.

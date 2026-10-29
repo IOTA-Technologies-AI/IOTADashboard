@@ -125,8 +125,8 @@ axios.interceptors.request.use(async (config) => {
  * @description An expired or missing token, or a second factor the gateway never
  * recorded for this session, all end the same way: sign out and sign in again.
  * The last case is the client/server TOTP desync — the browser's
- * `totp_verified_at_<email>` stamp (8h, keyed by EMAIL) says verified while the
- * gateway's totpVerifiedSession row (12h, keyed by SESSION_ID) does not, so the
+ * `totp_verified_at_<email>` stamp (then 8h, keyed by EMAIL) says verified while the
+ * gateway's totpVerifiedSession row (then 12h, keyed by SESSION_ID) does not, so the
  * dashboard rendered normally while every call failed with 401. Signing out
  * clears the stamp, which is what re-syncs them. See src/utils/session-expiry.js.
  */

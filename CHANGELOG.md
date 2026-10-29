@@ -56,6 +56,11 @@ is running.
   re-reads basic, housing, allowances, GOSI and bank details (ISS-0015).
 
 ### Fixed
+- **The authenticator code was asked for in every new tab.** Clearing the
+  second factor was remembered per tab, so opening a link in a new tab or
+  restarting the browser asked for a code again. It is now remembered for the
+  signed-in session across tabs, and the code is asked for once every 6 hours
+  (was 8 in the dashboard and 12 in the API).
 - **Generate Payroll showed figures the payroll did not pay.** A salary
   component of 0 was shown as 1,500 basic, 1,500 housing or 500 transport, and
   the pay was pro-rated for joining date and unpaid leave on screen while the

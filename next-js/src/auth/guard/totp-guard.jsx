@@ -220,7 +220,7 @@ export function TotpGuard({ children }) {
           return;
         }
       }
-      // The callback page already verified TOTP on fresh login and stamped sessionStorage.
+      // The callback page already verified TOTP on fresh login and stamped localStorage.
       // Here we only need to enforce the re-auth timer.
       if (isTotpStampExpired(sessionId)) {
         setState('otp_required');
