@@ -25,6 +25,16 @@ is running.
 ## [Unreleased]
 
 ### Added
+- **Payroll run page laid out as a payroll cycle.** A tracker shows where the
+  payroll stands (Generated → Approval → Posted to bank → Paid → Payslips
+  sent) with the next action beside it; a breakdown compares employees and
+  gross with the previous cycle; tabs hold the payroll report (one compact row
+  per employee, payslips and edits in the row menu), every adjustment with its
+  justification, and payment (bank file, payslips). "Review approval" opens a
+  panel with the cost, the adjustments, changed salary records and the
+  documents; approving asks for confirmation with the totals, and rejecting
+  asks for the reason, shown on the payroll. The approver's name is recorded
+  instead of "admin".
 - **Generate Payroll: review table and side panel instead of a wide grid.**
   Payroll Details lists each employee on one row (days, earnings, adjustment,
   deductions, net pay, status) with no sideways scrolling; filters for "Needs

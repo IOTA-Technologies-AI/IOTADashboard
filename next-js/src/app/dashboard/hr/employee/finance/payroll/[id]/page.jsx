@@ -5,40 +5,31 @@ import { useRouter } from 'next/navigation';
 import { useState, useEffect, useCallback } from 'react';
 
 import Box from '@mui/material/Box';
+import Tab from '@mui/material/Tab';
 import Card from '@mui/material/Card';
-import Menu from '@mui/material/Menu';
-import Grid from '@mui/material/Grid';
+import Tabs from '@mui/material/Tabs';
 import Alert from '@mui/material/Alert';
 import Stack from '@mui/material/Stack';
-import Table from '@mui/material/Table';
 import Paper from '@mui/material/Paper';
 import Button from '@mui/material/Button';
 import Dialog from '@mui/material/Dialog';
 import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
-import MenuItem from '@mui/material/MenuItem';
-import TableRow from '@mui/material/TableRow';
-import TableHead from '@mui/material/TableHead';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
 import TextField from '@mui/material/TextField';
 import IconButton from '@mui/material/IconButton';
 import Typography from '@mui/material/Typography';
-import CardContent from '@mui/material/CardContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Autocomplete from '@mui/material/Autocomplete';
 import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
-import TableContainer from '@mui/material/TableContainer';
 import InputAdornment from '@mui/material/InputAdornment';
-import CircularProgress from '@mui/material/CircularProgress';
 
 import { paths } from 'src/routes/paths';
 
-import { fCurrency } from 'src/utils/format-number';
 import {
   getEmployees,
   fetchPayrollRun,
+  fetchPayrollRuns,
   refreshPayrollRun,
   approvePayrollRun,
   postPayrollToBank,
@@ -56,6 +47,19 @@ import { celebrate } from 'src/components/success-moment';
 import { CustomBreadcrumbs } from 'src/components/custom-breadcrumbs';
 
 import { manualDeductionRows } from 'src/sections/hr/payroll/payslip-document';
+import {
+  runFigures,
+  periodLabel,
+  STATUS_LABEL,
+  PayrollCycleCard,
+  PayrollBreakdown,
+  PayrollReportTable,
+  PayrollReviewDrawer,
+  PayrollPaymentPanel,
+  PayrollAdjustmentsList,
+} from 'src/sections/hr/payroll/payroll-run-overview';
+
+import { useAuthContext } from 'src/auth/hooks';
 
 // Payslips are only worth sending once the run is committed — emailing a
 // figure that is still pending approval invites a correction email after it.
@@ -92,14 +96,6 @@ const num = (value) => Math.round((Number(value) || 0) * 100) / 100;
 /** The record's figure for an adjustable allowance; lines from before adjustments: what was paid. */
 const standardOf = (item, { key, standard }) => num(item[standard] ?? item[key]);
 
-/** The allowances paid differently from the employee record on this line. */
-const adjustmentsOf = (item) =>
-  ADJUSTABLE.map((field) => ({
-    ...field,
-    standardValue: standardOf(item, field),
-    paid: num(item[field.key]),
-  })).filter((a) => a.paid !== a.standardValue);
-
 /** What differs between a payroll line and the employee's record today. */
 const profileChanges = (item, employee) => {
   if (!employee) return [];
@@ -121,36 +117,9 @@ const sar = (value) =>
     maximumFractionDigits: 2,
   })}`;
 
-const payslipDeliveryIcon = (item) => {
-  if (item.payslipEmailStatus === 'sent') return 'mdi:email-check-outline';
-  if (item.payslipEmailStatus === 'failed') return 'mdi:email-alert-outline';
-  if (item.payslipEmailStatus === 'skipped') return 'mdi:email-off-outline';
-  return 'mdi:email-outline';
-};
-
-const payslipDeliveryColor = (item) => {
-  if (item.payslipEmailStatus === 'sent') return 'success';
-  if (item.payslipEmailStatus === 'failed') return 'error';
-  if (item.payslipEmailStatus === 'skipped') return 'warning';
-  return 'inherit';
-};
-
-const payslipDeliveryHint = (item) => {
-  if (item.payslipEmailStatus === 'sent') {
-    const when = item.payslipEmailedAt ? new Date(item.payslipEmailedAt).toLocaleString() : '';
-    return `Sent to ${item.employeeEmail || 'employee'}${when ? ` on ${when}` : ''}`;
-  }
-  if (item.payslipEmailStatus === 'failed') {
-    return `Last attempt failed: ${item.payslipEmailError || 'unknown error'}`;
-  }
-  if (item.payslipEmailStatus === 'skipped' || !item.employeeEmail) {
-    return 'No email address on file for this employee';
-  }
-  return `Email this payslip to ${item.employeeEmail}`;
-};
-
 export default function PayrollDetailPage({ params }) {
   const router = useRouter();
+  const { user } = useAuthContext();
   const { id } = params;
   const payrollId = Number(id);
   const [payroll, setPayroll] = useState(null);
@@ -174,20 +143,13 @@ export default function PayrollDetailPage({ params }) {
   const [refreshing, setRefreshing] = useState(false);
 
   // Payslip button menu (View / Download) and the on-screen viewer
-  const [payslipMenu, setPayslipMenu] = useState(null); // { anchorEl, item }
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [tab, setTab] = useState('report');
+  const [previousRun, setPreviousRun] = useState(null);
   const [payslipView, setPayslipView] = useState(null); // { item, url }
   const [payslipBusyId, setPayslipBusyId] = useState(null);
 
   const isPayrollFinal = SENDABLE_STATUSES.includes(payroll?.status);
-
-  const formatStatus = (status) => {
-    if (!status) return '-';
-    if (status === 'pending_approval') return 'Pending for Approval';
-    return status
-      .split('_')
-      .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
-      .join(' ');
-  };
 
   useEffect(() => {
     const load = async () => {
@@ -205,6 +167,22 @@ export default function PayrollDetailPage({ params }) {
     }
   }, [payrollId]);
 
+  // The cycle before this one, for the breakdown's comparison.
+  useEffect(() => {
+    if (!payroll) return;
+    const key = (r) => r.periodYear * 12 + r.periodMonth;
+    fetchPayrollRuns()
+      .then((runs) => {
+        const earlier = (runs || [])
+          .filter((r) => key(r) < key(payroll) && r.status !== 'rejected')
+          .sort((a, b) => key(b) - key(a));
+        setPreviousRun(earlier[0] || null);
+      })
+      .catch(() => setPreviousRun(null));
+    // Only the period matters; refetching on every status change is wasted.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [payroll?.periodYear, payroll?.periodMonth]);
+
   // Fetch employees to obtain national IDs for export mapping
   useEffect(() => {
     const loadEmployees = async () => {
@@ -219,26 +197,37 @@ export default function PayrollDetailPage({ params }) {
   }, []);
 
   const handleApprove = useCallback(
-    async (status) => {
-      if (!payroll) return;
+    async (status, notes) => {
+      if (!payroll) return false;
       setApproving(true);
       try {
         const response = await approvePayrollRun({
           id: payrollId,
-          approvedBy: 'admin',
+          approvedBy: user?.displayName || user?.name || user?.email || 'admin',
           status,
-          notes: undefined,
+          notes: notes || undefined,
         });
         setPayroll(response.payrollRun);
-        toast.success(status === 'approved' ? 'Payroll approved' : 'Payroll rejected');
+        if (status === 'approved') {
+          celebrate({
+            kind: 'signed',
+            chip: 'Payroll approved',
+            title: `${periodLabel(response.payrollRun)} payroll approved`,
+            description: 'Next: export the bank file and post it to the bank.',
+          });
+        } else {
+          toast.success('Payroll rejected');
+        }
+        return true;
       } catch (error) {
         console.error('Failed to update payroll status', error);
-        toast.error('Failed to update payroll status');
+        toast.error(error?.response?.data?.message || 'Failed to update payroll status');
+        return false;
       } finally {
         setApproving(false);
       }
     },
-    [payroll, payrollId]
+    [payroll, payrollId, user]
   );
 
   const handleExportExcel = useCallback(async () => {
@@ -459,11 +448,7 @@ export default function PayrollDetailPage({ params }) {
   const changedLines = isPending
     ? lineItems.filter((li) => profileChanges(li, employeeById.get(li.employeeDbId)).length)
     : [];
-  const adjustedLines = lineItems.filter((li) => adjustmentsOf(li).length);
-  const adjustmentTotal = adjustedLines.reduce(
-    (sum, li) => sum + adjustmentsOf(li).reduce((s, a) => s + a.paid - a.standardValue, 0),
-    0
-  );
+  const figures = runFigures(lineItems);
 
   // ── Payslips ───────────────────────────────────────────────────────────
   // One renderer serves both the download and the email, so the PDF an
@@ -654,82 +639,23 @@ export default function PayrollDetailPage({ params }) {
   return (
     <DashboardContent>
       <CustomBreadcrumbs
-        heading="Payroll Details"
+        heading={payroll ? `${periodLabel(payroll)} payroll` : 'Payroll'}
         links={[
           { name: 'Dashboard', href: paths.dashboard.root },
           { name: 'HR', href: paths.dashboard.hr.root },
-          { name: 'Employee', href: paths.dashboard.hr.employee.root },
-          { name: 'Finance' },
           { name: 'Payroll', href: paths.dashboard.hr.employee.finance.payroll.root },
-          { name: payroll ? `${payroll.periodMonth}/${payroll.periodYear}` : 'Not found' },
+          { name: payroll ? periodLabel(payroll) : 'Not found' },
         ]}
         action={
-          <Stack direction="row" spacing={1} flexWrap="wrap">
-            <Button
-              variant="outlined"
-              startIcon={<Iconify icon="mdi:export-variant" />}
-              onClick={handleExportExcel}
-              disabled={!payroll || lineItems.length === 0 || exporting}
-            >
-              {exporting ? 'Exporting…' : 'Export Excel'}
-            </Button>
-            {lineItems.length > 0 && (
-              <Button
-                variant="outlined"
-                startIcon={<Iconify icon="mdi:file-document-outline" />}
-                onClick={handleDownloadAllPayslips}
-              >
-                Download All Payslips
-              </Button>
-            )}
-            {lineItems.length > 0 && (
+          <Stack direction="row" spacing={1}>
+            {isPending && (
               <Button
                 variant="contained"
-                color="primary"
-                startIcon={
-                  sendingAll ? (
-                    <CircularProgress size={16} color="inherit" />
-                  ) : (
-                    <Iconify icon="mdi:email-fast-outline" />
-                  )
-                }
-                onClick={handleEmailAllPayslips}
-                disabled={sendingAll || !isPayrollFinal}
+                color="inherit"
+                startIcon={<Iconify icon="solar:clipboard-check-bold" />}
+                onClick={() => setReviewOpen(true)}
               >
-                {sendingAll ? 'Sending…' : 'Email Payslips'}
-              </Button>
-            )}
-            {payroll?.status === 'pending_approval' && (
-              <>
-                <Button
-                  variant="contained"
-                  color="success"
-                  startIcon={<Iconify icon="mdi:check" />}
-                  onClick={() => handleApprove('approved')}
-                  disabled={approving}
-                >
-                  {approving ? 'Updating…' : 'Approve'}
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  startIcon={<Iconify icon="mdi:close" />}
-                  onClick={() => handleApprove('rejected')}
-                  disabled={approving}
-                >
-                  {approving ? 'Updating…' : 'Reject'}
-                </Button>
-              </>
-            )}
-            {payroll?.status === 'approved' && (
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<Iconify icon="mdi:bank-transfer" />}
-                onClick={handlePostToBank}
-                disabled={processing}
-              >
-                {processing ? 'Posting…' : 'Post to Bank'}
+                Review approval
               </Button>
             )}
             <Button
@@ -737,11 +663,11 @@ export default function PayrollDetailPage({ params }) {
               startIcon={<Iconify icon="mdi:arrow-left" />}
               onClick={() => router.push(paths.dashboard.hr.employee.finance.payroll.root)}
             >
-              Back to List
+              Back
             </Button>
           </Stack>
         }
-        sx={{ mb: { xs: 3, md: 5 } }}
+        sx={{ mb: 2 }}
       />
 
       {!payroll ? (
@@ -750,7 +676,7 @@ export default function PayrollDetailPage({ params }) {
             Payroll not found
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            The requested payroll entry does not exist. Please return to the list.
+            The requested payroll does not exist. Return to the list.
           </Typography>
           <Button
             variant="outlined"
@@ -760,401 +686,121 @@ export default function PayrollDetailPage({ params }) {
           </Button>
         </Card>
       ) : (
-        <Card sx={{ p: 3 }}>
-          <Stack spacing={3}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
-              <Typography variant="h4" sx={{ mb: 0.5 }}>
-                {new Date(payroll.periodYear, payroll.periodMonth - 1).toLocaleString('default', {
-                  month: 'long',
-                })}{' '}
-                {payroll.periodYear}
-              </Typography>
-              <Label
-                color={
-                  payroll.status === 'approved'
-                    ? 'success'
-                    : payroll.status === 'pending_approval'
-                      ? 'warning'
-                      : payroll.status === 'rejected'
-                        ? 'error'
-                        : payroll.status === 'processed'
-                          ? 'info'
-                          : 'default'
-                }
-              >
-                {formatStatus(payroll.status)}
+        <Stack spacing={3}>
+          <Stack direction="row" spacing={1} flexWrap="wrap">
+            <Label variant="soft" color={(STATUS_LABEL[payroll.status] || {}).color || 'default'}>
+              {(STATUS_LABEL[payroll.status] || {}).label || payroll.status}
+            </Label>
+            <Label variant="soft">KSA · SAR</Label>
+            {figures.adjusted.length > 0 && (
+              <Label variant="soft" color="warning">
+                {figures.adjusted.length} allowance adjustment
+                {figures.adjusted.length === 1 ? '' : 's'}
               </Label>
-            </Box>
-            <Typography variant="body2" color="text.secondary">
-              Generated on{' '}
-              {new Date(
-                payroll.createdAt || payroll.approvedAt || payroll.generatedAt || Date.now()
-              ).toLocaleString()}{' '}
-              by {payroll.generatedBy}
-            </Typography>
-
-            {changedLines.length > 0 && (
-              <Alert
-                severity="warning"
-                action={
-                  <Button
-                    color="inherit"
-                    size="small"
-                    onClick={handleRefresh}
-                    disabled={refreshing}
-                  >
-                    {refreshing ? 'Updating…' : 'Update from records'}
-                  </Button>
-                }
-              >
-                {changedLines.length === 1
-                  ? `${changedLines[0].employeeName}'s salary record has changed`
-                  : `${changedLines.length} employees' salary records have changed`}{' '}
-                since this payroll was generated. Update the payroll to pay the current figures;
-                allowances adjusted with a reason keep their amounts, and deductions are kept.
-              </Alert>
-            )}
-
-            {adjustedLines.length > 0 && (
-              <Alert severity="info">
-                {adjustedLines.length} employee{adjustedLines.length === 1 ? ' is' : 's are'} paid
-                allowances different from their record, {adjustmentTotal >= 0 ? '+' : '−'}
-                {sar(Math.abs(adjustmentTotal))} in total. Each one is shown below with the standard
-                figure and the reason.
-              </Alert>
-            )}
-
-            <Box
-              sx={{
-                display: 'grid',
-                gap: 2,
-                gridTemplateColumns: {
-                  xs: 'repeat(auto-fit, minmax(180px, 1fr))',
-                  sm: 'repeat(auto-fit, minmax(200px, 1fr))',
-                },
-              }}
-            >
-              {[
-                {
-                  label: 'Total Net',
-                  value: fCurrency(payroll.totalNet ?? 0, {
-                    currency: 'SAR',
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  }),
-                },
-                {
-                  label: 'Total Gross',
-                  value: fCurrency(payroll.totalGross ?? 0, {
-                    currency: 'SAR',
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  }),
-                },
-                { label: 'Total Employees', value: payroll.totalEmployees },
-                { label: 'Month', value: payroll.periodMonth },
-                { label: 'Year', value: payroll.periodYear },
-              ].map((item) => (
-                <Paper key={item.label} variant="outlined" sx={{ p: 1.75, borderRadius: 2 }}>
-                  <Stack spacing={0.5}>
-                    <Typography variant="body2" color="text.secondary">
-                      {item.label}
-                    </Typography>
-                    <Typography variant="subtitle1">{item.value}</Typography>
-                  </Stack>
-                </Paper>
-              ))}
-            </Box>
-
-            {lineItems.length > 0 && (
-              <Card variant="outlined">
-                <CardContent>
-                  <Stack spacing={1} sx={{ mb: 1 }}>
-                    <Typography variant="h6">Payroll Breakdown</Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Summary and per-employee amounts for this run.
-                    </Typography>
-                  </Stack>
-
-                  <Grid container spacing={2} sx={{ mb: 2 }}>
-                    {[
-                      {
-                        label: 'Total Gross',
-                        value: fCurrency(
-                          lineItems.reduce((sum, li) => sum + (li.grossSalary || 0), 0),
-                          { currency: 'SAR', minimumFractionDigits: 2, maximumFractionDigits: 2 }
-                        ),
-                      },
-                      {
-                        label: 'Total Deductions',
-                        value: fCurrency(
-                          lineItems.reduce((sum, li) => sum + (li.deductions || 0), 0),
-                          { currency: 'SAR', minimumFractionDigits: 2, maximumFractionDigits: 2 }
-                        ),
-                      },
-                      {
-                        label: 'Total Net',
-                        value: fCurrency(
-                          lineItems.reduce((sum, li) => sum + (li.netSalary || 0), 0),
-                          { currency: 'SAR', minimumFractionDigits: 2, maximumFractionDigits: 2 }
-                        ),
-                      },
-                    ].map((item) => (
-                      <Grid key={item.label} item xs={12} sm={6} md={4}>
-                        <Stack spacing={0.25}>
-                          <Typography variant="body2" color="text.secondary">
-                            {item.label}
-                          </Typography>
-                          <Typography variant="subtitle1">{item.value}</Typography>
-                        </Stack>
-                      </Grid>
-                    ))}
-                  </Grid>
-
-                  <TableContainer component={Paper} variant="outlined">
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Employee</TableCell>
-                          <TableCell>Designation / Dept</TableCell>
-                          <TableCell align="right">Gross</TableCell>
-                          <TableCell>Allowance Adjustments</TableCell>
-                          <TableCell align="right">LOP</TableCell>
-                          <TableCell align="right" sx={{ color: 'error.main' }}>
-                            Extra Deductions
-                          </TableCell>
-                          <TableCell>Deduction Reason</TableCell>
-                          <TableCell align="right" sx={{ color: 'success.main' }}>
-                            Net Pay
-                          </TableCell>
-                          <TableCell align="center">Actions</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {lineItems.map((item) => (
-                          <TableRow key={item.id} hover>
-                            <TableCell>
-                              <Typography variant="body2" fontWeight="600">
-                                {item.employeeName}
-                              </Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {item.employeeId}
-                              </Typography>
-                            </TableCell>
-                            <TableCell>
-                              <Typography variant="body2">{item.designation || '—'}</Typography>
-                              <Typography variant="caption" color="text.secondary">
-                                {item.department || ''}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="right">
-                              {fCurrency(item.grossSalary || 0, {
-                                currency: 'SAR',
-                                minimumFractionDigits: 2,
-                                maximumFractionDigits: 2,
-                              })}
-                              {isPending &&
-                                profileChanges(item, employeeById.get(item.employeeDbId)).length >
-                                  0 && (
-                                  <Tooltip
-                                    title={profileChanges(item, employeeById.get(item.employeeDbId))
-                                      .map((c) => `${c.label}: ${sar(c.was)} → ${sar(c.now)}`)
-                                      .join(' · ')}
-                                  >
-                                    <Box>
-                                      <Label variant="soft" color="warning" sx={{ mt: 0.5 }}>
-                                        Record changed
-                                      </Label>
-                                    </Box>
-                                  </Tooltip>
-                                )}
-                            </TableCell>
-                            <TableCell sx={{ minWidth: 200 }}>
-                              {adjustmentsOf(item).length ? (
-                                <>
-                                  {adjustmentsOf(item).map((a) => (
-                                    <Typography key={a.key} variant="caption" display="block">
-                                      {a.label.replace(' Allowance', '').replace(' Allowances', '')}
-                                      : {sar(a.standardValue)} → <b>{sar(a.paid)}</b> (
-                                      {a.paid > a.standardValue ? '+' : '−'}
-                                      {Math.abs(a.paid - a.standardValue).toLocaleString('en-US', {
-                                        minimumFractionDigits: 2,
-                                        maximumFractionDigits: 2,
-                                      })}
-                                      )
-                                    </Typography>
-                                  ))}
-                                  <Typography
-                                    variant="caption"
-                                    color="text.secondary"
-                                    display="block"
-                                  >
-                                    {item.earningsAdjustmentReason}
-                                  </Typography>
-                                </>
-                              ) : (
-                                <Typography variant="caption" color="text.secondary">
-                                  —
-                                </Typography>
-                              )}
-                            </TableCell>
-                            <TableCell
-                              align="right"
-                              sx={{ color: item.lopDays > 0 ? 'warning.main' : 'text.secondary' }}
-                            >
-                              {item.lopDays > 0
-                                ? `${item.lopDays}d / SAR ${Number(item.lopAmount || 0).toFixed(2)}`
-                                : '—'}
-                            </TableCell>
-                            <TableCell
-                              align="right"
-                              sx={{
-                                color:
-                                  (item.manualDeductionAmount ?? item.deductions ?? 0) > 0
-                                    ? 'error.main'
-                                    : 'text.secondary',
-                              }}
-                            >
-                              {(item.manualDeductionAmount ?? item.deductions ?? 0) > 0
-                                ? fCurrency(item.manualDeductionAmount ?? item.deductions, {
-                                    currency: 'SAR',
-                                    minimumFractionDigits: 2,
-                                    maximumFractionDigits: 2,
-                                  })
-                                : '—'}
-                            </TableCell>
-                            <TableCell>
-                              {/* One line per deduction, as the payslip prints them */}
-                              {manualDeductionRows(item).length > 1 ? (
-                                manualDeductionRows(item).map((row, index) => (
-                                  <Typography
-                                    key={index}
-                                    variant="caption"
-                                    color="text.secondary"
-                                    display="block"
-                                  >
-                                    {row.label} — {sar(row.amount)}
-                                  </Typography>
-                                ))
-                              ) : (
-                                <Typography variant="caption" color="text.secondary">
-                                  {item.manualDeductionRemarks || item.remarks || '—'}
-                                </Typography>
-                              )}
-                            </TableCell>
-                            <TableCell align="right">
-                              <Typography variant="subtitle2" sx={{ color: 'success.main' }}>
-                                {fCurrency(item.netSalary || 0, {
-                                  currency: 'SAR',
-                                  minimumFractionDigits: 2,
-                                  maximumFractionDigits: 2,
-                                })}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="center">
-                              <Stack direction="row" spacing={0.5} justifyContent="center">
-                                {payroll?.status === 'pending_approval' && (
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    startIcon={<Iconify icon="solar:pen-bold" />}
-                                    onClick={() => handleOpenEarnings(item)}
-                                  >
-                                    Allowances
-                                  </Button>
-                                )}
-                                {payroll?.status === 'pending_approval' && (
-                                  <Button
-                                    size="small"
-                                    variant="outlined"
-                                    color="warning"
-                                    startIcon={<Iconify icon="mdi:pencil-minus-outline" />}
-                                    onClick={() => handleOpenAdjust(item)}
-                                  >
-                                    Adjust
-                                  </Button>
-                                )}
-                                <Button
-                                  size="small"
-                                  variant="outlined"
-                                  startIcon={
-                                    payslipBusyId === item.id ? (
-                                      <CircularProgress size={14} color="inherit" />
-                                    ) : (
-                                      <Iconify icon="mdi:file-document-outline" />
-                                    )
-                                  }
-                                  endIcon={<Iconify icon="eva:arrow-ios-downward-fill" />}
-                                  disabled={payslipBusyId === item.id}
-                                  onClick={(event) =>
-                                    setPayslipMenu({ anchorEl: event.currentTarget, item })
-                                  }
-                                >
-                                  Payslip
-                                </Button>
-                                <Tooltip title={payslipDeliveryHint(item)}>
-                                  <span>
-                                    <Button
-                                      size="small"
-                                      variant="outlined"
-                                      color={payslipDeliveryColor(item)}
-                                      startIcon={
-                                        sendingId === item.id ? (
-                                          <CircularProgress size={14} color="inherit" />
-                                        ) : (
-                                          <Iconify icon={payslipDeliveryIcon(item)} />
-                                        )
-                                      }
-                                      onClick={() => handleEmailPayslip(item)}
-                                      disabled={
-                                        sendingAll || sendingId === item.id || !isPayrollFinal
-                                      }
-                                    >
-                                      {item.payslipEmailStatus === 'sent' ? 'Resend' : 'Email'}
-                                    </Button>
-                                  </span>
-                                </Tooltip>
-                              </Stack>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </CardContent>
-              </Card>
             )}
           </Stack>
-        </Card>
-      )}
 
-      {/* Payslip button menu: look at it first, or take the file */}
-      <Menu
-        open={Boolean(payslipMenu)}
-        anchorEl={payslipMenu?.anchorEl}
-        onClose={() => setPayslipMenu(null)}
-      >
-        <MenuItem
-          onClick={() => {
-            const target = payslipMenu.item;
-            setPayslipMenu(null);
-            handleViewPayslip(target);
-          }}
-        >
-          <Iconify icon="solar:eye-bold" sx={{ mr: 1 }} />
-          View
-        </MenuItem>
-        <MenuItem
-          onClick={() => {
-            const target = payslipMenu.item;
-            setPayslipMenu(null);
-            handleDownloadPayslip(target);
-          }}
-        >
-          <Iconify icon="solar:download-bold" sx={{ mr: 1 }} />
-          Download
-        </MenuItem>
-      </Menu>
+          {changedLines.length > 0 && (
+            <Alert
+              severity="warning"
+              action={
+                <Button color="inherit" size="small" onClick={handleRefresh} disabled={refreshing}>
+                  {refreshing ? 'Updating…' : 'Update from records'}
+                </Button>
+              }
+            >
+              {changedLines.length === 1
+                ? `${changedLines[0].employeeName}'s salary record has changed`
+                : `${changedLines.length} employees' salary records have changed`}{' '}
+              since this payroll was generated. Updating keeps allowances adjusted with a reason,
+              and the deductions.
+            </Alert>
+          )}
+
+          <PayrollCycleCard
+            run={payroll}
+            busy={processing || sendingAll}
+            onReview={() => setReviewOpen(true)}
+            onPostToBank={handlePostToBank}
+            onEmailPayslips={handleEmailAllPayslips}
+          />
+
+          <PayrollBreakdown figures={figures} previous={previousRun} />
+
+          <Card>
+            <Tabs value={tab} onChange={(_, v) => setTab(v)} sx={{ px: 2.5 }}>
+              <Tab value="report" label="Payroll report" />
+              <Tab
+                value="adjustments"
+                label="Adjustments"
+                iconPosition="end"
+                icon={
+                  figures.adjusted.length + figures.deducted.length ? (
+                    <Label variant="soft" color="warning">
+                      {new Set([...figures.adjusted, ...figures.deducted].map((li) => li.id)).size}
+                    </Label>
+                  ) : undefined
+                }
+              />
+              <Tab value="payment" label="Payment" />
+            </Tabs>
+            <Divider />
+            {tab === 'report' && (
+              <PayrollReportTable
+                lineItems={lineItems}
+                editable={isPending}
+                canSend={isPayrollFinal && !sendingAll}
+                busyId={payslipBusyId ?? sendingId}
+                changesFor={(item) =>
+                  isPending ? profileChanges(item, employeeById.get(item.employeeDbId)) : []
+                }
+                onViewPayslip={handleViewPayslip}
+                onDownloadPayslip={handleDownloadPayslip}
+                onEmailPayslip={handleEmailPayslip}
+                onAdjustAllowances={handleOpenEarnings}
+                onAdjustDeductions={handleOpenAdjust}
+              />
+            )}
+            {tab === 'adjustments' && <PayrollAdjustmentsList lineItems={lineItems} />}
+            {tab === 'payment' && (
+              <PayrollPaymentPanel
+                run={payroll}
+                lineItems={lineItems}
+                exporting={exporting}
+                sendingAll={sendingAll}
+                canSend={isPayrollFinal}
+                onExport={handleExportExcel}
+                onDownloadAll={handleDownloadAllPayslips}
+                onEmailAll={handleEmailAllPayslips}
+              />
+            )}
+          </Card>
+
+          <PayrollReviewDrawer
+            open={reviewOpen}
+            run={payroll}
+            figures={figures}
+            changedCount={changedLines.length}
+            refreshing={refreshing}
+            approving={approving}
+            exporting={exporting}
+            onRefresh={handleRefresh}
+            onExport={handleExportExcel}
+            onDownloadAll={handleDownloadAllPayslips}
+            onShowAdjustments={() => {
+              setReviewOpen(false);
+              setTab('adjustments');
+            }}
+            onApprove={async () => {
+              if (await handleApprove('approved')) setReviewOpen(false);
+            }}
+            onReject={async (notes) => {
+              if (await handleApprove('rejected', notes)) setReviewOpen(false);
+            }}
+            onClose={() => setReviewOpen(false)}
+          />
+        </Stack>
+      )}
 
       {/* Payslip viewer */}
       <Dialog open={Boolean(payslipView)} onClose={handleClosePayslipView} maxWidth="md" fullWidth>
